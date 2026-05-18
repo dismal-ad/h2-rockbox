@@ -57,6 +57,9 @@ struct pcm_sink {
 
 enum pcm_sink_ids {
     PCM_SINK_BUILTIN = 0,
+#ifdef HAVE_BLUETOOTH
+    PCM_SINK_BLUETOOTH,
+#endif
     PCM_SINK_NUM
 };
 

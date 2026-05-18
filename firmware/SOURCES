@@ -297,6 +297,8 @@ target/mips/ingenic_x1000/erosqnative/lcd-erosqnative.c
 target/mips/ingenic_x1000/erosqnative/power-erosqnative.c
 target/mips/ingenic_x1000/sdmmc-x1000-common.c
 target/mips/ingenic/spl-nand-ingenic.c
+target/mips/ingenic_x1000/erosqnative/hci-erosqnative.c
+target/mips/ingenic_x1000/erosqnative/BCM4343A1_001.002.009.0122.0538.c
 
 #else /* defined(SIMULATOR) */
 

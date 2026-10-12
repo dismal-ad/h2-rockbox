@@ -126,3 +126,7 @@ usbdac
 utf8proc
 #endif
 
+#if defined(HAVE_BLUETOOTH)
+bluetooth
+#endif
+

@@ -38,6 +38,9 @@
 #include "menu.h"
 #include "usb.h"
 #include "wifi.h"
+#ifdef HAVE_BLUETOOTH
+#include "bluetooth/bluetooth.h"
+#endif
 #include "powermgmt.h"
 #include "adc.h"
 #include "i2c.h"
@@ -590,6 +593,10 @@ static void init(void)
     audio_init();
     CHART("<audio_init");
     talk_announce_voice_invalid(); /* notify user w/ voice prompt if voice file invalid */
+
+#ifdef HAVE_BLUETOOTH
+    bluetooth_init();
+#endif
 
     /* runtime database has to be initialized after audio_init() */
     cpu_boost(false);

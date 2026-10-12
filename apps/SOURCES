@@ -95,5 +95,6 @@ gui/usb_screen.c
 tagcache.c
 #ifdef HAVE_BLUETOOTH
 bluetooth/bluetooth.c
+menus/bluetooth_menu.c
 #endif
 keymaps/keymap-erosq.c

@@ -368,6 +368,11 @@ struct user_settings
 
     int  pause_rewind; /* time in s to rewind when pausing */
     int  unplug_mode; /* pause on headphone unplug */
+#ifdef HAVE_BLUETOOTH
+    bool bt_enabled;
+    bool bt_high_quality; /* SBC dual channel at the highest bitpool */
+    bool bt_volume_sync;  /* AVRCP absolute volume */
+#endif
     bool unplug_autoresume; /* disable auto-resume if no phones */
 
     const struct settings_list *qs_items[QUICKSCREEN_ITEM_COUNT];

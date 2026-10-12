@@ -1329,7 +1329,6 @@ static const struct {
 
         {"Device data", dbg_device_data },
 #ifdef HAVE_BLUETOOTH
-        { "Bluetooth test", bt_scan },
         { "Bluetooth heap info", bt_heap_info },
 #endif
 

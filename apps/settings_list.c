@@ -60,6 +60,11 @@
 
 #include "voice_thread.h"
 
+#ifdef HAVE_BLUETOOTH
+#include "bluetooth/bluetooth.h"
+#define BT_SETTING_FLAGS (F_TEMPVAR|F_CB_ON_SELECT_ONLY|F_CB_ONLY_IF_CHANGED)
+#endif
+
 #define UNUSED {.RESERVED=NULL}
 #define INT(a) {.int_ = a}
 #define UINT(a) {.uint_ = a}
@@ -1029,6 +1034,18 @@ const struct settings_list settings[] = {
     INT_SETTING_NOWRAP(0, car_adapter_mode_delay, LANG_CAR_ADAPTER_MODE_DELAY,
                 5, "delay before resume", UNIT_SEC, 5, 30, 5,
                 NULL, NULL, NULL),
+#ifdef HAVE_BLUETOOTH
+    /* These act on the connection, so only once the choice is confirmed */
+    BOOL_SETTING(BT_SETTING_FLAGS, bt_enabled, LANG_BLUETOOTH, false,
+                 "bluetooth", off_on, LANG_ON, LANG_OFF,
+                 bluetooth_set_enabled),
+    BOOL_SETTING(BT_SETTING_FLAGS, bt_high_quality,
+                 LANG_BLUETOOTH_HIGH_QUALITY, true, "bluetooth high quality",
+                 off_on, LANG_ON, LANG_OFF, bluetooth_quality_changed),
+    BOOL_SETTING(BT_SETTING_FLAGS, bt_volume_sync, LANG_BLUETOOTH_VOLUME_SYNC,
+                 true, "bluetooth volume sync", off_on, LANG_ON, LANG_OFF,
+                 bluetooth_volume_sync_changed),
+#endif
     /* tuner */
 
     OFFON_SETTING(0, bl_filter_first_keypress,

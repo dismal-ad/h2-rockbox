@@ -19,7 +19,7 @@ CORE_LDOPTS = $(GLOBAL_LDOPTS)  # linker ops specifically for core build
 
 TOOLS = $(TOOLSDIR)/rdf2binary $(TOOLSDIR)/convbdf \
 	$(TOOLSDIR)/codepages $(TOOLSDIR)/scramble $(TOOLSDIR)/bmp2rb \
-	$(TOOLSDIR)/uclpack $(TOOLSDIR)/mkboot $(TOOLSDIR)/iaudio_bl_flash.c \
+	$(TOOLSDIR)/mkboot $(TOOLSDIR)/iaudio_bl_flash.c \
 	$(TOOLSDIR)/iaudio_bl_flash.h
 TOOLS += $(foreach tool,$(TOOLSET),$(TOOLSDIR)/$(tool))
 # MKFIRMWARE can be a command plus options (or a system command such as cp).
@@ -106,25 +106,9 @@ ifeq (,$(findstring checkwps,$(APP_TYPE)))
   include $(ROOTDIR)/lib/fixedpoint/fixedpoint.make
 endif
 
-ifneq (,$(findstring bootloader,$(APPSDIR)))
-  ifneq (,$(findstring sonynwz,$(APP_TYPE)))
-    include $(ROOTDIR)/firmware/target/hosted/sonynwz/sonynwz.make
-  else ifneq (,$(findstring hiby_x1600,$(APP_TYPE)))
-    include $(ROOTDIR)/firmware/target/hosted/hiby/hiby.make
-  else ifneq (,$(findstring hibyos,$(APP_TYPE)))
-    include $(ROOTDIR)/firmware/target/hosted/hibyos.make
-  else ifneq (,$(findstring fiio,$(APP_TYPE)))
-    include $(ROOTDIR)/firmware/target/hosted/fiio/fiio.make
-  else ifneq (,$(findstring ingenic_x1000,$(MANUFACTURER)))
-    include $(ROOTDIR)/firmware/target/mips/ingenic_x1000/x1000boot.make
-  else
-    include $(APPSDIR)/bootloader.make
-  endif
-else ifneq (,$(findstring checkwps,$(APP_TYPE)))
+ifneq (,$(findstring checkwps,$(APP_TYPE)))
   include $(APPSDIR)/checkwps.make
   include $(ROOTDIR)/lib/skin_parser/skin_parser.make
-else ifneq (,$(findstring database,$(APP_TYPE)))
-  include $(APPSDIR)/database.make
 else ifneq (,$(findstring warble,$(APP_TYPE)))
   include $(ROOTDIR)/lib/rbcodec/test/warble.make
   include $(ROOTDIR)/lib/tlsf/libtlsf.make

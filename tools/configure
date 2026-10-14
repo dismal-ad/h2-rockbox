@@ -965,24 +965,6 @@ devkitarmcc () {
 }
 
 
-do_bootloader() {
-      appsdir='$(ROOTDIR)/bootloader'
-      apps="bootloader"
-      flash=""
-      if test -n "$boottool"; then
-          tool="$boottool"
-      fi
-      if test -n "$bootoutput"; then
-          output=$bootoutput
-      fi
-      if test -n "$arm_thumb_boot" && test -z "$ARG_ARM_THUMB"; then
-          ARG_ARM_THUMB=1
-      fi
-      extradefines="$extradefines -DBOOTLOADER -ffunction-sections -fdata-sections"
-      bootloader="1"
-      if [ -n "${sysfontbl}" ] ; then sysfont=$sysfontbl ; fi
-}
-
 whichadvanced () {
   atype=`echo "$1" | cut -c 2-`
   ##################################################################
@@ -994,7 +976,7 @@ whichadvanced () {
     interact=1
     echo ""
     printf "Enter your developer options (press only enter when done)\n\
-(D)EBUG, (L)ogf, Boot(c)hart, (S)imulator, (B)ootloader, (P)rofiling, (V)oice, (U)SB Serial,\n\
+(D)EBUG, (L)ogf, Boot(c)hart, (S)imulator, (P)rofiling, (V)oice, (U)SB Serial,\n\
 (W)in32 crosscompile, Win(6)4 crosscompile, (T)est plugins, (O)mit plugins, \n\
 S(m)all C lib, Logf to Ser(i)al port, LTO Build(X), (E)rror on warnings"
     if [ "$modelname" = "iaudiom5" ]; then
@@ -1054,10 +1036,6 @@ S(m)all C lib, Logf to Ser(i)al port, LTO Build(X), (E)rror on warnings"
       [Ss])
         echo "Simulator build enabled"
         simulator="yes"
-        ;;
-      [Bb])
-        echo "Bootloader build selected"
-        do_bootloader
         ;;
       [Pp])
         if [ "yes" = "$use_debug" ]; then
@@ -1489,8 +1467,8 @@ help() {
     --type=TYPE       Sets the build type. Shortcuts are also valid.
                       Run without this option to see all available types.
                       Multiple values are allowed and managed in the input
-                      order. So --type=b stands for Bootloader build, while
-                      --type=ab stands for "Backlight MOD" build.
+                      order. So --type=s stands for Simulator build, while
+                      --type=ad stands for an advanced DEBUG build.
 
     --lcdwidth=X      Sets the width of the LCD. Used only for application
                       targets.
@@ -1684,9 +1662,7 @@ else
   echo "Enter target platform:"
 cat <<EOF
  ==HiFi Walker H2 / AIGO Eros Q / Surfans F20 (native)==
- 247) Eros Q / K native (hw1, hw2)
- 248) Eros Q / K native (hw3, bootloader only)
- 249) Eros Q / K native (hw4, bootloader only)
+ 247) Eros Q / K native (all hardware revisions)
 
 EOF
 
@@ -1707,7 +1683,7 @@ fi
   # scramble is used by all other targets
   scramblebitmaptools="$genericbitmaptools scramble"
   # used by X1000 targets
-  x1000tools="$genericbitmaptools scramble mkspl-x1000 uclpack"
+  x1000tools="$genericbitmaptools scramble"
   # default to not generating ELF files
   USE_ELF="no"
   PLUGIN_USE_ELF="no"
@@ -1729,10 +1705,6 @@ fi
   # tool:      the tool that takes a plain binary and converts that into a
   #            working "firmware" file for your target
   # output:    the final output file name
-  # boottool:  the tool that takes a plain binary and generates a bootloader
-  #            file for your target (or blank to use $tool)
-  # bootoutput:the final output file name for the bootloader (or blank to use
-  #            $output)
   # appextra:  Extra directories under apps/ to be added to INCLUDES
   # flash:     name of output for flashing, for targets where there's a special
   #            file output for this.
@@ -1757,10 +1729,7 @@ fi
     appextra=""
     plugins="no"
     tool="$rootdir/tools/scramble -add=erosqnative "
-    boottool="$rootdir/tools/mkspl-x1000 -type=nand -ppb=2 -bpp=2 "
     output="rockbox.erosq"
-    bootoutput="bootloader.erosq"
-    sysfontbl="16-Terminus"
     # toolset is the tools within the tools directory that we build for
     # this particular target.
     toolset="$x1000tools"
@@ -1771,68 +1740,8 @@ fi
     t_manufacturer="ingenic_x1000"
     t_soc="ingenic"
     t_model="erosqnative"
-    # player version, for bootloader usage
-    # versions 1 and 2 both use 1
-    extradefines="$extradefines -DEROSQN_VER=1"
     ;;
 
-   248|erosqnative_v3)
-    target_id=116
-    modelname="erosqnative_v3"
-    bootloader_only="1"
-    target="EROS_QN"
-    memory=32
-    mipsr2elcc
-    appextra=""
-    plugins="no"
-    tool="$rootdir/tools/scramble -add=erosqnative "
-    boottool="$rootdir/tools/mkspl-x1000 -type=nand -ppb=2 -bpp=2 "
-    output="rockbox.erosq"
-    bootoutput="bootloader.erosq"
-    sysfontbl="16-Terminus"
-    # toolset is the tools within the tools directory that we build for
-    # this particular target.
-    toolset="$x1000tools"
-    bmp2rb_mono="$rootdir/tools/bmp2rb -f 0"
-    bmp2rb_native="$rootdir/tools/bmp2rb -f 4"
-    # architecture, manufacturer and model for the target-tree build
-    t_cpu="mips"
-    t_manufacturer="ingenic_x1000"
-    t_soc="ingenic"
-    t_model="erosqnative"
-    # player version, for bootloader usage
-    # version 3
-    extradefines="$extradefines -DEROSQN_VER=3"
-    ;;
-
-    249|erosqnative_v4)
-    target_id=116
-    modelname="erosqnative_v4"
-    bootloader_only="1"
-    target="EROS_QN"
-    memory=32
-    mipsr2elcc
-    appextra=""
-    plugins="no"
-    tool="$rootdir/tools/scramble -add=erosqnative "
-    boottool="$rootdir/tools/mkspl-x1000 -type=nand -ppb=2 -bpp=2 "
-    output="rockbox.erosq"
-    bootoutput="bootloader.erosq"
-    sysfontbl="16-Terminus"
-    # toolset is the tools within the tools directory that we build for
-    # this particular target.
-    toolset="$x1000tools"
-    bmp2rb_mono="$rootdir/tools/bmp2rb -f 0"
-    bmp2rb_native="$rootdir/tools/bmp2rb -f 4"
-    # architecture, manufacturer and model for the target-tree build
-    t_cpu="mips"
-    t_manufacturer="ingenic_x1000"
-    t_soc="ingenic"
-    t_model="erosqnative"
-    # player version, for bootloader usage
-    # version 4
-    extradefines="$extradefines -DEROSQN_VER=4"
-    ;;
 
    *)
     echo "Please select a supported target platform!"
@@ -1909,33 +1818,12 @@ case $modelname in
 esac
 if [ "$ARG_TYPE" ]; then
   btype=$ARG_TYPE
-elif [ "$bootloader_only" = "1" ]; then
-  echo "Build (B)ootloader$gdbstub: (Defaults to B)"
-  btype=`input`;
 else
-  echo "Build (N)ormal, (A)dvanced, (S)imulator, (B)ootloader, (C)heckWPS, (D)atabase tool, (W)arble codec tool$gdbstub: (Defaults to N)"
+  echo "Build (N)ormal, (A)dvanced, (S)imulator, (C)heckWPS, (W)arble codec tool$gdbstub: (Defaults to N)"
   btype=`input`;
 fi
 
   case $btype in
-    [Ii])
-      appsdir='$(ROOTDIR)/bootloader'
-      apps="bootloader"
-      extradefines="$extradefines -DBOOTLOADER -DE200R_INSTALLER -ffunction-sections -fdata-sections"
-      bootloader="1"
-      echo "e200R-installer build selected"
-      ;;
-    [Ee])
-      appsdir='$(ROOTDIR)/bootloader'
-      apps="bootloader"
-      extradefines="$extradefines -DBOOTLOADER -DSANSA_PP_ERASE -ffunction-sections -fdata-sections"
-      bootloader="1"
-      echo "sansa eraser build selected"
-      ;;
-    [Bb])
-      do_bootloader
-      echo "Bootloader build selected"
-      ;;
     [Ss])
       if [ "$modelname" = "sdlapp" ]; then
           echo "Do not use sdlapp for simulator builds; it is already a native SDL application."
@@ -1963,26 +1851,6 @@ fi
       output='checkwps.'${modelname};
       echo "CheckWPS build selected"
       ;;
-    [Dd])
-      uname=`uname`
-      simcc "database-sdl"
-      toolset='';
-      appsdir='$(ROOTDIR)/tools/database';
-
-      case $uname in
-          CYGWIN*|MINGW*)
-              output="database_${modelname}.exe"
-              ;;
-          *)
-              output='database.'${modelname};
-              ;;
-      esac
-      # architecture, manufacturer and model for the target-tree build
-      t_cpu="hosted"
-      t_manufacturer="sdl"
-      t_model="database"
-      echo "Database tool build selected"
-      ;;
     [Ww])
       uname=`uname`
       simcc "warble"
@@ -1995,13 +1863,8 @@ fi
       ;;
     *)
       debug=""
-      if [ "$bootloader_only" = "1" ]; then
-        do_bootloader
-        echo "Bootloader build selected"
-      else
-        btype="N" # set it explicitly since RET only gets here as well
-        echo "Normal build selected"
-      fi
+      btype="N" # set it explicitly since RET only gets here as well
+      echo "Normal build selected"
       ;;
 
   esac
@@ -2020,11 +1883,6 @@ fi
 
 if [ -z "$debug" ]; then
   GCCOPTS="$GCCOPTS $GCCOPTIMIZE"
-fi
-
-if [ "$bootloader_only" = "1" -a "$bootloader" != "1" ]; then
-    echo "Target can only be used for bootloader builds."
-    exit 9
 fi
 
 # if building a simulator for an hosted port, APPLICATION
@@ -2331,9 +2189,9 @@ if [ "$ARG_STACK_PROTECTOR" != "" ]; then
 fi
 
 # We generally want utf8proc.  Exceptions are:
-#   Bootloaders, checkwps, warble, <4MB RAM
+#   checkwps, warble, <4MB RAM
 #   and (temporarily) imx233
-if [ "$apps" = "bootloader" -o "$app_type" = "checkwps" -o "$app_type" = "warble" -o "$memory" -lt "4" ]; then
+if [ "$app_type" = "checkwps" -o "$app_type" = "warble" -o "$memory" -lt "4" ]; then
     no_utf8proc=1
 fi
 

@@ -116,7 +116,6 @@ sub make_install {
     my $libdir = $dest;
     my $userdir = $dest;
 
-    my @plugins = ( "games", "apps", "demos", "viewers" );
     my @userstuff = ( "backdrops", "codepages", "docs", "fonts", "langs", "themes", "wps", "eqs", "icons" );
     my @files = ();
 
@@ -153,58 +152,6 @@ sub make_install {
     # in the zip.
     if ($modelname !~ /android/) {
         glob_install("$src/codecs/*", "$libdir/codecs", "-m 0755");
-    }
-
-    # plugins
-    unless (glob_mkdir("$libdir/rocks")) {
-        return 0;
-    }
-    foreach my $t (@plugins) {
-        unless (glob_mkdir("$libdir/rocks/$t")) {
-            return 0;
-        }
-        glob_install("$src/rocks/$t/*", "$libdir/rocks/$t", "-m 0755");
-    }
-
-    if(-e "$src/rocks/games/sgt_puzzles") {
-        unless (glob_mkdir("$libdir/rocks/games/sgt_puzzles")) {
-            return 0;
-        }
-        glob_install("$src/rocks/games/sgt_puzzles/*", "$libdir/rocks/games/sgt_puzzles", "-m 0755");
-    }
-
-    # rocks/viewers/lua
-    unless (glob_mkdir("$libdir/rocks/viewers/lua")) {
-        return 0;
-    }
-    glob_install("$src/rocks/viewers/lua/*", "$libdir/rocks/viewers/lua");
-
-    #lua include scripts
-    if(-e "$ROOT/apps/plugins/lua/include_lua") {
-        unless (glob_mkdir("$libdir/rocks/viewers/lua")) {
-            return 0;
-        }
-        glob_install("$ROOT/apps/plugins/lua/include_lua/*.lua", "$libdir/rocks/viewers/lua");
-        #glob_mkdir("$temp_dir/rocks/viewers/lua");
-        #glob_copy("$ROOT/apps/plugins/lua/include_lua/*.lua", "$temp_dir/rocks/viewers/lua/");
-    }
-
-    #lua example scripts
-    if(-e "$ROOT/apps/plugins/lua_scripts") {
-        unless (glob_mkdir("$libdir/rocks/demos/lua_scripts")) {
-            return 0;
-        }
-        glob_install("$ROOT/apps/plugins/lua_scripts/*.lua", "$libdir/rocks/demos/lua_scripts");
-        #glob_mkdir("$temp_dir/rocks/demos/lua_scripts");
-        #glob_copy("$ROOT/apps/plugins/lua_scripts/*.lua", "$temp_dir/rocks/demos/lua_scripts/");
-    }
-
-    #lua picross puzzles
-    if(-e "$ROOT/apps/plugins/picross") {
-        unless (glob_mkdir("$libdir/rocks/games/.picross")) {
-            return 0;
-        }
-        glob_install("$ROOT/apps/plugins/picross/*.picross", "$libdir/rocks/games/.picross");
     }
 
     # all the rest directories
@@ -273,7 +220,6 @@ if ($rbdir eq '') {
 
 my $firmdir="$ROOT/firmware";
 my $appsdir="$ROOT/apps";
-my $viewer_bmpdir="$ROOT/apps/plugins/bitmaps/viewer_defaults";
 
 my $cppdef = $target;
 
@@ -430,11 +376,6 @@ sub buildzip {
     }
 
     glob_mkdir("$temp_dir/langs");
-    glob_mkdir("$temp_dir/rocks");
-    glob_mkdir("$temp_dir/rocks/games");
-    glob_mkdir("$temp_dir/rocks/apps");
-    glob_mkdir("$temp_dir/rocks/demos");
-    glob_mkdir("$temp_dir/rocks/viewers");
 
     if ($recording) {
         glob_mkdir("$temp_dir/recpresets");
@@ -472,141 +413,7 @@ sub buildzip {
     # remove directory again if no codec was copied
     rmdir("$temp_dir/codecs");
 
-    find(find_copyfile(qr/\.(rock|ovl|lua)/, abs_path("$temp_dir/rocks/")), 'apps/plugins');
-
-    #lua include scripts
-    if(-e "$ROOT/apps/plugins/lua/include_lua") {
-        glob_mkdir("$temp_dir/rocks/viewers/lua");
-        glob_copy("$ROOT/apps/plugins/lua/include_lua/*.lua", "$temp_dir/rocks/viewers/lua/");
-    }
-
-    #lua example scripts
-    if(-e "$ROOT/apps/plugins/lua_scripts") {
-        glob_mkdir("$temp_dir/rocks/demos/lua_scripts");
-        glob_copy("$ROOT/apps/plugins/lua_scripts/*.lua", "$temp_dir/rocks/demos/lua_scripts/");
-    }
-
-    #lua picross puzzles
-    if(-e "$ROOT/apps/plugins/picross") {
-        glob_mkdir("$temp_dir/rocks/games/.picross");
-        glob_copy("$ROOT/apps/plugins/picross/*.picross", "$temp_dir/rocks/games/.picross/");
-    }
-
-    # exclude entries for the image file types not supported by the imageviewer for the target.
-    my $viewers = "$ROOT/apps/plugins/viewers.config";
-    my $c="cat $viewers | gcc $cppdef -I. -I$firmdir/export -E -P -include config.h -";
-
-    open VIEWERS, "$c|" or die "can't open viewers.config";
-    my @viewers = <VIEWERS>;
-    close VIEWERS;
-
-    open VIEWERS, ">$temp_dir/viewers.config" or
-        die "can't create $temp_dir/viewers.config";
-
-    foreach my $line (@viewers) {
-        if ($line =~ /([^,]*),([^,]*),/) {
-            my ($ext, $plugin)=($1, $2);
-            my $r = "${plugin}.rock";
-            my $oname;
-
-            my $dir = $r;
-            my $name;
-
-            # strip off the last slash and file name part
-            $dir =~ s/(.*)\/(.*)/$1/;
-            # store the file name part
-            $name = $2;
-
-            # get .ovl name (file part only)
-            $oname = $name;
-            $oname =~ s/\.rock$/.ovl/;
-
-            # print STDERR "$ext $plugin $dir $name $r\n";
-
-            if(-e "$temp_dir/rocks/$name") {
-                if($dir ne "rocks") {
-                    # target is not 'rocks' but the plugins are always in that
-                    # dir at first!
-                    move("$temp_dir/rocks/$name", "$temp_dir/rocks/$r");
-                }
-                print VIEWERS $line;
-            }
-            elsif(-e "$temp_dir/rocks/$r") {
-                # in case the same plugin works for multiple extensions, it
-                # was already moved to the viewers dir
-                print VIEWERS $line;
-            }
-
-            if(-e "$temp_dir/rocks/$oname") {
-                # if there's an "overlay" file for the .rock, move that as
-                # well
-                move("$temp_dir/rocks/$oname", "$temp_dir/rocks/$dir");
-            }
-        }
-    }
-    close VIEWERS;
-
-    open CATEGORIES, "$ROOT/apps/plugins/CATEGORIES" or
-        die "can't open CATEGORIES";
-    my @rock_targetdirs = <CATEGORIES>;
-    close CATEGORIES;
-    foreach my $line (@rock_targetdirs) {
-        if ($line =~ /([^,]*),(.*)/) {
-            my ($plugin, $dir)=($1, $2);
-            if($dir  eq 'games' and substr(${plugin}, 0, 4) eq "sgt-") {
-                glob_mkdir("$temp_dir/rocks/$dir/sgt_puzzles");
-                move("$temp_dir/rocks/${plugin}.rock", "$temp_dir/rocks/$dir/sgt_puzzles/${plugin}.rock");
-            }
-            else {
-                move("$temp_dir/rocks/${plugin}.rock", "$temp_dir/rocks/$dir/${plugin}.rock");
-            }
-            if(-e "$temp_dir/rocks/${plugin}.ovl") {
-                # if there's an "overlay" file for the .rock, move that as
-                # well
-                move("$temp_dir/rocks/${plugin}.ovl", "$temp_dir/rocks/$dir");
-            }
-            if(-e "$temp_dir/rocks/${plugin}.lua") {
-                # if this is a lua script, move it to the appropriate dir
-                move("$temp_dir/rocks/${plugin}.lua", "$temp_dir/rocks/$dir/");
-            }
-        }
-    }
-
-    glob_unlink("$temp_dir/rocks/*.lua"); # Clean up unwanted *.lua files (e.g. actions.lua, buttons.lua)
-
     copy("$ROOT/apps/tagnavi.config", "$temp_dir/");
-    copy("$ROOT/apps/plugins/disktidy.config", "$temp_dir/rocks/apps/");
-
-    if(-e "$temp_dir/rocks/viewers/open_plugins.rock") {
-        my $cwd = getcwd();
-        copy("$cwd/apps/plugins/open_plugins.opx", "$temp_dir/rocks/apps/open_plugins.opx") or
-            print STDERR "Copy failed: $cwd/apps/plugins/open_plugins.opx $!\n";
-    }
-
-    if($bitmap) {
-        copy("$ROOT/apps/plugins/sokoban.levels", "$temp_dir/rocks/games/sokoban.levels"); # sokoban levels
-        copy("$ROOT/apps/plugins/snake2.levels", "$temp_dir/rocks/games/snake2.levels"); # snake2 levels
-        copy("$ROOT/apps/plugins/rockbox-fonts.config", "$temp_dir/rocks/viewers/");
-        # picross files
-        copy("$ROOT/apps/plugins/picross_default.picross", "$temp_dir/rocks/games/picross_default.picross");
-        copy("$ROOT/apps/plugins/bitmaps/native/picross_numbers.bmp",
-             "$temp_dir/rocks/games/picross_numbers.bmp");
-    }
-
-    if(-e "$temp_dir/rocks/demos/pictureflow.rock") {
-        copy("$ROOT/apps/plugins/bitmaps/native/pictureflow_emptyslide.100x100x16.bmp",
-             "$temp_dir/rocks/demos/pictureflow_emptyslide.bmp");
-        my ($pf_logo);
-        if ($width < 200) {
-            $pf_logo = "pictureflow_logo.100x18x16.bmp";
-        } else {
-            $pf_logo = "pictureflow_logo.193x34x16.bmp";
-        }
-        copy("$ROOT/apps/plugins/bitmaps/native/$pf_logo",
-             "$temp_dir/rocks/demos/pictureflow_splash.bmp");
-
-    }
-
     if($image) {
         # image is blank when this is a simulator
         if( filesize("rockbox.ucl") > 1000 ) {
@@ -688,16 +495,11 @@ sub buildzip {
     glob_copy('*.lng.talk', "$temp_dir/langs/");
     glob_copy('*.voice', "$temp_dir/langs/");
 
-    # copy the .lua files
-    glob_mkdir("$temp_dir/rocks/viewers/lua/");
-    glob_copy('apps/plugins/lua/*.lua', "$temp_dir/rocks/viewers/lua/");
-
     # finally, bundle map files for debug
     glob_mkdir("$temp_dir/debug");
     glob_copy("*.map", "$temp_dir/debug");
-# codecs and plugin maps add up
+# codec maps add up
 #    find(find_copyfile(qr/\.(map)/, abs_path("$temp_dir/debug")), 'lib');
-#    find(find_copyfile(qr/\.(map)/, abs_path("$temp_dir/debug")), 'apps/plugins');
 }
 
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =

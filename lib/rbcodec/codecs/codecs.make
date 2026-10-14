@@ -165,7 +165,7 @@ endif #ifndef DEBUG
 
 ifndef APP_TYPE
   CONFIGFILE := $(FIRMDIR)/export/config/$(MODELNAME).h
-  CODEC_LDS := $(APPSDIR)/plugins/plugin.lds # codecs and plugins use same file
+  CODEC_LDS := $(RBCODECLIB_DIR)/codecs/codec.lds
   CODECLINK_LDS := $(CODECDIR)/codec.link
 endif
 

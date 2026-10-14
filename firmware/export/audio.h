@@ -28,9 +28,6 @@
    many files. */
 #include "pcm_sampr.h"
 #include "pcm.h"
-#ifdef HAVE_RECORDING
-#include "enc_base.h"
-#endif /* HAVE_RECORDING */
 
 #define AUDIO_STATUS_PLAY       0x0001
 #define AUDIO_STATUS_PAUSE      0x0002
@@ -66,9 +63,6 @@ void audio_flush_and_reload_tracks(void);
 struct mp3entry* audio_current_track(void);
 struct mp3entry* audio_next_track(void);
 bool audio_peek_track(struct mp3entry* id3, int offset);
-#ifdef HAVE_DISK_STORAGE
-void audio_set_buffer_margin(int seconds);
-#endif
 void audio_error_clear(void);
 int audio_get_file_pos(void);
 void audio_beep(int duration);
@@ -108,76 +102,9 @@ enum audio_sources
 extern int audio_channels;
 extern int audio_output_source;
 
-#ifdef HAVE_RECORDING
-/* Recordable source implies it has the input as well */
-
-/* For now there's no restrictions on any targets with which inputs
-   are recordable so define them as equivalent - if they do differ,
-   special handling is needed right now. */
-enum rec_sources
-{
-    __REC_SRC_FIRST = -1,
-    HAVE_MIC_REC_(REC_SRC_MIC,)
-    HAVE_LINE_REC_(REC_SRC_LINEIN,)
-    HAVE_SPDIF_REC_(REC_SRC_SPDIF,)
-    HAVE_FMRADIO_REC_(REC_SRC_FMRADIO,)
-    REC_NUM_SOURCES
-};
-#endif /* HAVE_RECORDING */
-
 /* selects a source to monitor for recording or playback */
 #define SRCF_PLAYBACK         0x0000    /* default */
 #define SRCF_RECORDING        0x1000
-#if CONFIG_TUNER
-/* for AUDIO_SRC_FMRADIO */
-#define SRCF_FMRADIO_PLAYING  0x0000    /* default */
-#define SRCF_FMRADIO_PAUSED   0x2000
-#endif
-
-#ifdef HAVE_RECORDING
-/* parameters for audio_set_recording_options */
-struct audio_recording_options
-{
-    int  rec_source;
-    int  rec_frequency;
-    int  rec_channels;
-    int  rec_prerecord_time;
-    int  rec_mono_mode;
-    int  rec_source_flags;  /* for rec_set_source */
-    struct encoder_config enc_config;
-};
-
-/* audio recording functions */
-void audio_init_recording(void);
-void audio_close_recording(void);
-void audio_record(const char *filename);
-void audio_stop_recording(void);
-void audio_pause_recording(void);
-void audio_resume_recording(void);
-void audio_set_recording_options(struct audio_recording_options *options);
-void audio_set_recording_gain(int left, int right, int type);
-unsigned long audio_recorded_time(void);
-unsigned long audio_num_recorded_bytes(void);
-
-unsigned long audio_prerecorded_time(void);
-
-#endif /* HAVE_RECORDING */
-
-#if INPUT_SRC_CAPS != 0
-/* audio.c */
-void audio_set_input_source(int source, unsigned flags);
-/* audio_input_mux: target-specific implementation used by audio_set_source
-   to set hardware inputs and audio paths */
-void audio_input_mux(int source, unsigned flags);
-void audio_set_output_source(int source);
-#endif /* INPUT_SRC_CAPS */
-
-#ifdef HAVE_SPDIF_IN
-/* returns index into rec_master_sampr_list */
-int audio_get_spdif_sample_rate(void);
-/* > 0: monitor EBUin, 0: Monitor IISrecv, <0: reset only */
-void audio_spdif_set_monitor(int monitor_spdif);
-#endif /* HAVE_SPDIF_IN */
 
 #ifdef HAVE_SPEAKER
 /* enable/disable the speaker: 0=off, 1=on, 2=on if jack unpluged, off otherwise

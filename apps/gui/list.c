@@ -112,15 +112,7 @@ void list_init_item_height(struct gui_synclist *list, enum screen_type screen)
 {
     struct viewport *vp = list->parent[screen];
     int line_height = font_get(vp->font)->height;
-#ifdef HAVE_TOUCHSCREEN
-    /* the 4/12 factor is designed for reasonable item size on a 160dpi screen */
-    if (global_settings.list_line_padding == -1)
-        list->line_height[screen] = MAX(lcd_get_dpi()*4/12, line_height);
-    else
-        list->line_height[screen] = line_height + global_settings.list_line_padding;
-#else
     list->line_height[screen] = line_height;
-#endif
 }
 
 static void gui_synclist_init_display_settings(struct gui_synclist * list)
@@ -160,11 +152,6 @@ void gui_synclist_init(struct gui_synclist * gui_list,
     gui_list->nb_items = 0;
     gui_list->selected_item = 0;
     gui_synclist_init_display_settings(gui_list);
-#ifdef HAVE_TOUCHSCREEN
-    gui_list->y_pos = 0;
-    gui_list->scroll_base_y = 0;
-    gui_list->scroll_mode = 0;
-#endif
     FOR_NB_SCREENS(i)
     {
         gui_list->start_item[i] = 0;
@@ -188,11 +175,9 @@ void gui_synclist_init(struct gui_synclist * gui_list,
 
     gui_list->scheduled_talk_tick = gui_list->last_talked_tick = 0;
 
-#ifdef HAVE_LCD_COLOR
     gui_list->title_color = -1;
     gui_list->callback_get_item_color = NULL;
     gui_list->selection_color = NULL;
-#endif
 }
 
 int gui_list_get_item_offset(struct gui_synclist * gui_list,
@@ -279,9 +264,6 @@ static void gui_list_put_selection_on_screen(struct gui_synclist * gui_list,
         gui_list->start_item[screen] = bottom;
     else
         gui_list->start_item[screen] = new_start_item;
-#ifdef HAVE_TOUCHSCREEN
-    gui_list->y_pos = gui_list->start_item[SCREEN_MAIN] * gui_list->line_height[SCREEN_MAIN];
-#endif
 }
 
 static void edge_beep(struct gui_synclist * gui_list, bool wrap)
@@ -478,7 +460,6 @@ void gui_synclist_set_viewport_defaults(struct viewport *vp,
     viewport_set_defaults(vp, screen);
 }
 
-#ifdef HAVE_LCD_COLOR
 void gui_synclist_set_color_callback(struct gui_synclist * lists,
                                      list_get_color color_callback)
 {
@@ -500,7 +481,6 @@ void gui_synclist_set_sel_color(struct gui_synclist * lists,
     else
         list_init_viewports(lists);
 }
-#endif
 
 static void gui_synclist_select_next_page(struct gui_synclist * lists,
                                           enum screen_type screen,
@@ -608,9 +588,6 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
     int action = *actionptr;
     static bool pgleft_allow_cancel = false;
 
-#ifdef HAVE_WHEEL_ACCELERATION
-    int next_item_modifier = button_apply_acceleration(get_action_data());
-#else
     static int next_item_modifier = 1;
     static int last_accel_tick = 0;
 
@@ -641,14 +618,6 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
             }
         }
     }
-#endif
-#if defined(HAVE_TOUCHSCREEN)
-    if (action == ACTION_TOUCHSCREEN)
-        action = *actionptr = gui_synclist_do_touchscreen(lists);
-    else if (action > ACTION_TOUCHSCREEN_MODE)
-        /* cancel kinetic if we got a normal button event */
-        _gui_synclist_stop_kinetic_scrolling(lists);
-#endif
 
     /* Disable the skin redraw callback */
     current_lists = NULL;
@@ -682,23 +651,19 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
         }
 #endif
 
-#ifdef HAVE_VOLUME_IN_LIST
         case ACTION_LIST_VOLUP:
             adjust_volume(1);
             return true;
         case ACTION_LIST_VOLDOWN:
             adjust_volume(-1);
             return true;
-#endif
         case ACTION_STD_PREVREPEAT:
             allow_wrap = false; /* Prevent list wraparound on repeating actions */
             /*Fallthrough*/
         case ACTION_STD_PREV:
 
             gui_list_select_at_offset(lists, -next_item_modifier, allow_wrap);
-#ifndef HAVE_WHEEL_ACCELERATION
             if (button_queue_count() < FRAMEDROP_TRIGGER)
-#endif
                 gui_synclist_draw(lists);
             yield();
             *actionptr = ACTION_STD_PREV;
@@ -709,9 +674,7 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
             /*Fallthrough*/
         case ACTION_STD_NEXT:
             gui_list_select_at_offset(lists, next_item_modifier, allow_wrap);
-#ifndef HAVE_WHEEL_ACCELERATION
             if (button_queue_count() < FRAMEDROP_TRIGGER)
-#endif
                 gui_synclist_draw(lists);
             yield();
             *actionptr = ACTION_STD_NEXT;
@@ -756,10 +719,6 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
         case ACTION_LISTTREE_PGUP:
         {
             int screen =
-#ifdef HAVE_REMOTE_LCD
-                get_action_statuscode(NULL)&ACTION_REMOTE ?
-                         SCREEN_REMOTE :
-#endif
                                           SCREEN_MAIN;
             gui_synclist_select_previous_page(lists, screen, false);
             gui_synclist_draw(lists);
@@ -771,10 +730,6 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
         case ACTION_LISTTREE_PGDOWN:
         {
             int screen =
-#ifdef HAVE_REMOTE_LCD
-                get_action_statuscode(NULL)&ACTION_REMOTE ?
-                         SCREEN_REMOTE :
-#endif
                                           SCREEN_MAIN;
             gui_synclist_select_next_page(lists, screen, false);
             gui_synclist_draw(lists);
@@ -912,11 +867,9 @@ bool simplelist_show_list(struct simplelist_info *info)
 
     gui_synclist_set_icon_callback(&lists, info->get_icon);
     gui_synclist_set_voice_callback(&lists, info->get_talk);
-#ifdef HAVE_LCD_COLOR
     gui_synclist_set_color_callback(&lists, info->get_color);
     if (info->selection_color)
         gui_synclist_set_sel_color(&lists, info->selection_color);
-#endif
 
     if (info->action_callback)
         info->action_callback(ACTION_REDRAW, &lists);
@@ -990,10 +943,8 @@ bool simplelist_show_list(struct simplelist_info *info)
 
     gui_synclist_scroll_stop(&lists);
 
-#ifdef HAVE_LCD_COLOR
     if (info->selection_color)
         gui_synclist_set_sel_color(&lists, NULL);
-#endif
 
     FOR_NB_SCREENS(i)
     {
@@ -1019,10 +970,8 @@ void simplelist_info_init(struct simplelist_info *info, char* title,
     info->get_icon = NULL;
     info->get_name = NULL;
     info->get_talk = NULL;
-#ifdef HAVE_LCD_COLOR
     info->get_color = NULL;
     info->selection_color = NULL;
-#endif
     info->callback_data = data;
     simplelist_line_count = 0;
 }

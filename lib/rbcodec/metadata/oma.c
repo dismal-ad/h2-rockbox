@@ -52,11 +52,7 @@
 
 #define EA3_HEADER_SIZE 96
 
-#if 0
-#define DEBUGF printf
-#else
 #define DEBUGF(...)
-#endif
 
 /* Various helper macros taken from ffmpeg for reading *
  * and writing buffers with a specified endianess.     */

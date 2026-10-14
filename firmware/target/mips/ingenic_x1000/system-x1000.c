@@ -36,13 +36,9 @@
 #include "x1000/msc.h"
 #include "x1000/aic.h"
 
-#if defined(HAVE_DEVICEDATA)
 #include "devicedata.h"
-#endif
 
-#if defined(EROS_QN)
 #include "eros_qn_codec.h"
-#endif
 
 #ifdef X1000_CPUIDLE_STATS
 int __cpu_idle_avg = 0;
@@ -72,45 +68,19 @@ static void system_init_irq(void)
 /* First function called by crt0.S */
 void system_early_init(void)
 {
-#if defined(FIIO_M3K) && !defined(BOOTLOADER)
-    /* HACK for compatibility: CPM scratchpad has undefined contents at
-     * time of reset and old bootloader revisions don't initialize it.
-     * Therefore we can't rely on its contents on the FiiO M3K. This does
-     * kind of break the entire point of boot flags, but right now they
-     * are really only used by the bootloader so it's not a huge issue.
-     * This hack should keep everything working as usual. */
-    if(jz_readf(CPM_MPCR, ON) == 0) {
-        init_boot_flags();
-        set_boot_flag(BOOT_FLAG_CLK_INIT);
-    }
-#endif
 
     /* Finish up clock init */
     clk_init();
 }
 
-#if defined (HAVE_DEVICEDATA) && defined(EROS_QN)
 void fill_devicedata(struct device_data_t *data)
 {
-# ifdef BOOTLOADER
-    memset(data->payload, 0xff, data->length);
-#  if EROSQN_VER == 1
-    // version 2 has newer dac, 1 has old dac.
-    data->hw_rev = eros_qn_discover_dac(false) ? 2 : 1;
-#  else
-    // versions 3 and 4 both have new dac
-    data->hw_rev = EROSQN_VER;
-#  endif
-    data->version = DEIVCE_DATA_VERSION;
-# else
     uint8_t hw_rev = device_data.hw_rev;
     uint8_t version = device_data.version;
     memset(data->payload, 0xff, data->length);
     data->hw_rev = hw_rev;
     data->version = version;
-# endif
 }
-#endif
 
 /* First thing called from Rockbox main() */
 void system_init(void)
@@ -392,9 +362,5 @@ void intr_handler(void)
 
 void system_exception_wait(void)
 {
-#ifdef FIIO_M3K
-    while(button_read_device() != (BUTTON_POWER|BUTTON_VOL_DOWN));
-#else
     while(1);
-#endif
 }

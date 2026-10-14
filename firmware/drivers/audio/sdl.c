@@ -22,45 +22,34 @@
 #include "config.h"
 #include "sound.h"
 #include "pcm_sampr.h"
-#ifdef HAVE_SW_VOLUME_CONTROL
 #include "pcm_sw_volume.h"
 #include "fixedpoint.h"
-#endif
 
 /**
  * Audio Hardware api. Make some of them do nothing as we cannot properly
  * simulate with SDL. if we used DSP we would run code that doesn't actually
  * run on the target
  **/
-#ifdef HAVE_SW_VOLUME_CONTROL
 static int sdl_volume_level(int volume)
 {
     int shift = (1 - sound_numdecimals(SOUND_VOLUME)) << 16;
     int minvol = fp_mul(sound_min(SOUND_VOLUME), fp_exp10(shift, 16), 16);
     return volume <= minvol ? INT_MIN : volume;
 }
-#endif /* HAVE_SW_VOLUME_CONTROL */
 
 #if defined(AUDIOHW_HAVE_MONO_VOLUME)
 void audiohw_set_volume(int volume)
 {
-#ifdef HAVE_SW_VOLUME_CONTROL
     volume = sdl_volume_level(volume);
     pcm_set_master_volume(volume, volume);
-#else
-    extern void pcm_set_mixer_volume(int volume);
-    pcm_set_mixer_volume(volume);
-#endif
     (void)volume;
 }
 #else /* !AUDIOHW_HAVE_MONO_VOLUME */
 void audiohw_set_volume(int vol_l, int vol_r)
 {
-#ifdef HAVE_SW_VOLUME_CONTROL
     vol_l = sdl_volume_level(vol_l);
     vol_r = sdl_volume_level(vol_r);
     pcm_set_master_volume(vol_l, vol_r);
-#endif
     (void)vol_l; (void)vol_r;
 }
 #endif /* AUDIOHW_HAVE_MONO_VOLUME */
@@ -68,9 +57,7 @@ void audiohw_set_volume(int vol_l, int vol_r)
 #if defined(AUDIOHW_HAVE_PRESCALER)
 void audiohw_set_prescaler(int value)
 {
-#ifdef HAVE_SW_VOLUME_CONTROL
     pcm_set_prescaler(value);
-#endif
     (void)value;
 }
 #endif /* AUDIOHW_HAVE_PRESCALER */
@@ -121,8 +108,3 @@ void audiohw_set_power_mode(int value)
 
 void audiohw_close(void) {}
 
-#ifdef CONFIG_SAMPR_TYPES
-unsigned int pcm_sampr_to_hw_sampr(unsigned int samplerate,
-                                   unsigned int type)
-    { return samplerate; (void)type; }
-#endif /* CONFIG_SAMPR_TYPES */

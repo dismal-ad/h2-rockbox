@@ -790,7 +790,6 @@ do {                                    \
 #define read_c0_epc()        __read_ulong_c0_register($14, 0)
 #define write_c0_epc(val)    __write_ulong_c0_register($14, 0, val)
 
-#if 1
 /*
  * Macros to access the system control coprocessor
  */
@@ -863,7 +862,6 @@ do {                                    \
     :"=r" (__res));                                         \
         __res;})
 
-#endif
 /*
  * Macros to access the floating point coprocessor control registers
  */

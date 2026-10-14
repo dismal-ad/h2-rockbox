@@ -93,11 +93,7 @@ static struct queue_sender_list codec_queue_sender_list SHAREDBSS_ATTR;
 
 /* Workaround stack overflow in opus codec on highmem devices (see FS#13060). */
 /* Fixed 2019-8-14 (see FS#13131) */
-#if 0 /*!defined(CPU_COLDFIRE) && (MEMORYSIZE >= 8) && defined(IRAMSIZE) && IRAMSIZE > (32 * 1024)*/
-#define WORKAROUND_FS13060 0x800
-#else
 #define WORKAROUND_FS13060 0
-#endif
 
 static long codec_stack[(DEFAULT_STACK_SIZE + 0x2000 + WORKAROUND_FS13060)/sizeof(long)] IBSS_ATTR;
 static const char codec_thread_name[] = "codec";
@@ -179,30 +175,11 @@ const char * get_codec_filename(int cod_spec)
 {
     const char *fname;
 
-#ifdef HAVE_RECORDING
-    /* Can choose decoder or encoder if one available */
-    int type = cod_spec & CODEC_TYPE_MASK;
-    int afmt = cod_spec & CODEC_AFMT_MASK;
-    int tmp_fmt = afmt;
-    if ((unsigned)afmt >= AFMT_NUM_CODECS)
-    {
-        type = AFMT_UNKNOWN | (type & CODEC_TYPE_MASK);
-        tmp_fmt = AFMT_UNKNOWN;
-    }
-    fname = (type == CODEC_TYPE_ENCODER) ?
-            get_codec_enc_root_fn(tmp_fmt) :
-            audio_formats[tmp_fmt].codec_root_fn;
-    
-    logf("%s: %d - %s",
-        (type == CODEC_TYPE_ENCODER) ? "Encoder" : "Decoder",
-        afmt, fname ? fname : "<unknown>");
-#else /* !HAVE_RECORDING */
     /* Always decoder */
     if ((unsigned)cod_spec >= AFMT_NUM_CODECS)
         cod_spec = AFMT_UNKNOWN;
     fname = audio_formats[cod_spec].codec_root_fn;
     logf("Codec: %d - %s",  cod_spec, fname ? fname : "<unknown>");
-#endif /* HAVE_RECORDING */
 
     return fname;
 }
@@ -405,20 +382,6 @@ static long codec_get_command_callback(intptr_t *param)
 
         case Q_CODEC_STOP:  /* Must only return 0 in main loop */
             LOGFQUEUE("codec < Q_CODEC_STOP: %ld", ev.data);
-#ifdef HAVE_RECORDING
-            if (type_is_encoder(codec_type))
-            {
-                /* Stream finish request (soft stop)? */
-                if (ev.data && param)
-                {
-                    /* ev.data is pointer to size */
-                    *param = ev.data;
-                    action = CODEC_ACTION_STREAM_FINISH;
-                    break;
-                }
-            }
-            else
-#endif /* HAVE_RECORDING */
             {
                 dsp_configure(ci.dsp, DSP_FLUSH, 0); /* Discontinuity */
             }
@@ -667,7 +630,6 @@ void INIT_ATTR codec_thread_init(void)
                             codec_thread_id);
 }
 
-#ifdef HAVE_PRIORITY_SCHEDULING
 /* Obtain codec thread's current priority */
 int codec_thread_get_priority(void)
 {
@@ -679,7 +641,6 @@ int codec_thread_set_priority(int priority)
 {
     return thread_set_priority(codec_thread_id, priority);
 }
-#endif /* HAVE_PRIORITY_SCHEDULING */
 
 
 /** --- Functions for audio thread use --- **/
@@ -723,29 +684,6 @@ void codec_stop(void)
     LOGFQUEUE("audio >| codec Q_CODEC_STOP: 0");
     while (codec_queue_send(Q_CODEC_STOP, 0) != Q_NULL);
 }
-
-#ifdef HAVE_RECORDING
-/* Tells codec to take final encoding step and then exit -
-   Returns minimum buffer size required or 0 if complete */
-size_t codec_finish_stream(void)
-{
-    size_t size = 0;
-
-    LOGFQUEUE("audio >| codec Q_CODEC_STOP: &size");
-    if (codec_queue_send(Q_CODEC_STOP, (intptr_t)&size) != Q_NULL)
-    {
-        /* Sync to keep size in scope and get response */
-        LOGFQUEUE("audio >| codec Q_NULL");
-        codec_queue_send(Q_NULL, 0);
-
-        if (size == 0)
-            codec_stop(); /* Replied with 0 size */
-    }
-    /* else thread running in the main loop */
-
-    return size;
-}
-#endif /* HAVE_RECORDING */
 
 /* Call the codec's exit routine and close all references */
 void codec_unload(void)

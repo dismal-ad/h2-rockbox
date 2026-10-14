@@ -39,7 +39,7 @@
 #include "debug.h"
 
 #undef open /* want the *real* open here, not sim_open or the like */
-#if (CONFIG_PLATFORM & PLATFORM_ANDROID) || defined(DX50) || defined(DX90)
+#if (CONFIG_PLATFORM & PLATFORM_ANDROID) || defined(DX50)
 #include "cpu-features.h"
 #define get_nprocs android_getCpuCount
 #endif
@@ -50,11 +50,7 @@
 
 /* Some targets like the Sony NWZ have a broken cpu driver that reports frequencies in MHz instead
  * of kHz */
-#if defined(SONY_NWZ_LINUX)
-#define FREQ_MULTIPLIER     1000
-#else
 #define FREQ_MULTIPLIER     1
-#endif
 
 struct cputime_sample {
     struct tms sample;

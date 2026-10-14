@@ -23,20 +23,4 @@
 #include <stdbool.h>
 #include "config.h"
 
-#ifdef IPOD_ARCH
-#ifdef IPOD_VIDEO
-#ifdef BOOTLOADER
-#define IPOD_HW_REVISION (*((unsigned long*)(0x0000405c)))
-#else  /* ROM is remapped */
-#define IPOD_HW_REVISION (*((unsigned long*)(0x2000405c)))
-#endif
-#else /* !IPOD_VIDEO */
-#ifdef BOOTLOADER
-#define IPOD_HW_REVISION (*((unsigned long*)(0x00002084)))
-#else  /* ROM is remapped */
-#define IPOD_HW_REVISION (*((unsigned long*)(0x20002084)))
-#endif
-#endif /* !IPOD_VIDEO */
-#endif /* IPOD_ARCH */
-
 #endif /* HWCOMPAT_H */

@@ -34,9 +34,7 @@
 #include "logfdisp.h"
 #include "action.h"
 #include "splash.h"
-#if CONFIG_RTC
 #include "misc.h"
-#endif /*CONFIG_RTC*/
 int compute_nb_lines(int w, struct font* font)
 {
     int i, nb_lines;
@@ -183,25 +181,6 @@ bool logfdisplay(void)
             case ACTION_STD_OK:
                 user_index = 0;
                 break;
-#ifdef HAVE_TOUCHSCREEN
-            case ACTION_TOUCHSCREEN:
-            {
-                short x, y;
-                static int prev_y;
-                
-                action = action_get_touchscreen_press(&x, &y);
-                
-                if(action & BUTTON_REL)
-                    prev_y = 0;
-                else
-                {
-                    if(prev_y != 0)
-                        user_index += (prev_y - y) / delta_y;
-                    
-                    prev_y = y;
-                }
-            }
-#endif
             default:
                 break;
         }
@@ -223,16 +202,12 @@ bool logfdump(void)
 
     logfenabled = false;
 
-#if CONFIG_RTC
     char fname[MAX_PATH];
     struct tm *nowtm = get_time();
     fd = open_pathfmt(fname, sizeof(fname), O_CREAT|O_WRONLY|O_TRUNC,
              "%s/logf_%04d%02d%02d%02d%02d%02d.txt", ROCKBOX_DIR,
              nowtm->tm_year + 1900, nowtm->tm_mon + 1, nowtm->tm_mday,
              nowtm->tm_hour, nowtm->tm_min, nowtm->tm_sec);
-#else
-    fd = open(ROCKBOX_DIR "/logf.txt", O_CREAT|O_WRONLY|O_TRUNC, 0666);
-#endif
     if(-1 != fd) {
         int i;
 

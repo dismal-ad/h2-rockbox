@@ -52,22 +52,14 @@
 #define FONT_EXT "fnt"
 #define GLYPH_CACHE_EXT "gc"
 
-#ifdef UNICODE32
 #define FC_HEADER_VAL 0x01000020
-#else
-#define FC_HEADER_VAL 0x01000010
-#endif
 
 /* max static loadable font buffer size */
 #ifndef MAX_FONT_SIZE
-#if LCD_HEIGHT > 64
 #if MEMORYSIZE > 2
 #define MAX_FONT_SIZE   60000
 #else
 #define MAX_FONT_SIZE   10000
-#endif
-#else
-#define MAX_FONT_SIZE   4000
 #endif
 #endif
 #define GLYPHS_TO_CACHE 256
@@ -80,11 +72,9 @@
 #define FONT_HEADER_SIZE 36
 #endif
 
-#ifndef BOOTLOADER
 /* Font cache includes */
 #include "font_cache.h"
 #include "lru.h"
-#endif
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -97,8 +87,6 @@
 
 /* compiled-in font */
 extern struct font sysfont;
-
-#if !defined(BOOTLOADER) || defined(SONY_NWZ_LINUX) || defined(HIBY_LINUX) || defined(FIIO_M3K_LINUX)
 
 struct buflib_alloc_data {
     struct font font;    /* must be the first member! */
@@ -426,13 +414,8 @@ int font_load_ex( const char *path, size_t buf_size, int glyphs )
     if ( fd < 0 )
         return -1;
 
-#ifdef UNICODE32
     if (glyphs && glyphs < 3)
         glyphs = 3; /* Guarantee we'll always have at least 2 after alignment */
-#else
-    if (glyphs && glyphs < 2)
-        glyphs = 2; /* Guarantee we'll always have at least 1 after alignment */
-#endif
 
     /* load font struct f with file header */
     int file_size = ffilesize( fd );
@@ -441,9 +424,6 @@ int font_load_ex( const char *path, size_t buf_size, int glyphs )
 
     uint32_t nwidth, noffset;
     if ( !font_load_header( fd, &header, &f, &nwidth, &noffset )
-#if LCD_DEPTH < 16
-        || f.depth
-#endif
     )
     {
         close(fd);
@@ -937,17 +917,11 @@ static void glyph_file_write(void* data)
         return;
 
     ch = p->_char_code + pf->firstchar;
-#ifdef UNICODE32
     buffer[buffer_pos] = (ch >> 24) & 0xff;
     buffer[buffer_pos+1] = (ch >> 16) & 0xff;
     buffer[buffer_pos+2] = (ch >> 8) & 0xff;
     buffer[buffer_pos+3] = ch & 0xff;
     buffer_pos += 4;
-#else
-    buffer[buffer_pos] = (ch >> 8) & 0xff;
-    buffer[buffer_pos+1] = ch & 0xff;
-    buffer_pos += 2;
-#endif
     return;
 }
 
@@ -1034,11 +1008,7 @@ static NO_INLINE void glyph_cache_load(const char *font_path, struct font *pf)
                       read( fd, tmp, sizeof(tmp) ) == sizeof(tmp) && size < sort_size;
                       size++ )
                 {
-#ifdef UNICODE32
                     glyphs[size] = (tmp[0] << 24) | (tmp[1] << 16) | (tmp[2] << 8) | tmp[3];
-#else
-                    glyphs[size] = (tmp[0] << 8) | tmp[1];
-#endif
                     glyphs_lru_order[size] = glyphs[size];
                 }
 
@@ -1068,58 +1038,6 @@ static NO_INLINE void glyph_cache_load(const char *font_path, struct font *pf)
     }
     return;
 }
-#else /* BOOTLOADER */
-
-void font_init(void)
-{
-}
-
-void font_lock(int font_id, bool lock)
-{
-    (void)font_id;
-    (void)lock;
-}
-
-/*
- * Bootloader only supports the built-in sysfont.
- */
-struct font* font_get(int font)
-{
-    (void)font;
-    return &sysfont;
-}
-
-/*
- * Returns width of character
- */
-int font_get_width(struct font* pf, ucschar_t char_code)
-{
-    /* check input range*/
-    if (char_code < pf->firstchar || char_code >= pf->firstchar+pf->size)
-        char_code = pf->defaultchar;
-    char_code -= pf->firstchar;
-
-    return pf->width? pf->width[char_code]: pf->maxwidth;
-}
-
-const unsigned char* font_get_bits(struct font* pf, ucschar_t char_code)
-{
-    const unsigned char* bits;
-
-    /* check input range*/
-    if (char_code < pf->firstchar || char_code >= pf->firstchar+pf->size)
-        char_code = pf->defaultchar;
-    char_code -= pf->firstchar;
-
-    /* assume small font with uint16_t offsets*/
-    bits = pf->bits + (pf->offset?
-            ((uint16_t*)(pf->offset))[char_code]:
-            (((pf->height + 7) / 8) * pf->maxwidth * char_code));
-
-    return bits;
-}
-
-#endif /* BOOTLOADER */
 
 /*
  * Returns the length (in bytes) of a given NULL terminated string

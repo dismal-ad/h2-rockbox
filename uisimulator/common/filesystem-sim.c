@@ -193,7 +193,6 @@ static inline int readdir_volume(struct dirstr_desc *dirstr,
 
 /** Internal functions **/
 
-#ifdef HAVE_HOTSWAP
 /**
  * Handle drive extraction by pretending the files' volumes no longer exist
  * and invalidating their I/O for the remainder of their lifetimes as would
@@ -217,7 +216,6 @@ void sim_ext_extracted(int drive)
 
     (void)drive;
 }
-#endif /* HAVE_HOTSWAP */
 
 /**
  * Provides target-like path parsing behavior with single and multiple volumes

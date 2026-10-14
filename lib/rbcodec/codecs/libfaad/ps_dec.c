@@ -937,45 +937,6 @@ static void ps_data_decode(ps_info *ps)
     }
 #endif
 
-#if 0
-    for (env = 0; env < ps->num_env; env++)
-    {
-        printf("iid[env:%d]:", env);
-        for (bin = 0; bin < 34; bin++)
-        {
-            printf(" %d", ps->iid_index[env][bin]);
-        }
-        printf("\n");
-    }
-    for (env = 0; env < ps->num_env; env++)
-    {
-        printf("icc[env:%d]:", env);
-        for (bin = 0; bin < 34; bin++)
-        {
-            printf(" %d", ps->icc_index[env][bin]);
-        }
-        printf("\n");
-    }
-    for (env = 0; env < ps->num_env; env++)
-    {
-        printf("ipd[env:%d]:", env);
-        for (bin = 0; bin < 17; bin++)
-        {
-            printf(" %d", ps->ipd_index[env][bin]);
-        }
-        printf("\n");
-    }
-    for (env = 0; env < ps->num_env; env++)
-    {
-        printf("opd[env:%d]:", env);
-        for (bin = 0; bin < 17; bin++)
-        {
-            printf(" %d", ps->opd_index[env][bin]);
-        }
-        printf("\n");
-    }
-    printf("\n");
-#endif
 }
 
 /* decorrelate the mono signal using an allpass filter */
@@ -1056,20 +1017,6 @@ static void ps_decorrelate(ps_info *ps,
         }
     }
 
-#if 0
-    for (n = 0; n < 32; n++)
-    {
-        for (bk = 0; bk < 34; bk++)
-        {
-#ifdef FIXED_POINT
-            printf("%d %d: %d\n", n, bk, P[n][bk] /*/(float)REAL_PRECISION*/);
-#else
-            printf("%d %d: %f\n", n, bk, P[n][bk]/1024.0);
-#endif
-        }
-    }
-#endif
-
     /* calculate transient reduction ratio for each parameter band b(k) */
     for (bk = 0; bk < ps->nr_par_bands; bk++)
     {
@@ -1100,20 +1047,6 @@ static void ps_decorrelate(ps_info *ps,
             }
         }
     }
-
-#if 0
-    for (n = 0; n < 32; n++)
-    {
-        for (bk = 0; bk < 34; bk++)
-        {
-#ifdef FIXED_POINT
-            printf("%d %d: %f\n", n, bk, G_TransientRatio[n][bk]/(float)REAL_PRECISION);
-#else
-            printf("%d %d: %f\n", n, bk, G_TransientRatio[n][bk]);
-#endif
-        }
-    }
-#endif
 
     /* apply stereo decorrelation filter to the signal */
     for (gr = 0; gr < ps->num_groups; gr++)
@@ -1604,17 +1537,6 @@ static void ps_mix_phase(ps_info *ps,
                 IM(tempRight) += MUL_F(IM(ps->opd_prev[bk][i]), FRAC_CONST(0.5));
 #endif
 
-#if 0 /* original code */
-                ipd = (float)atan2(IM(tempLeft), RE(tempLeft));
-                opd = (float)atan2(IM(tempRight), RE(tempRight));
-
-                /* phase rotation */
-                RE(phaseLeft) = (float)cos(opd);
-                IM(phaseLeft) = (float)sin(opd);
-                opd -= ipd;
-                RE(phaseRight) = (float)cos(opd);
-                IM(phaseRight) = (float)sin(opd);
-#else
                 // x = IM(tempLeft)
                 // y = RE(tempLeft)
                 // p = IM(tempRight)
@@ -1650,7 +1572,6 @@ static void ps_mix_phase(ps_info *ps,
                 /* MUL_C(FRAC,COEF) = FRAC */
                 RE(phaseRight) = MUL_C(tmp, (yq+xp));
                 IM(phaseRight) = MUL_C(tmp, (xq-py));
-#endif
 
                 /* MUL_F(COEF, FRAC) = COEF */
                 IM(h11) = MUL_F(RE(h11), IM(phaseLeft));

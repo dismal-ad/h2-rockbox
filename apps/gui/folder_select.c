@@ -104,22 +104,6 @@ static char* folder_alloc_from_end(size_t size)
     buffer_end -= size;
     return buffer_end;
 }
-#if 0
-/* returns the buffer size required to store the path + \0 */
-static int get_full_pathsz(struct folder *start)
-{
-    int reql = 0;
-    struct folder *next = start;
-    do
-    {
-        reql += strlen(next->name) + 1;
-    } while ((next = next->previous));
-
-    if (start->name[0] != '/') reql--;
-    if (--reql < 0) reql = 0;
-    return reql;
-}
-#endif
 
 static size_t get_full_path(struct folder *start, char *dst, size_t dst_sz)
 {

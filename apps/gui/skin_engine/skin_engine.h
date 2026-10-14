@@ -30,9 +30,6 @@
 enum skinnable_screens {
     CUSTOM_STATUSBAR,
     WPS,
-#if CONFIG_TUNER
-    FM_SCREEN,
-#endif
 
     SKINNABLE_SCREENS_COUNT
 };
@@ -40,11 +37,6 @@ enum skinnable_screens {
 struct skin_stats;
 struct skin_viewport;
 struct gui_wps;
-
-#ifdef HAVE_TOUCHSCREEN
-int skin_get_touchaction(struct gui_wps *gwps, int* edge_offset);
-void skin_disarm_touchregions(struct gui_wps *gwps);
-#endif
 
 /* Do a update_type update of the skinned screen */
 void skin_update(enum skinnable_screens skin, enum screen_type screen,

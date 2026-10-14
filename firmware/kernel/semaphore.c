@@ -125,7 +125,7 @@ void semaphore_release(struct semaphore *s)
     corelock_unlock(&s->cl);
     restore_irq(oldlevel);
 
-#if defined(HAVE_PRIORITY_SCHEDULING) && defined(is_thread_context)
+#if defined(is_thread_context)
     /* No thread switch if not thread context */
     if((result & THREAD_SWITCH) && is_thread_context())
         switch_thread();

@@ -305,13 +305,11 @@ int root_readdir_dirent(struct filestr_base *stream,
         state = get_root_item_state(item);
         if ((state & (NSITEM_MOUNTED|NSITEM_HIDDEN)) == NSITEM_MOUNTED)
         {
-#if 1 /* hide the volume enumerated into the root namespace */
             if (item == ROOT_CONTENTS_INDEX || (state & NSITEM_CONTENTS) == 0)
             {
                 logf("Found mounted item: %d %s", item, entry->d_name);
                 break;
             }
-#endif
         }
 
         item++;

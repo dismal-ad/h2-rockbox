@@ -384,36 +384,3 @@ opus_int silk_Decode(                                   /* O    Returns error co
     return ret;
 }
 
-#if 0
-/* Getting table of contents for a packet */
-opus_int silk_get_TOC(
-    const opus_uint8                *payload,           /* I    Payload data                                */
-    const opus_int                  nBytesIn,           /* I    Number of input bytes                       */
-    const opus_int                  nFramesPerPayload,  /* I    Number of SILK frames per payload           */
-    silk_TOC_struct                 *Silk_TOC           /* O    Type of content                             */
-)
-{
-    opus_int i, flags, ret = SILK_NO_ERROR;
-
-    if( nBytesIn < 1 ) {
-        return -1;
-    }
-    if( nFramesPerPayload < 0 || nFramesPerPayload > 3 ) {
-        return -1;
-    }
-
-    silk_memset( Silk_TOC, 0, sizeof( *Silk_TOC ) );
-
-    /* For stereo, extract the flags for the mid channel */
-    flags = silk_RSHIFT( payload[ 0 ], 7 - nFramesPerPayload ) & ( silk_LSHIFT( 1, nFramesPerPayload + 1 ) - 1 );
-
-    Silk_TOC->inbandFECFlag = flags & 1;
-    for( i = nFramesPerPayload - 1; i >= 0 ; i-- ) {
-        flags = silk_RSHIFT( flags, 1 );
-        Silk_TOC->VADFlags[ i ] = flags & 1;
-        Silk_TOC->VADFlag |= flags & 1;
-    }
-
-    return ret;
-}
-#endif

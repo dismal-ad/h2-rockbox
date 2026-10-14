@@ -32,13 +32,6 @@
 #include "system.h"
 #include "panic.h"
 
-#ifdef HAVE_RECORDING
-#include "audiohw.h"
-#ifdef HAVE_SPDIF_IN
-#include "spdif.h"
-#endif
-#endif
-
 #include "pcm.h"
 #include "pcm-internal.h"
 #include "pcm_sampr.h"
@@ -353,54 +346,6 @@ static void sdl_audio_callback(void *handle, Uint8 *stream, int len)
 
     SDL_UnlockMutex(audio_lock);
 }
-
-#ifdef HAVE_RECORDING
-void pcm_rec_lock(void)
-{
-}
-
-void pcm_rec_unlock(void)
-{
-}
-
-void pcm_rec_dma_init(void)
-{
-}
-
-void pcm_rec_dma_close(void)
-{
-}
-
-void pcm_rec_dma_start(void *start, size_t size)
-{
-    (void)start;
-    (void)size;
-}
-
-void pcm_rec_dma_stop(void)
-{
-}
-
-const void * pcm_rec_dma_get_peak_buffer(void)
-{
-    return NULL;
-}
-
-void audiohw_set_recvol(int left, int right, int type)
-{
-    (void)left;
-    (void)right;
-    (void)type;
-}
-
-#ifdef HAVE_SPDIF_IN
-unsigned long spdif_measure_frequency(void)
-{
-    return 0;
-}
-#endif
-
-#endif /* HAVE_RECORDING */
 
 static void sink_dma_init(void)
 {

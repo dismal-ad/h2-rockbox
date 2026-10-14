@@ -460,79 +460,6 @@ void sbr_qmf_synthesis_64(sbr_info *sbr, qmfs_info *qmfs, qmf_t X[MAX_NTSR][64],
 
         /* calculate 64 output samples and window */
         /* note: GCC 4.9 complains about the inline asm on Cortex-M targets */
-#if defined(CPU_ARM_CLASSIC) || (defined(CPU_ARM_MICRO) && __GNUC__ > 4)
-        const real_t *qtab = qmf_c;
-        real_t *pbuf = p_buf_1;
-        for (k = 0; k < 64; k++, pbuf++)
-        {
-            real_t *pout = &output[out++];
-            asm volatile (
-               "ldmia %[qtab]!, { r0-r3 } \n\t"
-               "ldr r4, [%[pbuf]]         \n\t"
-               "ldr r7, [%[pbuf], #192*4] \n\t"
-               "smull r5, r6, r4, r0      \n\t"
-               "ldr r4, [%[pbuf], #256*4] \n\t"
-               "smlal r5, r6, r7, r1      \n\t"
-               "ldr r7, [%[pbuf], #448*4] \n\t"
-               "smlal r5, r6, r4, r2      \n\t"
-               "ldr r4, [%[pbuf], #512*4] \n\t"
-               "smlal r5, r6, r7, r3      \n\t"
-
-               "ldmia %[qtab]!, { r0-r3 } \n\t"
-               "ldr r7, [%[pbuf], #704*4] \n\t"
-               "smlal r5, r6, r4, r0      \n\t"
-               "ldr r4, [%[pbuf], #768*4] \n\t"
-               "smlal r5, r6, r7, r1      \n\t"
-               "ldr r7, [%[pbuf], #960*4] \n\t"
-               "smlal r5, r6, r4, r2      \n\t"
-               "mov r2, #1024*4           \n\t"
-
-               "ldmia %[qtab]!, { r0-r1 } \n\t"
-               "ldr r4, [%[pbuf], r2]     \n\t"
-               "smlal r5, r6, r7, r3      \n\t"
-               "mov r2, #1216*4           \n\t"
-               "ldr r7, [%[pbuf], r2]     \n\t"
-               "smlal r5, r6, r4, r0      \n\t"
-               "smlal r5, r6, r7, r1      \n\t"
-
-               "str r6, [%[pout]]         \n"
-               : [qtab] "+r" (qtab)
-               : [pbuf] "r" (pbuf), [pout] "r" (pout)
-               : "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "memory");
-        }
-#elif defined CPU_COLDFIRE
-        const real_t *qtab = qmf_c;
-        real_t *pbuf = p_buf_1;
-        for (k = 0; k < 64; k++, pbuf++)
-        {
-            real_t *pout = &output[out++];
-            asm volatile (
-               "move.l  (%[pbuf]), %%d5                              \n"
-
-               "movem.l (%[qtab]), %%d0-%%d4                         \n"
-               "mac.l   %%d0, %%d5, (192*4, %[pbuf]), %%d5, %%acc0   \n"
-               "mac.l   %%d1, %%d5, (256*4, %[pbuf]), %%d5, %%acc0   \n"
-               "mac.l   %%d2, %%d5, (448*4, %[pbuf]), %%d5, %%acc0   \n"
-               "mac.l   %%d3, %%d5, (512*4, %[pbuf]), %%d5, %%acc0   \n"
-               "mac.l   %%d4, %%d5, (704*4, %[pbuf]), %%d5, %%acc0   \n"
-               "lea.l   (20, %[qtab]), %[qtab]                       \n"
-
-               "movem.l (%[qtab]), %%d0-%%d4                         \n"
-               "mac.l   %%d0, %%d5, (768*4, %[pbuf]), %%d5, %%acc0   \n"
-               "mac.l   %%d1, %%d5, (960*4, %[pbuf]), %%d5, %%acc0   \n"
-               "mac.l   %%d2, %%d5, (1024*4, %[pbuf]), %%d5, %%acc0  \n"
-               "mac.l   %%d3, %%d5, (1216*4, %[pbuf]), %%d5, %%acc0  \n"
-               "mac.l   %%d4, %%d5, %%acc0                           \n"
-               "lea.l   (20, %[qtab]), %[qtab]                       \n"
-
-               "movclr.l %%acc0, %%d0                                \n"
-               "move.l  %%d0, (%[pout])                              \n"
-               : [qtab] "+a" (qtab)
-               : [pbuf] "a" (pbuf),
-                 [pout] "a" (pout)
-               : "d0", "d1", "d2", "d3", "d4", "d5", "memory");
-        }
-#else
         for (k = 0; k < 64; k++)
         {
             idx0 = k*10;
@@ -548,7 +475,6 @@ void sbr_qmf_synthesis_64(sbr_info *sbr, qmfs_info *qmfs, qmf_t X[MAX_NTSR][64],
                             MUL_F(p_buf_1[k+1024    ], qmf_c[idx0+8]) +
                             MUL_F(p_buf_1[k+1024+192], qmf_c[idx0+9]));
         }
-#endif
 
         /* update ringbuffer index */
         qmfs->v_index -= 128;

@@ -44,25 +44,6 @@ void Apu_init( struct Nes_Apu* this )
 	Apu_reset( this, false, 0 );
 }
 
-#if 0
-// sq and tnd must use a fixed point frac where 1.0 = FP_ONE_VOLUME
-void Apu_enable_nonlinear_( struct Nes_Apu* this, int sq, int tnd )
-{
-	this->dmc.nonlinear = true;
-	Synth_volume( &this->square_synth, sq );
-	
-	Synth_volume( &this->triangle.synth, (int)((long long)(FP_ONE_VOLUME * 2.752) * tnd / FP_ONE_VOLUME) );
-	Synth_volume( &this->noise.synth   , (int)((long long)(FP_ONE_VOLUME * 1.849) * tnd / FP_ONE_VOLUME) );
-	Synth_volume( &this->dmc.synth     , tnd );
-	
-	this->square1 .osc.last_amp = 0;
-	this->square2 .osc.last_amp = 0;
-	this->triangle.osc.last_amp = 0;
-	this->noise   .osc.last_amp = 0;
-	this->dmc     .osc.last_amp = 0;
-}
-#endif
-
 void Apu_volume( struct Nes_Apu* this, int v )
 {
 	if ( !this->dmc.nonlinear )

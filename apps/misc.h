@@ -102,9 +102,7 @@ char* string_sleeptimer(char *buffer, size_t buffer_len);
 int toggle_sleeptimer(void);
 void talk_sleeptimer(int custom_duration);
 
-#if CONFIG_RTC
 void talk_timedate(void);
-#endif
 
 /* Ask the user if they really want to erase the current dynamic playlist
  * returns true if the playlist should be replaced */
@@ -146,8 +144,7 @@ int open_utf8(const char* pathname, int flags);
 int string_option(const char *option, const char *const oplist[], bool ignore_case);
 
 #ifdef BOOTFILE
-#if !defined(USB_NONE) && !defined(USB_HANDLED_BY_OF) \
-        || defined(HAVE_HOTSWAP_STORAGE_AS_MAIN)
+#if !defined(USB_HANDLED_BY_OF) || defined(HAVE_HOTSWAP_STORAGE_AS_MAIN)
 void check_bootfile(bool do_rolo);
 #endif
 #endif
@@ -169,9 +166,7 @@ int get_normalized_volume(void);
 void adjust_volume(int steps);
 void adjust_volume_ex(int steps, enum volume_adjust_mode mode);
 
-#ifdef HAVE_LCD_COLOR
 int hex_to_rgb(const char* hex, int* color);
-#endif
 
 /* Note: Don't rely on title being visible. It is not
          displayed on Android, or if SBS has no title. */
@@ -189,9 +184,7 @@ char *strip_extension(char* buffer, int buffer_size, const char *filename);
 bool parse_color(enum screen_type screen, char *text, int *value);
 
 /* only used in USB HID and set_time screen */
-#if defined(USB_ENABLE_HID) || (CONFIG_RTC != 0)
 int clamp_value_wrap(int value, int max, int min);
-#endif
 
 enum current_activity {
     ACTIVITY_UNKNOWN = 0,

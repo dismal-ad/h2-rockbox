@@ -21,9 +21,6 @@
 #include <stdlib.h>
 #include "config.h"
 #include "lcd.h"
-#ifdef HAVE_REMOTE_LCD
-#include "lcd-remote.h"
-#endif
 #include "font.h"
 #include "viewport.h"
 #include "screen_access.h"
@@ -32,17 +29,8 @@
 #include "list.h"
 
 /*some short cuts for fg/bg/line selector handling */
-#ifdef HAVE_LCD_COLOR
 #define FG_FALLBACK global_settings.fg_color
 #define BG_FALLBACK global_settings.bg_color
-#else
-#define FG_FALLBACK LCD_DEFAULT_FG
-#define BG_FALLBACK LCD_DEFAULT_BG
-#endif
-#ifdef HAVE_REMOTE_LCD
-#define REMOTE_FG_FALLBACK LCD_REMOTE_DEFAULT_FG
-#define REMOTE_BG_FALLBACK LCD_REMOTE_DEFAULT_BG
-#endif
 
 /* all below isn't needed for pc tools (i.e. checkwps/wps editor)
  * only viewport_parse_viewport() is */
@@ -85,9 +73,7 @@ static void toggle_events(bool enable)
     evt_toggle(enable, GUI_EVENT_ACTIONREDRAW, viewportmanager_redraw);
     evt_toggle(enable, PLAYBACK_EVENT_TRACK_CHANGE, do_sbs_update_callback);
     evt_toggle(enable, PLAYBACK_EVENT_NEXTTRACKID3_AVAILABLE, do_sbs_update_callback);
-#if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
     evt_toggle(enable, LCD_EVENT_ACTIVATION, do_sbs_update_callback);
-#endif
 }
 
 static void set_clear_valid_vp(enum screen_type screen, struct viewport *vp)
@@ -120,9 +106,7 @@ static void toggle_theme(enum screen_type screen, bool force)
         last_vp = screens[screen].set_viewport(NULL);
         bool first_boot = theme_stack_top[screen] == 0;
         /* Remove the left overs from the previous screen */
-#ifdef HAVE_BACKDROP_IMAGE
         skin_backdrop_show(sb_get_backdrop(screen));
-#endif
         if (LIKELY(after_boot[screen]) && (!was_enabled[screen] || force))
         {
             struct viewport deadspace, user;
@@ -159,9 +143,7 @@ static void toggle_theme(enum screen_type screen, bool force)
     }
     else
     {
-#if LCD_DEPTH > 1 || (defined(LCD_REMOTE_DEPTH) && LCD_REMOTE_DEPTH > 1)
         screens[screen].backdrop_show(NULL);
-#endif
         screens[screen].scroll_stop();
         skin_is_dirty(screen); /* remove dirty flag */
     }
@@ -169,9 +151,6 @@ static void toggle_theme(enum screen_type screen, bool force)
     send_event(GUI_EVENT_THEME_CHANGED, NULL);
     FOR_NB_SCREENS(i)
         was_enabled[i] = is_theme_enabled(i);
-#ifdef HAVE_TOUCHSCREEN
-    sb_bypass_touchregions(!is_theme_enabled(SCREEN_MAIN));
-#endif
     after_boot[screen] = true;
 }
 
@@ -257,17 +236,6 @@ void viewportmanager_theme_changed(const int which)
     send_event(GUI_EVENT_THEME_CHANGED, NULL);
 }
 
-#ifdef HAVE_TOUCHSCREEN
-/* check if a point (x and y coordinates) are within a viewport */
-bool viewport_point_within_vp(const struct viewport *vp,
-                               const int x, const int y)
-{
-    bool is_x = (x >= vp->x && x < (vp->x + vp->width));
-    bool is_y = (y >= vp->y && y < (vp->y + vp->height));
-    return (is_x && is_y);
-}
-#endif /* HAVE_TOUCHSCREEN */
-
 static void set_default_align_flags(struct viewport *vp)
 {
     vp->flags &= ~VP_FLAG_ALIGNMENT_MASK;
@@ -290,24 +258,11 @@ void viewport_set_fullscreen(struct viewport *vp,
 #endif
     vp->font = screens[screen].getuifont();
     vp->drawmode = DRMODE_SOLID;
-#if LCD_DEPTH > 1
-#ifdef HAVE_REMOTE_LCD
-    /* We only need this test if there is a remote LCD */
-    if (screen == SCREEN_MAIN)
-#endif
     {
         vp->fg_pattern = FG_FALLBACK;
         vp->bg_pattern = BG_FALLBACK;
     }
-#endif
 
-#if defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1
-    if (screen == SCREEN_REMOTE)
-    {
-        vp->fg_pattern = LCD_REMOTE_DEFAULT_FG;
-        vp->bg_pattern = LCD_REMOTE_DEFAULT_BG;
-    }
-#endif
 }
 
 void viewport_set_buffer(struct viewport *vp, struct frame_buffer_t *buffer,

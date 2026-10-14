@@ -41,11 +41,6 @@ void mad_synth_init(struct mad_synth *synth)
   synth->pcm.samplerate = 0;
   synth->pcm.channels   = 0;
   synth->pcm.length     = 0;
-  #if defined(CPU_COLDFIRE)
-  /* init the emac unit here, since this function should always be called
-     before using libmad */
-  coldfire_set_macsr(EMAC_FRACTIONAL | EMAC_SATURATE | EMAC_ROUND);
-  #endif
 }
 
 /*
@@ -56,14 +51,6 @@ void mad_synth_mute(struct mad_synth *synth)
 {
   memset(synth->filter, 0, sizeof(synth->filter));
 }
-
-#if 0 /* dct32 asm implementation is slower on current arm systems */
-/* #ifdef FPM_ARM */
-
-void dct32(mad_fixed_t const in[32], unsigned int slot,
-           mad_fixed_t lo[16][8], mad_fixed_t hi[16][8]);
-
-#else
 
 /*
  * An optional optimization called here the Subband Synthesis Optimization
@@ -502,8 +489,6 @@ void dct32(mad_fixed_t const in[32], unsigned int slot,
 
 # undef MUL
 # undef SHIFT
-
-#endif
 
 /* third SSO shift and/or D[] optimization preshift */
 
@@ -1060,146 +1045,6 @@ void synth_full(struct mad_synth *synth, struct mad_frame const *frame,
 }
 # endif /* FPM_COLDFIRE_EMAC, FPM_ARM */
 
-#if 0 /* rockbox: unused */
-/*
- * NAME:        synth->half()
- * DESCRIPTION: perform half frequency PCM synthesis
- */
-static
-void synth_half(struct mad_synth *synth, struct mad_frame const *frame,
-                unsigned int nch, unsigned int ns)
-{
-  unsigned int phase, ch, s, sb, pe, po;
-  mad_fixed_t *pcm1, *pcm2, (*filter)[2][2][16][8];
-  mad_fixed_t  (*sbsample)[36][32];
-  register mad_fixed_t (*fe)[8], (*fx)[8], (*fo)[8];
-  register mad_fixed_t const (*Dptr)[32], *ptr;
-  register mad_fixed64hi_t hi;
-  register mad_fixed64lo_t lo;
-
-  for (ch = 0; ch < nch; ++ch) {
-    sbsample = &(*frame->sbsample_prev)[ch];
-    filter   = &synth->filter[ch];
-    phase    = synth->phase;
-    pcm1     = synth->pcm.samples[ch];
-
-    for (s = 0; s < ns; ++s) {
-      dct32((*sbsample)[s], phase >> 1,
-            (*filter)[0][phase & 1], (*filter)[1][phase & 1]);
-
-      pe = phase & ~1;
-      po = ((phase - 1) & 0xf) | 1;
-
-      /* calculate 16 samples */
-
-      fe = &(*filter)[0][ phase & 1][0];
-      fx = &(*filter)[0][~phase & 1][0];
-      fo = &(*filter)[1][~phase & 1][0];
-
-      Dptr = &D[0];
-
-      ptr = *Dptr + po;
-      ML0(hi, lo, (*fx)[0], ptr[ 0]);
-      MLA(hi, lo, (*fx)[1], ptr[14]);
-      MLA(hi, lo, (*fx)[2], ptr[12]);
-      MLA(hi, lo, (*fx)[3], ptr[10]);
-      MLA(hi, lo, (*fx)[4], ptr[ 8]);
-      MLA(hi, lo, (*fx)[5], ptr[ 6]);
-      MLA(hi, lo, (*fx)[6], ptr[ 4]);
-      MLA(hi, lo, (*fx)[7], ptr[ 2]);
-      MLN(hi, lo);
-
-      ptr = *Dptr + pe;
-      MLA(hi, lo, (*fe)[0], ptr[ 0]);
-      MLA(hi, lo, (*fe)[1], ptr[14]);
-      MLA(hi, lo, (*fe)[2], ptr[12]);
-      MLA(hi, lo, (*fe)[3], ptr[10]);
-      MLA(hi, lo, (*fe)[4], ptr[ 8]);
-      MLA(hi, lo, (*fe)[5], ptr[ 6]);
-      MLA(hi, lo, (*fe)[6], ptr[ 4]);
-      MLA(hi, lo, (*fe)[7], ptr[ 2]);
-
-      *pcm1++ = SHIFT(MLZ(hi, lo));
-
-      pcm2 = pcm1 + 14;
-
-      for (sb = 1; sb < 16; ++sb) {
-        ++fe;
-        ++Dptr;
-
-        /* D[32 - sb][i] == -D[sb][31 - i] */
-
-        if (!(sb & 1)) {
-          ptr = *Dptr + po;
-          ML0(hi, lo, (*fo)[0], ptr[ 0]);
-          MLA(hi, lo, (*fo)[1], ptr[14]);
-          MLA(hi, lo, (*fo)[2], ptr[12]);
-          MLA(hi, lo, (*fo)[3], ptr[10]);
-          MLA(hi, lo, (*fo)[4], ptr[ 8]);
-          MLA(hi, lo, (*fo)[5], ptr[ 6]);
-          MLA(hi, lo, (*fo)[6], ptr[ 4]);
-          MLA(hi, lo, (*fo)[7], ptr[ 2]);
-          MLN(hi, lo);
-
-          ptr = *Dptr + pe;
-          MLA(hi, lo, (*fe)[7], ptr[ 2]);
-          MLA(hi, lo, (*fe)[6], ptr[ 4]);
-          MLA(hi, lo, (*fe)[5], ptr[ 6]);
-          MLA(hi, lo, (*fe)[4], ptr[ 8]);
-          MLA(hi, lo, (*fe)[3], ptr[10]);
-          MLA(hi, lo, (*fe)[2], ptr[12]);
-          MLA(hi, lo, (*fe)[1], ptr[14]);
-          MLA(hi, lo, (*fe)[0], ptr[ 0]);
-
-          *pcm1++ = SHIFT(MLZ(hi, lo));
-
-          ptr = *Dptr - po;
-          ML0(hi, lo, (*fo)[7], ptr[31 -  2]);
-          MLA(hi, lo, (*fo)[6], ptr[31 -  4]);
-          MLA(hi, lo, (*fo)[5], ptr[31 -  6]);
-          MLA(hi, lo, (*fo)[4], ptr[31 -  8]);
-          MLA(hi, lo, (*fo)[3], ptr[31 - 10]);
-          MLA(hi, lo, (*fo)[2], ptr[31 - 12]);
-          MLA(hi, lo, (*fo)[1], ptr[31 - 14]);
-          MLA(hi, lo, (*fo)[0], ptr[31 - 16]);
-
-          ptr = *Dptr - pe;
-          MLA(hi, lo, (*fe)[0], ptr[31 - 16]);
-          MLA(hi, lo, (*fe)[1], ptr[31 - 14]);
-          MLA(hi, lo, (*fe)[2], ptr[31 - 12]);
-          MLA(hi, lo, (*fe)[3], ptr[31 - 10]);
-          MLA(hi, lo, (*fe)[4], ptr[31 -  8]);
-          MLA(hi, lo, (*fe)[5], ptr[31 -  6]);
-          MLA(hi, lo, (*fe)[6], ptr[31 -  4]);
-          MLA(hi, lo, (*fe)[7], ptr[31 -  2]);
-
-          *pcm2-- = SHIFT(MLZ(hi, lo));
-        }
-
-        ++fo;
-      }
-
-      ++Dptr;
-
-      ptr = *Dptr + po;
-      ML0(hi, lo, (*fo)[0], ptr[ 0]);
-      MLA(hi, lo, (*fo)[1], ptr[14]);
-      MLA(hi, lo, (*fo)[2], ptr[12]);
-      MLA(hi, lo, (*fo)[3], ptr[10]);
-      MLA(hi, lo, (*fo)[4], ptr[ 8]);
-      MLA(hi, lo, (*fo)[5], ptr[ 6]);
-      MLA(hi, lo, (*fo)[6], ptr[ 4]);
-      MLA(hi, lo, (*fo)[7], ptr[ 2]);
-
-      *pcm1 = SHIFT(-MLZ(hi, lo));
-      pcm1 += 8;
-
-      phase = (phase + 1) % 16;
-    }
-  }
-}
-#endif /* unused */
-
 /*
  * NAME:        synth->frame()
  * DESCRIPTION: perform PCM synthesis of frame subband samples
@@ -1207,10 +1052,6 @@ void synth_half(struct mad_synth *synth, struct mad_frame const *frame,
 void mad_synth_frame(struct mad_synth *synth, struct mad_frame const *frame)
 {
   unsigned int nch, ns;
-#if 0 /* rockbox: unused */
-  void (*synth_frame)(struct mad_synth *, struct mad_frame const *,
-                      unsigned int, unsigned int);
-#endif
 
   nch = MAD_NCHANNELS(&frame->header);
   ns  = MAD_NSBSAMPLES(&frame->header);
@@ -1219,20 +1060,7 @@ void mad_synth_frame(struct mad_synth *synth, struct mad_frame const *frame)
   synth->pcm.channels   = nch;
   synth->pcm.length     = 32 * ns;
 
-#if 0 /* rockbox: unused */
-  synth_frame = synth_full;
-
-  if (frame->options & MAD_OPTION_HALFSAMPLERATE) {
-    synth->pcm.samplerate /= 2;
-    synth->pcm.length     /= 2;
-
-    synth_frame = synth_half;
-  }
-  
-  synth_frame(synth, frame, nch, ns);
-#else
   synth_full(synth, frame, nch, ns);
-#endif
 
   synth->phase = (synth->phase + ns) % 16;
 }

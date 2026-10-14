@@ -37,37 +37,12 @@
 #define LE16_CONST(x) (x)&0xff, ((x)>>8)&0xff
 #define LE32_CONST(x) (x)&0xff, ((x)>>8)&0xff, ((x)>>16)&0xff, ((x)>>24)&0xff
 
-#if LCD_DEPTH <= 4
-#define DUMP_BMP_BPP 4
-#define DUMP_BMP_LINESIZE ((LCD_WIDTH/2 + 3) & ~3)
-#elif LCD_DEPTH <= 8
-#define DUMP_BMP_BPP 8
-#define DUMP_BMP_LINESIZE ((LCD_WIDTH + 3) & ~3)
-#elif LCD_DEPTH <= 16
 #define DUMP_BMP_BPP 16
 #define DUMP_BMP_LINESIZE ((LCD_WIDTH*2 + 3) & ~3)
-#else
-#define DUMP_BMP_BPP 24
-#define DUMP_BMP_LINESIZE ((LCD_WIDTH*3 + 3) & ~3)
-#endif
-
-#ifdef HAVE_SCREENDUMP
 
 /* Save a .BMP file containing the current screen contents. */
 void screen_dump(void);
 
 void screen_dump_set_hook(void (*hook)(int fd));
-
-#ifdef HAVE_REMOTE_LCD
-/* Save a .BMP file containing the current remote screen contents. */
-void remote_screen_dump(void);
-#endif
-
-#else /* !HAVE_SCREENDUMP */
-
-#define screen_dump() do { } while(0)
-#define remote_screen_dump() do { } while(0)
-
-#endif /* HAVE_SCREENDUMP */
 
 #endif /* __SCREENDUMP_H__ */

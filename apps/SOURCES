@@ -2,18 +2,12 @@
 logfdisp.c
 #endif
 action.c
-#ifdef HAVE_RTC_ALARM
-alarm_menu.c
-#endif
 abrepeat.c
 bookmark.c
 core_keymap.c
 debug_menu.c
 filetypes.c
 fileop.c
-#ifdef HAVE_TOUCHSCREEN
-gesture.c
-#endif
 language.c
 main.c
 menu.c
@@ -21,12 +15,6 @@ menus/menu_common.c
 menus/display_menu.c
 menus/theme_menu.c
 menus/plugin_menu.c
-#if CONFIG_TUNER
-menus/radio_menu.c
-#endif
-#ifdef HAVE_WM8978
-menus/audiohw_eq_menu.c
-#endif
 menus/eq_menu.c
 buffering.c
 voice_thread.c
@@ -34,14 +22,9 @@ rbcodec_helpers.c
 menus/main_menu.c
 menus/playback_menu.c
 menus/playlist_menu.c
-#ifdef HAVE_RECORDING
-menus/recording_menu.c
-#endif
 menus/settings_menu.c
 menus/sound_menu.c
-#if CONFIG_RTC
 menus/time_menu.c
-#endif
 misc.c
 open_plugin.c
 onplay.c
@@ -58,22 +41,14 @@ status.c
 cuesheet.c
 talk.c
 tree.c
-#ifdef HAVE_TAGCACHE
 tagtree.c
-#endif
 filetree.c
 #ifdef IPOD_ACCESSORY_PROTOCOL
 iap/iap-core.c
 iap/iap-lingo0.c
-#ifdef HAVE_LINE_REC
-iap/iap-lingo1.c
-#endif
 iap/iap-lingo2.c
 iap/iap-lingo3.c
 iap/iap-lingo4.c
-#if CONFIG_TUNER
-iap/iap-lingo7.c
-#endif
 #endif
 screen_access.c
 gui/icon.c
@@ -85,13 +60,9 @@ gui/option_select.c
 #ifdef HAVE_PITCHCONTROL
 gui/pitchscreen.c
 #endif
-#ifdef HAVE_QUICKSCREEN
 gui/quickscreen.c
-#endif
 gui/folder_select.c
-#if defined(HAVE_BACKLIGHT) || !defined(HAS_BUTTON_HOLD)
 gui/mask_select.c
-#endif
 
 gui/wps.c
 gui/scrollbar.c
@@ -112,13 +83,8 @@ gui/skin_engine/skin_engine.c
 gui/skin_engine/skin_parser.c
 gui/skin_engine/skin_render.c
 gui/skin_engine/skin_tokens.c
-#ifdef HAVE_TOUCHSCREEN
-gui/skin_engine/skin_touchsupport.c
-#endif
 
-#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1))
 gui/backdrop.c
-#endif
 
 recorder/bmp.c
 recorder/icons.c
@@ -128,38 +94,13 @@ hosted/android/keyboard.c
 recorder/keyboard.c
 #endif
 recorder/peakmeter.c
-#if defined(HAVE_ALBUMART) || defined(HAVE_JPEG)
 recorder/resize.c
-#endif
-#ifdef HAVE_JPEG
 recorder/jpeg_load.c
-#ifdef CPU_ARM
-recorder/jpeg_idct_arm.S
-#endif
-#endif
 #ifdef HAVE_ALBUMART
 recorder/albumart.c
 #endif
-#ifdef HAVE_LCD_COLOR
 gui/color_picker.c
-#endif
 
-#ifdef HAVE_RECORDING
-recorder/recording.c
-#endif
-
-#if CONFIG_TUNER
-radio/radio.c
-radio/presets.c
-radio/radio_skin.c
-#ifdef HAVE_ALBUMART
-radio/radioart.c
-#endif
-#endif
-
-#if INPUT_SRC_CAPS != 0
-audio_path.c
-#endif /* INPUT_SRC_CAPS != 0 */
 audio_thread.c
 pcmbuf.c
 codec_thread.c
@@ -168,22 +109,9 @@ codecs.c
 #ifndef HAVE_HARDWARE_BEEP
 beep.c
 #endif
-#ifdef HAVE_RECORDING
-enc_config.c
-recorder/pcm_record.c
-#endif
 #ifdef USB_ENABLE_HID
 usb_keymaps.c
 #endif
-#ifndef USB_NONE
 gui/usb_screen.c
-#endif
-#ifdef HAVE_TAGCACHE
 tagcache.c
-#endif
-#ifdef HAVE_TOUCHSCREEN
-keymaps/keymap-touchscreen.c
-#endif
-#if CONFIG_KEYPAD == EROSQ_PAD
 keymaps/keymap-erosq.c
-#endif

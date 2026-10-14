@@ -24,9 +24,7 @@
 #include "disk.h"
 #include "pathfuncs.h"
 
-#ifdef HAVE_SDMMC_HOST
 # include "sdmmc_host.h"
-#endif
 
 #ifdef CONFIG_STORAGE_MULTI
 
@@ -184,12 +182,10 @@ static void NORETURN_ATTR storage_thread(void)
             }
             break;
 
-#ifdef HAVE_HOTSWAP_IN_THREAD
         case Q_STORAGE_MEDIUM_INSERTED:
         case Q_STORAGE_MEDIUM_REMOVED:
             storage_event_send(DRIVE_EVT, ev.id, ev.data);
             break;
-#endif
 
 #if (CONFIG_STORAGE & STORAGE_ATA)
         case Q_STORAGE_SLEEP:
@@ -203,7 +199,6 @@ static void NORETURN_ATTR storage_thread(void)
             thread_exit();
 #endif /* STORAGE_CLOSE */
 
-#ifdef HAVE_HOTSWAP
         case SYS_HOTSWAP_INSERTED:
         case SYS_HOTSWAP_EXTRACTED:
             if (!usb_mode) {
@@ -226,9 +221,7 @@ static void NORETURN_ATTR storage_thread(void)
                 }
             }
             break;
-#endif /* HAVE_HOTSWAP */
 
-#if !defined(USB_NONE) && (!defined(BOOTLOADER) || defined(HAVE_BOOTLOADER_USB_MODE))
         case SYS_USB_CONNECTED:
         case SYS_USB_DISCONNECTED:
             bdcast = 0;
@@ -241,7 +234,6 @@ static void NORETURN_ATTR storage_thread(void)
                 bdcast = CONFIG_STORAGE;
             }
             break;
-#endif /* ndef USB_NONE */
         }
     }
 }
@@ -289,9 +281,7 @@ int storage_init(void)
 {
     int rc=0;
 
-#ifdef HAVE_SDMMC_HOST
     sdmmc_host_target_init();
-#endif
 
 #ifdef CONFIG_STORAGE_MULTI
     int i;
@@ -772,7 +762,6 @@ void storage_get_info(int drive, struct storage_info *info)
 }
 #endif /* STORAGE_GET_INFO */
 
-#ifdef HAVE_HOTSWAP
 bool storage_removable(int drive)
 {
     int driver=(storage_drivers[drive] & DRIVER_MASK)>>DRIVER_OFFSET;
@@ -846,5 +835,4 @@ bool storage_present(int drive)
         return false;
     }
 }
-#endif /* HAVE_HOTSWAP */
 #endif /*CONFIG_STORAGE_MULTI*/

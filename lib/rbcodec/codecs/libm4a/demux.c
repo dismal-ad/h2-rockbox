@@ -227,13 +227,6 @@ static bool read_chunk_stsd(qtmovie_t *qtmovie, size_t chunk_len)
 
           memset(qtmovie->res->codecdata, 0, qtmovie->res->codecdata_len);
           /* audio format atom */
-#if 0
-          /* The ALAC decoder skips these bytes, so there is no need to store them,
-             and this code isn't endian/alignment safe */
-          ((unsigned int*)qtmovie->res->codecdata)[0] = 0x0c000000;
-          ((unsigned int*)qtmovie->res->codecdata)[1] = MAKEFOURCC('a','m','r','f');
-          ((unsigned int*)qtmovie->res->codecdata)[2] = MAKEFOURCC('c','a','l','a');
-#endif
 
           stream_read(qtmovie->stream,
                   entry_remaining,

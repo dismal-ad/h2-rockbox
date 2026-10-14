@@ -89,9 +89,6 @@ typedef struct
 
     int mdat_offset;
     uint32_t mdat_len;
-#if 0
-    void *mdat;
-#endif
 } demux_res_t;
 
 int qtmovie_read(stream_t *stream, demux_res_t *demux_res);

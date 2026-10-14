@@ -82,9 +82,7 @@ void gui_scrollbar_draw(struct screen * screen, int x, int y,
 {
     int inner_x, inner_y, inner_wd, inner_ht, inner_len;
     int start, size;
-#ifdef HAVE_LCD_COLOR
     int infill;
-#endif
 
     if (flags & INVERTFILL)
     {
@@ -122,37 +120,29 @@ void gui_scrollbar_draw(struct screen * screen, int x, int y,
     /* draw box */
     if (!(flags & BORDER_NOFILL))
     {
-#ifdef HAVE_LCD_COLOR
         /* must avoid corners if case of (flags & FOREGROUND) */
         screen->hline(inner_x, x + inner_wd, y);
         screen->hline(inner_x, x + inner_wd, y + height - 1);
         screen->vline(x, inner_y, y + inner_ht);
         screen->vline(x + width - 1, inner_y, y + inner_ht);
-#else
-        screen->drawrect(x, y, width, height);
-#endif
     }
     screen->set_drawmode(DRMODE_SOLID | DRMODE_INVERSEVID);
 
-#ifdef HAVE_LCD_COLOR
     infill = flags & (screen->depth > 1 ? INNER_FILL_MASK : INNER_FILL);
 
     if (!(flags & FOREGROUND))
     {
-#endif
         /* clear corner pixels */
         screen->drawpixel(x, y);
         screen->drawpixel(x + width - 1, y);
         screen->drawpixel(x, y + height - 1);
         screen->drawpixel(x + width - 1, y + height - 1);
 
-#ifdef HAVE_LCD_COLOR
         if (infill != INNER_BGFILL)
             infill = INNER_FILL;
     }
 
     if (infill == INNER_FILL)
-#endif
     {
         /* clear pixels in progress bar */
         screen->fillrect(inner_x, inner_y, inner_wd, inner_ht);
@@ -163,7 +153,6 @@ void gui_scrollbar_draw(struct screen * screen, int x, int y,
     if (flags & INNER_NOFILL)
         return;
 
-#ifdef HAVE_LCD_COLOR
     if (infill == INNER_BGFILL)
     {
         /* fill inner area with current background color */
@@ -172,7 +161,6 @@ void gui_scrollbar_draw(struct screen * screen, int x, int y,
         screen->fillrect(inner_x, inner_y, inner_wd, inner_ht);
         screen->set_foreground(fg);
     }
-#endif
 
     if (flags & HORIZONTAL)
     {

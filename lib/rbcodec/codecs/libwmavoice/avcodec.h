@@ -1943,14 +1943,6 @@ typedef struct AVCodecContext {
      * - decoding: unused
      */
     int context_model;
-#if 0
-    /**
-     *
-     * - encoding: unused
-     * - decoding: Set by user.
-     */
-    uint8_t * (*realloc)(struct AVCodecContext *s, uint8_t *buf, int buf_size);
-#endif
 
     /**
      * slice flags

@@ -47,15 +47,6 @@ char *loader_strerror(enum error_t error)
         return "Can't find crypt key";
     case EDECRYPT_FAILED:
         return "Decryption failed";
-#elif defined(RKW_FORMAT)
-    case EREAD_HEADER_FAILED:
-        return "Can't read RKW header";
-    case EBAD_HEADER_CHKSUM:
-        return "RKW header CRC error";
-    case EINVALID_LOAD_ADDR:
-        return "RKW Load address mismatch";
-    case EBAD_MODEL:
-        return "Bad model number";
 #endif
     default:
         return "Unknown error";

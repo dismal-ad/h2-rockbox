@@ -183,9 +183,6 @@ int wma_decode_init(WMADecodeContext* s, asf_waveformatex_t *wfx)
     int sample_rate1;
     int coef_vlc_table;
     //    int filehandle;
-    #ifdef CPU_COLDFIRE
-    coldfire_set_macsr(EMAC_FRACTIONAL | EMAC_SATURATE);
-    #endif
 
     /*clear stereo setting to avoid glitches when switching stereo->mono*/
     s->channel_coded[0]=0;
@@ -511,22 +508,6 @@ int wma_decode_init(WMADecodeContext* s, asf_waveformatex_t *wfx)
             }
             s->noise_table = noisetable_exp;
         }
-#if 0
-/*TODO:  Rockbox has a dither function.  Consider using it for noise coding*/
-
-/* We use a lookup table computered in advance, so no need to do this*/
-        {
-            unsigned int seed;
-            fixed32 norm;
-            seed = 1;
-            norm = 0;   // PJJ: near as makes any diff to 0!
-            for (i=0;i<NOISE_TAB_SIZE;++i)
-            {
-                seed = seed * 314159 + 1;
-                s->noise_table[i] = itofix32((int)seed) * norm;
-            }
-        }
-#endif
 
          s->hgain_vlc.table = vlcbuf4;
          s->hgain_vlc.table_allocated = VLCBUF4SIZE;

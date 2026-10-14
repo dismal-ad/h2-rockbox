@@ -34,9 +34,7 @@
 /*#define LOGF_ENABLE*/
 #include "logf.h"
 
-#if defined(HAVE_JPEG) || defined(PLUGIN)
 #define USE_JPEG_COVER
-#endif
 
 #ifdef PLUGIN
     #define strmemccpy strlcpy

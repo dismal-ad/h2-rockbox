@@ -38,7 +38,6 @@
  * Init sequence From 'EROS Q （c口）_V2.1_20231209固件.zip'                  *
  * update.upt/.iso -> In 'uboot.bin' at 0x52da0-0x5305f                       *
  *  http://www.eroshifi.com/download/firmware/122.html                        */
-#if !defined(BOOTLOADER) || (EROSQN_VER >= 3)
 static const uint32_t erosqnative_lcd_cmd_enable_v3[] = {
 
     /* Unlock EXTC? */
@@ -135,11 +134,6 @@ static const uint32_t erosqnative_lcd_cmd_enable_v3[] = {
     LCD_INSTR_CMD,      0xba, // TE Control
     LCD_INSTR_DAT,      0x0a,
 
-#ifdef BOOTLOADER
-    LCD_INSTR_CMD,      0x35, // Tearing Effect Line ON
-    LCD_INSTR_DAT,      0x00,
-#endif
-
     LCD_INSTR_CMD,      0x21, /* Invert */
 
     /* Lock EXTC? */
@@ -154,9 +148,7 @@ static const uint32_t erosqnative_lcd_cmd_enable_v3[] = {
     LCD_INSTR_UDELAY,   20000,
     LCD_INSTR_END,
 };
-#endif
 
-#if !defined(BOOTLOADER) || (EROSQN_VER < 3)
 /* Original Display / Hifiwalker -1.5 / Surfans -2.7 */
 static const uint32_t erosqnative_lcd_cmd_enable_v1[] = {
     /* Set EXTC? */
@@ -230,7 +222,6 @@ static const uint32_t erosqnative_lcd_cmd_enable_v1[] = {
     LCD_INSTR_UDELAY,   20000,
     LCD_INSTR_END,
 };
-#endif
 
 static const uint32_t erosqnative_lcd_of_compat_cmd[] = {
     /* Pixel Format Set */
@@ -295,16 +286,10 @@ void lcd_tgt_enable(bool enable)
 {
     if(enable) {
         /* power up the panel */
-#ifdef BOOTLOADER
-# if EROSQN_VER <= 3
-        gpio_set_level(GPIO_LCD_PWR_HW1, 1);
-# endif
-#else
         if (device_data.hw_rev <= 3)
         {
             gpio_set_level(GPIO_LCD_PWR_HW1, 1);
         }
-#endif
         mdelay(20);
         gpio_set_level(GPIO_LCD_RESET, 1);
         mdelay(12);
@@ -318,13 +303,6 @@ void lcd_tgt_enable(bool enable)
         mdelay(5);
         gpio_set_level(GPIO_LCD_CE, 0);
 
-#ifdef BOOTLOADER
-# if EROSQN_VER >= 3
-        lcd_exec_commands(&erosqnative_lcd_cmd_enable_v3[0]);
-# else
-        lcd_exec_commands(&erosqnative_lcd_cmd_enable_v1[0]);
-# endif
-#else
         if (device_data.hw_rev >= 3)
         {
             lcd_exec_commands(&erosqnative_lcd_cmd_enable_v3[0]);
@@ -333,17 +311,8 @@ void lcd_tgt_enable(bool enable)
         {
             lcd_exec_commands(&erosqnative_lcd_cmd_enable_v1[0]);
         }
-#endif
     } else {
         /* doesn't flash white if we don't do anything... */
-#if 0
-        lcd_exec_commands(&erosqnative_lcd_cmd_sleep[0]);
-
-        mdelay(115); // copied from m3k
-
-        gpio_set_level(GPIO_LCD_PWR, 0);
-        gpio_set_level(GPIO_LCD_RESET, 0);
-#endif
     }
 }
 

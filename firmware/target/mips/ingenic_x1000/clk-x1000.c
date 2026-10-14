@@ -146,7 +146,6 @@ static uint32_t clk_get_simple(const struct clk_info* info)
     return rate;
 }
 
-#ifndef BOOTLOADER
 static uint32_t clk_get_i2s_mclk(void)
 {
     if(jz_readf(CPM_CLKGR, AIC))
@@ -186,14 +185,11 @@ static uint32_t clk_get_decimal(x1000_clk_t clk)
     default:                 return 0;
     }
 }
-#endif
 
 uint32_t clk_get(x1000_clk_t clk)
 {
-#ifndef BOOTLOADER
     if(clk >= X1000_NUM_SIMPLE_CLKS)
         return clk_get_decimal(clk);
-#endif
 
     return clk_get_simple(&clk_info[clk]);
 }
@@ -227,7 +223,6 @@ const char* clk_get_name(x1000_clk_t clk)
 
 /* At present we've only got 24 MHz targets, and they are all using
  * the same "standard" configuration. */
-#if X1000_EXCLK_FREQ == 24000000
 void clk_init_early(void)
 {
     jz_writef(CPM_MPCR, ENABLE(0));
@@ -264,7 +259,6 @@ void clk_init(void)
     jz_writef(CPM_APCR, BS(1), PLLM(42 - 1), PLLN(0), PLLOD(0), ENABLE(1));
     while(jz_readf(CPM_APCR, ON) == 0);
 
-#if defined(FIIO_M3K) || defined(EROS_QN)
     /* TODO: Allow targets to define their clock frequencies in their config,
      * instead of having this be a random special case. */
     clk_set_ccr_div(CLKDIV_CPU(1) |     /* 1008 MHz */
@@ -283,25 +277,10 @@ void clk_init(void)
     /* Disable MPLL */
     jz_writef(CPM_MPCR, ENABLE(0));
     while(jz_readf(CPM_MPCR, ON));
-#else
-    /* Default configuration matching the Ingenic OF */
-    clk_set_ccr_div(CLKDIV_CPU(1) |     /* 1008 MHz */
-                    CLKDIV_L2(2) |      /* 504 MHz */
-                    CLKDIV_AHB0(3) |    /* 200 MHz */
-                    CLKDIV_AHB2(3) |    /* 200 MHz */
-                    CLKDIV_PCLK(6));    /* 100 MHz */
-    clk_set_ccr_mux(CLKMUX_SCLK_A(APLL) |
-                    CLKMUX_CPU(SCLK_A) |
-                    CLKMUX_AHB0(MPLL) |
-                    CLKMUX_AHB2(MPLL));
-#endif
 
     /* mark that clocks have been initialized */
     set_boot_flag(BOOT_FLAG_CLK_INIT);
 }
-#else
-# error "please write a new clk_init() for this EXCLK frequency"
-#endif
 
 #define CCR_MUX_BITS jz_orm(CPM_CCR, SEL_SRC, SEL_CPLL, SEL_H0PLL, SEL_H2PLL)
 #define CCR_DIV_BITS jz_orm(CPM_CCR, CDIV, L2DIV, H0DIV, H2DIV, PDIV)

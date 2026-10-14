@@ -45,7 +45,7 @@ struct status_info {
 #ifdef HAS_REMOTE_BUTTON_HOLD
     bool keylockremote;
 #endif
-#if (CONFIG_LED == LED_VIRTUAL) || defined(HAVE_REMOTE_LCD)
+#if (CONFIG_LED == LED_VIRTUAL)
     bool led; /* disk LED simulation in the status bar */
 #endif
 
@@ -65,10 +65,8 @@ struct gui_statusbar
 
     long battery_icon_switch_tick;
 
-#if CONFIG_RTC
     struct tm *time;
     int last_tm_min;
-#endif
     struct screen * display;
 };
 
@@ -100,11 +98,7 @@ struct gui_syncstatusbar
 
 extern void gui_syncstatusbar_init(struct gui_syncstatusbar * bars) INIT_ATTR;
 
-#if !defined(HAVE_REMOTE_LCD) || defined(__PCTOOL__)
 #include "settings.h"
 #define statusbar_position(a) ((enum statusbar_values)global_settings.statusbar)
-#else
-enum statusbar_values statusbar_position(int screen);
-#endif
 
 #endif /*_GUI_STATUSBAR_H_*/

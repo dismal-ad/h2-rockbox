@@ -36,11 +36,6 @@
 #include "status.h" /* needed for battery_state global var */
 #include "action.h" /* for keys_locked */
 #include "statusbar.h"
-#ifdef HAVE_RECORDING
-#include "audio.h"
-#include "recording.h"
-#include "pcm_record.h"
-#endif
 #include "appevents.h"
 #include "timefuncs.h"
 
@@ -120,7 +115,7 @@
                                                 7*ICONS_SPACING
 #define STATUSBAR_LOCKR_WIDTH                   5
 
-#if (CONFIG_LED == LED_VIRTUAL) || defined(HAVE_REMOTE_LCD)
+#if (CONFIG_LED == LED_VIRTUAL)
 #define STATUSBAR_DISK_WIDTH                    12
 #define STATUSBAR_DISK_X_POS(statusbar_width)   statusbar_width - \
                                                 STATUSBAR_DISK_WIDTH
@@ -142,15 +137,10 @@ static void gui_statusbar_icon_lock(struct screen * display);
 #ifdef HAS_REMOTE_BUTTON_HOLD
 static void gui_statusbar_icon_lock_remote(struct screen * display);
 #endif
-#if (CONFIG_LED == LED_VIRTUAL) || defined(HAVE_REMOTE_LCD)
+#if (CONFIG_LED == LED_VIRTUAL)
 static void gui_statusbar_led(struct screen * display);
 #endif
-#ifdef HAVE_RECORDING
-static void gui_statusbar_icon_recording_info(struct screen * display);
-#endif
-#if CONFIG_RTC
 static void gui_statusbar_time(struct screen * display, struct tm *time);
-#endif
 
 /* End prototypes */
 
@@ -165,9 +155,7 @@ static void gui_statusbar_init(struct screen * display, struct gui_statusbar * b
     bar->redraw_volume = true;
     bar->volume_icon_switch_tick = bar->battery_icon_switch_tick = current_tick;
     memset((void*)&(bar->lastinfo), 0, sizeof(struct status_info));
-#if CONFIG_RTC
     bar->last_tm_min = 0;
-#endif
 }
 
 static struct screen * sb_fill_bar_info(struct gui_statusbar * bar)
@@ -230,20 +218,14 @@ static struct screen * sb_fill_bar_info(struct gui_statusbar * bar)
     }
     bar->info.volume = global_status.volume;
     bar->info.shuffle = global_settings.playlist_shuffle;
-#ifdef HAS_BUTTON_HOLD
-    bar->info.keylock = button_hold();
-#else
     bar->info.keylock = is_keys_locked();
-#endif /* HAS_BUTTON_HOLD */
 #ifdef HAS_REMOTE_BUTTON_HOLD
     bar->info.keylockremote = remote_button_hold();
 #endif
     bar->info.repeat = global_settings.repeat_mode;
     bar->info.playmode = current_playmode();
-#if CONFIG_RTC
     bar->time = get_time();
-#endif /* CONFIG_RTC */
-#if (CONFIG_LED == LED_VIRTUAL) || defined(HAVE_REMOTE_LCD)
+#if (CONFIG_LED == LED_VIRTUAL)
     if(!display->has_disk_led)
         bar->info.led = led_read(HZ/2); /* delay should match polling interval */
 #endif
@@ -260,9 +242,7 @@ void gui_statusbar_draw(struct gui_statusbar * bar, bool force_redraw, struct vi
 
     /* only redraw if forced to, or info has changed */
     if (force_redraw || bar->redraw_volume ||
-#if CONFIG_RTC
         (bar->time->tm_min != bar->last_tm_min) ||
-#endif
         memcmp(&(bar->info), &(bar->lastinfo), sizeof(struct status_info)))
     {
         last_vp = display->set_viewport(vp);
@@ -292,21 +272,9 @@ void gui_statusbar_draw(struct gui_statusbar * bar, bool force_redraw, struct vi
                                     STATUSBAR_Y_POS, STATUSBAR_PLUG_WIDTH,
                                     SB_ICON_HEIGHT);
 #endif /* CONFIG_CHARGING */
-#ifdef HAVE_RECORDING
-        /* turn off volume display in recording screen */
-        bool recscreen_on = in_recording_screen();
-        if (!recscreen_on)
-#endif
             bar->redraw_volume = gui_statusbar_icon_volume(bar, bar->info.volume);
         gui_statusbar_icon_play_state(display, current_playmode() + Icon_Play);
 
-#ifdef HAVE_RECORDING
-        /* If in recording screen, replace repeat mode, volume
-           and shuffle icons with recording info */
-        if (recscreen_on)
-            gui_statusbar_icon_recording_info(display);
-        else
-#endif
         {
             gui_statusbar_icon_play_mode(display, bar->info.repeat);
 
@@ -319,11 +287,9 @@ void gui_statusbar_draw(struct gui_statusbar * bar, bool force_redraw, struct vi
         if (bar->info.keylockremote)
             gui_statusbar_icon_lock_remote(display);
 #endif
-#if CONFIG_RTC
         gui_statusbar_time(display, bar->time);
         bar->last_tm_min = bar->time->tm_min;
-#endif /* CONFIG_RTC */
-#if (CONFIG_LED == LED_VIRTUAL) || defined(HAVE_REMOTE_LCD)
+#if (CONFIG_LED == LED_VIRTUAL)
         if(!display->has_disk_led && bar->info.led)
         {
             gui_statusbar_led(display);
@@ -345,9 +311,7 @@ static void gui_statusbar_icon_battery(struct screen * display, int percent,
     int fill, endfill;
     char buffer[5];
     unsigned int width, height;
-#if LCD_DEPTH > 1
     unsigned int prevfg = 0;
-#endif
 
 #if CONFIG_CHARGING
     if (batt_charge_step >= 0)
@@ -392,19 +356,15 @@ static void gui_statusbar_icon_battery(struct screen * display, int percent,
 
         display->fillrect(STATUSBAR_BATTERY_X_POS + 1, STATUSBAR_Y_POS + 1,
                           fill, STATUSBAR_BATTERY_HEIGHT - 2);
-#if LCD_DEPTH > 1
         if (display->depth > 1)
         {
             prevfg = display->get_foreground();
             display->set_foreground(LCD_DARKGRAY);
         }
-#endif
         display->fillrect(STATUSBAR_BATTERY_X_POS + 1 + fill, STATUSBAR_Y_POS + 1,
                           endfill - fill, STATUSBAR_BATTERY_HEIGHT - 2);
-#if LCD_DEPTH > 1
         if (display->depth > 1)
             display->set_foreground(prevfg);
-#endif
     }
 
     if (percent == -1 || percent > 100) {
@@ -497,14 +457,6 @@ static void gui_statusbar_icon_play_state(struct screen * display, int state)
 static void gui_statusbar_icon_play_mode(struct screen * display, int mode)
 {
     switch (mode) {
-#ifdef AB_REPEAT_ENABLE
-        case REPEAT_AB:
-            display->mono_bitmap(bitmap_icons_7x8[Icon_RepeatAB],
-                                 STATUSBAR_PLAY_MODE_X_POS,
-                                 STATUSBAR_Y_POS, STATUSBAR_PLAY_MODE_WIDTH,
-                                 SB_ICON_HEIGHT);
-            break;
-#endif /* AB_REPEAT_ENABLE */
 
         case REPEAT_ONE:
             display->mono_bitmap(bitmap_icons_7x8[Icon_RepeatOne],
@@ -554,7 +506,7 @@ static void gui_statusbar_icon_lock_remote(struct screen * display)
 }
 #endif
 
-#if (CONFIG_LED == LED_VIRTUAL) || defined(HAVE_REMOTE_LCD)
+#if (CONFIG_LED == LED_VIRTUAL)
 /*
  * no real LED: disk activity in status bar
  */
@@ -567,7 +519,6 @@ static void gui_statusbar_led(struct screen * display)
 }
 #endif
 
-#if CONFIG_RTC
 /*
  * Print time to status bar
  */
@@ -599,124 +550,6 @@ static void gui_statusbar_time(struct screen * display, struct tm *time)
     }
 
 }
-#endif
-
-#ifdef HAVE_RECORDING
-/**
- * Write a number to the display using bitmaps and return new position
- */
-static int write_bitmap_number(struct screen * display, int value,
-                               int x, int y)
-{
-    char buf[12], *ptr;
-    itoa_buf(buf, sizeof(buf), value);
-
-    for (ptr = buf; *ptr != '\0'; ptr++, x += BM_GLYPH_WIDTH)
-        display->mono_bitmap(bitmap_glyphs_4x8[*ptr - '0'], x, y,
-                             BM_GLYPH_WIDTH, SB_ICON_HEIGHT);
-    return x;
-}
-
-/**
- * Write format info bitmaps - right justified
- */
-static void gui_statusbar_write_format_info(struct screen * display)
-{
-    /* Can't fit info for sw codec targets in statusbar using FONT_SYSFIXED
-       so must use icons */
-    int rec_format = global_settings.rec_format;
-    unsigned bitrk = 0; /* compiler warns about unitialized use !! */
-    int xpos       = STATUSBAR_ENCODER_X_POS;
-    int width      = STATUSBAR_ENCODER_WIDTH;
-    const unsigned char *bm = bitmap_formats_18x8[rec_format];
-
-    if (rec_format == REC_FORMAT_MPA_L3)
-    {
-        /* Special handling for mp3 */
-        bitrk = global_settings.mp3_enc_config.bitrate;
-        bitrk = mp3_enc_bitr[bitrk];
-
-        width = BM_MPA_L3_M_WIDTH;
-
-        /* Slide 'M' to right if fewer than three digits used */
-        if (bitrk > 999)
-            bitrk = 999; /* neurotic safety check if corrupted */
-        else
-        {
-            if (bitrk < 100)
-                xpos += BM_GLYPH_WIDTH;
-            if (bitrk < 10)
-                xpos += BM_GLYPH_WIDTH;
-        }
-    }
-
-    /* Show bitmap - clipping right edge if needed */
-    display->mono_bitmap_part(bm, 0, 0, STATUSBAR_ENCODER_WIDTH,
-        xpos, STATUSBAR_Y_POS, width, SB_ICON_HEIGHT);
-
-    if (rec_format == REC_FORMAT_MPA_L3)
-    {
-        xpos += BM_MPA_L3_M_WIDTH; /* to right of 'M' */
-        write_bitmap_number(display, bitrk, xpos, STATUSBAR_Y_POS);
-    }
-}
-
-/**
- * Write sample rate using bitmaps - left justified
- */
-static void gui_statusbar_write_samplerate_info(struct screen * display)
-{
-    unsigned long samprk;
-    int xpos;
-
-#ifdef SIMULATOR
-    samprk = 44100;
-#else
-#ifdef HAVE_SPDIF_REC
-    if (global_settings.rec_source == AUDIO_SRC_SPDIF)
-        /* Use rate in use, not current measured rate if it changed */
-        samprk = pcm_rec_sample_rate();
-    else
-#endif
-        samprk = rec_freq_sampr[global_settings.rec_frequency];
-#endif /* SIMULATOR */
-
-    samprk /= 1000;
-    if (samprk > 99)
-        samprk = 99;  /* Limit to 3 glyphs */
-
-    xpos = write_bitmap_number(display, (unsigned)samprk,
-                               STATUSBAR_RECFREQ_X_POS, STATUSBAR_Y_POS);
-
-    /* write the 'k' */
-    display->mono_bitmap(bitmap_glyphs_4x8[Glyph_4x8_k], xpos,
-                         STATUSBAR_Y_POS, BM_GLYPH_WIDTH,
-                         SB_ICON_HEIGHT);
-}
-
-static void gui_statusbar_icon_recording_info(struct screen * display)
-{
-    /* Display Codec info in statusbar */
-    gui_statusbar_write_format_info(display);
-
-    /* Display Samplerate info in statusbar */
-    gui_statusbar_write_samplerate_info(display);
-
-    /* Display Channel status in status bar */
-    if(global_settings.rec_channels)
-    {
-        display->mono_bitmap(bitmap_icons_5x8[Icon_Mono],
-                             STATUSBAR_RECCHANNELS_X_POS , STATUSBAR_Y_POS,
-                             STATUSBAR_RECCHANNELS_WIDTH, SB_ICON_HEIGHT);
-    }
-    else
-    {
-        display->mono_bitmap(bitmap_icons_5x8[Icon_Stereo],
-                             STATUSBAR_RECCHANNELS_X_POS, STATUSBAR_Y_POS,
-                             STATUSBAR_RECCHANNELS_WIDTH, SB_ICON_HEIGHT);
-    }
-}
-#endif /* HAVE_RECORDING */
 
 void gui_syncstatusbar_init(struct gui_syncstatusbar * bars)
 {
@@ -726,11 +559,3 @@ void gui_syncstatusbar_init(struct gui_syncstatusbar * bars)
 }
 
 
-#ifdef HAVE_REMOTE_LCD
-enum statusbar_values statusbar_position(int screen)
-{
-    if (screen == SCREEN_REMOTE)
-        return global_settings.remote_statusbar;
-    return global_settings.statusbar;
-}
-#endif

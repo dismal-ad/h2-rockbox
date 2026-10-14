@@ -16,18 +16,8 @@
 #define DISABLE_VBR
 
 /* Make use of ARM4E assembly optimizations */
-#if defined(CPU_ARM_CLASSIC)
-#if (ARM_ARCH < 5)
-#define ARM4_ASM
-#else
-#define ARM5E_ASM
-#endif
-#endif
 
 /* Make use of Coldfire assembly optimizations */
-#if defined(CPU_COLDFIRE)
-#define COLDFIRE_ASM
-#endif
 
 /* Make use of Blackfin assembly optimizations */
 /* #undef BFIN_ASM */

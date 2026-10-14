@@ -208,16 +208,7 @@ static void i2c_x1000_interrupt(i2c_x1000_bus* bus)
 
     /* FIFO errors shouldn't occur unless driver did something dumb */
     if(intr & jz_orm(I2C_INTST, RXUF, TXOF, RXOF)) {
-#if 1
         panicf("i2c_x1000(%d): fifo error (%08x)", bus->chn, intr);
-#else
-        /* This is how the error condition would be cleared */
-        REG_I2C_CTXOF(bus->chn);
-        REG_I2C_CRXOF(bus->chn);
-        REG_I2C_CRXUF(bus->chn);
-        status = I2C_STATUS_ERROR;
-        goto _done;
-#endif
     }
 
     /* Read from FIFO on reads, and check if we have sent/received

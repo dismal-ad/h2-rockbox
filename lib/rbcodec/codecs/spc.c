@@ -407,10 +407,6 @@ static inline int load_spc_buffer(uint8_t *buf, size_t size)
 
 static inline bool spc_emu_start(void)
 {
-#ifdef CPU_COLDFIRE
-    /* signed integer mode with saturation */
-    coldfire_set_macsr(EMAC_SATURATE);
-#endif
     CPU_Init(&spc_emu);
     return true;
 }
@@ -483,11 +479,6 @@ static int play_track( void )
             /* fade? */
             if (curtime>ID666.length)
             {
-            #ifdef CPU_COLDFIRE
-                /* Have to switch modes to do this */
-                long macsr = coldfire_get_macsr();
-                coldfire_set_macsr(EMAC_SATURATE | EMAC_FRACTIONAL | EMAC_ROUND);
-            #endif
                 int i;
                 for (i=0;i<WAV_CHUNK_SIZE;i++) {
                     if (lasttimesample+i>fadestartsample) {
@@ -498,9 +489,6 @@ static int play_track( void )
                         fadevol-=fadedec;
                     }
                 }
-            #ifdef CPU_COLDFIRE
-               coldfire_set_macsr(macsr);
-            #endif
             }
             /* end? */
             if (lasttimesample>=fadeendsample)

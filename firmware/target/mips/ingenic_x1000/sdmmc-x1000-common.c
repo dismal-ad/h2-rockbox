@@ -32,11 +32,7 @@
 #define MSC_CD_ACTIVE_LEVEL     0
 
 /* Q1 uses MPLL, other targets are using SCLK_A */
-#if defined(SHANLING_Q1)
-# define MSC_SOURCE_CLOCK       X1000_CLK_MPLL
-#else
 # define MSC_SOURCE_CLOCK       X1000_CLK_SCLK_A
-#endif
 
 /* 300ms poll interval */
 #define SDCARD_POLL_TICKS (300 * HZ / 1000)

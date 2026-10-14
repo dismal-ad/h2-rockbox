@@ -38,8 +38,6 @@
  * with simple devices.
  */
 
-#ifdef HAVE_I2C_ASYNC
-
 #include "i2c-target.h"
 #include <stdint.h>
 #include <stddef.h>
@@ -298,5 +296,4 @@ extern void __i2c_async_complete_callback(int bus, int status);
  */
 extern void __i2c_async_submit(int bus, i2c_descriptor* desc);
 
-#endif /* HAVE_I2C_ASYNC */
 #endif /* __I2C_ASYNC_H__ */

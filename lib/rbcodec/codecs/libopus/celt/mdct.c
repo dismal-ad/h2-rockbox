@@ -128,13 +128,8 @@ int clt_mdct_init(mdct_lookup *l,int N, int maxshift, int arch)
    {
       /* We have enough points that sine isn't necessary */
 #if defined(FIXED_POINT)
-#if 1
       for (i=0;i<N2;i++)
          trig[i] = TRIG_UPSCALE*celt_cos_norm(DIV32(ADD32(SHL32(EXTEND32(i),17),N2+16384),N));
-#else
-      for (i=0;i<N2;i++)
-         trig[i] = (kiss_twiddle_scalar)MAX32(-32767,MIN32(32767,floor(.5+32768*cos(2*M_PI*(i+.125)/N))));
-#endif
 #else
       for (i=0;i<N2;i++)
          trig[i] = (kiss_twiddle_scalar)cos(2*PI*(i+.125)/N);

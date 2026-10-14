@@ -160,7 +160,6 @@ char *create_numbered_filename(char *buffer, const char *path,
 }
 
 
-#if CONFIG_RTC
 /* Create a filename with a date+time part.
    It is allowed that buffer and path point to the same memory location,
    saving a strcpy(). Path must always be given without trailing slash.
@@ -190,7 +189,6 @@ char *create_datetime_filename(char *buffer, const char *path,
 
     return buffer;
 }
-#endif /* CONFIG_RTC */
 
 /***
  ** Compacted pointer lists

@@ -30,7 +30,7 @@ typedef  uint32_t mad_fixed64lo_t;
 
 # if defined(_MSC_VER)
 #  define mad_fixed64_t  signed __int64
-# elif 1 || defined(__GNUC__)
+# else
 #  define mad_fixed64_t  signed long long
 # endif
 
@@ -237,7 +237,6 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
  * This ARM V4 version is as accurate as FPM_64BIT but much faster. The
  * least significant bit is properly rounded at no CPU cycle cost!
  */
-# if 1
 /*
  * This is faster than the default implementation via MAD_F_MLX() and
  * mad_f_scale64().
@@ -255,7 +254,6 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
             : "cc");  \
        __result;  \
     })
-# endif
 
 #  define MAD_F_MLX(hi, lo, x, y)  \
     asm ("smull %0, %1, %2, %3"  \

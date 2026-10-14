@@ -106,7 +106,6 @@ void uart_deinit(uart_port_t port) {
 void uart_set_baud(uart_port_t port, int baud) {
     uint32_t udllr, udlhr, umr, uacr;
     switch (baud) {
-#if X1000_EXCLK_FREQ == 24000000
         case 115200:
             udllr = 13;
             udlhr = 0;
@@ -137,7 +136,6 @@ void uart_set_baud(uart_port_t port, int baud) {
             umr = 6;
             uacr = 0;
             break;
-#endif
         default:
             panicf("UART(%d): unsupported baud %d", port, baud);
     }

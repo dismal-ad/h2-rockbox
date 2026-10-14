@@ -28,9 +28,6 @@
 struct dsp_loop_context
 {
     long last_yield;
-#ifdef CPU_COLDFIRE
-    unsigned long old_macsr;
-#endif
 };
 
 static inline void dsp_process_start(struct dsp_loop_context *ctx, bool thread_yield)
@@ -41,12 +38,6 @@ static inline void dsp_process_start(struct dsp_loop_context *ctx, bool thread_y
     {
         yield();
     }
-#if defined(CPU_COLDFIRE)
-    /* set emac unit for dsp processing, and save old macsr, we're running in
-       codec thread context at this point, so can't clobber it */
-    ctx->old_macsr = coldfire_get_macsr();
-    coldfire_set_macsr(EMAC_FRACTIONAL | EMAC_SATURATE);
-#endif
 }
 
 static inline void dsp_process_loop(struct dsp_loop_context *ctx, bool thread_yield)
@@ -65,10 +56,6 @@ static inline void dsp_process_loop(struct dsp_loop_context *ctx, bool thread_yi
 
 static inline void dsp_process_end(struct dsp_loop_context *ctx)
 {
-#if defined(CPU_COLDFIRE)
-    /* set old macsr again */
-    coldfire_set_macsr(ctx->old_macsr);
-#endif
     (void)ctx;
 }
 

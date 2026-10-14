@@ -17,7 +17,6 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
-#ifdef HAVE_TAGCACHE
 #ifndef _TAGCACHE_H
 #define _TAGCACHE_H
 
@@ -213,5 +212,4 @@ void tagcache_stop_scan(void);
 bool tagcache_update(void);
 bool tagcache_rebuild(void);
 int tagcache_get_max_commit_step(void);
-#endif
 #endif

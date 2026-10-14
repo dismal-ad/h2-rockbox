@@ -25,7 +25,7 @@
 #include "dircache.h"
 #include "file.h"
 
-#if defined(HAVE_MULTIBOOT) && !defined(SIMULATOR) && !defined(BOOTLOADER)
+#if defined(HAVE_MULTIBOOT) && !defined(SIMULATOR)
 #include "rb-loader.h"
 #include "multiboot.h"
 #include "bootdata.h"
@@ -136,7 +136,7 @@ static inline void fileop_onsync_internal(struct filestr_base *stream)
 #endif
 }
 
-#if defined(HAVE_MULTIBOOT) && !defined(SIMULATOR) && !defined(BOOTLOADER)
+#if defined(HAVE_MULTIBOOT) && !defined(SIMULATOR)
 static inline bool multiboot_is_boot_volume(int volume)
 {
     if (boot_data.version == 0)
@@ -173,7 +173,7 @@ static inline bool multiboot_is_boot_volume(int volume)
 
 static inline void volume_onmount_internal(IF_MV_NONVOID(int volume))
 {
-#if defined(HAVE_MULTIBOOT) && !defined(SIMULATOR) && !defined(BOOTLOADER)
+#if defined(HAVE_MULTIBOOT) && !defined(SIMULATOR)
     char path[VOL_MAX_LEN+2];
     char rtpath[MAX_PATH / 2];
     make_volume_root(volume, path);
@@ -201,10 +201,6 @@ static inline void volume_onmount_internal(IF_MV_NONVOID(int volume))
             else
                 rtlen = 0; /* No BOOTFILE found */
 
-#if 0 /*removed, causes issues with playback for now?*/
-            if (rtlen <= 0 || rtpath[rtlen] == VOL_END_TOK)
-                root_unmount_volume(volume); /* unmount so root can be hidden*/
-#endif
             if (rtlen <= 0 || root_mount_path(rtpath, NSITEM_CONTENTS) != 0)
             {   /* Error occurred, card removed? Set root to default */
                 boot_data_valid = false;

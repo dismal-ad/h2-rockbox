@@ -24,11 +24,9 @@
 #include "system.h"
 
 /* Headers for the debug menu */
-#ifndef BOOTLOADER
 # include "action.h"
 # include "list.h"
 # include <stdio.h>
-#endif
 
 /* Battery profile info is an opaque blob. According to this,
  * https://lore.kernel.org/linux-pm/20200503154855.duwj2djgqfiyleq5@earth.universe/T/#u
@@ -41,20 +39,7 @@
  * enough to just boot the OF, then boot Rockbox and read out the battery info
  * from the CW2015 debug screen.
  */
-#if defined(SHANLING_Q1)
-static const uint8_t device_batinfo[CW2015_SIZE_BATINFO] = {
-    0x15, 0x7E, 0x61, 0x59, 0x57, 0x55, 0x56, 0x4C,
-    0x4E, 0x4D, 0x50, 0x4C, 0x45, 0x3A, 0x2D, 0x27,
-    0x22, 0x1E, 0x19, 0x1E, 0x2A, 0x3C, 0x48, 0x45,
-    0x1D, 0x94, 0x08, 0xF6, 0x15, 0x29, 0x48, 0x51,
-    0x5D, 0x60, 0x63, 0x66, 0x45, 0x1D, 0x83, 0x38,
-    0x09, 0x43, 0x16, 0x42, 0x76, 0x98, 0xA5, 0x1B,
-    0x41, 0x76, 0x99, 0xBF, 0x80, 0xC0, 0xEF, 0xCB,
-    0x2F, 0x00, 0x64, 0xA5, 0xB5, 0x0E, 0x30, 0x29,
-};
-#else
 # define NO_BATINFO
-#endif
 
 static uint8_t chip_batinfo[CW2015_SIZE_BATINFO];
 
@@ -129,7 +114,6 @@ const uint8_t* cw2015_get_bat_info(void)
     return &chip_batinfo[0];
 }
 
-#ifndef BOOTLOADER
 enum {
     CW2015_DEBUG_VCELL = 0,
     CW2015_DEBUG_SOC,
@@ -187,4 +171,3 @@ bool cw2015_debug_menu(void)
     info.get_name = cw2015_debug_menu_get_name;
     return simplelist_show_list(&info);
 }
-#endif

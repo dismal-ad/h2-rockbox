@@ -30,9 +30,7 @@
 /* Needed to get at the audio buffer */
 #include "audio.h"
 #include "usb_storage.h"
-#if CONFIG_RTC
 #include "timefuncs.h"
-#endif
 #include "core_alloc.h"
 #include "panic.h"
 
@@ -139,11 +137,7 @@
 #define ASC_WRITE_PROTECTED         0x27
 
 /* A drive whose driver can only read it is reported write protected */
-#ifdef HAVE_STORAGE_READONLY
-#define LUN_READONLY(lun)   storage_readonly(lun)
-#else
 #define LUN_READONLY(lun)   false
-#endif
 
 #define ASCQ_BECOMING_READY         0x01
 
@@ -323,9 +317,7 @@ static void send_command_result(void *data,int size);
 static void send_command_failed_result(void);
 static void send_block_data(void *data,int size);
 static void receive_block_data(void *data,int size);
-#if CONFIG_RTC
 static void receive_time(void);
-#endif
 static void fill_inquiry(IF_MD_NONVOID(int lun));
 static void send_and_read_next(void);
 static bool ejected[NUM_DRIVES];
@@ -356,14 +348,11 @@ static enum {
     SENDING_RESULT,
     SENDING_FAILED_RESULT,
     RECEIVING_BLOCKS,
-#if CONFIG_RTC
     RECEIVING_TIME,
-#endif
     WAITING_FOR_CSW_COMPLETION_OR_COMMAND,
     WAITING_FOR_CSW_COMPLETION
 } state = WAITING_FOR_COMMAND;
 
-#if CONFIG_RTC
 static void yearday_to_daymonth(int yd, int y, int *d, int *m)
 {
     static char t[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
@@ -378,7 +367,6 @@ static void yearday_to_daymonth(int yd, int y, int *d, int *m)
     *d = yd+1;
     *m = i;
 }
-#endif /* CONFIG_RTC */
 
 static bool check_disk_present(IF_MD_NONVOID(int volume))
 {
@@ -389,7 +377,6 @@ static bool check_disk_present(IF_MD_NONVOID(int volume))
 #endif
 }
 
-#ifdef HAVE_HOTSWAP
 static void usb_storage_notify_hotswap(int volume,bool inserted)
 {
     logf("notify %d",inserted);
@@ -403,7 +390,6 @@ static void usb_storage_notify_hotswap(int volume,bool inserted)
         locked[volume]=false;
     }
 }
-#endif
 
 #ifdef HAVE_MULTIDRIVE
 void usb_set_skip_first_drive(bool skip)
@@ -441,9 +427,7 @@ static int usb_storage_get_config_descriptor(unsigned char *dest,int max_packet_
 
     return (dest - orig_dest);
 }
-#if (CONFIG_CPU == IMX31L || defined(CPU_TCC780X) || \
-     CONFIG_CPU == S5L8702 || CONFIG_CPU == S5L8701 || CONFIG_CPU == AS3525v2 || \
-     defined(BOOTLOADER) || CONFIG_CPU == DM320) && !defined(CPU_PP502x)
+#if (((CONFIG_CPU == IMX31L) || (CONFIG_CPU == S5L8702) || (CONFIG_CPU == S5L8701) || (CONFIG_CPU == AS3525v2)) || (CONFIG_CPU == DM320))
 #define USB_STATIC_ALLOC
 #else
 static int usb_handle = 0;
@@ -537,9 +521,7 @@ static void usb_storage_transfer_complete(int ep,int dir,int status,int length)
 {
     (void)ep;
     struct command_block_wrapper* cbw = (void*)cbw_buffer;
-#if CONFIG_RTC
     struct tm tm;
-#endif
 
 
     logf("transfer result for ep %d/%d %X %d", ep,dir,status, length);
@@ -698,7 +680,6 @@ static void usb_storage_transfer_complete(int ep,int dir,int status,int length)
                 cur_sense_data.ascq=0;
             }
             break;
-#if CONFIG_RTC
         case RECEIVING_TIME:
             tm.tm_year=(tb.transfer_buffer[0]<<8)+tb.transfer_buffer[1] - 1900;
             tm.tm_yday=(tb.transfer_buffer[2]<<8)+tb.transfer_buffer[3];
@@ -710,7 +691,6 @@ static void usb_storage_transfer_complete(int ep,int dir,int status,int length)
             set_time(&tm);
             send_csw(UMS_STATUS_GOOD);
             break;
-#endif /* CONFIG_RTC */
     }
 }
 
@@ -730,16 +710,6 @@ static void usb_storage_send_ata_identify(void)
      * unset, or refer to a buffer freed by a USB reset. */
     send_block_data(tb.transfer_buffer, ATA_IDENTIFY_WORDS * 2);
 }
-#ifdef HAVE_ATA_SMART
-static void usb_storage_send_smart(uint8_t cmd)
-{
-    ata_read_smart((struct ata_smart_values*) tb.transfer_buffer, cmd);
-    cur_cmd.count = 0;
-    cur_cmd.last_result = 0;
-    cur_cmd.data[0] = tb.transfer_buffer;
-    send_block_data(cur_cmd.data[0], 512);
-}
-#endif /* HAVE_ATA_SMART */
 #endif /* STORAGE_ATA */
 
 /* called by usb_core_control_request() */
@@ -773,10 +743,6 @@ static bool usb_storage_control_request(struct usb_ctrlrequest* req, uint8_t* re
             /* UMS BOT 3.1 says The device shall preserve the value of its bulk
                data toggle bits and endpoint STALL conditions despite
                the Bulk-Only Mass Storage Reset. */
-#if 0
-            usb_drv_reset_endpoint(EP_IN, false);
-            usb_drv_reset_endpoint(EP_OUT, true);
-#endif
             usb_core_control_response(USB_CONTROL_ACK, NULL, 0);
             handled = true;
             break;
@@ -861,9 +827,6 @@ static void handle_scsi_ready(struct command_block_wrapper* cbw)
         lun_present = false;
 
     unsigned int block_size_mult = 1; /* Number of LOGICAL storage device blocks in each USB block */
-#ifdef MAX_VIRT_SECTOR_SIZE
-    block_size_mult = disk_get_sector_multiplier(IF_MD(lun));
-#endif
 
     uint32_t bsize = block_size*block_size_mult;
     sector_t bcount = block_count/block_size_mult;
@@ -1388,7 +1351,6 @@ static void handle_scsi_ready(struct command_block_wrapper* cbw)
             break;
 #endif
 
-#if CONFIG_RTC
         case SCSI_WRITE_BUFFER:
             if(cbw->command_block[1]==1 /* mode = vendor specific */
             && cbw->command_block[2]==0 /* buffer id = 0 */
@@ -1408,7 +1370,6 @@ static void handle_scsi_ready(struct command_block_wrapper* cbw)
             else
                 reject_command(cbw);
             break;
-#endif /* CONFIG_RTC */
 
 #if (CONFIG_STORAGE & STORAGE_ATA)
     case SAT_ATA_PASSTHROUGH_12:
@@ -1419,11 +1380,6 @@ static void handle_scsi_ready(struct command_block_wrapper* cbw)
                     cbw->command_block[9] == 0xec) {
                     usb_storage_send_ata_identify();
                     break;
-#ifdef HAVE_ATA_SMART
-                } else if (cbw->command_block[9] == 0xb0) {
-                    usb_storage_send_smart(cbw->command_block[3]);
-                    break;
-#endif
                 }
             }
             send_csw(UMS_STATUS_FAIL);
@@ -1439,11 +1395,6 @@ static void handle_scsi_ready(struct command_block_wrapper* cbw)
                     cbw->command_block[14] == 0xec) {
                     usb_storage_send_ata_identify();
                     break;
-#ifdef HAVE_ATA_SMART
-                } else if (cbw->command_block[14] == 0xb0) {
-                    usb_storage_send_smart(cbw->command_block[4]);
-                    break;
-#endif
                 }
             }
             send_csw(UMS_STATUS_FAIL);
@@ -1492,9 +1443,7 @@ static void account_data_transfer(int dir, int status, int length)
     bool data_in = state == SENDING_RESULT || state == SENDING_FAILED_RESULT ||
                    state == SENDING_BLOCKS;
     bool data_out = state == RECEIVING_BLOCKS;
-#if CONFIG_RTC
     data_out |= state == RECEIVING_TIME;
-#endif
     if(status == 0 && length > 0 &&
        ((data_in && dir == USB_DIR_IN) || (data_out && dir == USB_DIR_OUT)))
         cur_cmd.data_residue -= MIN(cur_cmd.data_residue, (unsigned int)length);
@@ -1534,13 +1483,11 @@ static void send_command_failed_result(void)
     state = SENDING_FAILED_RESULT;
 }
 
-#if CONFIG_RTC
 static void receive_time(void)
 {
     usb_drv_recv_nonblocking(EP_OUT, tb.transfer_buffer, 12);
     state = RECEIVING_TIME;
 }
-#endif /* CONFIG_RTC */
 
 static void receive_block_data(void *data,int size)
 {
@@ -1616,7 +1563,5 @@ struct usb_class_driver usb_cdrv_storage = {
     .transfer_complete = usb_storage_transfer_complete,
     .control_request = usb_storage_control_request,
     .notify_event = usb_storage_notify_event,
-#ifdef HAVE_HOTSWAP
     .notify_hotswap = usb_storage_notify_hotswap,
-#endif
 };

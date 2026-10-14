@@ -534,13 +534,6 @@ void raw_data_block(NeAACDecHandle hDecoder, NeAACDecFrameInfo *hInfo,
             hInfo->error = 7;
             return;
         }
-#if 0
-        cnt = bits_to_decode() / 8;
-        while (cnt >= 1)
-        {
-            cnt -= extension_payload(cnt);
-        }
-#endif
     }
 #endif
 
@@ -860,14 +853,8 @@ static uint8_t pulse_data(ic_stream *ics, pulse_info *pul, bitfile *ld)
     {
         pul->pulse_offset[i] = (uint8_t)faad_getbits(ld, 5
             DEBUGVAR(1,58,"pulse_data(): pulse_offset"));
-#if 0
-        printf("%d\n", pul->pulse_offset[i]);
-#endif
         pul->pulse_amp[i] = (uint8_t)faad_getbits(ld, 4
             DEBUGVAR(1,59,"pulse_data(): pulse_amp"));
-#if 0
-        printf("%d\n", pul->pulse_amp[i]);
-#endif
     }
 
     return 0;
@@ -1044,13 +1031,6 @@ static uint8_t fill_element(NeAACDecHandle hDecoder, bitfile *ld, drc_info *drc
 
             /* parse the SBR data */
             hDecoder->sbr[sbr_ele]->ret = sbr_extension_data(ld, hDecoder->sbr[sbr_ele], count);
-
-#if 0
-            if (hDecoder->sbr[sbr_ele]->ret > 0)
-            {
-                printf("%s\n", NeAACDecGetErrorMessage(hDecoder->sbr[sbr_ele]->ret));
-            }
-#endif
 
 #if (defined(PS_DEC) || defined(DRM_PS))
             if (hDecoder->sbr[sbr_ele]->ps_used)
@@ -1423,15 +1403,6 @@ static int8_t aac_scalable_main_header(NeAACDecHandle hDecoder, ic_stream *ics1,
                 }
             }
         }
-#if 0
-        if (0 /*core_flag || tvq_layer_pesent*/)
-        {
-            if ((ch==0) || ((ch==1) && (core_stereo || tvq_stereo))
-                diff_control_data();
-            if (mono_stereo_flag)
-                diff_control_data_lr();
-        } else {
-#endif
             if ((
 #ifdef LTP_DEC
                 ics->ltp.data_present =
@@ -1447,9 +1418,6 @@ static int8_t aac_scalable_main_header(NeAACDecHandle hDecoder, ic_stream *ics1,
                 return 26;
 #endif
             }
-#if 0
-        }
-#endif
     }
 
     return 0;
@@ -1604,11 +1572,6 @@ static uint8_t section_data(NeAACDecHandle hDecoder, ic_stream *ics, bitfile *ld
         sect_bits = 5;
     sect_esc_val = (1<<sect_bits) - 1;
 
-#if 0
-    printf("\ntotal sfb %d\n", ics->max_sfb);
-    printf("   sect    top     cb\n");
-#endif
-
     for (g = 0; g < ics->num_window_groups; g++)
     {
         uint8_t k = 0;
@@ -1638,10 +1601,6 @@ static uint8_t section_data(NeAACDecHandle hDecoder, ic_stream *ics, bitfile *ld
 
             ics->sect_cb[g][i] = (uint8_t)faad_getbits(ld, sect_cb_bits
                 DEBUGVAR(1,71,"section_data(): sect_cb"));
-
-#if 0
-            printf("%d\n", ics->sect_cb[g][i]);
-#endif
 
             if (ics->sect_cb[g][i] == NOISE_HCB)
                 ics->noise_used = 1;
@@ -1678,13 +1637,6 @@ static uint8_t section_data(NeAACDecHandle hDecoder, ic_stream *ics, bitfile *ld
             ics->sect_start[g][i] = k;
             ics->sect_end[g][i] = k + sect_len;
 
-#if 0
-            printf("%d\n", ics->sect_start[g][i]);
-#endif
-#if 0
-            printf("%d\n", ics->sect_end[g][i]);
-#endif
-
             if (k + sect_len >= 8*15)
                 return 15;
             if (i >= 8*15)
@@ -1693,30 +1645,13 @@ static uint8_t section_data(NeAACDecHandle hDecoder, ic_stream *ics, bitfile *ld
             for (sfb = k; sfb < k + sect_len; sfb++)
             {
                 ics->sfb_cb[g][sfb] = ics->sect_cb[g][i];
-#if 0
-                printf("%d\n", ics->sfb_cb[g][sfb]);
-#endif
             }
-
-#if 0
-            printf(" %6d %6d %6d\n",
-                i,
-                ics->sect_end[g][i],
-                ics->sect_cb[g][i]);
-#endif
 
             k += sect_len;
             i++;
         }
         ics->num_sec[g] = i;
-#if 0
-        printf("%d\n", ics->num_sec[g]);
-#endif
     }
-
-#if 0
-    printf("\n");
-#endif
 
     return 0;
 }
@@ -1863,9 +1798,6 @@ static void tns_data(ic_stream *ics, tns_info *tns, bitfile *ld)
     {
         tns->n_filt[w] = (uint8_t)faad_getbits(ld, n_filt_bits
             DEBUGVAR(1,74,"tns_data(): n_filt"));
-#if 0
-        printf("%d\n", tns->n_filt[w]);
-#endif
 
         if (tns->n_filt[w])
         {
@@ -1876,44 +1808,26 @@ static void tns_data(ic_stream *ics, tns_info *tns, bitfile *ld)
             } else {
                 start_coef_bits = 3;
             }
-#if 0
-            printf("%d\n", tns->coef_res[w]);
-#endif
         }
 
         for (filt = 0; filt < tns->n_filt[w]; filt++)
         {
             tns->length[w][filt] = (uint8_t)faad_getbits(ld, length_bits
                 DEBUGVAR(1,76,"tns_data(): length"));
-#if 0
-            printf("%d\n", tns->length[w][filt]);
-#endif
             tns->order[w][filt]  = (uint8_t)faad_getbits(ld, order_bits
                 DEBUGVAR(1,77,"tns_data(): order"));
-#if 0
-            printf("%d\n", tns->order[w][filt]);
-#endif
             if (tns->order[w][filt])
             {
                 tns->direction[w][filt] = faad_get1bit(ld
                     DEBUGVAR(1,78,"tns_data(): direction"));
-#if 0
-                printf("%d\n", tns->direction[w][filt]);
-#endif
                 tns->coef_compress[w][filt] = faad_get1bit(ld
                     DEBUGVAR(1,79,"tns_data(): coef_compress"));
-#if 0
-                printf("%d\n", tns->coef_compress[w][filt]);
-#endif
 
                 coef_bits = start_coef_bits - tns->coef_compress[w][filt];
                 for (i = 0; i < tns->order[w][filt]; i++)
                 {
                     tns->coef[w][filt][i] = (uint8_t)faad_getbits(ld, coef_bits
                         DEBUGVAR(1,80,"tns_data(): coef"));
-#if 0
-                    printf("%d\n", tns->coef[w][filt][i]);
-#endif
                 }
             }
         }

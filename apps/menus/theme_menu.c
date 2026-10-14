@@ -33,9 +33,6 @@
 #include "list.h"
 #include "color_picker.h"
 #include "lcd.h"
-#ifdef HAVE_REMOTE_LCD
-#include "lcd-remote.h"
-#endif
 #include "backdrop.h"
 #include "exported_menus.h"
 #include "appevents.h"
@@ -44,11 +41,8 @@
 #include "skin_engine/skin_engine.h"
 #include "splash.h"
 #include "icons.h"
-#ifdef HAVE_LCD_COLOR
 #include "filetypes.h"
-#endif
 
-#ifdef HAVE_BACKDROP_IMAGE
 /**
 * Menu to clear the backdrop image
  */
@@ -64,8 +58,6 @@ static int clear_main_backdrop(void)
 }
 MENUITEM_FUNCTION(clear_main_bd, 0, ID2P(LANG_CLEAR_BACKDROP),
                   clear_main_backdrop, NULL, Icon_NOICON);
-#endif
-#ifdef HAVE_LCD_COLOR
 
 enum Colors {
     COLOR_FG = 0,
@@ -157,7 +149,6 @@ MAKE_MENU(colors_settings, ID2P(LANG_COLORS_MENU),
             &set_bg_col, &set_fg_col, &reset_colors
          );
 
-#endif /* HAVE_LCD_COLOR */
 /*    LCD MENU                    */
 /***********************************/
 
@@ -187,15 +178,6 @@ static int statusbar_callback_ex(int action,const struct menu_item_ex *this_item
     return ACTION_REDRAW;
 }
 
-#ifdef HAVE_REMOTE_LCD
-static int statusbar_callback_remote(int action,
-                                     const struct menu_item_ex *this_item,
-                                     struct gui_synclist *this_list)
-{
-    (void)this_list;
-    return statusbar_callback_ex(action, this_item, SCREEN_REMOTE);
-}
-#endif
 static int statusbar_callback(int action,
                              const struct menu_item_ex *this_item,
                              struct gui_synclist *this_list)
@@ -207,23 +189,12 @@ static int statusbar_callback(int action,
 MENUITEM_SETTING(scrollbar_item, &global_settings.scrollbar, NULL);
 MENUITEM_SETTING(scrollbar_width, &global_settings.scrollbar_width, NULL);
 MENUITEM_SETTING(statusbar, &global_settings.statusbar, statusbar_callback);
-#ifdef HAVE_REMOTE_LCD
-MENUITEM_SETTING(remote_statusbar, &global_settings.remote_statusbar,
-                                                    statusbar_callback_remote);
-#endif
 MENUITEM_SETTING(volume_type, &global_settings.volume_type, NULL);
-#if (CONFIG_BATTERY_MEASURE != 0)
 MENUITEM_SETTING(battery_display, &global_settings.battery_display, NULL);
-#endif
 MAKE_MENU(bars_menu, ID2P(LANG_BARS_MENU), 0, Icon_NOICON,
           &scrollbar_item, &scrollbar_width, &statusbar,
-#ifdef HAVE_REMOTE_LCD
-          &remote_statusbar,
-#endif
           &volume_type
-#if (CONFIG_BATTERY_MEASURE != 0)
           , &battery_display
-#endif
           );
 
 /*                                  */
@@ -232,17 +203,7 @@ MAKE_MENU(bars_menu, ID2P(LANG_BARS_MENU), 0, Icon_NOICON,
 
 static struct browse_folder_info fonts = {FONT_DIR, SHOW_FONT};
 static struct browse_folder_info sbs   = {SBS_DIR, SHOW_SBS};
-#if CONFIG_TUNER
-static struct browse_folder_info fms   = {WPS_DIR, SHOW_FMS};
-#endif
 static struct browse_folder_info wps = {WPS_DIR, SHOW_WPS};
-#ifdef HAVE_REMOTE_LCD
-static struct browse_folder_info rwps = {WPS_DIR, SHOW_RWPS};
-static struct browse_folder_info rsbs = {SBS_DIR, SHOW_RSBS};
-#if CONFIG_TUNER
-static struct browse_folder_info rfms   = {WPS_DIR, SHOW_RFMS};
-#endif
-#endif
 static struct browse_folder_info themes = {THEME_DIR, SHOW_CFG};
 
 int browse_folder(void *param)
@@ -290,32 +251,6 @@ int browse_folder(void *param)
             setting = global_settings.sbs_file;
             lang_id = LANG_BASE_SKIN;
             break;
-#if CONFIG_TUNER
-        case SHOW_FMS:
-            ext = "fms";
-            setting = global_settings.fms_file;
-            lang_id = LANG_RADIOSCREEN;
-            break;
-#endif /* CONFIG_TUNER */
-#ifdef HAVE_REMOTE_LCD
-        case SHOW_RWPS:
-            ext = "rwps";
-            setting = global_settings.rwps_file;
-            lang_id = LANG_REMOTE_WHILE_PLAYING;
-            break;
-        case SHOW_RSBS:
-            ext = "rsbs";
-            setting = global_settings.rsbs_file;
-            lang_id = LANG_REMOTE_BASE_SKIN;
-            break;
-#if CONFIG_TUNER
-        case SHOW_RFMS:
-            ext = "rfms";
-            setting = global_settings.rfms_file;
-            lang_id = LANG_REMOTE_RADIOSCREEN;
-            break;
-#endif /* CONFIG_TUNER */
-#endif
         default:
             ext = setting = NULL;
             break;
@@ -340,22 +275,8 @@ MENUITEM_FUNCTION_W_PARAM(browse_fonts, 0, ID2P(LANG_CUSTOM_FONT),
 
 MENUITEM_FUNCTION_W_PARAM(browse_sbs, 0, ID2P(LANG_BASE_SKIN),
                           browse_folder, (void*)&sbs, NULL, Icon_Wps);
-#if CONFIG_TUNER
-MENUITEM_FUNCTION_W_PARAM(browse_fms, 0, ID2P(LANG_RADIOSCREEN),
-                          browse_folder, (void*)&fms, NULL, Icon_Wps);
-#endif
 MENUITEM_FUNCTION_W_PARAM(browse_wps, 0, ID2P(LANG_WHILE_PLAYING),
                           browse_folder, (void*)&wps, NULL, Icon_Wps);
-#ifdef HAVE_REMOTE_LCD
-MENUITEM_FUNCTION_W_PARAM(browse_rwps, 0, ID2P(LANG_REMOTE_WHILE_PLAYING),
-                          browse_folder, (void*)&rwps, NULL, Icon_Wps);
-MENUITEM_FUNCTION_W_PARAM(browse_rsbs, 0, ID2P(LANG_REMOTE_BASE_SKIN),
-                          browse_folder, (void*)&rsbs, NULL, Icon_Wps);
-#if CONFIG_TUNER
-MENUITEM_FUNCTION_W_PARAM(browse_rfms, 0, ID2P(LANG_REMOTE_RADIOSCREEN),
-                          browse_folder, (void*)&rfms, NULL, Icon_Wps);
-#endif
-#endif
 
 static int showicons_callback(int action,
                              const struct menu_item_ex *this_item,
@@ -381,38 +302,18 @@ MENUITEM_SETTING(show_icons, &global_settings.show_icons, showicons_callback);
 MENUITEM_FUNCTION_W_PARAM(browse_themes, 0, ID2P(LANG_CUSTOM_THEME),
                           browse_folder, (void*)&themes, NULL, Icon_Config);
 MENUITEM_SETTING(cursor_style, &global_settings.cursor_style, NULL);
-#if LCD_DEPTH > 1
 MENUITEM_SETTING(sep_menu, &global_settings.list_separator_height, NULL);
-#endif
 
 MAKE_MENU(theme_menu, ID2P(LANG_THEME_MENU),
             NULL, Icon_Wps,
             &browse_themes,
             &browse_fonts,
             &browse_wps,
-#ifdef HAVE_REMOTE_LCD
-            &browse_rwps,
-#endif
-#if CONFIG_TUNER
-            &browse_fms,
-#ifdef HAVE_REMOTE_LCD
-            &browse_rfms,
-#endif
-#endif
             &browse_sbs,
-#ifdef HAVE_REMOTE_LCD
-            &browse_rsbs,
-#endif
             &show_icons,
-#ifdef HAVE_BACKDROP_IMAGE
             &clear_main_bd,
-#endif
             &bars_menu,
             &cursor_style,
-#if LCD_DEPTH > 1
             &sep_menu,
-#endif
-#ifdef HAVE_LCD_COLOR
             &colors_settings,
-#endif
 );

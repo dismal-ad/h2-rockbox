@@ -33,10 +33,8 @@
  * of our inability to look into the future at the end of a frame.
  */
 
-#if 1 /* Set to '0' to enable debug messages */
 #undef DEBUGF
 #define DEBUGF(...)
-#endif
 
 #define RESAMPLE_BUF_COUNT 192 /* Per channel, per DSP */
 
@@ -96,7 +94,6 @@ static bool resample_new_delta(struct resample_data *data,
     return true;
 }
 
-#if (!defined(CPU_COLDFIRE) && !defined(CPU_ARM)) || defined(CPU_ARM_MICRO)
 int resample_hermite(struct resample_data *data, struct dsp_buffer *src,
                      struct dsp_buffer *dst)
 {
@@ -186,7 +183,6 @@ int resample_hermite(struct resample_data *data, struct dsp_buffer *src,
     dst->remcount = d - dst->p32[0];
     return pos;
 }
-#endif /* CPU */
 
 /* Resample count stereo samples or stop when the destination is full.
  * Updates the src buffer and changes to its own output buffer to refer to

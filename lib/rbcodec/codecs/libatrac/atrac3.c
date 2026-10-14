@@ -54,11 +54,7 @@
 #define FFMIN(a,b) ((a) > (b) ? (b) : (a))
 #define FFSWAP(type,a,b) do{type SWAP_tmp= b; b= a; a= SWAP_tmp;}while(0)
 
-#if defined(CPU_ARM) && (ARM_ARCH >= 5)  
-    #define QMFWIN_TYPE int16_t /* ARMv5e+ uses 32x16 multiplication */
-#else
     #define QMFWIN_TYPE int32_t
-#endif
 
 static VLC          spectral_coeff_tab[7]     IBSS_ATTR_LARGE_IRAM;
 static QMFWIN_TYPE  qmf_window[48]            IBSS_ATTR MEM_ALIGN_ATTR; 
@@ -80,20 +76,6 @@ static int          vlcs_initialized = 0;
  * @param nIn       size of spectrum buffer
  */
  
-#if defined(CPU_ARM)
-    extern void 
-    atrac3_iqmf_matrixing(int32_t *p3,
-                          int32_t *inlo,
-                          int32_t *inhi,
-                          unsigned int nIn);
-    /* The same, with the results scaled up by ATRAC3_OUT_SHIFT bits
-     * (ARMv5 and later) */
-    extern void
-    atrac3_iqmf_matrixing_out(int32_t *p3,
-                              int32_t *inlo,
-                              int32_t *inhi,
-                              unsigned int nIn);
-#else
     static inline void
     atrac3_iqmf_matrixing(int32_t *p3,
                           int32_t *inlo,
@@ -124,7 +106,6 @@ static int          vlcs_initialized = 0;
             p3[2*i+3] = (inlo[i+1] - inhi[i+1]) * (1 << ATRAC3_OUT_SHIFT);
         }
     }
-#endif
 
 
 /**
@@ -150,91 +131,6 @@ static int          vlcs_initialized = 0;
  *      }
  */
  
-#if defined(CPU_ARM) && (ARM_ARCH >= 5)
-    extern void
-    atrac3_iqmf_dewindowing_armv5e(int32_t *out,
-                            int32_t *in,
-                            int16_t *win,
-                            unsigned int nIn);
-    static inline void
-    atrac3_iqmf_dewindowing(int32_t *out,
-                            int32_t *in,
-                            int16_t *win,
-                            unsigned int nIn)
-    {
-         atrac3_iqmf_dewindowing_armv5e(out, in, win, nIn);
-
-    }
-                            
-                            
-#elif defined(CPU_ARM) 
-    extern void
-    atrac3_iqmf_dewindowing(int32_t *out,
-                            int32_t *in,
-                            int32_t *win,
-                            unsigned int nIn);    
-    /* The same, with the results scaled up by ATRAC3_OUT_SHIFT bits. The
-     * ARMv4 multiplier takes longer for large operands, so there the last
-     * stage is scaled here and not in its matrixing. */
-    #define ATRAC3_SCALE_IN_DEWINDOWING
-    extern void
-    atrac3_iqmf_dewindowing_out(int32_t *out,
-                                int32_t *in,
-                                int32_t *win,
-                                unsigned int nIn);
-                            
-#elif defined (CPU_COLDFIRE)
-    #define MULTIPLY_ADD_BLOCK \
-        "movem.l (%[win]), %%d0-%%d7             \n\t" \
-        "lea.l (8*4, %[win]), %[win]             \n\t" \
-        "mac.l %%d0, %%a5, (%[in])+, %%a5, %%acc0\n\t" \
-        "mac.l %%d1, %%a5, (%[in])+, %%a5, %%acc1\n\t" \
-        "mac.l %%d2, %%a5, (%[in])+, %%a5, %%acc0\n\t" \
-        "mac.l %%d3, %%a5, (%[in])+, %%a5, %%acc1\n\t" \
-        "mac.l %%d4, %%a5, (%[in])+, %%a5, %%acc0\n\t" \
-        "mac.l %%d5, %%a5, (%[in])+, %%a5, %%acc1\n\t" \
-        "mac.l %%d6, %%a5, (%[in])+, %%a5, %%acc0\n\t" \
-        "mac.l %%d7, %%a5, (%[in])+, %%a5, %%acc1\n\t" \
-
-
-    static inline void
-    atrac3_iqmf_dewindowing(int32_t *out,
-                            int32_t *in,
-                            int32_t *win,
-                            unsigned int nIn)
-    {
-        int32_t j;
-        int32_t *_in, *_win;
-        for (j = nIn; j != 0; j--, in+=2, out+=2) {
-            _in = in;
-            _win = win;
-            
-            asm volatile (
-            "move.l (%[in])+, %%a5                    \n\t" /* preload frist in value */
-            MULTIPLY_ADD_BLOCK /*  0.. 7 */
-            MULTIPLY_ADD_BLOCK /*  8..15 */
-            MULTIPLY_ADD_BLOCK /* 16..23 */
-            MULTIPLY_ADD_BLOCK /* 24..31 */
-            MULTIPLY_ADD_BLOCK /* 32..39 */
-                               /* 40..47 */
-            "movem.l (%[win]), %%d0-%%d7              \n\t"
-            "mac.l %%d0, %%a5, (%[in])+, %%a5, %%acc0 \n\t"
-            "mac.l %%d1, %%a5, (%[in])+, %%a5, %%acc1 \n\t"
-            "mac.l %%d2, %%a5, (%[in])+, %%a5, %%acc0 \n\t"
-            "mac.l %%d3, %%a5, (%[in])+, %%a5, %%acc1 \n\t"
-            "mac.l %%d4, %%a5, (%[in])+, %%a5, %%acc0 \n\t"
-            "mac.l %%d5, %%a5, (%[in])+, %%a5, %%acc1 \n\t"
-            "mac.l %%d6, %%a5, (%[in])+, %%a5, %%acc0 \n\t"
-            "mac.l %%d7, %%a5,                 %%acc1 \n\t"
-            "movclr.l %%acc0, %%d1                    \n\t" /* s1 */
-            "movclr.l %%acc1, %%d0                    \n\t" /* s2 */
-            "movem.l  %%d0-%%d1, (%[out])             \n\t"
-            : [in] "+a" (_in), [win] "+a" (_win)
-            : [out] "a" (out)
-            : "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "a5", "memory");
-        }
-    }
-#else
     #define MULTIPLY_ADD_BLOCK(y1, y2, x, c, k) \
         y1 += fixmul31(c[k], x[k]); k++; \
         y2 += fixmul31(c[k], x[k]); k++; \
@@ -269,7 +165,6 @@ static int          vlcs_initialized = 0;
         }
         
     }
-#endif
 
 
 /**
@@ -384,7 +279,7 @@ static int decode_bytes(const uint8_t* inbuffer, uint8_t* out, int bytes){
     const uint32_t* buf;
     uint32_t* obuf = (uint32_t*) out;
 
-#if ((defined(TEST) || defined(SIMULATOR)) && !defined(CPU_ARM))
+#if (defined(TEST) || defined(SIMULATOR))
     off = 0; /* no check for memory alignment of inbuffer */
 #else
     off = (intptr_t)inbuffer & 3;
@@ -413,11 +308,7 @@ static void init_atrac3_transforms(void)
     /* Generate the QMF window. */
     for (i=0 ; i<24; i++) {
         s = qmf_48tap_half_fix[i] << 1;
-        #if defined(CPU_ARM) && (ARM_ARCH >= 5)
-        qmf_window[i] = qmf_window[47-i] = (int16_t)((s+(1<<15))>>16);
-        #else
         qmf_window[i] = qmf_window[47-i] = s;
-        #endif
     }
     
 }
@@ -1210,10 +1101,6 @@ int atrac3_decode_init(ATRAC3Context *q, struct mp3entry *id3, uint16_t channels
 {
     int i;
     uint8_t *edata_ptr = (uint8_t*)&id3->id3v2buf;
-
-#if defined(CPU_COLDFIRE)
-    coldfire_set_macsr(EMAC_FRACTIONAL | EMAC_SATURATE);
-#endif
 
     /* Take data from the RM container. */
     q->sample_rate = id3->frequency;

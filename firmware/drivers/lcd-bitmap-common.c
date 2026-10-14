@@ -380,7 +380,6 @@ static void LCDFN(mono_bmp_part_helper)(const unsigned char *src, int src_x,
     LCDFN(mono_bitmap_part)(src, src_x, src_y, stride, x, y, width, height);
 }
 
-#ifndef BOOTLOADER
 /* put a string at a given pixel position, skipping first ofs pixel columns */
 static void LCDFN(putsxyofs)(int x, int y, int ofs, const unsigned char *str)
 {
@@ -413,7 +412,7 @@ static void LCDFN(putsxyofs)(int x, int y, int ofs, const unsigned char *str)
 
     void (*bmp_part_fn)(const unsigned char *src, int src_x, int src_y,
                         int stride, int x, int y, int width, int height);
-#if defined(MAIN_LCD) && defined(HAVE_LCD_COLOR)
+#if defined(MAIN_LCD)
     if (pf->depth)
         bmp_part_fn = lcd_alpha_bitmap_part;
     else
@@ -524,74 +523,6 @@ static void LCDFN(putsxyofs)(int x, int y, int ofs, const unsigned char *str)
     }
     font_lock(vp->font, false);
 }
-#else /* BOOTLOADER */
-/* put a string at a given pixel position, skipping first ofs pixel columns */
-static void LCDFN(putsxyofs)(int x, int y, int ofs, const unsigned char *str)
-{
-    ucschar_t *ucs;
-    struct viewport *vp = LCDFN(current_viewport);
-    struct font* pf = font_get(vp->font);
-    const unsigned char *bits;
-    int width;
-
-    if ((vp->flags & VP_FLAG_ALIGNMENT_MASK) != 0)
-    {
-        int w;
-
-        font_getstringsize(str, &w, NULL, vp->font);
-        /* center takes precedence */
-        if (vp->flags & VP_FLAG_ALIGN_CENTER)
-        {
-            x = ((vp->width - w)/ 2) + x;
-            if (x < 0)
-                x = 0;
-        }
-        else
-        {
-            x = vp->width - w - x;
-            x += ofs;
-            ofs = 0;
-        }
-    }
-
-    void (*bmp_part_fn)(const unsigned char *src, int src_x, int src_y,
-                        int stride, int x, int y, int width, int height);
-#if defined(MAIN_LCD) && defined(HAVE_LCD_COLOR) && !defined(DISABLE_ALPHA_BITMAP)
-    if (pf->depth)
-        bmp_part_fn = lcd_alpha_bitmap_part;
-    else
-#endif
-        bmp_part_fn = LCDFN(mono_bmp_part_helper);
-
-    /* allow utf but no diacritics or rtl lang */
-    for (ucs = bidi_l2v(str, 1); *ucs; ucs++)
-    {
-        const ucschar_t next_ch = ucs[1];
-
-        if (x >= vp->width)
-            break;
-
-        /* Get proportional width and glyph bits */
-        width = font_get_width(pf, *ucs);
-
-        if (ofs > width)
-        {
-            ofs -= width;
-            continue;
-        }
-
-        bits = font_get_bits(pf, *ucs);
-
-        bmp_part_fn(bits, ofs, 0, width, x, y, width - ofs, pf->height);
-
-        if (next_ch)
-        {
-            x += width - ofs;
-            ofs = 0;
-        }
-    }
-}
-#endif
 
 
 /*** pixel oriented text output ***/
@@ -769,7 +700,7 @@ bool LCDFN(puts_scroll)(int x, int y, const unsigned char *string)
     return LCDFN(puts_scroll_worker)(x, y, string, 0, true, LCDFN(scroll_fn), NULL);
 }
 
-#if !defined(HAVE_LCD_COLOR) || !defined(MAIN_LCD)
+#if !defined(MAIN_LCD)
 /* see lcd-16bit-common.c for others */
 
 void LCDFN(bmp_part)(const struct bitmap* bm, int src_x, int src_y,

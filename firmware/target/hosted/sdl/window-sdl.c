@@ -25,9 +25,6 @@
 #include "panic.h"
 
 extern SDL_Surface *lcd_surface;
-#ifdef HAVE_REMOTE_LCD
-extern SDL_Surface *remote_surface;
-#endif
 
 SDL_Texture  *gui_texture;
 SDL_Surface  *sim_lcd_surface;
@@ -51,14 +48,6 @@ static void get_window_dimensions(int *w, int *h)
     }
     else
     {
-#ifdef HAVE_REMOTE_LCD
-        if (showremote)
-        {
-            *w = SIM_LCD_WIDTH > SIM_REMOTE_WIDTH ? SIM_LCD_WIDTH : SIM_REMOTE_WIDTH;
-            *h = SIM_LCD_HEIGHT + SIM_REMOTE_HEIGHT;
-        }
-        else
-#endif
         {
             *w = SIM_LCD_WIDTH;
             *h = SIM_LCD_HEIGHT;
@@ -139,12 +128,6 @@ static void rebuild_gui_texture(void)
                    SIM_LCD_WIDTH, SIM_LCD_HEIGHT,
                    background ? UI_LCD_POSX : 0, background? UI_LCD_POSY : 0);
 
-#ifdef HAVE_REMOTE_LCD
-    sdl_gui_update(remote_surface, 0, 0, LCD_REMOTE_WIDTH, LCD_REMOTE_HEIGHT,
-                   LCD_REMOTE_WIDTH, LCD_REMOTE_HEIGHT,
-                   background ? UI_REMOTE_POSX : 0,
-                   background? UI_REMOTE_POSY : LCD_HEIGHT);
-#endif
 }
 
 void sdl_window_render(void)
@@ -211,13 +194,8 @@ void sdl_window_setup(void)
     int depth = LCD_DEPTH < 8 ? 16 : LCD_DEPTH;
     Uint32 flags = SDL_WINDOW_ALLOW_HIGHDPI;
 
-#if 0
-    /* Fullscreen mode might be desired */
-    flags |= SDL_WINDOW_FULLSCREEN;
-#else
     if (display_zoom == 1)
         flags |= SDL_WINDOW_RESIZABLE;
-#endif
 
     if (!(picture_surface = SDL_LoadBMP("UI256.bmp")))
         background = false;
@@ -233,14 +211,7 @@ void sdl_window_setup(void)
 
     /* Surface for LCD content only. Needs to fit largest LCD */
     if ((sim_lcd_surface = SDL_CreateRGBSurface(0,
-#ifdef HAVE_REMOTE_LCD
-                                                SIM_LCD_WIDTH > SIM_REMOTE_WIDTH ?
-                                                SIM_LCD_WIDTH : SIM_REMOTE_WIDTH,
-                                                SIM_LCD_HEIGHT > SIM_REMOTE_HEIGHT ?
-                                                SIM_LCD_HEIGHT : SIM_REMOTE_HEIGHT,
-#else
                                                 SIM_LCD_WIDTH, SIM_LCD_HEIGHT,
-#endif
                                                 depth, 0, 0, 0, 0)) == NULL)
         panicf("%s", SDL_GetError());
 

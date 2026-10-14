@@ -23,9 +23,7 @@
 #include "config.h"
 #include "audio.h"
 #include "audiohw.h"
-#ifndef BOOTLOADER
 #include "settings.h"
-#endif
 #include "pcm_sw_volume.h"
 
 // #define LOGF_ENABLE
@@ -36,7 +34,6 @@
 
 int es9018k2m_present_flag = 0;
 
-#ifndef BOOTLOADER
 static long int vol_l_hw = PCM5102A_VOLUME_MIN;
 static long int vol_r_hw = PCM5102A_VOLUME_MIN;
 void eros_qn_set_outputs(void)
@@ -68,7 +65,6 @@ void eros_qn_switch_output(int select)
         gpio_set_level(GPIO_STEREOSW_SEL, 1);
     }
 }
-#endif /* !defined(BOOTLOADER) */
 
 bool eros_qn_discover_dac(bool pwr_after_discovery)
 {

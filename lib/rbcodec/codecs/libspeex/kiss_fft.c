@@ -368,36 +368,6 @@ void kf_work(
     kiss_fft_cpx * Fout_beg=Fout;
     const int p=*factors++; /* the radix  */
     const int m=*factors++; /* stage's fft length/p */
-#if 0
-    /*printf ("fft %d %d %d %d %d %d\n", p*m, m, p, s2, fstride*in_stride, N);*/
-    if (m==1)
-    {
-    /*   int j;
-       for (j=0;j<p;j++)
-       {
-          Fout[j] = *f;
-          f += fstride*in_stride;
-       }*/
-    } else {
-       int j;
-       for (j=0;j<p;j++)
-       {
-          kf_work( Fout , f, fstride*p, in_stride, factors,st, N*p, fstride*in_stride, m);
-          f += fstride*in_stride;
-          Fout += m;
-       }
-    }
-
-    Fout=Fout_beg;
-
-    switch (p) {
-        case 2: kf_bfly2(Fout,fstride,st,m); break;
-        case 3: kf_bfly3(Fout,fstride,st,m); break; 
-        case 4: kf_bfly4(Fout,fstride,st,m); break;
-        case 5: kf_bfly5(Fout,fstride,st,m); break; 
-        default: kf_bfly_generic(Fout,fstride,st,m,p); break;
-    }
-#else
     /*printf ("fft %d %d %d %d %d %d %d\n", p*m, m, p, s2, fstride*in_stride, N, m2);*/
     if (m==1) 
     {
@@ -426,7 +396,6 @@ void kf_work(
           case 5: for (i=0;i<N;i++){Fout=Fout_beg+i*m2; kf_bfly5(Fout,fstride,st,m);} break; 
           default: for (i=0;i<N;i++){Fout=Fout_beg+i*m2; kf_bfly_generic(Fout,fstride,st,m,p);} break;
     }    
-#endif
 }
 
 /*  facbuf is populated by p1,m1,p2,m2, ...

@@ -30,12 +30,6 @@ static int handles[4] = { 0, 0, 0, 0 };
 
 static int move_callback(int handle, void *current, void *new)
 {
-#if 0
-    /* Should not currently need to block this since DSP loop completes an
-       iteration before yielding and begins again at its input buffer */
-    if (dsp_is_busy(tdspeed_state.dsp))
-        return BUFLIB_CB_CANNOT_MOVE; /* DSP processing in progress */
-#endif
 
     for (unsigned int i = 0; i < ARRAYLEN(handles); i++)
     {

@@ -114,11 +114,6 @@
 #define C0_TAGHI    C0_TagHi
 #define C0_DATAHI    C0_DataHi
 #define C0_ERROREPC    C0_ErrorEPC
-#if 0
-#define C0_DESAVE    C0_DESAVE
-#define C0_EPC        C0_EPC
-#define C0_DEPC         C0_DEPC
-#endif
 
 /* System Control Coprocessor (CP0) registers select fields */
 #define C0_INDEX_SEL    0        /* TLB Index */

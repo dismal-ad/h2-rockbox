@@ -67,10 +67,6 @@
 #include "settings_list.h"
 #include "rbpaths.h"
 #include "pathfuncs.h"
-#if CONFIG_TUNER
-#include "radio.h"
-#include "tuner.h"
-#endif
 
 #include "bmp.h"
 
@@ -84,9 +80,7 @@
 #define WPS_ERROR_INVALID_PARAM         -1
 
 static char* skin_buffer = NULL;
-#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1))
 static char *backdrop_filename;
-#endif
 static struct skin_stats *_stats = NULL;
 
 static bool isdefault(struct skin_tag_parameter *param)
@@ -173,16 +167,6 @@ void *skin_find_item(const char *label, enum skin_find_what what,
         case SKIN_FIND_IMAGE:
             list.linkedlist = SKINOFFSETTOPTR(databuf, data->images);
         break;
-#ifdef HAVE_TOUCHSCREEN
-        case SKIN_FIND_TOUCHREGION:
-            list.linkedlist = SKINOFFSETTOPTR(databuf, data->touchregions);
-        break;
-#endif
-#ifdef HAVE_SKIN_VARIABLES
-        case SKIN_VARIABLE:
-            list.linkedlist = SKINOFFSETTOPTR(databuf, data->skinvars);
-        break;
-#endif
     }
 
     while (list.linkedlist)
@@ -211,22 +195,6 @@ void *skin_find_item(const char *label, enum skin_find_what what,
                 if (!ret) break;
                 itemlabel = SKINOFFSETTOPTR(databuf, ((struct gui_img *)ret)->label);
                 break;
-#ifdef HAVE_TOUCHSCREEN
-            case SKIN_FIND_TOUCHREGION:
-                if (!token) break;
-                ret = SKINOFFSETTOPTR(databuf, token->value.data);
-                if (!ret) break;
-                itemlabel = SKINOFFSETTOPTR(databuf, ((struct touchregion *)ret)->label);
-                break;
-#endif
-#ifdef HAVE_SKIN_VARIABLES
-            case SKIN_VARIABLE:
-                if (!token) break;
-                ret = SKINOFFSETTOPTR(databuf, token->value.data);
-                if (!ret) break;
-                itemlabel = SKINOFFSETTOPTR(databuf, ((struct skin_var *)ret)->label);
-                break;
-#endif
         }
         if (!skip && itemlabel && !strcmp(itemlabel, label))
         {
@@ -286,14 +254,6 @@ static int parse_statusbar_tags(struct skin_element* element,
         {
             viewport_set_fullscreen(&skin_default->vp, curr_screen);
         }
-#ifdef HAVE_REMOTE_LCD
-        /* This parser requires viewports which will use the settings font to
-         * have font == 1, but the above viewport_set() calls set font to
-         * the current real font id. So force 1 here it will be set correctly
-         * at the end
-         */
-        skin_default->vp.font = 1;
-#endif
     }
     return 0;
 }
@@ -437,10 +397,8 @@ static int parse_image_load(struct skin_element *element,
     if (token->type == SKIN_TOKEN_IMAGE_DISPLAY)
     {
         token->value.data = PTRTOSKINOFFSET(skin_buffer, img);
-#ifdef HAVE_BACKDROP_IMAGE
         if (curr_vp)
             img->dither = curr_vp->output_to_backdrop_buffer;
-#endif
     }
 
     if (!strcmp(img->bm.data, "__list_icons__"))
@@ -516,7 +474,6 @@ static int parse_playlistview(struct skin_element *element,
     return 0;
 }
 
-#ifdef HAVE_LCD_COLOR
 static int parse_viewport_gradient_setup(struct skin_element *element,
                                    struct wps_token *token,
                                    struct wps_data *wps_data)
@@ -544,7 +501,6 @@ static int parse_viewport_gradient_setup(struct skin_element *element,
     token->value.data = PTRTOSKINOFFSET(skin_buffer, cfg);
     return 0;
 }
-#endif
 
 static int parse_listitem(struct skin_element *element,
                         struct wps_token *token,
@@ -599,7 +555,6 @@ static int parse_listitemviewport(struct skin_element *element,
     return 0;
 }
 
-#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1))
 static int parse_viewporttextstyle(struct skin_element *element,
                                    struct wps_token *token,
                                    struct wps_data *wps_data)
@@ -628,7 +583,6 @@ static int parse_viewporttextstyle(struct skin_element *element,
         line->style = STYLE_COLORED | STYLE_DEFAULT;
         line->text_color = colour;
     }
-#ifdef HAVE_LCD_COLOR
     else if (vp_op == 4) /*gradient*/
     {
         int num_lines;
@@ -641,7 +595,6 @@ static int parse_viewporttextstyle(struct skin_element *element,
         line->style = STYLE_GRADIENT;
         line->nlines = num_lines;
     }
-#endif
     else if (vp_op == 3) /*clear*/
     {
         line->style = STYLE_DEFAULT;
@@ -716,23 +669,9 @@ static int parse_viewportcolour(struct skin_element *element,
 
         switch (curr_screen)
         {
-#if defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1
-        case SCREEN_REMOTE:
-            fg_color = LCD_REMOTE_DEFAULT_FG;
-            bg_color = LCD_REMOTE_DEFAULT_BG;
-            break;
-#endif
         default:
-#if defined(HAVE_LCD_COLOR)
             fg_color = global_settings.fg_color;
             bg_color = global_settings.bg_color;
-#elif LCD_DEPTH > 1
-            fg_color = LCD_DEFAULT_FG;
-            bg_color = LCD_DEFAULT_BG;
-#else
-            fg_color = 0;
-            bg_color = 0;
-#endif
             break;
         }
 
@@ -765,7 +704,6 @@ static int parse_image_special(struct skin_element *element,
     (void)wps_data; /* kill warning */
     (void)token;
 
-#if LCD_DEPTH > 1
     char *filename;
     if (token->type == SKIN_TOKEN_IMAGE_BACKDROP)
     {
@@ -782,11 +720,9 @@ static int parse_image_special(struct skin_element *element,
         }
         backdrop_filename = filename;
     }
-#endif
 
     return 0;
 }
-#endif
 
 static int parse_progressbar_tag(struct skin_element* element,
                                  struct wps_token *token,
@@ -807,11 +743,7 @@ static int parse_setting_and_lang(struct skin_element *element,
             /* Due to conditionals in a theme, a missing string
                might never be hit.  So currently we have to just treat
                this as an advisory */
-#if 1
             i = LANG_LAST_INDEX_IN_ARRAY;
-#else
-            return WPS_ERROR_INVALID_PARAM;
-#endif
         }
 #ifdef DEBUG_SKIN_ENGINE
         else if (debug_wps) {
@@ -980,10 +912,6 @@ static int parse_progressbar_tag(struct skin_element* element,
     int curr_param = 0;
     int setting_offset = 0;
     char *image_filename = NULL;
-#ifdef HAVE_TOUCHSCREEN
-    bool suppress_touchregion = false;
-    char *touchregion_label = NULL;
-#endif
 
     if (element->params_count == 0 &&
         element->tag->type != SKIN_TOKEN_PROGRESSBAR)
@@ -1186,21 +1114,6 @@ static int parse_progressbar_tag(struct skin_element* element,
         }
         else if (pb_op == eHORIZONTAL)
             pb->horizontal = true;
-#ifdef HAVE_TOUCHSCREEN
-        else if (pb_op == eNOTOUCH)
-            suppress_touchregion = true;
-        else if (!strcmp(text, "touchlabel"))
-        {
-            if (curr_param+1 < element->params_count)
-            {
-                curr_param++;
-                param++;
-                touchregion_label = SKINOFFSETTOPTR(skin_buffer, param->data.text);
-            }
-            else /* option needs the next param */
-                return -1;
-        }
-#endif
         else if (token->type == SKIN_TOKEN_SETTING && pb_op == eSETTING_OFFSET)
         {
             if (curr_param+1 < element->params_count)
@@ -1289,64 +1202,6 @@ static int parse_progressbar_tag(struct skin_element* element,
 
     pb->type = token->type;
 
-#ifdef HAVE_TOUCHSCREEN
-    if (!suppress_touchregion &&
-        (token->type == SKIN_TOKEN_VOLUMEBAR ||
-         token->type == SKIN_TOKEN_PROGRESSBAR ||
-         token->type == SKIN_TOKEN_SETTINGBAR))
-    {
-        struct touchregion *region = skin_buffer_alloc(sizeof(*region));
-        struct skin_token_list *item;
-
-        if (!region)
-            return 0;
-
-        if (token->type == SKIN_TOKEN_VOLUMEBAR)
-            region->action = ACTION_TOUCH_VOLUME;
-        else if (token->type == SKIN_TOKEN_SETTINGBAR)
-            region->action = ACTION_TOUCH_SETTING;
-        else
-            region->action = ACTION_TOUCH_SCROLLBAR;
-
-        /* try to add some extra space on either end to make pressing the
-         * full bar easier. ~5% on either side
-         */
-        region->wpad = pb->width * 5 / 100;
-        if (region->wpad > 10)
-            region->wpad = 10;
-        region->hpad = pb->height * 5 / 100;
-        if (region->hpad > 10)
-            region->hpad = 10;
-
-        region->x = pb->x;
-        if (region->x < 0)
-            region->x = 0;
-        region->width = pb->width;
-        if (region->x + region->width > curr_vp->vp.x + curr_vp->vp.width)
-            region->width = curr_vp->vp.x + curr_vp->vp.width - region->x;
-
-        region->y = pb->y;
-        if (region->y < 0)
-            region->y = 0;
-        region->height = pb->height;
-        if (region->y + region->height > curr_vp->vp.y + curr_vp->vp.height)
-            region->height = curr_vp->vp.y + curr_vp->vp.height - region->y;
-
-        region->wvp = PTRTOSKINOFFSET(skin_buffer, curr_vp);
-        region->reverse_bar = false;
-        region->allow_while_locked = false;
-        region->user_region = false;
-        region->press_length = PRESS;
-        region->last_press = -1;
-        region->bar = PTRTOSKINOFFSET(skin_buffer, pb);
-        region->label = PTRTOSKINOFFSET(skin_buffer, touchregion_label);
-
-        item = new_skin_token_list_item(NULL, region);
-        if (!item)
-            return WPS_ERROR_INVALID_PARAM;
-        add_to_ll_chain(&wps_data->touchregions, item);
-    }
-#endif
     return 0;
 }
 
@@ -1536,415 +1391,20 @@ static int parse_albumart_load(struct skin_element* element,
 }
 
 #endif /* HAVE_ALBUMART */
-#ifdef HAVE_SKIN_VARIABLES
-static struct skin_var* find_or_add_var(const char* label,
-                                        struct wps_data *data)
-{
-    struct skin_var* ret = skin_find_item(label, SKIN_VARIABLE, data);
-    if (ret)
-        return ret;
-
-    ret = skin_buffer_alloc(sizeof(*ret));
-    if (!ret)
-        return ret;
-    ret->label = PTRTOSKINOFFSET(skin_buffer, label);
-    ret->value = 1;
-    ret->last_changed = 0xffff;
-    struct skin_token_list *item = new_skin_token_list_item(NULL, ret);
-    if (!item)
-        return NULL;
-    add_to_ll_chain(&data->skinvars, item);
-    return ret;
-}
-static int parse_skinvar(  struct skin_element *element,
-                           struct wps_token *token,
-                           struct wps_data *wps_data)
-{
-    const char* label = get_param_text(element, 0);
-    struct skin_var* var = find_or_add_var(label, wps_data);
-    if (!var)
-        return WPS_ERROR_INVALID_PARAM;
-    switch (token->type)
-    {
-        case SKIN_TOKEN_VAR_GETVAL:
-            token->value.data = PTRTOSKINOFFSET(skin_buffer, var);
-            return 0;
-        case SKIN_TOKEN_VAR_SET:
-        {
-            static const char * const sv_options[] = {"touch", "set", "inc", "dec", NULL};
-
-            struct skin_var_changer *data = skin_buffer_alloc(sizeof(*data));
-            if (!data)
-                return WPS_ERROR_INVALID_PARAM;
-            data->var = PTRTOSKINOFFSET(skin_buffer, var);
-            char *text_param1 = get_param_text(element, 1);
-            int sv_op = string_option(text_param1, sv_options, false);
-
-            if (!isdefault(get_param(element, 2)))
-                data->newval = get_param(element, 2)->data.number;
-            else if (sv_op != 0) /*!touch*/
-                return WPS_ERROR_INVALID_PARAM;
-            data->max = 0;
-            if (sv_op == 1) /*set*/
-                data->direct = true;
-            else if (sv_op == 2) /*inc*/
-            {
-                data->direct = false;
-            }
-            else if (sv_op == 3) /*dec*/
-            {
-                data->direct = false;
-                data->newval *= -1;
-            }
-            else if (sv_op == 0) /*touch*/
-            {
-                data->direct = false;
-                data->newval = 0;
-            }
-            if (element->params_count > 3)
-                data->max = get_param(element, 3)->data.number;
-            token->value.data = PTRTOSKINOFFSET(skin_buffer, data);
-        }
-        return 0;
-        case SKIN_TOKEN_VAR_TIMEOUT:
-        {
-            struct skin_var_lastchange *data = skin_buffer_alloc(sizeof(*data));
-            if (!data)
-                return WPS_ERROR_INVALID_PARAM;
-            data->var = PTRTOSKINOFFSET(skin_buffer, var);
-            data->timeout = 10;
-            if (element->params_count > 1)
-                data->timeout = get_param(element, 1)->data.number;
-            data->timeout *= TIMEOUT_UNIT;
-            token->value.data = PTRTOSKINOFFSET(skin_buffer, data);
-        }
-        default:
-            return 0;
-    }
-}
-#endif /* HAVE_SKIN_VARIABLES */
-#ifdef HAVE_TOUCHSCREEN
-static int parse_lasttouch(struct skin_element *element,
-                           struct wps_token *token,
-                           struct wps_data *wps_data)
-{
-    struct touchregion_lastpress *data = skin_buffer_alloc(sizeof(*data));
-    int i;
-    struct touchregion *region = NULL;
-    if (!data)
-        return WPS_ERROR_INVALID_PARAM;
-
-    data->timeout = 10;
-
-    for (i=0; i<element->params_count; i++)
-    {
-        struct skin_tag_parameter *param = get_param(element, i);
-        if (param->type == STRING)
-            region = skin_find_item(get_param_text(element, i),
-                                          SKIN_FIND_TOUCHREGION, wps_data);
-        else if (param->type == INTEGER || param->type == DECIMAL)
-            data->timeout = param->data.number;
-    }
-
-    data->region = PTRTOSKINOFFSET(skin_buffer, region);
-    data->timeout *= TIMEOUT_UNIT;
-    token->value.data = PTRTOSKINOFFSET(skin_buffer, data);
-    return 0;
-}
-
-struct touchaction {const char* s; int action;};
-static const struct touchaction touchactions[] = {
-    /* generic actions, convert to screen actions on use */
-    {"none", ACTION_TOUCHSCREEN_IGNORE},{"lock", ACTION_TOUCH_SOFTLOCK },
-    {"prev", ACTION_STD_PREV },         {"next", ACTION_STD_NEXT },
-    {"hotkey", ACTION_STD_HOTKEY},      {"select", ACTION_STD_OK },
-    {"menu", ACTION_STD_MENU },         {"cancel", ACTION_STD_CANCEL },
-    {"contextmenu", ACTION_STD_CONTEXT},{"quickscreen", ACTION_STD_QUICKSCREEN },
-
-    /* list/tree actions */
-    { "resumeplayback", ACTION_TREE_WPS}, /* returns to previous music, WPS/FM */
-    /* not really WPS specific, but no equivilant ACTION_STD_* */
-    {"voldown", ACTION_WPS_VOLDOWN},    {"volup", ACTION_WPS_VOLUP},
-    {"mute", ACTION_TOUCH_MUTE },
-
-    /* generic settings changers */
-    {"setting_inc", ACTION_SETTINGS_INC}, {"setting_dec", ACTION_SETTINGS_DEC},
-    {"setting_set", ACTION_SETTINGS_SET},
-
-    /* WPS specific actions */
-    {"rwd", ACTION_WPS_SEEKBACK },      {"ffwd", ACTION_WPS_SEEKFWD },
-    {"wps_prev", ACTION_WPS_SKIPPREV }, {"wps_next", ACTION_WPS_SKIPNEXT },
-    {"browse", ACTION_WPS_BROWSE },
-    {"play", ACTION_WPS_PLAY },         {"stop", ACTION_WPS_STOP },
-    {"shuffle", ACTION_TOUCH_SHUFFLE }, {"repmode", ACTION_TOUCH_REPMODE },
-    {"pitch", ACTION_WPS_PITCHSCREEN},  {"trackinfo", ACTION_WPS_ID3SCREEN },
-    {"playlist", ACTION_WPS_VIEW_PLAYLIST },
-    {"listbookmarks", ACTION_WPS_LIST_BOOKMARKS },
-    {"createbookmark", ACTION_WPS_CREATE_BOOKMARK },
-
-#if CONFIG_TUNER
-    /* FM screen actions */
-    /* Also allow browse, play, stop from WPS codes */
-    {"mode", ACTION_FM_MODE },          {"record", ACTION_FM_RECORD },
-    {"presets", ACTION_FM_PRESET},
-#endif
-};
-
-static int touchregion_setup_setting(struct skin_element *element, int param_no,
-                                     struct touchregion *region)
-{
-#ifndef __PCTOOL__
-    int p = param_no;
-    char *name = get_param_text(element, p++);
-    const struct settings_list *setting = find_setting_by_cfgname(name);
-    if (!setting)
-        return WPS_ERROR_INVALID_PARAM;
-
-    region->setting_data.setting = setting;
-
-    if (region->action == ACTION_SETTINGS_SET)
-    {
-        char* text;
-        int temp;
-        struct touchsetting *touchsetting =
-            &region->setting_data;
-        if (element->params_count < p+1)
-            return -1;
-
-        text = get_param_text(element, p++);
-        switch (setting->flags & F_T_MASK)
-        {
-        case F_T_CUSTOM:
-            touchsetting->value.text = PTRTOSKINOFFSET(skin_buffer, text);
-            break;
-        case F_T_INT:
-        case F_T_UINT:
-            if (setting_get_cfgvals(setting) == NULL)
-            {
-                touchsetting->value.number = atoi(text);
-            }
-            else if (cfg_string_to_int(setting, &temp, text))
-            {
-                if (setting->flags & F_TABLE_SETTING)
-                    touchsetting->value.number =
-                        setting->table_setting->values[temp];
-                else
-                    touchsetting->value.number = temp;
-            }
-            else
-                return -1;
-            break;
-        case F_T_BOOL:
-            if (cfg_string_to_int(setting, &temp, text))
-            {
-                touchsetting->value.number = temp;
-            }
-            else
-                return -1;
-            break;
-        default:
-            return -1;
-        }
-    }
-    return p-param_no;
-#endif /* __PCTOOL__ */
-    return 0;
-}
-
-static int parse_touchregion(struct skin_element *element,
-                             struct wps_token *token,
-                             struct wps_data *wps_data)
-{
-    (void)token;
-    unsigned i, imax;
-    int p;
-    struct touchregion *region = NULL;
-    const char *action;
-    const char pb_string[] = "progressbar";
-    const char vol_string[] = "volume";
-
-    /* format: %T([label,], x,y,width,height,action[, ...])
-     * if action starts with & the area must be held to happen
-     */
-
-
-    region = skin_buffer_alloc(sizeof(*region));
-    if (!region)
-        return WPS_ERROR_INVALID_PARAM;
-
-    /* should probably do some bounds checking here with the viewport... but later */
-    region->action = ACTION_NONE;
-
-    /* padding is only for bars, user defined regions have no need of it */
-    region->wpad = 0;
-    region->hpad = 0;
-
-    if (get_param(element, 0)->type == STRING)
-    {
-        region->label = PTRTOSKINOFFSET(skin_buffer, get_param_text(element, 0));
-        p = 1;
-        if (element->params_count < 6)
-            return WPS_ERROR_INVALID_PARAM;
-    }
-    else
-    {
-        region->label = PTRTOSKINOFFSET(skin_buffer, NULL);
-        p = 0;
-    }
-/*x*/
-    struct skin_tag_parameter *param = get_param(element, p);
-    region->x = 0;
-    if (!isdefault(param))
-    {
-        if (param->type == INTEGER)
-            region->x = param->data.number;
-        else if (param->type == PERCENT)
-            region->x = param->data.number * curr_vp->vp.width / 1000;
-    }
-/*y*/
-    param = get_param(element, ++p);
-    region->y = 0;
-    if (!isdefault(param))
-    {
-        if (param->type == INTEGER)
-            region->y = param->data.number;
-        else if (param->type == PERCENT)
-            region->y  =param->data.number * curr_vp->vp.width / 1000;
-    }
-/*width*/
-    param = get_param(element, ++p);
-    region->width = curr_vp->vp.width;
-    if (!isdefault(param))
-    {
-        if (param->type == INTEGER)
-            region->width =param->data.number;
-        else if (param->type == PERCENT)
-            region->width = curr_vp->vp.width  * param->data.number / 1000;
-    }
-/*height*/
-    param = get_param(element, ++p);
-    region->height = curr_vp->vp.height;
-    if (!isdefault(param))
-    {
-        if (param->type == INTEGER)
-            region->height =param->data.number;
-        else if (param->type == PERCENT)
-            region->height = curr_vp->vp.height  * param->data.number / 1000;
-    }
-    p++;
-
-    region->wvp = PTRTOSKINOFFSET(skin_buffer, curr_vp);
-    region->reverse_bar = false;
-    region->value = 0;
-    region->last_press = -1;
-    region->press_length = PRESS;
-    region->allow_while_locked = false;
-    region->user_region = true;
-    region->bar = PTRTOSKINOFFSET(skin_buffer, NULL);
-
-    action = get_param_text(element, p++);
-
-    /* figure out the action */
-    if(!strcmp(pb_string, action))
-        region->action = ACTION_TOUCH_SCROLLBAR;
-    else if(!strcmp(vol_string, action))
-        region->action = ACTION_TOUCH_VOLUME;
-    else
-    {
-        imax = ARRAYLEN(touchactions);
-        for (i = 0; i < imax; i++)
-        {
-            /* try to match with one of our touchregion screens */
-            if (!strcmp(touchactions[i].s, action))
-            {
-                region->action = touchactions[i].action;
-                if (region->action == ACTION_SETTINGS_INC ||
-                    region->action == ACTION_SETTINGS_DEC ||
-                    region->action == ACTION_SETTINGS_SET)
-                {
-                    int val;
-                    if (element->params_count < p+1)
-                        return WPS_ERROR_INVALID_PARAM;
-                    val = touchregion_setup_setting(element, p, region);
-                    if (val < 0)
-                        return WPS_ERROR_INVALID_PARAM;
-                    p += val;
-                }
-                break;
-            }
-        }
-        if (region->action == ACTION_NONE)
-            return WPS_ERROR_INVALID_PARAM;
-    }
-    static const char * const pm_options[] = {"allow_while_locked", "reverse_bar",
-                                "repeat_press", "long_press", NULL};
-    int pm_op;
-
-    while (p < element->params_count)
-    {
-        char* param = get_param_text(element, p++);
-        pm_op = string_option(param, pm_options, false);
-        if (pm_op == 0)
-            region->allow_while_locked = true;
-        else if (pm_op == 1)
-            region->reverse_bar = true;
-        else if (pm_op == 2)
-            region->press_length = REPEAT;
-        else if (pm_op == 3)
-            region->press_length = LONG_PRESS;
-    }
-    struct skin_token_list *item = new_skin_token_list_item(NULL, region);
-    if (!item)
-        return WPS_ERROR_INVALID_PARAM;
-    add_to_ll_chain(&wps_data->touchregions, item);
-
-    if (region->action == ACTION_TOUCH_MUTE)
-    {
-        region->value = global_status.volume;
-    }
-
-
-    return 0;
-}
-#endif
 
 static bool check_feature_tag(const int type)
 {
     switch (type)
     {
         case SKIN_TOKEN_RTC_PRESENT:
-#if CONFIG_RTC
             return true;
-#else
-            return false;
-#endif
         case SKIN_TOKEN_HAVE_RECORDING:
-#ifdef HAVE_RECORDING
-            return true;
-#else
             return false;
-#endif
         case SKIN_TOKEN_HAVE_TUNER:
-#if CONFIG_TUNER
-            if (radio_hardware_present())
-                return true;
-#endif
             return false;
         case SKIN_TOKEN_HAVE_TOUCH:
-#ifdef HAVE_TOUCHSCREEN
-            return true;
-#else
             return false;
-#endif
 
-#if CONFIG_TUNER
-        case SKIN_TOKEN_HAVE_RDS:
-#ifdef HAVE_RDS_CAP
-            return true;
-#else
-            return false;
-#endif /* HAVE_RDS_CAP */
-#endif /* CONFIG_TUNER */
         default: /* not a tag we care about, just don't skip */
             return true;
     }
@@ -2013,17 +1473,9 @@ static void skin_data_reset(struct wps_data *wps_data)
     skin_data_free_buflib_allocs(wps_data);
     wps_data->images = INVALID_OFFSET;
     wps_data->tree = INVALID_OFFSET;
-#ifdef HAVE_BACKDROP_IMAGE
     if (wps_data->backdrop_id >= 0)
         skin_backdrop_unload(wps_data->backdrop_id);
     backdrop_filename = NULL;
-#endif
-#ifdef HAVE_TOUCHSCREEN
-    wps_data->touchregions = INVALID_OFFSET;
-#endif
-#ifdef HAVE_SKIN_VARIABLES
-    wps_data->skinvars = INVALID_OFFSET;
-#endif
 #ifdef HAVE_ALBUMART
     wps_data->albumart = INVALID_OFFSET;
     if (wps_data->playback_aa_slot >= 0)
@@ -2083,11 +1535,6 @@ static int load_skin_bmp(struct wps_data *wps_data, struct gui_img *img, char* b
     int handle;
     int bmpformat;
     ssize_t buf_reqd;
-#ifdef HAVE_REMOTE_LCD
-    if (curr_screen == SCREEN_REMOTE)
-        bmpformat = FORMAT_ANY|FORMAT_REMOTE;
-    else
-#endif
         bmpformat = img->dither ? FORMAT_ANY|FORMAT_DITHER|FORMAT_TRANSPARENT :
                                   FORMAT_ANY|FORMAT_TRANSPARENT;
 
@@ -2174,9 +1621,7 @@ static bool load_skin_bitmaps(struct wps_data *wps_data, char *bmpdir)
         list = SKINOFFSETTOPTR(skin_buffer, list->next);
     }
 
-#ifdef HAVE_BACKDROP_IMAGE
     wps_data->backdrop_id = skin_backdrop_assign(backdrop_filename, bmpdir, curr_screen);
-#endif /* has backdrop support */
     return retval;
 }
 
@@ -2300,14 +1745,10 @@ static int convert_viewport(struct wps_data *data, struct skin_element* element)
 
     viewport_set_defaults(&skin_vp->vp, curr_screen);
 
-#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1))
     skin_vp->output_to_backdrop_buffer = false;
-#endif
-#ifdef HAVE_LCD_COLOR
     skin_vp->start_gradient.start = global_settings.lss_color;
     skin_vp->start_gradient.end = global_settings.lse_color;
     skin_vp->start_gradient.text = global_settings.lst_color;
-#endif
 
 
     struct skin_tag_parameter *param = get_param(element, 0);
@@ -2426,11 +1867,7 @@ static int skin_element_callback(struct skin_element* element, void* data)
 
             if (element->tag->flags&SKIN_RTC_REFRESH)
             {
-#if CONFIG_RTC
                 curr_line->update_mode |= SKIN_REFRESH_DYNAMIC;
-#else
-                curr_line->update_mode |= SKIN_REFRESH_STATIC;
-#endif
             }
             else
                 curr_line->update_mode |= element->tag->flags&SKIN_REFRESH_ALL;
@@ -2482,7 +1919,7 @@ static int skin_element_callback(struct skin_element* element, void* data)
                 case SKIN_TOKEN_DRAW_INBUILTBAR:
                     function = parse_statusbar_tags;
                     break;
-#if defined(HAVE_QUICKSCREEN) && !defined(__PCTOOL__)
+#if !defined(__PCTOOL__)
                 case SKIN_TOKEN_TOP_QUICKSETTING_NAME:
                     /* Disable built-in Quickscreen UI if skin draws its own,
                        as suggested by the use of the %QT tag */
@@ -2495,18 +1932,15 @@ static int skin_element_callback(struct skin_element* element, void* data)
                     sb_skin_has_title(curr_screen);
 #endif
                     break;
-#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1))
                 case SKIN_TOKEN_DRAWRECTANGLE:
                     function = parse_drawrectangle;
                     break;
-#endif
                 case SKIN_TOKEN_FILE_DIRECTORY:
                     token->value.i = get_param(element, 0)->data.number;
                     break;
                 case SKIN_TOKEN_FILE_TEXT:
                     function = parse_filetext;
                     break;
-#ifdef HAVE_BACKDROP_IMAGE
                 case SKIN_TOKEN_VIEWPORT_FGCOLOUR:
                 case SKIN_TOKEN_VIEWPORT_BGCOLOUR:
                     function = parse_viewportcolour;
@@ -2522,12 +1956,9 @@ static int skin_element_callback(struct skin_element* element, void* data)
                     backdrop_filename = BACKDROP_BUFFERNAME;
                     wps_data->use_extra_framebuffer = true;
                     break;
-#endif
-#ifdef HAVE_LCD_COLOR
                 case SKIN_TOKEN_VIEWPORT_GRADIENT_SETUP:
                     function = parse_viewport_gradient_setup;
                     break;
-#endif
                 case SKIN_TOKEN_TRANSLATEDSTRING:
                 case SKIN_TOKEN_SETTING:
                     function = parse_setting_and_lang;
@@ -2553,24 +1984,9 @@ static int skin_element_callback(struct skin_element* element, void* data)
                 case SKIN_TOKEN_LIST_ITEM_CFG:
                     function = parse_listitemviewport;
                     break;
-#ifdef HAVE_TOUCHSCREEN
-                case SKIN_TOKEN_TOUCHREGION:
-                    function = parse_touchregion;
-                    break;
-                case SKIN_TOKEN_LASTTOUCH:
-                    function = parse_lasttouch;
-                    break;
-#endif
 #ifdef HAVE_ALBUMART
                 case SKIN_TOKEN_ALBUMART_LOAD:
                     function = parse_albumart_load;
-                    break;
-#endif
-#ifdef HAVE_SKIN_VARIABLES
-                case SKIN_TOKEN_VAR_SET:
-                case SKIN_TOKEN_VAR_GETVAL:
-                case SKIN_TOKEN_VAR_TIMEOUT:
-                    function = parse_skinvar;
                     break;
 #endif
                 default:
@@ -2705,10 +2121,8 @@ bool skin_data_load(enum skinnable_screens skin, enum screen_type screen,
 
     /* align to long */
     ALIGN_BUFFER(skin_buffer, buffersize, sizeof(long));
-#ifdef HAVE_BACKDROP_IMAGE
     backdrop_filename = "-";
     wps_data->backdrop_id = -1;
-#endif
     /* parse the skin source */
     skin_buffer_init(skin_buffer, buffersize);
     struct skin_element *tree = skin_parse(wps_buffer, skin_element_callback, wps_data);
@@ -2762,30 +2176,6 @@ bool skin_data_load(enum skinnable_screens skin, enum screen_type screen,
     }
 #else
     wps_data->wps_loaded = wps_data->tree >= 0;
-#endif
-
-#ifdef HAVE_TOUCHSCREEN
-    /* Check if there are any touch regions from the skin and not just
-     * auto-created ones for bars */
-    struct skin_token_list *regions = SKINOFFSETTOPTR(skin_buffer,
-            wps_data->touchregions);
-    bool user_touch_region_found = false;
-    while (regions)
-    {
-        struct wps_token *token = SKINOFFSETTOPTR(skin_buffer, regions->token);
-        struct touchregion *r = NULL;
-        if (token)
-            r = SKINOFFSETTOPTR(skin_buffer, token->value.data);
-        if (r && r->user_region)
-        {
-            user_touch_region_found = true;
-            break;
-        }
-        regions = SKINOFFSETTOPTR(skin_buffer, regions->next);
-    }
-    regions = SKINOFFSETTOPTR(skin_buffer, wps_data->touchregions);
-    if (regions && !user_touch_region_found)
-        wps_data->touchregions = PTRTOSKINOFFSET(skin_buffer, NULL);
 #endif
 
     skin_buffer = NULL;

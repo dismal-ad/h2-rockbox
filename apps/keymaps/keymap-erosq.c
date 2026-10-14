@@ -96,12 +96,10 @@ static const struct button_mapping button_context_list[]  = {
  */
     { ACTION_TREE_WPS,       BUTTON_BACK|BUTTON_REPEAT,      BUTTON_BACK }, // back returns to WPS from many contexts
 
-#ifdef HAVE_VOLUME_IN_LIST
     { ACTION_LIST_VOLUP,   BUTTON_VOL_UP,                 BUTTON_NONE },
     { ACTION_LIST_VOLUP,   BUTTON_VOL_UP|BUTTON_REPEAT,   BUTTON_NONE },
     { ACTION_LIST_VOLDOWN, BUTTON_VOL_DOWN,               BUTTON_NONE },
     { ACTION_LIST_VOLDOWN, BUTTON_VOL_DOWN|BUTTON_REPEAT, BUTTON_NONE },
-#endif
     LAST_ITEM_IN_LIST__NEXTLIST(CONTEXT_STD)
 }; /* button_context_list */
 

@@ -41,7 +41,7 @@
 
 /* for internal functions' scanning use to save quite a bit of stack space -
    access must be serialized by the writer lock */
-#if defined(IAUDIO_M5) || CONFIG_CPU == IMX233
+#if CONFIG_CPU == IMX233
 /* otherwise, out of IRAM */
 struct fat_direntry dir_fatent;
 #else
@@ -98,9 +98,6 @@ static inline void filestr_clear(struct filestr_base *stream, unsigned int flags
 {
     stream->flags = flags;
     stream->bindp = NULL;
-#if 0
-    stream->mtx   = NULL;
-#endif
 }
 
 /* actually late-allocate the assigned cache */
@@ -222,7 +219,6 @@ int test_dir_empty_internal(struct filestr_base *stream)
 /* iso decode the name to UTF-8 */
 void iso_decode_d_name(char *d_name)
 {
-#ifdef HAVE_FILESYSTEM_CODEPAGE
     if (is_dotdir_name(d_name))
         return;
 
@@ -232,9 +228,6 @@ void iso_decode_d_name(char *d_name)
     /* This MUST be the default codepage thus not something that could be
        loaded on call */
     iso_decode(shortname, d_name, -1, len + 1);
-#else
-    (void)d_name;
-#endif
 }
 
 #ifdef HAVE_DIRCACHE

@@ -3963,11 +3963,7 @@ do {							\
 #define __cpm_select_rtcclk_rtc()	(REG_CPM_OPCR |= OPCR_ERCS)
 #define __cpm_select_rtcclk_exclk()	(REG_CPM_OPCR &= ~OPCR_ERCS)
 
-#ifdef CFG_EXTAL
-#define JZ_EXTAL		CFG_EXTAL
-#else
 #define JZ_EXTAL		12000000
-#endif
 #define JZ_EXTAL2		32768 /* RTC clock */
 
 /* PLL output frequency */
@@ -5203,166 +5199,6 @@ static __inline__ unsigned int __cpm_get_mscclk(void)
 
 #ifndef __MIPS_ASSEMBLER
 
-#if 0
-/*************************************************************************
- * IPU (Image Processing Unit)
- *************************************************************************/
-#define u32 volatile unsigned long
-
-#define write_reg(reg, val)	\
-do {				\
-	*(u32 *)(reg) = (val);	\
-} while(0)
-
-#define read_reg(reg, off)	(*(u32 *)((reg)+(off)))
-
-#define set_ipu_fmt(rgb_888_out_fmt, rgb_out_oft, out_fmt, yuv_pkg_out, in_oft, in_fmt ) \
-({ write_reg( (IPU_V_BASE + REG_D_FMT), ((in_fmt) & IN_FMT_MSK)<<IN_FMT_SFT \
-| ((in_oft) & IN_OFT_MSK)<< IN_OFT_SFT \
-| ((out_fmt) & OUT_FMT_MSK)<<OUT_FMT_SFT \
-| ((yuv_pkg_out) & YUV_PKG_OUT_MSK ) << YUV_PKG_OUT_SFT \
-| ((rgb_888_out_fmt) & RGB888_FMT_MSK ) << RGB888_FMT_SFT \
-| ((rgb_out_oft) & RGB_OUT_OFT_MSK ) << RGB_OUT_OFT_SFT); \
-})
-#define set_y_addr(y_addr) \
-({ write_reg( (IPU_V_BASE + REG_Y_ADDR), y_addr); \
-})
-#define set_u_addr(u_addr) \
-({ write_reg( (IPU_V_BASE + REG_U_ADDR), u_addr); \
-})
-
-#define set_v_addr(v_addr) \
-({ write_reg( (IPU_V_BASE + REG_V_ADDR), v_addr); \
-})
-
-#define set_y_phy_t_addr(y_phy_t_addr) \
-({ write_reg( (IPU_V_BASE + REG_Y_PHY_T_ADDR), y_phy_t_addr); \
-})
-
-#define set_u_phy_t_addr(u_phy_t_addr) \
-({ write_reg( (IPU_V_BASE + REG_U_PHY_T_ADDR), u_phy_t_addr); \
-})
-
-#define set_v_phy_t_addr(v_phy_t_addr) \
-({ write_reg( (IPU_V_BASE + REG_V_PHY_T_ADDR), v_phy_t_addr); \
-})
-
-#define set_out_phy_t_addr(out_phy_t_addr) \
-({ write_reg( (IPU_V_BASE + REG_OUT_PHY_T_ADDR), out_phy_t_addr); \
-})
-
-#define set_inframe_gsize(width, height, y_stride, u_stride, v_stride) \
-({ write_reg( (IPU_V_BASE + REG_IN_FM_GS), ((width) & IN_FM_W_MSK)<<IN_FM_W_SFT \
-| ((height) & IN_FM_H_MSK)<<IN_FM_H_SFT); \
- write_reg( (IPU_V_BASE + REG_Y_STRIDE), ((y_stride) & Y_S_MSK)<<Y_S_SFT); \
- write_reg( (IPU_V_BASE + REG_UV_STRIDE), ((u_stride) & U_S_MSK)<<U_S_SFT \
-| ((v_stride) & V_S_MSK)<<V_S_SFT); \
-})
-#define set_out_addr(out_addr) \
-({ write_reg( (IPU_V_BASE + REG_OUT_ADDR), out_addr); \
-})
-#define set_outframe_gsize(width, height, o_stride) \
-({ write_reg( (IPU_V_BASE + REG_OUT_GS), ((width) & OUT_FM_W_MSK)<<OUT_FM_W_SFT \
-| ((height) & OUT_FM_H_MSK)<<OUT_FM_H_SFT); \
- write_reg( (IPU_V_BASE + REG_OUT_STRIDE), ((o_stride) & OUT_S_MSK)<<OUT_S_SFT); \
-})
-#define set_rsz_lut_end(h_end, v_end) \
-({ write_reg( (IPU_V_BASE + REG_RSZ_COEF_INDEX), ((h_end) & HE_IDX_MSK)<<HE_IDX_SFT \
-| ((v_end) & VE_IDX_MSK)<<VE_IDX_SFT); \
-})
-#define set_csc_c0(c0_coeff) \
-({ write_reg( (IPU_V_BASE + REG_CSC_CO_COEF), ((c0_coeff) & CX_COEF_MSK)<<CX_COEF_SFT); \
-})
-#define set_csc_c1(c1_coeff) \
-({ write_reg( (IPU_V_BASE + REG_CSC_C1_COEF), ((c1_coeff) & CX_COEF_MSK)<<CX_COEF_SFT); \
-})
-#define set_csc_c2(c2_coeff) \
-({ write_reg( (IPU_V_BASE + REG_CSC_C2_COEF), ((c2_coeff) & CX_COEF_MSK)<<CX_COEF_SFT); \
-})
-#define set_csc_c3(c3_coeff) \
-({ write_reg( (IPU_V_BASE + REG_CSC_C3_COEF), ((c3_coeff) & CX_COEF_MSK)<<CX_COEF_SFT); \
-})
-#define set_csc_c4(c4_coeff) \
-({ write_reg( (IPU_V_BASE + REG_CSC_C4_COEF), ((c4_coeff) & CX_COEF_MSK)<<CX_COEF_SFT); \
-})
-#define set_hrsz_lut_coef(coef, in_n, out_n) \
-({ write_reg( (IPU_V_BASE + HRSZ_LUT_BASE ), ((coef) & W_COEF_MSK)<<W_COEF_SFT \
-| ((in_n) & IN_N_MSK)<<IN_N_SFT | ((out_n) & OUT_N_MSK)<<OUT_N_SFT); \
-})
-#define set_vrsz_lut_coef(coef, in_n, out_n) \
-({ write_reg( (IPU_V_BASE + VRSZ_LUT_BASE), ((coef) & W_COEF_MSK)<<W_COEF_SFT \
-| ((in_n) & IN_N_MSK)<<IN_N_SFT | ((out_n) & OUT_N_MSK)<<OUT_N_SFT); \
-})
-
-#define set_primary_ctrl(vrsz_en, hrsz_en,csc_en, irq_en) \
-({ write_reg( (IPU_V_BASE + REG_CTRL), ((irq_en) & FM_IRQ_EN_MSK)<<FM_IRQ_EN_SFT \
-| ((vrsz_en) & VRSZ_EN_MSK)<<VRSZ_EN_SFT \
-| ((hrsz_en) & HRSZ_EN_MSK)<<HRSZ_EN_SFT \
-| ((csc_en) & CSC_EN_MSK)<<CSC_EN_SFT \
-| (read_reg(IPU_V_BASE, REG_CTRL)) \
-& ~(CSC_EN_MSK<<CSC_EN_SFT | FM_IRQ_EN_MSK<<FM_IRQ_EN_SFT | VRSZ_EN_MSK<<VRSZ_EN_SFT | HRSZ_EN_MSK<<HRSZ_EN_SFT ) ); \
-})
-
-#define set_source_ctrl(pkg_sel, spage_sel) \
-({ write_reg( (IPU_V_BASE + REG_CTRL), ((pkg_sel) & PKG_SEL_MSK  )<< PKG_SEL_SFT \
-| ((spage_sel) & SPAGE_MAP_MSK )<< SPAGE_MAP_SFT \
-| (read_reg(IPU_V_BASE, REG_CTRL)) \
-& ~(SPAGE_MAP_MSK << SPAGE_MAP_SFT | PKG_SEL_MSK << PKG_SEL_SFT ) ) ; \
-})
-
-#define set_out_ctrl(lcdc_sel, dpage_sel, disp_sel) \
-({ write_reg( (IPU_V_BASE + REG_CTRL), ((lcdc_sel) & LCDC_SEL_MSK  )<< LCDC_SEL_SFT \
-| ((dpage_sel) & DPAGE_SEL_MSK )<< DPAGE_SEL_SFT \
-| ((disp_sel) & DISP_SEL_MSK )<< DISP_SEL_SFT \
-| (read_reg(IPU_V_BASE, REG_CTRL)) \
-& ~(LCDC_SEL_MSK<< LCDC_SEL_SFT | DPAGE_SEL_MSK << DPAGE_SEL_SFT | DISP_SEL_MSK << DISP_SEL_SFT ) ); \
-})
-
-#define set_scale_ctrl(v_scal, h_scal) \
-({ write_reg( (IPU_V_BASE + REG_CTRL), ((v_scal) & V_SCALE_MSK)<<V_SCALE_SFT \
-| ((h_scal) & H_SCALE_MSK)<<H_SCALE_SFT \
-| (read_reg(IPU_V_BASE, REG_CTRL)) & ~(V_SCALE_MSK<<V_SCALE_SFT | H_SCALE_MSK<<H_SCALE_SFT ) ); \
-})
-
-#define set_csc_ofset_para(chrom_oft, luma_oft) \
-({ write_reg( (IPU_V_BASE + REG_CSC_OFSET_PARA ), ((chrom_oft) & CHROM_OF_MSK ) << CHROM_OF_SFT \
-| ((luma_oft) & LUMA_OF_MSK ) << LUMA_OF_SFT ) ; \
-})
-
-#define sw_reset_ipu() \
-({ write_reg( (IPU_V_BASE + REG_CTRL), (read_reg(IPU_V_BASE, REG_CTRL)) \
-| IPU_RST_MSK<<IPU_RST_SFT); \
-})
-#define enable_ipu() \
-({ write_reg( (IPU_V_BASE + REG_CTRL), (read_reg(IPU_V_BASE, REG_CTRL)) | 0x1); \
-})
-#define disable_ipu() \
-({ write_reg( (IPU_V_BASE + REG_CTRL), (read_reg(IPU_V_BASE, REG_CTRL)) & ~0x1); \
-})
-#define run_ipu() \
-({ write_reg( (IPU_V_BASE + REG_CTRL), (read_reg(IPU_V_BASE, REG_CTRL)) | 0x2); \
-})
-#define stop_ipu() \
-({ write_reg( (IPU_V_BASE + REG_CTRL), (read_reg(IPU_V_BASE, REG_CTRL)) & ~0x2); \
-})
-
-#define polling_end_flag() \
-({ (read_reg(IPU_V_BASE, REG_STATUS)) & 0x01; \
-})
-
-#define start_vlut_coef_write() \
-({ write_reg( (IPU_V_BASE + VRSZ_LUT_BASE), ( 0x1<<12 ) ); \
-})
-
-#define start_hlut_coef_write() \
-({ write_reg( (IPU_V_BASE + HRSZ_LUT_BASE), ( 0x01<<12 ) ); \
-})
-
-#define clear_end_flag() \
-({ write_reg( (IPU_V_BASE + REG_STATUS), 0); \
-})
-#endif /* #if 0 */
-
 #endif /* __MIPS_ASSEMBLER */
 
 #define	LCD_BASE	0xB3050000
@@ -5659,17 +5495,6 @@ do {				\
 #define LCD_OSDC_OSDIV		(1 << 12)
 #define LCD_OSDC_SOFM0		(1 << 11) /* Start of frame interrupt mask for foreground 0 */
 #define LCD_OSDC_EOFM0		(1 << 10) /* End of frame interrupt mask for foreground 0 */
-#if 0
-#define LCD_OSDC_ENDM		(1 << 9) /* End of frame interrupt mask for panel. */
-#define LCD_OSDC_F0DIVMD	(1 << 8) /* Divide Foreground 0 into 2 parts.
-					  * 0: Foreground 0 only has one part. */
-#define LCD_OSDC_F0P1EN		(1 << 7) /* 1: Foreground 0 PART1 is enabled.
-					  * 0: Foreground 0 PART1 is disabled. */
-#define LCD_OSDC_F0P2MD		(1 << 6) /* 1: PART 1&2 same level and same heighth
-					  * 0: PART 1&2 have no same line */
-#define LCD_OSDC_F0P2EN		(1 << 5) /* 1: Foreground 0 PART2 is enabled.
-					  * 0: Foreground 0 PART2 is disabled.*/
-#endif
 #define LCD_OSDC_F1EN		(1 << 4) /* enable foreground 1 */
 #define LCD_OSDC_F0EN		(1 << 3) /* enable foreground 0 */
 #define LCD_OSDC_ALPHAEN		(1 << 2) /* enable alpha blending */

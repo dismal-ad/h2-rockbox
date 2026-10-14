@@ -30,8 +30,7 @@ extern void ldebugf(const char* file, int line, const char *fmt, ...)
 
 #ifndef CODEC  
 
-#if defined(SIMULATOR) && !defined(__PCTOOL__) \
-    || (defined(APPLICATION) && defined(DEBUG))
+#if defined(SIMULATOR) && !defined(__PCTOOL__)
 #define DEBUGF  debugf
 #define LDEBUGF(...) ldebugf(__FILE__, __LINE__, __VA_ARGS__)
 #elif (CONFIG_PLATFORM & PLATFORM_GAME_CONSOLE)

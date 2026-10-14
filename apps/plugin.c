@@ -67,10 +67,6 @@
 #include "usbstack/usb_audio.h"
 #endif
 
-#if defined(IRIVER_H100_SERIES) || defined(IRIVER_H300_SERIES)
-#include "system-iriver.h"
-#endif
-
 #define WRAPPER(_x_) _x_ ## _wrapper
 
 #if (CONFIG_PLATFORM & PLATFORM_HOSTED)
@@ -196,9 +192,6 @@ static const struct plugin_api rockbox_api = {
     splashf,
     splash_progress,
     splash_progress_set_delay,
-#ifdef HAVE_LCD_CONTRAST
-    lcd_set_contrast,
-#endif
     lcd_update,
     lcd_clear_display,
     lcd_getstringsize,
@@ -222,7 +215,6 @@ static const struct plugin_api rockbox_api = {
     lcd_fillrect,
     lcd_mono_bitmap_part,
     lcd_mono_bitmap,
-#if LCD_DEPTH > 1
     lcd_set_foreground,
     lcd_get_foreground,
     lcd_set_background,
@@ -231,36 +223,19 @@ static const struct plugin_api rockbox_api = {
     lcd_bitmap,
     lcd_get_backdrop,
     lcd_set_backdrop,
-#endif
-#if LCD_DEPTH >= 16
     lcd_bitmap_transparent_part,
     lcd_bitmap_transparent,
 #if MEMORYSIZE > 2
     lcd_blit_yuv,
-#if defined(TOSHIBA_GIGABEAT_F) || defined(SANSA_E200) || defined(SANSA_C200) \
-    || defined(IRIVER_H10) || defined(COWON_D2) || defined(PHILIPS_HDD1630) \
-    || defined(SANSA_FUZE) || defined(SANSA_E200V2) || defined(SANSA_FUZEV2) \
-    || defined(TOSHIBA_GIGABEAT_S) || defined(PHILIPS_SA9200)
-    lcd_yuv_set_options,
-#endif
 #endif /* MEMORYSIZE > 2 */
-#elif (LCD_DEPTH < 4) && (CONFIG_PLATFORM & PLATFORM_NATIVE)
-    lcd_blit_mono,
-    lcd_blit_grey_phase,
-#endif /* LCD_DEPTH */
 #if defined(HAVE_LCD_MODES) && (HAVE_LCD_MODES & LCD_MODE_PAL256)
     lcd_blit_pal256,
     lcd_pal256_update_pal,
 #endif
-#ifdef HAVE_LCD_INVERT
-    lcd_set_invert_display,
-#endif /* HAVE_LCD_INVERT */
 #if defined(HAVE_LCD_MODES)
     lcd_set_mode,
 #endif
-#if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
     button_queue_post,
-#endif
     bidi_l2v,
     is_diacritic,
     font_get_bits,
@@ -274,37 +249,6 @@ static const struct plugin_api rockbox_api = {
     gui_scrollbar_draw,
     get_codepage_name,
 
-#ifdef HAVE_REMOTE_LCD
-    /* remote lcd */
-    lcd_remote_set_contrast,
-    lcd_remote_clear_display,
-    lcd_remote_puts,
-    lcd_remote_puts_scroll,
-    lcd_remote_scroll_stop,
-    lcd_remote_set_drawmode,
-    lcd_remote_get_drawmode,
-    lcd_remote_setfont,
-    lcd_remote_getstringsize,
-    lcd_remote_drawpixel,
-    lcd_remote_drawline,
-    lcd_remote_hline,
-    lcd_remote_vline,
-    lcd_remote_drawrect,
-    lcd_remote_fillrect,
-    lcd_remote_mono_bitmap_part,
-    lcd_remote_mono_bitmap,
-    lcd_remote_putsxy,
-    lcd_remote_update,
-    lcd_remote_update_rect,
-#if (LCD_REMOTE_DEPTH > 1)
-    lcd_remote_set_foreground,
-    lcd_remote_get_foreground,
-    lcd_remote_set_background,
-    lcd_remote_get_background,
-    lcd_remote_bitmap_part,
-    lcd_remote_bitmap,
-#endif
-#endif /* HAVE_REMOTE_LCD */
 #if NB_SCREENS == 2
     {&screens[SCREEN_MAIN], &screens[SCREEN_REMOTE]},
 #else
@@ -317,7 +261,6 @@ static const struct plugin_api rockbox_api = {
     viewport_set_fullscreen,
     viewport_set_buffer,
 
-#ifdef HAVE_BACKLIGHT
     /* lcd backlight */
     /* For OLED targets like the Sansa Clip, the backlight_* functions control
      * the display enable, which has essentially the same effect. */
@@ -326,26 +269,11 @@ static const struct plugin_api rockbox_api = {
     backlight_off,
     backlight_set_on_button_hold,
     backlight_set_timeout,
-#ifdef HAVE_BACKLIGHT_BRIGHTNESS
     backlight_set_brightness,
-#endif /* HAVE_BACKLIGHT_BRIGHTNESS */
 
 #if CONFIG_CHARGING
     backlight_set_timeout_plugged,
 #endif
-
-#ifdef HAVE_REMOTE_LCD
-    remote_backlight_on,
-    remote_backlight_off,
-    remote_backlight_set_timeout,
-#if CONFIG_CHARGING
-    remote_backlight_set_timeout_plugged,
-#endif
-#if defined(HAS_REMOTE_BUTTON_HOLD)
-    remote_backlight_set_on_button_hold,
-#endif
-#endif /* HAVE_REMOTE_LCD */
-#endif /* HAVE_BACKLIGHT */
 
     /* list */
     gui_synclist_init,
@@ -375,24 +303,6 @@ static const struct plugin_api rockbox_api = {
     /* action handling */
     get_custom_action,
     get_action,
-#ifdef HAVE_TOUCHSCREEN
-    action_get_touchscreen_press,
-    action_get_touchscreen_press_in_vp,
-    action_get_touch_event,
-    action_gesture_reset,
-    action_gesture_get_event_in_vp,
-    action_gesture_get_event,
-    action_gesture_is_valid,
-    action_gesture_is_pressed,
-    gesture_reset,
-    gesture_process,
-    gesture_get_event_in_vp,
-    gesture_vel_reset,
-    gesture_vel_process,
-    gesture_vel_get,
-    gesture_flick_get_in_vp,
-    gesture_flick_get,
-#endif
     action_userabort,
     core_set_keyremap,
 
@@ -400,32 +310,10 @@ static const struct plugin_api rockbox_api = {
     button_get,
     button_get_w_tmo,
     button_status,
-#ifdef HAVE_BUTTON_DATA
-    button_get_data,
-    button_status_wdata,
-#endif
     button_clear_queue,
     button_queue_count,
-#ifdef HAS_BUTTON_HOLD
-    button_hold,
-#endif
-#ifdef HAVE_SW_POWEROFF
     button_set_sw_poweroff_state,
     button_get_sw_poweroff_state,
-#endif
-#ifdef HAVE_TOUCHSCREEN
-    touchscreen_set_mode,
-    touchscreen_get_mode,
-#endif
-
-#ifdef HAVE_BUTTON_LIGHT
-    buttonlight_set_timeout,
-    buttonlight_off,
-    buttonlight_on,
-#ifdef HAVE_BUTTONLIGHT_BRIGHTNESS
-    buttonlight_set_brightness,
-#endif /* HAVE_BUTTONLIGHT_BRIGHTNESS */
-#endif /* HAVE_BUTTON_LIGHT */
 
     /* file */
     open_utf8,
@@ -500,9 +388,6 @@ static const struct plugin_api rockbox_api = {
 
     /* kernel/ system */
     panicf,
-#if defined(ARM_NEED_DIV0)
-    __div0,
-#endif
     sleep,
     yield,
     &current_tick,
@@ -513,24 +398,17 @@ static const struct plugin_api rockbox_api = {
     thread_exit,
     thread_wait,
     thread_thaw,
-#ifdef HAVE_PRIORITY_SCHEDULING
     thread_set_priority,
-#endif
     mutex_init,
     mutex_lock,
     mutex_unlock,
-#ifdef HAVE_SEMAPHORE_OBJECTS
     semaphore_init,
     semaphore_wait,
     semaphore_release,
-#endif
     reset_poweroff_timer,
     set_sleeptimer_duration, /*stub*/
     get_sleep_timer, /*stub*/
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
-#if defined(CPU_COLDFIRE)
-    system_memory_guard,
-#endif
     &cpu_frequency,
 
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
@@ -583,10 +461,6 @@ static const struct plugin_api rockbox_api = {
 
 #if (CONFIG_PLATFORM & PLATFORM_HOSTED)
     /* special simulator hooks */
-#if LCD_DEPTH < 8
-    sim_lcd_ex_init,
-    sim_lcd_ex_update_rect,
-#endif
 #endif
 
     /* strings and memory */
@@ -664,19 +538,6 @@ static const struct plugin_api rockbox_api = {
     pcm_play_unlock,
     pcm_current_sink_caps,
     beep_play,
-#ifdef HAVE_RECORDING
-    &rec_freq_sampr[0],
-    pcm_init_recording,
-    pcm_close_recording,
-    pcm_record_data,
-    pcm_stop_recording,
-    pcm_calculate_rec_peaks,
-    audio_set_recording_gain,
-#endif /* HAVE_RECORDING */
-#if INPUT_SRC_CAPS != 0
-    audio_set_output_source,
-    audio_set_input_source,
-#endif
     dsp_set_crossfeed_type ,
     dsp_eq_enable,
     dsp_dither_enable,
@@ -712,7 +573,6 @@ static const struct plugin_api rockbox_api = {
     get_codec_string,
     count_mp3_frames,
     create_xing_header,
-#ifdef HAVE_TAGCACHE
     tagtree_entries_iterate,
     tagcache_search,
     tagcache_search_set_uniqbuf,
@@ -729,7 +589,6 @@ static const struct plugin_api rockbox_api = {
     tagcache_fill_tags,
 #endif /* HAVE_DIRCACHE */
 #endif /* HAVE_TC_RAMCACHE */
-#endif /* HAVE_TAGCACHE */
 
 #ifdef HAVE_ALBUMART
     search_albumart_files,
@@ -789,9 +648,7 @@ static const struct plugin_api rockbox_api = {
     set_int,
     set_int_ex,
     set_bool,
-#ifdef HAVE_LCD_COLOR
     set_color,
-#endif
 
     /* power */
     &device_battery_tables,
@@ -828,9 +685,7 @@ static const struct plugin_api rockbox_api = {
     kbd_input,
     get_time,
     gmtime_r,
-#if CONFIG_RTC
     mktime,
-#endif
     format_time_auto,
 #if defined(DEBUG) || defined(SIMULATOR)
     debugf,
@@ -849,22 +704,13 @@ static const struct plugin_api rockbox_api = {
 
     read_bmp_file,
     read_bmp_fd,
-#ifdef HAVE_JPEG
     read_jpeg_file,
     read_jpeg_fd,
-#endif
     screen_dump_set_hook,
 
 #ifdef HAVE_WHEEL_POSITION
     wheel_status,
     wheel_send_events,
-#endif
-
-#if !defined(SIMULATOR) && (defined(IRIVER_H100_SERIES) || defined(IRIVER_H300_SERIES))
-    /* Routines for the iriver_flash -plugin. */
-    detect_original_firmware,
-    detect_flashed_ramimage,
-    detect_flashed_romimage,
 #endif
 
     /*plugin*/
@@ -884,10 +730,6 @@ static const struct plugin_api rockbox_api = {
     fix_path_part,
 #ifdef HAVE_MULTIVOLUME
     path_strip_volume,
-#endif
-
-#ifdef HAVE_HW_H264
-    &target_hw_h264_api,
 #endif
 
     /* new stuff at the end, sort into place next time
@@ -946,10 +788,6 @@ int plugin_load(const char* plugin, const void* parameter)
         }
     }
 
-#ifdef HAVE_DISK_STORAGE
-    if (!storage_disk_is_active())
-        splash(0, ID2P(LANG_WAIT));
-#endif
     strcpy(current_plugin, plugin);
     current_plugin_handle = lc_open(plugin, pluginbuf, PLUGIN_BUFFER_SIZE);
     if (current_plugin_handle == NULL) {
@@ -1001,11 +839,6 @@ int plugin_load(const char* plugin, const void* parameter)
     if (!theme_enabled)
         lcd_clear_display();
 
-#ifdef HAVE_REMOTE_LCD
-    lcd_remote_set_viewport(NULL);
-    lcd_remote_clear_display();
-    lcd_remote_update();
-#endif
     if (get_current_activity() == ACTIVITY_WPS)
         push_activity_without_refresh(ACTIVITY_PLUGIN);
     else
@@ -1019,10 +852,6 @@ int plugin_load(const char* plugin, const void* parameter)
     if (!theme_enabled)
         FOR_NB_SCREENS(i)
             viewportmanager_theme_enable(i, false, NULL);
-
-#ifdef HAVE_TOUCHSCREEN
-    touchscreen_set_mode(TOUCHSCREEN_BUTTON);
-#endif
 
     /* allow voice to back off if the plugin needs lots of memory */
     if (!global_settings.talk_menu)
@@ -1056,37 +885,11 @@ int plugin_load(const char* plugin, const void* parameter)
     talk_buffer_set_policy(TALK_BUFFER_DEFAULT);
 
     /* Go back to the global setting in case the plugin changed it */
-#ifdef HAVE_TOUCHSCREEN
-    touchscreen_set_mode(global_settings.touch_mode);
-#endif
     /* restore default vp */
     lcd_set_viewport(NULL);
     screen_helper_setfont(FONT_UI);
-#if LCD_DEPTH > 1
-#ifdef HAVE_LCD_COLOR
     lcd_set_drawinfo(DRMODE_SOLID, global_settings.fg_color,
                                    global_settings.bg_color);
-#else
-    lcd_set_drawinfo(DRMODE_SOLID, LCD_DEFAULT_FG, LCD_DEFAULT_BG);
-#endif
-#else /* LCD_DEPTH == 1 */
-    lcd_set_drawmode(DRMODE_SOLID);
-#endif /* LCD_DEPTH */
-
-#ifdef HAVE_REMOTE_LCD
-    lcd_remote_set_viewport(NULL);
-
-#if LCD_REMOTE_DEPTH > 1
-    lcd_remote_set_drawinfo(DRMODE_SOLID, LCD_REMOTE_DEFAULT_FG,
-                            LCD_REMOTE_DEFAULT_BG);
-#else
-    lcd_remote_set_drawmode(DRMODE_SOLID);
-#endif
-#endif
-
-#ifdef HAVE_REMOTE_LCD
-    lcd_remote_clear_display();
-#endif
 
     if (!theme_enabled)
     {

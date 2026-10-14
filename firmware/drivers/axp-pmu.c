@@ -30,11 +30,9 @@
 #endif
 
 /* Headers for the debug menu */
-#ifndef BOOTLOADER
 # include "action.h"
 # include "list.h"
 # include <stdio.h>
-#endif
 
 struct axp_adc_info {
     uint8_t reg;
@@ -222,11 +220,7 @@ int axp_battery_status(void)
 
 int axp_input_status(void)
 {
-#ifdef HAVE_BATTERY_SWITCH
-    int input_status = 0;
-#else
     int input_status = AXP_INPUT_BATTERY;
-#endif
 
     int r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP_REG_POWERSTATUS);
     if(r < 0)
@@ -239,13 +233,6 @@ int axp_input_status(void)
     /* Only report USB if ACIN and VBUS are not shorted */
     if((r & 0x20) != 0 && (r & 0x02) == 0)
         input_status |= AXP_INPUT_USB;
-
-#ifdef HAVE_BATTERY_SWITCH
-    /* Check for battery presence if target defines it as removable */
-    r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP_REG_CHARGESTATUS);
-    if(r >= 0 && (r & 0x20) != 0)
-        input_status |= AXP_INPUT_BATTERY;
-#endif
 
     return input_status;
 }
@@ -400,7 +387,6 @@ void axp_power_off(void)
                     AXP_REG_SHUTDOWNLEDCTRL, 7, 1, NULL);
 }
 
-#ifndef BOOTLOADER
 enum {
     AXP_DEBUG_BATTERY_STATUS,
     AXP_DEBUG_INPUT_STATUS,
@@ -525,17 +511,11 @@ static const char* axp_debug_menu_get_name(int item, void* data,
 
 bool axp_debug_menu(void)
 {
-#if defined(EROS_QN)
     int devicever;
-# if defined(BOOTLOADER)
-    devicever = EROSQN_VER;
-# else
     devicever = device_data.hw_rev;
-# endif
     if (devicever >= 4) {
         return axp2101_debug_menu();
     } else
-#endif
     {
         struct simplelist_info info;
         simplelist_info_init(&info, "AXP debug", AXP_DEBUG_NUM_ENTRIES, NULL);
@@ -544,23 +524,16 @@ bool axp_debug_menu(void)
         return simplelist_show_list(&info);
     }
 }
-#endif /* !BOOTLOADER */
 
 /* This is basically the only valid implementation, so define it here */
 unsigned int power_input_status(void)
 {
     unsigned int state = 0;
-#if defined(EROS_QN)
     int devicever;
-# if defined(BOOTLOADER)
-    devicever = EROSQN_VER;
-# else
     devicever = device_data.hw_rev;
-# endif
     if (devicever >= 4) {
         return axp2101_power_input_status();
     } else
-#endif
     {
         int input_status = axp_input_status();
 
@@ -570,10 +543,6 @@ unsigned int power_input_status(void)
         if(input_status & AXP_INPUT_USB)
             state |= POWER_INPUT_USB_CHARGER;
 
-#ifdef HAVE_BATTERY_SWITCH
-        if(input_status & AXP_INPUT_BATTERY)
-            state |= POWER_INPUT_BATTERY;
-#endif
     }
 
     return state;

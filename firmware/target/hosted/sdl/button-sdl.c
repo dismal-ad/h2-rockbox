@@ -22,9 +22,6 @@
 #include <stdlib.h>         /* EXIT_SUCCESS */
 #include <stdio.h>
 #include "sim-ui-defines.h"
-#ifdef HAVE_REMOTE_LCD
-#include "lcd-remote.h"
-#endif
 #include "config.h"
 #include "button.h"
 #include "kernel.h"
@@ -40,10 +37,6 @@
 #include "powermgmt.h"
 #include "storage.h"
 
-#ifdef HAVE_TOUCHSCREEN
-#include "touchscreen.h"
-static int mouse_coords = 0;
-#endif
 /* how long until repeat kicks in */
 #define REPEAT_START      6
 
@@ -53,21 +46,8 @@ static int mouse_coords = 0;
 /* speed repeat finishes at */
 #define REPEAT_INTERVAL_FINISH  2
 
-#ifdef HAVE_TOUCHSCREEN
-#define USB_KEY SDLK_c /* SDLK_u is taken by BUTTON_MIDLEFT */
-#else
 #define USB_KEY SDLK_u
-#endif
 #define EXT_KEY SDLK_e
-
-#if defined(IRIVER_H100_SERIES) || defined (IRIVER_H300_SERIES)
-int _remote_type=REMOTETYPE_H100_LCD;
-
-int remote_type(void)
-{
-    return _remote_type;
-}
-#endif
 
 static int btn = 0;    /* Hopefully keeps track of currently pressed keys... */
 
@@ -80,13 +60,6 @@ SDL_Cursor *sdl_arrow_cursor = NULL;
 
 int sdl_app_has_input_focus = 1;
 
-#ifdef HAS_BUTTON_HOLD
-bool hold_button_state = false;
-bool button_hold(void) {
-    return hold_button_state;
-}
-#endif
-
 #ifdef HAS_REMOTE_BUTTON_HOLD
 bool remote_hold_button_state = false;
 bool remote_button_hold(void) {
@@ -97,24 +70,6 @@ static void button_event(int key, bool pressed);
 extern bool debug_wps;
 extern bool mapping;
 
-#ifdef HAVE_TOUCHSCREEN
-static void touchscreen_event(int x, int y)
-{
-    if(background) {
-        x -= UI_LCD_POSX;
-        y -= UI_LCD_POSY;
-    }
-
-    if(x >= 0 && y >= 0 && x < SIM_LCD_WIDTH && y < SIM_LCD_HEIGHT) {
-        mouse_coords = (x << 16) | y;
-        button_event(BUTTON_TOUCHSCREEN, true);
-        if (debug_wps)
-            printf("Mouse at 1: (%d, %d)\n", x, y);
-    }
-}
-#endif
-
-#if defined(HAVE_SCROLLWHEEL) || ((defined(BUTTON_SCROLL_FWD) && defined(BUTTON_SCROLL_BACK)))
 static void scrollwheel_event(int x, int y)
 {
     int new_btn = 0;
@@ -125,19 +80,13 @@ static void scrollwheel_event(int x, int y)
     else
         return;
 
-#ifdef HAVE_BACKLIGHT
     backlight_on();
-#endif
-#ifdef HAVE_BUTTON_LIGHT
-    buttonlight_on();
-#endif
     reset_poweroff_timer();
     if (new_btn && !button_queue_full())
         button_queue_post(new_btn, 1<<24);
 
     (void)x;
 }
-#endif
 static void mouse_event(SDL_MouseButtonEvent *event, bool button_up)
 {
 #define SQUARE(x) ((x)*(x))
@@ -166,10 +115,6 @@ static void mouse_event(SDL_MouseButtonEvent *event, bool button_up)
                     xybutton = 0;
                 }
 #endif
-#ifdef HAVE_TOUCHSCREEN
-                else
-                    button_event(BUTTON_TOUCHSCREEN, false);
-#endif
             break;
         }
     } else {   /* button down */
@@ -192,9 +137,6 @@ static void mouse_event(SDL_MouseButtonEvent *event, bool button_up)
                     break;
                 }
             }
-#endif
-#ifdef HAVE_TOUCHSCREEN
-            touchscreen_event(event->x, event->y);
 #endif
             break;
         }
@@ -327,14 +269,6 @@ static bool event_handler(SDL_Event *event)
             next_check = event->motion.timestamp + 10; /* ms */
         }
 #endif
-#ifdef HAVE_TOUCHSCREEN
-        if (event->motion.state & SDL_BUTTON(1))
-        {
-            int x = event->motion.x;
-            int y = event->motion.y;
-            touchscreen_event(x, y);
-        }
-#endif
         break;
 
     }
@@ -345,13 +279,11 @@ static bool event_handler(SDL_Event *event)
         mouse_event(mev, event->type == SDL_MOUSEBUTTONUP);
         break;
     }
-#ifdef HAVE_SCROLLWHEEL
     case SDL_MOUSEWHEEL:
     {
         scrollwheel_event(event->wheel.x, event->wheel.y);
         break;
     }
-#endif
     case SDL_QUIT:
         /* Will post SDL_USEREVENT in shutdown_hw() if successful. */
         sdl_sys_quit();
@@ -427,26 +359,11 @@ static void show_sim_help(void)
     HELPTXT(SDLK_4, "toggle display quality");
     HELPTXT(USB_KEY, "toggle USB");
 
-#ifdef HAVE_HEADPHONE_DETECTION
     HELPTXT(SDLK_p, "toggle headphone");
-#endif
-#ifdef HAVE_LINEOUT_DETECTION
     HELPTXT(SDLK_p, "toggle lineout");
-#endif
-#ifdef HAVE_HOTSWAP
     HELPTXT(EXT_KEY, "toggle external drive");
-#endif
-#ifdef HAS_BUTTON_HOLD
-    HELPTXT(SDLK_h, "toggle hold button");
-#endif
 #ifdef HAS_REMOTE_BUTTON_HOLD
     HELPTXT(SDLK_j, "toggle remote hold button");
-#endif
-#if defined(IRIVER_H100_SERIES) || defined (IRIVER_H300_SERIES)
-    HELPTXT(SDLK_t, "toggle remote type");
-#endif
-#ifdef HAVE_TOUCHSCREEN
-    HELPTXT(SDLK_F4, "toggle touch mode");
 #endif
 
     /* device specific keymap */
@@ -529,7 +446,6 @@ static void button_event(int key, bool pressed)
             sim_trigger_usb(usb_connected);
         }
         return;
-#ifdef HAVE_HEADPHONE_DETECTION
     case SDLK_p:
         if (!pressed)
         {
@@ -538,8 +454,6 @@ static void button_event(int key, bool pressed)
             sim_trigger_hp(hp_connected);
         }
         return;
-#endif
-#ifdef HAVE_LINEOUT_DETECTION
     case SDLK_l:
         if (!pressed)
         {
@@ -548,27 +462,9 @@ static void button_event(int key, bool pressed)
             sim_trigger_lo(lo_connected);
         }
         return;
-#endif
-#ifdef HAVE_HOTSWAP
     case EXT_KEY:
         if (!pressed)
             sim_trigger_external(!storage_present(1));
-        return;
-#endif
-#endif
-#ifdef RG_NANO
-    case SDLK_q:
-        /* Use reboot to exit without shutting down */
-        sys_reboot();
-        break;
-#endif
-#ifdef HAS_BUTTON_HOLD
-    case SDLK_h:
-        if(pressed)
-        {
-            hold_button_state = !hold_button_state;
-            DEBUGF("Hold button is %s\n", hold_button_state?"ON":"OFF");
-        }
         return;
 #endif
 
@@ -583,31 +479,6 @@ static void button_event(int key, bool pressed)
         return;
 #endif
 
-#if defined(IRIVER_H100_SERIES) || defined (IRIVER_H300_SERIES)
-    case SDLK_t:
-        if(pressed)
-            switch(_remote_type)
-            {
-                case REMOTETYPE_UNPLUGGED:
-                    _remote_type=REMOTETYPE_H100_LCD;
-                    DEBUGF("Changed remote type to H100\n");
-                    break;
-                case REMOTETYPE_H100_LCD:
-                    _remote_type=REMOTETYPE_H300_LCD;
-                    DEBUGF("Changed remote type to H300\n");
-                    break;
-                case REMOTETYPE_H300_LCD:
-                    _remote_type=REMOTETYPE_H300_NONLCD;
-                    DEBUGF("Changed remote type to H300 NON-LCD\n");
-                    break;
-                case REMOTETYPE_H300_NONLCD:
-                    _remote_type=REMOTETYPE_UNPLUGGED;
-                    DEBUGF("Changed remote type to none\n");
-                    break;
-            }
-        break;
-#endif
-#ifndef APPLICATION
     case SDLK_KP_0:
     case SDLK_F5:
         if(pressed)
@@ -616,27 +487,8 @@ static void button_event(int key, bool pressed)
             return;
         }
         break;
-#endif
-#ifdef HAVE_TOUCHSCREEN
-    case SDLK_F4:
-        if(pressed)
-        {
-            touchscreen_set_mode(touchscreen_get_mode() == TOUCHSCREEN_POINT ? TOUCHSCREEN_BUTTON : TOUCHSCREEN_POINT);
-            printf("Touchscreen mode: %s\n", touchscreen_get_mode() == TOUCHSCREEN_POINT ? "TOUCHSCREEN_POINT" : "TOUCHSCREEN_BUTTON");
-        }
-#endif
     default:
-#ifdef HAVE_TOUCHSCREEN
-# ifndef HAS_BUTTON_HOLD
-        if(touchscreen_is_enabled())
-# endif
-            new_btn = key_to_touch(key, mouse_coords);
-        if (!new_btn)
-#endif
             new_btn = key_to_button(key);
-#ifdef HAVE_TOUCHPAD
-        new_btn = touchpad_filter(new_btn);
-#endif
         break;
     }
 
@@ -655,35 +507,8 @@ static void button_event(int key, bool pressed)
     else
         btn &= ~new_btn;
 }
-#if defined(HAVE_BUTTON_DATA)
-int button_read_device(int* data)
-{
-#if defined(HAVE_TOUCHSCREEN)
-    *data = mouse_coords;
-#else
-    (void) *data;   /* suppress compiler warnings */
-#endif
-#else
 int button_read_device(void)
 {
-#endif
-#ifdef HAS_BUTTON_HOLD
-    int hold_button = button_hold();
-
-#ifdef HAVE_BACKLIGHT
-    /* light handling */
-    static int hold_button_old = false;
-    if (hold_button != hold_button_old)
-    {
-        hold_button_old = hold_button;
-        backlight_hold_changed(hold_button);
-    }
-#endif
-
-    if (hold_button)
-        return BUTTON_NONE;
-    else
-#endif
 
     return btn;
 }

@@ -79,34 +79,6 @@ static inline int32_t MULT31_SHIFT16(int32_t x, int32_t y) {
 
 #else
 /* Rockbox: unused */
-#if 0
-/* 32 bit multiply, more portable but less accurate */
-
-/*
- * Note: Precision is biased towards the first argument therefore ordering
- * is important.  Shift values were chosen for the best sound quality after
- * many listening tests.
- */
-
-/*
- * For MULT32 and MULT31: The second argument is always a lookup table
- * value already preshifted from 31 to 8 bits.  We therefore take the
- * opportunity to save on text space and use unsigned char for those
- * tables in this case.
- */
-
-static inline int32_t MULT32(int32_t x, int32_t y) {
-  return (x >> 9) * y;  /* y preshifted >>23 */
-}
-
-static inline int32_t MULT31(int32_t x, int32_t y) {
-  return (x >> 8) * y;  /* y preshifted >>23 */
-}
-
-static inline int32_t MULT31_SHIFT15(int32_t x, int32_t y) {
-  return (x >> 6) * y;  /* y preshifted >>9 */
-}
-#endif
 #endif
 
 /*

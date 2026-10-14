@@ -58,10 +58,6 @@
 #include "playback.h"
 #include "backdrop.h"
 #include "viewport.h"
-#if CONFIG_TUNER
-#include "radio.h"
-#include "tuner.h"
-#endif
 #include "root_menu.h"
 
 #include "wps.h"
@@ -103,72 +99,6 @@ void skin_update(enum skinnable_screens skin, enum screen_type screen,
                         SKIN_REFRESH_ALL : update_type);
     skin_mark_dirty(screen);
 }
-
-#ifdef AB_REPEAT_ENABLE
-
-#define DIRECTION_RIGHT 1
-#define DIRECTION_LEFT -1
-
-static int ab_calc_mark_x_pos(int mark, int capacity,
-        int offset, int size)
-{
-    return offset + ( (size * mark) / capacity );
-}
-
-static void ab_draw_vertical_line_mark(struct screen * screen,
-                                              int x, int y, int h)
-{
-    screen->set_drawmode(DRMODE_COMPLEMENT);
-    screen->vline(x, y, y+h-1);
-}
-
-static void ab_draw_arrow_mark(struct screen * screen,
-                                      int x, int y, int h, int direction)
-{
-    /* draw lines in decreasing size until a height of zero is reached */
-    screen->set_drawmode(DRMODE_SOLID|DRMODE_INVERSEVID);
-    while( h > 0 )
-    {
-        screen->vline(x, y, y+h-1);
-        h -= 2;
-        y++;
-        x += direction;
-        screen->set_drawmode(DRMODE_COMPLEMENT);
-    }
-}
-
-void ab_draw_markers(struct screen * screen, int capacity,
-                     int x, int y, int w, int h)
-{
-    bool a_set, b_set;
-    unsigned int a, b;
-    int xa, xb;
-
-    a_set = ab_get_A_marker(&a);
-    b_set = ab_get_B_marker(&b);
-    xa = ab_calc_mark_x_pos(a, capacity, x, w);
-    xb = ab_calc_mark_x_pos(b, capacity, x, w);
-    /* if both markers are set, determine if they're far enough apart
-    to draw arrows */
-    if ( a_set && b_set )
-    {
-        int arrow_width = (h+1) / 2;
-        if ( (xb-xa) < (arrow_width*2) )
-        {
-            ab_draw_vertical_line_mark(screen, xa, y, h);
-            ab_draw_vertical_line_mark(screen, xb, y, h);
-            return;
-        }
-    }
-
-    if (a_set)
-        ab_draw_arrow_mark(screen, xa, y, h, DIRECTION_RIGHT);
-
-    if (b_set)
-        ab_draw_arrow_mark(screen, xb, y, h, DIRECTION_LEFT);
-}
-
-#endif
 
 /* A peak meter bar with the hold option: the level falls back by the peak
  * release rate - pixels per tick, here of a bar of the given size - and
@@ -225,13 +155,8 @@ void draw_progressbar(struct gui_wps *gwps, struct skin_viewport* skin_viewport,
     {
         int minvol = sound_min(SOUND_VOLUME);
         int maxvol = sound_max(SOUND_VOLUME);
-#if defined(HAVE_PERCEPTUAL_VOLUME) || defined(HAVE_TOUCHSCREEN)
         length = 1000;
         end = to_normalized_volume(global_status.volume, minvol, maxvol, length);
-#else
-        length = maxvol - minvol;
-        end = global_status.volume - minvol;
-#endif
     }
     else if (pb->type == SKIN_TOKEN_BATTERY_PERCENTBAR)
     {
@@ -280,27 +205,6 @@ void draw_progressbar(struct gui_wps *gwps, struct skin_viewport* skin_viewport,
         length = count - 1;
         end = val;
     }
-#if CONFIG_TUNER
-    else if (in_radio_screen() || (get_radio_status() != FMRADIO_OFF))
-    {
-#ifdef HAVE_RADIO_RSSI
-        if (pb->type == SKIN_TOKEN_TUNER_RSSI_BAR)
-        {
-            int val = tuner_get(RADIO_RSSI);
-            int min = tuner_get(RADIO_RSSI_MIN);
-            int max = tuner_get(RADIO_RSSI_MAX);
-            end = val - min;
-            length = max - min;
-        }
-        else
-#endif
-        {
-            int min = fm_region_data[global_settings.fm_region].freq_min;
-            end = radio_get_current_frequency() - min;
-            length = fm_region_data[global_settings.fm_region].freq_max - min;
-        }
-    }
-#endif
     else if (id3 && id3->length)
     {
         length = id3->length;
@@ -456,21 +360,11 @@ void draw_progressbar(struct gui_wps *gwps, struct skin_viewport* skin_viewport,
     {
         if (id3 && id3->length)
         {
-#ifdef AB_REPEAT_ENABLE
-            if (ab_repeat_mode_enabled())
-                ab_draw_markers(display, id3->length, x, y, width, height);
-#endif
 
             if (id3->cuesheet)
                 cue_draw_markers(display, id3->cuesheet, id3->length,
                                  x, y+1, width, height-2);
         }
-#if 0 /* disable for now CONFIG_TUNER */
-        else if (in_radio_screen() || (get_radio_status() != FMRADIO_OFF))
-        {
-            presets_draw_markers(display, x, y, width, height);
-        }
-#endif
     }
 }
 
@@ -809,13 +703,6 @@ void draw_album_art(struct gui_wps *gwps, int handle_id, bool clear)
                                     STRIDE(gwps->display->screen_type,
                                         bmp->width, bmp->height),
                                    x, y, width, height);
-#ifdef HAVE_LCD_INVERT
-        if (global_settings.invert) {
-            gwps->display->set_drawmode(DRMODE_COMPLEMENT);
-            gwps->display->fillrect(x, y, width, height);
-            gwps->display->set_drawmode(DRMODE_SOLID);
-        }
-#endif
     }
     else
     {

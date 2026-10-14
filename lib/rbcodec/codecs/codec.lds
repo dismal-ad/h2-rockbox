@@ -4,11 +4,7 @@
 
 /* These output formats should be in the config-files */
 
-#ifdef CPU_COLDFIRE
-OUTPUT_FORMAT(elf32-m68k)
-#elif defined(CPU_ARM)
-OUTPUT_FORMAT(elf32-littlearm)
-#elif defined(CPU_MIPS)
+#if   defined(CPU_MIPS)
 OUTPUT_FORMAT(elf32-littlemips)
 #else
 /* We can have an #error here we don't use this file when build sims! */
@@ -35,13 +31,6 @@ OUTPUT_FORMAT(elf32-littlemips)
 #define DRAMSIZE (MEMORYSIZE * 0x100000) - PLUGIN_BUFFER_SIZE - CODEC_SIZE
 #define IRAMORIG 0x4000c000
 #define IRAMSIZE 0x14000
-
-#elif defined(CPU_PP)
-/* all other PP's have 96KB of IRAM */
-#define DRAMORIG 0x00000000
-#define DRAMSIZE (MEMORYSIZE * 0x100000) - PLUGIN_BUFFER_SIZE - CODEC_SIZE
-#define IRAMORIG 0x4000c000
-#define IRAMSIZE 0x0c000
 
 #elif CONFIG_CPU == IMX31L
 #define DRAMORIG 0x0
@@ -159,16 +148,9 @@ OUTPUT_FORMAT(elf32-littlemips)
 #define THIS_ORIGIN PLUGIN_ORIGIN
 #endif
 
-#if defined(USE_IRAM) && (!defined(IRAMORIG) || !defined(IRAMSIZE))
-# error "USE_IRAM is set, but no IRAM region is defined!"
-#endif
-
 MEMORY
 {
    PLUGIN_RAM : ORIGIN = THIS_ORIGIN, LENGTH = THIS_LENGTH
-#if defined(USE_IRAM)
-   PLUGIN_IRAM : ORIGIN = IRAMORIG, LENGTH = IRAMSIZE
-#endif
 }
 
 SECTIONS
@@ -182,10 +164,6 @@ SECTIONS
     .text :
     {
         *(.text*)
-#ifdef CPU_ARM
-        *(.glue_7)
-        *(.glue_7t)
-#endif
     } > PLUGIN_RAM
 
     .rodata :
@@ -216,12 +194,10 @@ SECTIONS
     /DISCARD/ :
     {
         *(.eh_frame)
-#if !defined(USE_IRAM)
 		*(.icode)
         *(.irodata)
         *(.idata)
         *(.ibss)
-#endif
 #ifdef CPU_MIPS
         *(.MIPS.abiflags)
         *(.rel.dyn)
@@ -277,29 +253,7 @@ SECTIONS
         plugin_end_addr = .;
     } > PLUGIN_RAM
 
-#if defined(USE_IRAM)
-    .iram IRAMORIG : AT(LOADADDR(.bss))
-    {
-        iramstart = .;
-        *(.icode)
-        *(.irodata)
-        *(.idata)
-        iramend = .;
-    } > PLUGIN_IRAM
-    iramcopy = LOADADDR(.iram);
-
-    .ibss (NOLOAD) :
-    {
-        iedata = .;
-        *(.ibss)
-        . = ALIGN(0x4);
-        iend = .;
-    } > PLUGIN_IRAM
-
-    loadendaddr = MAX(plugin_end_addr, LOADADDR(.iram) + SIZEOF(.iram));
-#else
     loadendaddr = plugin_end_addr;
-#endif
 
     /* This is for ovl_offset.pl and is the highest address that must
        be loaded into the plugin buffer (past the end of last data in

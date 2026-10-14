@@ -27,14 +27,10 @@
 #include "vuprintf.h"
 #include "ap_int.h"
 
-#ifndef BOOTLOADER
-
 /* Turn everything on if we have enough RAM. */
 #if MEMORYSIZE >= 8
 # define FMT_LENMOD (0xffffffff)
 # define FMT_RADIX  (0xffffffff)
-#endif
-
 #endif
 
 /* these are the defaults if no other preference is given */
@@ -63,11 +59,7 @@
 #define FMT_LENMOD_ll   0x010  /* signed/unsigned long long (%ll<radix>) */
 #define FMT_LENMOD_t    0x020  /* signed/unsigned ptrdiff_t (%t<radix>) */
 #define FMT_LENMOD_z    0x040  /* size_t/ssize_t (%z<radix>) */
-#if 0
-#define FMT_LENMOD_L    0x080  /* long double (instead of double) */
-#else
 #define FMT_LENMOD_L    0x000
-#endif
 
 /* compulsory radixes: c, d, i, u, s */
 #define FMT_RADIX_c     0x001  /* single character (%c) */
@@ -1061,10 +1053,6 @@ int vuprintf(vuprintf_push_cb push, /* call 'push()' for each output letter */
                 /* indicate; formatter updates with actual length */
                 pfxlen = 1;
                 break;
-            #if 0
-            case '\'':  /* digit grouping (non-monetary) */
-                break;
-            #endif
             default:
                 goto flags_done;
             }

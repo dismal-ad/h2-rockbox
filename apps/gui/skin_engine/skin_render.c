@@ -37,9 +37,6 @@
 #include "skin_parser.h"
 #include "tag_table.h"
 #include "skin_scan.h"
-#if CONFIG_TUNER
-#include "radio.h"
-#endif
 #include "viewport.h"
 #include "cuesheet.h"
 #include "language.h"
@@ -103,7 +100,6 @@ static bool do_non_text_tags(struct gui_wps *gwps, struct skin_draw_info *info,
 
     switch (token->type)
     {
-#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1))
         case SKIN_TOKEN_VIEWPORT_BGCOLOUR:
         case SKIN_TOKEN_VIEWPORT_FGCOLOUR:
         {
@@ -138,8 +134,6 @@ static bool do_non_text_tags(struct gui_wps *gwps, struct skin_draw_info *info,
                 *linedes = *data;
         }
         break;
-#endif
-#ifdef HAVE_LCD_COLOR
         case SKIN_TOKEN_VIEWPORT_GRADIENT_SETUP:
         {
             struct gradient_config *cfg = SKINOFFSETTOPTR(skin_buffer, token->value.data);
@@ -150,7 +144,6 @@ static bool do_non_text_tags(struct gui_wps *gwps, struct skin_draw_info *info,
             linedes->line_end_color = cfg->end;
         }
         break;
-#endif
         case SKIN_TOKEN_VIEWPORT_ENABLE:
         {
             char *label = SKINOFFSETTOPTR(skin_buffer, token->value.data);
@@ -196,7 +189,6 @@ static bool do_non_text_tags(struct gui_wps *gwps, struct skin_draw_info *info,
                 struct draw_rectangle *rect =
                         SKINOFFSETTOPTR(skin_buffer, token->value.data);
                 if (!rect) break;
-#ifdef HAVE_LCD_COLOR
                 if (rect->start_colour != rect->end_colour &&
                     gwps->display->screen_type == SCREEN_MAIN)
                 {
@@ -204,17 +196,12 @@ static bool do_non_text_tags(struct gui_wps *gwps, struct skin_draw_info *info,
                         rect->height, rect->start_colour, rect->end_colour);
                 }
                 else
-#endif
                 {
-#if LCD_DEPTH > 1
                     unsigned backup = skin_vp->vp.fg_pattern;
                     skin_vp->vp.fg_pattern = rect->start_colour;
-#endif
                     gwps->display->fillrect(rect->x, rect->y, rect->width,
                         rect->height);
-#if LCD_DEPTH > 1
                     skin_vp->vp.fg_pattern = backup;
-#endif
                 }
             }
             break;
@@ -297,13 +284,6 @@ static bool do_non_text_tags(struct gui_wps *gwps, struct skin_draw_info *info,
                 if (aa)
                 {
                     int handle = playback_current_aa_hid(data->playback_aa_slot);
-#if CONFIG_TUNER
-                    if (in_radio_screen() || (get_radio_status() != FMRADIO_OFF))
-                    {
-                        struct dim dim = {aa->width, aa->height};
-                        handle = radio_get_art_hid(&dim);
-                    }
-#endif
                     aa->draw_handle = handle;
                 }
             }
@@ -320,30 +300,6 @@ static bool do_non_text_tags(struct gui_wps *gwps, struct skin_draw_info *info,
                 skin_render_playlistviewer(SKINOFFSETTOPTR(skin_buffer, token->value.data), gwps,
                                            info->skin_vp, info->refresh_type);
             break;
-#ifdef HAVE_SKIN_VARIABLES
-        case SKIN_TOKEN_VAR_SET:
-            {
-                struct skin_var_changer *data = SKINOFFSETTOPTR(skin_buffer, token->value.data);
-                struct skin_var *var = SKINOFFSETTOPTR(skin_buffer, data->var);
-                if (data->direct)
-                    var->value = data->newval;
-                else
-                {
-                    var->value += data->newval;
-                    if (data->max)
-                    {
-                        if (var->value > data->max)
-                            var->value = 1;
-                        else if (var->value < 1)
-                            var->value = data->max;
-                    }
-                }
-                if (var->value < 1)
-                    var->value = 1;
-                var->last_changed = current_tick;
-            }
-            break;
-#endif
         default:
             return false;
     }
@@ -427,7 +383,6 @@ static void do_tags_in_hidden_conditional(struct skin_element* branch,
                             skin_viewport->hidden_flags |= VP_DRAW_WASHIDDEN;
                         else
                         {
-#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1))
                             if (skin_viewport->output_to_backdrop_buffer)
                             {
                                 skin_backdrop_set_buffer(data->backdrop_id, skin_viewport);
@@ -443,11 +398,6 @@ static void do_tags_in_hidden_conditional(struct skin_element* branch,
                                 skin_backdrop_set_buffer(-1, skin_viewport);
                                 skin_backdrop_show(data->backdrop_id);
                             }
-#else
-                            gwps->display->set_viewport_ex(&skin_viewport->vp, VP_FLAG_VP_SET_CLEAN);
-                            gwps->display->clear_viewport();
-                            gwps->display->set_viewport_ex(&info->skin_vp->vp, VP_FLAG_VP_SET_CLEAN);
-#endif
                             skin_viewport->hidden_flags |= VP_DRAW_HIDDEN;
                         }
                     }
@@ -591,10 +541,8 @@ static bool skin_render_line(struct skin_element* line, struct skin_draw_info *i
                                                info->offset, bufstart, bufsz, NULL);
                     if (valuestr)
                     {
-#if CONFIG_RTC
                         if (child->tag->flags&SKIN_RTC_REFRESH)
                             needs_update = needs_update || info->refresh_type&SKIN_REFRESH_DYNAMIC;
-#endif
                         needs_update = needs_update ||
                                 ((child->tag->flags&info->refresh_type)!=0);
                         if (valuestr != bufstart)
@@ -788,16 +736,12 @@ void skin_render_viewport(struct skin_element* viewport, struct gui_wps *gwps,
         info.no_line_break = false;
         info.line_scrolls = false;
         info.force_redraw = false;
-#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1))
         skin_viewport->fgbg_changed = false;
-#ifdef HAVE_LCD_COLOR
         if (info.line_desc.style&STYLE_GRADIENT)
         {
             if (++info.line_desc.line > info.line_desc.nlines)
                 info.line_desc.style = STYLE_DEFAULT;
         }
-#endif
-#endif
         info.cur_align_start = info.buf;
         align->left = info.buf;
         align->center = NULL;
@@ -809,7 +753,6 @@ void skin_render_viewport(struct skin_element* viewport, struct gui_wps *gwps,
             func = skin_render_line;
 
         needs_update = func(line, &info);
-#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1))
         if (skin_viewport->fgbg_changed)
         {
             /* if fg/bg changed due to a conditional tag the colors
@@ -821,7 +764,6 @@ void skin_render_viewport(struct skin_element* viewport, struct gui_wps *gwps,
             if (needs_update)
                 update_all = true;
         }
-#endif
         /* only update if the line needs to be, and there is something to write */
         if (refresh_type && (needs_update || update_all))
         {
@@ -886,7 +828,6 @@ void skin_render(struct gui_wps *gwps, unsigned refresh_mode)
         skin_viewport = SKINOFFSETTOPTR(skin_buffer, viewport->data);
         if (!skin_viewport) continue;
         unsigned vp_refresh_mode = refresh_mode;
-#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)
         if (skin_viewport->output_to_backdrop_buffer)
         {
             skin_backdrop_set_buffer(data->backdrop_id, skin_viewport);
@@ -897,7 +838,6 @@ void skin_render(struct gui_wps *gwps, unsigned refresh_mode)
             skin_backdrop_set_buffer(-1, skin_viewport);
             skin_backdrop_show(data->backdrop_id);
         }
-#endif
 
         /* dont redraw the viewport if its disabled */
         if (skin_viewport->hidden_flags&VP_NEVER_VISIBLE)
@@ -927,10 +867,8 @@ void skin_render(struct gui_wps *gwps, unsigned refresh_mode)
                                  skin_viewport, vp_refresh_mode);
         refresh_mode = old_refresh_mode;
     }
-#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1))
     skin_backdrop_set_buffer(-1, skin_viewport);
     skin_backdrop_show(data->backdrop_id);
-#endif
 
     if (((refresh_mode&SKIN_REFRESH_ALL) == SKIN_REFRESH_ALL))
     {
@@ -969,15 +907,6 @@ void skin_render_playlistviewer(struct playlistviewer* viewer,
     bool needs_update;
     int cur_pos, start_item, max;
     int nb_lines = viewport_get_nb_lines(&skin_viewport->vp);
-#if CONFIG_TUNER
-    if (get_current_activity() == ACTIVITY_FM)
-    {
-        cur_pos = radio_current_preset();
-        start_item = cur_pos + viewer->start_offset;
-        max = start_item+radio_preset_count();
-    }
-    else
-#endif
     {
         struct wps_state *state = get_wps_state();
         struct cuesheet *cue = state->id3 ? state->id3->cuesheet : NULL;

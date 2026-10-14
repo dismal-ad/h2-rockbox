@@ -394,10 +394,6 @@ int player_init (tta_info *info) {
     unsigned int data_offset;
     unsigned int st_size;
 
-#ifdef CPU_COLDFIRE
-    coldfire_set_macsr(0); /* signed integer mode */
-#endif
-
     ttainfo = info;
 
     framelen = 0;
@@ -512,24 +508,6 @@ int get_samples (int32_t *buffer) {
         value = update_rice(value, rice, depth, shift_16);
 
         /* Rockbox specific: the following logic move to update_rice() */
-#if 0
-        if (depth > 0)
-        {
-            rice->sum1 += value - (rice->sum1 >> 4);
-            if (rice->k1 > 0 && rice->sum1 < shift_16[rice->k1])
-                rice->k1--;
-            else if (rice->sum1 > shift_16[rice->k1 + 1])
-                rice->k1++;
-            value += bit_shift[rice->k0];
-        }
-        rice->sum0 += value - (rice->sum0 >> 4);
-        if (rice->k0 > 0 && rice->sum0 < shift_16[rice->k0])
-            rice->k0--;
-        else if (rice->sum0 > shift_16[rice->k0 + 1])
-            rice->k0++;
-
-        value = DEC(value);
-#endif
 
         /* decompress stage 1: adaptive hybrid filter */
         hybrid_filter(fst, &value);

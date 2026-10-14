@@ -56,39 +56,10 @@ static bool read32(const void* addr, uint32_t* val)
     return true;
 }
 
-#if 0
-static bool read16(const void* addr, uint16_t* val)
-{
-    if(!read_check(addr, alignof(uint16_t)))
-        return false;
-
-    *val = *(const uint16_t*)addr;
-    return true;
-}
-
-static bool read8(const void* addr, uint8_t* val)
-{
-    if(!read_check(addr, alignof(uint8_t)))
-        return false;
-
-    *val = *(const uint8_t*)addr;
-    return true;
-}
-#endif
-
 static long extract_s16(uint32_t val)
 {
-#if 1
     /* not ISO C, but gets GCC to emit 'seh' which is more compact */
     return (int32_t)(val << 16) >> 16;
-#else
-    val &= 0xffff;
-
-    if(val > 0x7fff)
-        return (long)val - 0x10000l;
-    else
-        return val;
-#endif
 }
 
 /* TODO - cases not handled by the backtrace algorithm

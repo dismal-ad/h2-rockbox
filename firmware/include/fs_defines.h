@@ -22,12 +22,6 @@
 
 /** Tuneable parameters **/
 
-#if 0
-/* Define this just in case you're doing something that may crash a lot and
-   want less write caching */
-#define FS_MIN_WRITECACHING
-#endif
-
 #ifndef MAX_PATH
 #define MAX_PATH        260
 #endif
@@ -107,10 +101,6 @@
 #endif
 
 /* this _could_ be larger than a sector if that would ever be useful */
-#ifdef MAX_VARIABLE_LOG_SECTOR
-#define DC_CACHE_BUFSIZE   MAX_VARIABLE_LOG_SECTOR
-#else
 #define DC_CACHE_BUFSIZE    SECTOR_SIZE
-#endif
 
 #endif /* FS_DEFINES_H */

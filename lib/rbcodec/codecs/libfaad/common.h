@@ -68,11 +68,7 @@ extern "C" {
 #define FAAD_STATIC_ALLOC
 
 #define INLINE __inline
-#if 0 //defined(_WIN32) && !defined(_WIN32_WCE)
-#define ALIGN __declspec(align(16))
-#else
 #define ALIGN
-#endif
 
 #ifndef max
 #define max(a, b) (((a) > (b)) ? (a) : (b))
@@ -134,10 +130,8 @@ extern "C" {
   #undef ERROR_RESILIENCE
 #endif
 
-#ifdef CODEC_AAC_SBR_DEC
 #define SBR_DEC
 //#define SBR_LOW_POWER /* Does not work yet in rockbox. */
-#endif
 #if CODEC_SIZE >= 0x80000
 #define PS_DEC
 #endif

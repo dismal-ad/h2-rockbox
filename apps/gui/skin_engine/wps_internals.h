@@ -173,14 +173,12 @@ enum wps_parse_error {
     PARSE_FAIL_COND_INVALID_PARAM,
     PARSE_FAIL_LIMITS_EXCEEDED,
 };
-#ifdef HAVE_LCD_COLOR
 struct gradient_config {
     unsigned start;
     unsigned end;
     unsigned text;
     int lines_count;
 };
-#endif
 
 #define VP_DRAW_HIDEABLE    0x1
 #define VP_DRAW_HIDDEN      0x2
@@ -200,57 +198,13 @@ struct skin_viewport {
     int16_t parsed_fontid;
     char hidden_flags;
     bool is_infovp;
-#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1))
     bool output_to_backdrop_buffer;
     bool fgbg_changed;
-#ifdef HAVE_LCD_COLOR
     struct gradient_config start_gradient;
-#endif
-#endif
 };
 struct viewport_colour {
     unsigned colour;
 };
-
-#ifdef HAVE_TOUCHSCREEN
-struct touchregion {
-    OFFSETTYPE(char*) label;            /* label to identify this region */
-    OFFSETTYPE(struct skin_viewport*) wvp;/* The viewport this region is in */
-    int16_t x;             /* x-pos */
-    int16_t y;             /* y-pos */
-    int16_t width;         /* width */
-    int16_t height;        /* height */
-    int16_t wpad;          /* padding to width */
-    int16_t hpad;          /* padding to height */
-    bool reverse_bar;        /* if true 0% is the left or top */
-    bool allow_while_locked;
-    bool user_region;        /* if true this is a user-defined region */
-    enum {
-        PRESS,               /* quick press only */
-        LONG_PRESS,          /* Long press without repeat */
-        REPEAT,              /* long press allowing repeats */
-    } press_length;
-    int action;              /* action this button will return */
-
-    union {                  /* Extra data, action dependant */
-        struct touchsetting {
-            const struct settings_list *setting; /* setting being controlled */
-            union {         /* Value to set the setting to for ACTION_SETTING_SET */
-                int number;
-                OFFSETTYPE(char*) text;
-            } value;
-        } setting_data;
-        int   value;
-    };
-    long last_press;        /* last tick this was pressed */
-    OFFSETTYPE(struct progressbar*) bar;
-};
-
-struct touchregion_lastpress {
-    OFFSETTYPE(struct touchregion *) region;
-    long timeout;
-};
-#endif
 
 struct playlistviewer {
     bool show_icons;
@@ -339,24 +293,6 @@ struct listitem_viewport_cfg {
     struct skin_viewport selected_item_vp;
 };
 
-#ifdef HAVE_SKIN_VARIABLES
-struct skin_var {
-    OFFSETTYPE(const char *) label;
-    int value;
-    long last_changed;
-};
-struct skin_var_lastchange {
-    OFFSETTYPE(struct skin_var *) var;
-    long timeout;
-};
-struct skin_var_changer {
-    OFFSETTYPE(struct skin_var *) var;
-    int newval;
-    bool direct; /* true to make val=newval, false for val += newval */
-    int max;
-};
-#endif
-
 /* wps_data
    this struct holds all necessary data which describes the
    viewable content of a wps */
@@ -368,26 +304,15 @@ struct wps_data
     OFFSETTYPE(struct skin_token_list *) images;
     OFFSETTYPE(int16_t *) font_ids;
     int16_t font_count;
-#ifdef HAVE_BACKDROP_IMAGE
     int16_t backdrop_id;
     bool use_extra_framebuffer;
-#endif
 
-#ifdef HAVE_TOUCHSCREEN
-    bool touchscreen_locked;
-    OFFSETTYPE(struct skin_token_list *) touchregions;
-    struct gesture gesture;
-#endif
 #ifdef HAVE_ALBUMART
     OFFSETTYPE(struct skin_albumart *) albumart;
     int    playback_aa_slot;
     /* copy of albumart to survive skin resets, used to check if albumart
      * dimensions changed on skin change */
     int16_t last_albumart_width, last_albumart_height;
-#endif
-
-#ifdef HAVE_SKIN_VARIABLES
-    OFFSETTYPE(struct skin_token_list *) skinvars;
 #endif
 
     bool peak_meter_enabled;
@@ -440,21 +365,10 @@ bool wps_get_playlist_percent(struct mp3entry *id3, unsigned long elapsed_ms,
 void wps_playlist_percent_enable(void);
 void wps_playlist_percent_prepare(void);
 
-#if CONFIG_TUNER
-const char *get_radio_token(struct wps_token *token, int preset_offset,
-                            char *buf, int buf_size, int limit, int *intval);
-#endif
-
 enum skin_find_what {
     SKIN_FIND_VP = 0,
     SKIN_FIND_UIVP,
     SKIN_FIND_IMAGE,
-#ifdef HAVE_TOUCHSCREEN
-    SKIN_FIND_TOUCHREGION,
-#endif
-#ifdef HAVE_SKIN_VARIABLES
-    SKIN_VARIABLE,
-#endif
 };
 void *skin_find_item(const char *label, enum skin_find_what what,
                      struct wps_data *data);

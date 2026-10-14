@@ -28,13 +28,7 @@
  */
 
 
-#ifdef CPU_ARM
-// we definitely want CONFIG_SMALL undefined for ipod
-// so we get the inlined version of fft16 (which is measurably faster)
-#undef CONFIG_SMALL
-#else
 #undef CONFIG_SMALL 
-#endif
  
 #include "fft.h"
 #include <string.h>
@@ -58,39 +52,6 @@
 
 #ifndef ICODE_ATTR_TREMOR_MDCT
 #define ICODE_ATTR_TREMOR_MDCT ICODE_ATTR
-#endif
-
-#if 0
-static int split_radix_permutation(int i, int n, int inverse)
-{
-    int m;
-    if(n <= 2) return i&1;
-    m = n >> 1;
-    if(!(i&m))            return split_radix_permutation(i, m, inverse)*2;
-    m >>= 1;
-    if(inverse == !(i&m)) return split_radix_permutation(i, m, inverse)*4 + 1;
-    else                  return split_radix_permutation(i, m, inverse)*4 - 1;
-}
-
-static void ff_fft_permute_c(FFTContext *s, FFTComplex *z)
-{
-    int j, k, np;
-    FFTComplex tmp;
-    //const uint16_t *revtab = s->revtab;
-    np = 1 << s->nbits;
-    
-    const int revtab_shift = (12 - s->nbits);
-
-    /* reverse */
-    for(j=0;j<np;j++) {
-        k = revtab[j]>>revtab_shift;
-        if (k < j) {
-            tmp = z[k];
-            z[k] = z[j];
-            z[j] = tmp;
-        }
-    }
-}
 #endif
 
 #define BF(x,y,a,b) {\
@@ -416,58 +377,3 @@ void ff_fft_calc_c(int nbits, FFTComplex *z)
     fft_dispatch[nbits-2](z);
 }
 
-#if 0
-int main (void)
-{
-#define PRECISION       16
-#define FFT_SIZE 1024
-#define ftofix32(x)       ((fixed32)((x) * (float)(1 << PRECISION) + ((x) < 0 ? -0.5 : 0.5)))
-#define itofix32(x)       ((x) << PRECISION)
-#define fixtoi32(x)       ((x) >> PRECISION)
-
-    int             j;
-    const long      N = FFT_SIZE;
-    double          r[FFT_SIZE] = {0.0}, i[FFT_SIZE] = {0.0};
-    long            n;
-    double          t;
-    double          amp, phase;
-    clock_t         start, end;
-    double          exec_time = 0;
-    FFTContext      s;
-    FFTComplex      z[FFT_SIZE];
-    memset(z, 0, 64*sizeof(FFTComplex));
-
-    /* Generate saw-tooth test data */
-    for (n = 0; n < FFT_SIZE; n++)
-    {
-        t = (2 * M_PI * n)/N;
-        /*z[n].re =  1.1      + sin(      t) +                
-                   0.5      * sin(2.0 * t) +
-                  (1.0/3.0) * sin(3.0 * t) +
-                   0.25     * sin(4.0 * t) +
-                   0.2      * sin(5.0 * t) +
-                  (1.0/6.0) * sin(6.0 * t) +
-                  (1.0/7.0) * sin(7.0 * t) ;*/
-        z[n].re  =  ftofix32(cos(2*M_PI*n/64));
-        //printf("z[%d] = %f\n", n, z[n].re);
-        //getchar();
-    }
-
-    ff_fft_init(&s, 10, 1);
-//start = clock();
-//for(n = 0; n < 1000000; n++)
-    ff_fft_permute_c(&s, z);
-    ff_fft_calc_c(&s, z);
-//end   = clock();
-//exec_time = (((double)end-(double)start)/CLOCKS_PER_SEC);
-    for(j = 0; j < FFT_SIZE; j++)
-    {
-        printf("%8.4f\n", sqrt(pow(fixtof32(z[j].re),2)+ pow(fixtof32(z[j].im), 2)));   
-        //getchar();
-    }
-    printf("muls = %d, adds = %d\n", muls, adds);
-//printf(" Time elapsed = %f\n", exec_time);
-    //ff_fft_end(&s);
-
-}
-#endif

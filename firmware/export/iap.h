@@ -26,13 +26,8 @@
 /* This is the entire frame length, sync, length, payload and checksum */
 #define TX_BUFLEN 128
 
-#ifdef HAVE_IAP_MULTIPORT
-#define IF_IAP_MP(x...) x
-#define IF_IAP_MP_NONVOID(x...) x
-#else
 #define IF_IAP_MP(x...)
 #define IF_IAP_MP_NONVOID(x...) void
-#endif
 
 extern bool iap_getc(IF_IAP_MP(int port,) unsigned char x);
 extern void iap_setup(int ratenum);
@@ -41,9 +36,6 @@ extern void iap_periodic(void);
 extern void iap_handlepkt(void);
 extern void iap_send_pkt(const unsigned char * data, int len);
 const unsigned char *iap_get_serbuf(void);
-#ifdef HAVE_LINE_REC
-extern bool iap_record(bool onoff);
-#endif
 void iap_reset_state(IF_IAP_MP_NONVOID(int port) ); /* 0 is dock, 1 is headphone */
 bool dbg_iap(void);
 #endif

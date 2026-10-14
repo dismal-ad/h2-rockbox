@@ -28,8 +28,7 @@
 #include "strtok_r.h"
 #include "memset16.h"
 
-#if defined(WIN32) || defined(APPLICATION) \
-        || defined(__PCTOOL__) || defined(SIMULATOR)
+#if defined(WIN32) || defined(__PCTOOL__) || defined(SIMULATOR)
 #ifndef mempcpy
 #define mempcpy __builtin_mempcpy
 #endif

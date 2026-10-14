@@ -44,9 +44,6 @@
 #include "usb.h"
 
 #include "tuner.h"
-#if CONFIG_TUNER
-#include "ipod_remote_tuner.h"
-#endif
 
 
 /* MS_TO_TICKS converts a milisecond time period into the
@@ -156,21 +153,13 @@ unsigned char* iap_txnext;
  */
 unsigned char lingo_versions[32][2] = {
     {1, 9},     /* General lingo, 0x00 */
-#ifdef HAVE_LINE_REC
-    {1, 1},     /* Microphone lingo, 0x01 */
-#else
     {0, 0},     /* Microphone lingo, 0x01, disabled */
-#endif
     {1, 2},     /* Simple remote lingo, 0x02 */
     {1, 5},     /* Display remote lingo, 0x03 */
     {1, 12},    /* Extended Interface lingo, 0x04 */
     {1, 1},     /* RF/BT Transmitter lingo, 0x05 */
     {0, 0},     /* USB Host lingo, 0x06, disabled */
-#if CONFIG_TUNER
-    {1, 0},     /* RF Receiver lingo, 0x07 */
-#else
     {0, 0},     /* RF Receiver lingo, 0x07 disabled */
-#endif
     {}          /* every other lingo, disabled */
 };
 
@@ -317,13 +306,6 @@ void iap_reset_state(IF_IAP_MP_NONVOID(int port))
     iap_reset_device(&device);
     iap_bitrate_set(global_settings.serial_bitrate);
 
-#if 0  // XXX this is still screwed up
-    memset(&frame_state, 0, sizeof(frame_state));
-    interface_state = IST_STANDARD;
-    frame_state.state = ST_SYNC;
-
-    iap_reset_buffers();
-#endif
 }
 
 void iap_reset_device(struct device_t* device)
@@ -1058,19 +1040,9 @@ void iap_periodic(void)
 			if (play_status != 1) {
 			/* Not Playing */
 			   audio_pause();
-#if CONFIG_TUNER
-               if (radio_present==1) {
-                  tuner_set(RADIO_MUTE,1);
-			   }
-#endif
 			} else {
 			/* Playing */
 			   audio_resume();
-#if CONFIG_TUNER
-			   if (radio_present==1) {
-                   tuner_set(RADIO_MUTE,0);
-               }
-#endif
 			}
         }
     }
@@ -1325,16 +1297,10 @@ void iap_handlepkt(void)
             unsigned char mode = *(iap_rxstart+2);
             switch (mode) {
             case 0: iap_handlepkt_mode0(length, iap_rxstart+2); break;
-#ifdef HAVE_LINE_REC
-            case 1: iap_handlepkt_mode1(length, iap_rxstart+2); break;
-#endif
             case 2: iap_handlepkt_mode2(length, iap_rxstart+2); break;
             case 3: iap_handlepkt_mode3(length, iap_rxstart+2); break;
             case 4: iap_handlepkt_mode4(length, iap_rxstart+2); break;
             case 5: iap_handlepkt_mode5(length, iap_rxstart+2); break;
-#if CONFIG_TUNER
-            case 7: iap_handlepkt_mode7(length, iap_rxstart+2); break;
-#endif
             }
         }
 

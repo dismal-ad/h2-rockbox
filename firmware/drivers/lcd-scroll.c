@@ -29,7 +29,6 @@
 #define MAIN_LCD
 #endif
 
-#if !defined(BOOTLOADER)
 static struct scrollinfo LCDFN(scroll)[LCDM(SCROLLABLE_LINES)];
 
 struct scroll_screen_info LCDFN(scroll_info) =
@@ -163,20 +162,16 @@ bool LCDFN(scroll_now)(struct scrollinfo *s)
      * can do whatever it likes without destroying the state */
     struct frame_buffer_t *framebuf = s->vp->buffer;
     unsigned drawmode;
-#if LCD_DEPTH > 1
     unsigned fg_pattern, bg_pattern;
     fg_pattern = s->vp->fg_pattern;
     bg_pattern = s->vp->bg_pattern;
-#endif
     drawmode   = s->vp->drawmode;
     s->scroll_func(s);
 
     LCDFN(update_viewport_rect)(s->x, s->y, s->width, s->height);
 
-#if LCD_DEPTH > 1
     s->vp->fg_pattern = fg_pattern;
     s->vp->bg_pattern = bg_pattern;
-#endif
     s->vp->drawmode = drawmode;
     s->vp->buffer = framebuf;
 
@@ -221,10 +216,6 @@ static void LCDFN(scroll_worker)(void)
         bool makedelay = LCDFN(scroll_now(s));
         if (makedelay)
         {
-#if 0 /* haven't found a case in which this matters .. yet?? --Bilgus */
-            /* re-calculate stringsize in case the font changed */
-            s->line_stringsize = font_getstringsize(s->linebuffer, NULL, NULL, s->vp->font);
-#endif
             s->start_tick += si->delay + si->ticks;
         }
 
@@ -235,4 +226,3 @@ static void LCDFN(scroll_worker)(void)
 #endif
     }
 }
-#endif /*!BOOTLOADER*/

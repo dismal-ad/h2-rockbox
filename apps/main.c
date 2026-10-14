@@ -62,10 +62,8 @@
 #include "plugin.h"
 #include "misc.h"
 #include "dircache.h"
-#ifdef HAVE_TAGCACHE
 #include "tagcache.h"
 #include "tagtree.h"
-#endif
 #include "lang.h"
 #include "string.h"
 #include "splash.h"
@@ -77,9 +75,7 @@
 #include "bootchart.h"
 #include "logdiskf.h"
 #include "bootdata.h"
-#if defined(HAVE_DEVICEDATA)
 #include "devicedata.h"
-#endif
 
 #if (CONFIG_PLATFORM & PLATFORM_ANDROID)
 #include "notification.h"
@@ -93,25 +89,13 @@
 #include "audio_thread.h"
 #include "playback.h"
 #include "tdspeed.h"
-#if defined(HAVE_RECORDING) && !defined(SIMULATOR)
-#include "pcm_record.h"
-#endif
 
 #ifdef BUTTON_REC
     #define SETTINGS_RESET BUTTON_REC
-#elif (CONFIG_KEYPAD == GIGABEAT_PAD)
-    #define SETTINGS_RESET BUTTON_A
 #endif
 
-#if CONFIG_TUNER
-#include "radio.h"
-#endif
 #if (CONFIG_STORAGE & STORAGE_MMC)
 #include "ata_mmc.h"
-#endif
-
-#ifdef HAVE_REMOTE_LCD
-#include "lcd-remote.h"
 #endif
 
 #if CONFIG_USBOTG == USBOTG_ISP1362
@@ -120,10 +104,6 @@
 
 #if CONFIG_USBOTG == USBOTG_M5636
 #include "m5636.h"
-#endif
-
-#ifdef HAVE_HARDWARE_CLICK
-#include "piezo.h"
 #endif
 
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
@@ -182,9 +162,7 @@ int main(void)
     }
     list_init();
     tree_init();
-#if defined(HAVE_DEVICEDATA) && !defined(BOOTLOADER) /* SIMULATOR */
     verify_device_data();
-#endif
     /* Keep the order of this 3
      * Must be done before any code uses the multi-screen API */
 #ifdef HAVE_USBSTACK
@@ -201,7 +179,6 @@ int main(void)
     }
 #endif
 
-#if !defined(BOOTLOADER)
     allocate_playback_log();
     if (!file_exists(ROCKBOX_DIR"/playername.txt"))
     {
@@ -212,7 +189,6 @@ int main(void)
             close(fd);
         }
     }
-#endif
 
 #ifdef AUTOROCK
     {
@@ -220,11 +196,7 @@ int main(void)
         file = *file
                 ? file
                 :
-#ifdef APPLICATION
-                                ROCKBOX_DIR
-#else
                                 PLUGIN_APPS_DIR
-#endif
                                     "/autostart.rock";
         if (file_exists(file)) /* no complaint if it doesn't exist */
         {
@@ -257,34 +229,13 @@ int show_logo_boot( void )
     ver_w = font_getstringsize(version, NULL, &font_h, FONT_SYSFIXED);
     lcd_clear_display();
     lcd_setfont(FONT_SYSFIXED);
-#if defined(SANSA_CLIP) || defined(SANSA_CLIPV2) || defined(SANSA_CLIPPLUS)
-    /* display the logo in the blue area of the screen (bottom 48 pixels) */
-    if (ver_w > LCD_WIDTH)
-        lcd_putsxy(0, 0, rbversion);
-    else
-        lcd_putsxy((LCD_WIDTH/2) - (ver_w/2), 0, version);
-    lcd_bmp(&bm_rockboxlogo, (LCD_WIDTH - BMPWIDTH_rockboxlogo) / 2, 16);
-#else
     lcd_bmp(&bm_rockboxlogo, (LCD_WIDTH - BMPWIDTH_rockboxlogo) / 2, 10);
     if (ver_w > LCD_WIDTH)
         lcd_putsxy(0, LCD_HEIGHT-font_h, rbversion);
     else
         lcd_putsxy((LCD_WIDTH/2) - (ver_w/2), LCD_HEIGHT-font_h, version);
-#endif
     lcd_setfont(FONT_UI);
     lcd_update();
-#ifdef HAVE_REMOTE_LCD
-    lcd_remote_clear_display();
-    lcd_remote_bmp(&bm_remote_rockboxlogo, 0, 10);
-    lcd_remote_setfont(FONT_SYSFIXED);
-    if (ver_w > LCD_REMOTE_WIDTH)
-        lcd_remote_putsxy(0, LCD_REMOTE_HEIGHT-font_h, rbversion);
-    else
-        lcd_remote_putsxy((LCD_REMOTE_WIDTH/2) - (ver_w/2),
-                      LCD_REMOTE_HEIGHT-font_h, version);
-    lcd_remote_setfont(FONT_UI);
-    lcd_remote_update();
-#endif
 #ifdef SIMULATOR
     sleep(HZ); /* sim is too fast to see logo */
 #endif
@@ -339,14 +290,10 @@ static int INIT_ATTR init_dircache(bool preinit)
 }
 #endif /* HAVE_DIRCACHE */
 
-#ifdef HAVE_TAGCACHE
 static void init_tagcache(void) INIT_ATTR;
 static void init_tagcache(void)
 {
     bool clear = false;
-#if 0
-    long talked_tick = 0;
-#endif
     tagcache_init();
 
     while (!tagcache_is_initialized())
@@ -355,20 +302,6 @@ static void init_tagcache(void)
 
         if (ret > 0)
         {
-#if 0 /* FIXME: Audio isn't even initialized yet! */
-            /* hwcodec can't use voice here, as the database commit
-             * uses the audio buffer. */
-            if(global_settings.talk_menu
-               && (talked_tick == 0
-                   || TIME_AFTER(current_tick, talked_tick+7*HZ)))
-            {
-                talked_tick = current_tick;
-                talk_id(LANG_TAGCACHE_INIT, false);
-                talk_number(ret, true);
-                talk_id(VOICE_OF, true);
-                talk_number(tagcache_get_max_commit_step(), true);
-            }
-#endif
             if (lang_is_rtl())
             {
                 splash_progress(ret, tagcache_get_max_commit_step(),
@@ -393,7 +326,6 @@ static void init_tagcache(void)
         show_logo_boot();
     }
 }
-#endif /* HAVE_TAGCACHE */
 
 #if (CONFIG_PLATFORM & PLATFORM_HOSTED)
 
@@ -402,14 +334,8 @@ static void init(void)
     system_init();
     core_allocator_init();
     kernel_init();
-#ifdef APPLICATION
-    paths_init();
-#endif
     enable_irq();
     lcd_init();
-#ifdef HAVE_REMOTE_LCD
-    lcd_remote_init();
-#endif
     FOR_NB_SCREENS(i)
         global_status.font_id[i] = FONT_SYSFIXED;
     font_init();
@@ -432,9 +358,6 @@ static void init(void)
 #ifdef DEBUG
     debug_init();
 #endif
-#if CONFIG_TUNER
-    radio_init();
-#endif
     /* Keep the order of this 3 (viewportmanager handles statusbars)
      * Must be done before any code uses the multi-screen API */
     gui_syncstatusbar_init(&statusbars);
@@ -453,9 +376,7 @@ static void init(void)
     init_dircache(true);
     init_dircache(false);
 #endif
-#ifdef HAVE_TAGCACHE
     init_tagcache();
-#endif
     tree_mem_init();
     filetype_init();
     playlist_init();
@@ -467,10 +388,8 @@ static void init(void)
 
 /* do USB last so prompt (if enabled) can work correctly if USB was inserted with device off,
  * also doesn't hurt that it will display the nice pretty backdrop this way too. */
-#ifndef USB_NONE
     usb_init();
     usb_start_monitoring();
-#endif
 }
 
 #else /* ! (CONFIG_PLATFORM & PLATFORM_HOSTED) */
@@ -487,22 +406,15 @@ static void init(void)
     core_allocator_init();
     kernel_init();
 
-#if defined(HAVE_BOOTDATA) && !defined(BOOTLOADER)
     verify_boot_data();
-#endif
 
-#if defined(HAVE_DEVICEDATA) && !defined(BOOTLOADER)
     verify_device_data();
-#endif
 
     /* early early early! */
     filesystem_init();
 
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
     set_cpu_frequency(CPUFREQ_NORMAL);
-#ifdef CPU_COLDFIRE
-    coldfire_set_pllcr_audio_bits(DEFAULT_PLLCR_AUDIO_BITS);
-#endif
     cpu_boost(true);
 #endif
 
@@ -511,17 +423,11 @@ static void init(void)
     power_init();
 
     enable_irq();
-#if defined(CPU_ARM_CLASSIC)
-    enable_fiq();
-#endif
     /* current_tick should be ticking by now */
     CHART("ticking");
 
     unicode_init();
     lcd_init();
-#ifdef HAVE_REMOTE_LCD
-    lcd_remote_init();
-#endif
     FOR_NB_SCREENS(i)
         global_status.font_id[i] = FONT_SYSFIXED;
     font_init();
@@ -537,14 +443,9 @@ static void init(void)
 #ifdef DEBUG
     debug_init();
 #else
-#ifdef HAVE_SERIAL
-    serial_setup();
-#endif
 #endif
 
-#if CONFIG_RTC
     rtc_init();
-#endif
 
     adc_init();
 
@@ -564,14 +465,6 @@ static void init(void)
 #if !defined(NEED_ATA_POWER_BATT_MEASURE) || \
     (CONFIG_CHARGING > CHARGING_MONITOR)
     powermgmt_init();
-#endif
-
-#if CONFIG_TUNER
-    radio_init();
-#endif
-
-#ifdef HAVE_HARDWARE_CLICK
-    piezo_init();
 #endif
 
     /* Keep the order of this 3 (viewportmanager handles statusbars)
@@ -650,22 +543,14 @@ static void init(void)
             int line=0;
             lcd_clear_display();
             lcd_putsf(0, line++, "No partition found (%d).", rc);
-#ifndef USB_NONE
             lcd_puts(0, line++, "Insert USB cable");
             lcd_puts(0, line++, "and fix it.");
-#elif !defined(DEBUG) && !(CONFIG_STORAGE & STORAGE_RAMDISK)
-            lcd_puts(0, line++, "Rebooting in 5s");
-#endif
             lcd_puts(0, line++, rbversion);
 
 #ifdef STORAGE_GET_INFO
             struct storage_info sinfo;
             storage_get_info(0, &sinfo);
-#ifdef MAX_PHYS_SECTOR_SIZE
-            lcd_putsf(0, line++, "id: '%s' s:%u*%u", sinfo.product, sinfo.sector_size, sinfo.phys_sector_mult);
-#else
             lcd_putsf(0, line++, "id: '%s' s:%u", sinfo.product, sinfo.sector_size);
-#endif
 #endif
             struct partinfo pinfo;
             for (int i = 0 ; i < NUM_VOLUMES ; i++) {
@@ -676,20 +561,9 @@ static void init(void)
             }
             lcd_update();
 
-#if defined(MAX_VIRT_SECTOR_SIZE) && defined(DEFAULT_VIRT_SECTOR_SIZE)
-#ifdef HAVE_MULTIDRIVE
-            for (int i = 0 ; i < NUM_DRIVES ; i++)
-#endif
-                disk_set_sector_multiplier(IF_MD(i,) DEFAULT_VIRT_SECTOR_SIZE/SECTOR_SIZE);
-#endif
-
-#ifndef USB_NONE
             usb_start_monitoring();
             while(button_get(true) != SYS_USB_CONNECTED) {};
             gui_usb_screen_run(true, button_get_data());
-#elif !defined(DEBUG) && !(CONFIG_STORAGE & STORAGE_RAMDISK)
-            sleep(HZ*5);
-#endif
 
 #if !defined(DEBUG) && !(CONFIG_STORAGE & STORAGE_RAMDISK)
             system_reboot();
@@ -712,10 +586,7 @@ static void init(void)
     settings_load();
     CHART("<settings_load");
 
-#if defined(BUTTON_REC) || \
-    (CONFIG_KEYPAD == GIGABEAT_PAD) || \
-    (CONFIG_KEYPAD == IPOD_4G_PAD) || \
-    (CONFIG_KEYPAD == IRIVER_H10_PAD)
+#if defined(BUTTON_REC)
     if (global_settings.clear_settings_on_hold &&
 #ifdef SETTINGS_RESET
     /* Reset settings if holding the reset button. (Rec on Archos,
@@ -737,10 +608,8 @@ static void init(void)
     CHART(">init_dircache(true)");
     rc = init_dircache(true);
     CHART("<init_dircache(true)");
-#ifdef HAVE_TAGCACHE
     if (rc < 0)
         tagcache_remove_statefile();
-#endif /* HAVE_TAGCACHE */
 #endif /* HAVE_DIRCACHE */
 
     CHART(">settings_apply(true)");
@@ -751,11 +620,9 @@ static void init(void)
     init_dircache(false);
     CHART("<init_dircache(false)");
 #endif
-#ifdef HAVE_TAGCACHE
     CHART(">init_tagcache");
     init_tagcache();
     CHART("<init_tagcache");
-#endif
 
 #ifdef HAVE_EEPROM_SETTINGS
     if (firmware_settings.initialized)
@@ -778,10 +645,6 @@ static void init(void)
     CHART("<audio_init");
     talk_announce_voice_invalid(); /* notify user w/ voice prompt if voice file invalid */
 
-#ifdef HAVE_WIFI
-    wifi_init();
-#endif
-
     /* runtime database has to be initialized after audio_init() */
     cpu_boost(false);
 
@@ -790,12 +653,6 @@ static void init(void)
 #endif
 #ifdef IPOD_ACCESSORY_PROTOCOL
     iap_setup(global_settings.serial_bitrate);
-#endif
-#ifdef HAVE_ACCESSORY_SUPPLY
-    accessory_supply_set(global_settings.accessory_supply);
-#endif
-#ifdef HAVE_LINEOUT_POWEROFF
-    lineout_set(global_settings.lineout_active);
 #endif
 #ifdef HAVE_HOTSWAP_STORAGE_AS_MAIN
     CHART("<check_bootfile(false)");
@@ -806,29 +663,5 @@ static void init(void)
     settings_apply_skins();
     CHART(">settings_apply_skins");
 }
-
-#ifdef CPU_PP
-void cop_main(void) MAIN_NORETURN_ATTR;
-void cop_main(void)
-{
-/* This is the entry point for the coprocessor
-   Anyone not running an upgraded bootloader will never reach this point,
-   so it should not be assumed that the coprocessor be usable even on
-   platforms which support it.
-
-   A kernel thread is initially setup on the coprocessor and immediately
-   destroyed for purposes of continuity. The cop sits idle until at least
-   one thread exists on it. */
-
-#if NUM_CORES > 1
-    system_init();
-    kernel_init();
-    /* This should never be reached */
-#endif
-    while(1) {
-        sleep_core(COP);
-    }
-}
-#endif /* CPU_PP */
 
 #endif /* CONFIG_PLATFORM & PLATFORM_HOSTED */

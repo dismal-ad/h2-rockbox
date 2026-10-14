@@ -1,51 +1,5 @@
 // Game_Music_Emu 0.6-pre. http://www.slack.net/~ant/
 
-#if 0
-/* Define these macros in the source file before #including this file.
-- Parameters might be expressions, so they are best evaluated only once,
-though they NEVER have side-effects, so multiple evaluation is OK.
-- Output parameters might be a multiple-assignment expression like "a=x",
-so they must NOT be parenthesized.
-- Except where noted, time() and related functions will NOT work
-correctly inside a macro. TIME() is always correct, and FLUSH_TIME() and
-CACHE_TIME() allow the time changing functions to work.
-- Macros "returning" void may use a {} statement block. */
-
-	// 0 <= addr <= 0xFFFF + page_size
-	// time functions can be used
-	int  READ_MEM(  addr_t );
-	void WRITE_MEM( addr_t, int data );
-	
-	// 0 <= addr <= 0x1FF
-	int  READ_LOW(  addr_t );
-	void WRITE_LOW( addr_t, int data );
-
-	// 0 <= addr <= 0xFFFF + page_size
-	// Used by common instructions.
-	int  READ_FAST(  addr_t, int& out );
-	void WRITE_FAST( addr_t, int data );
-
-	// 0 <= addr <= 2
-	// ST0, ST1, ST2 instructions
-	void WRITE_VDP( int addr, int data );
-
-// The following can be used within macros:
-	
-	// Current time
-	hes_time_t TIME();
-	
-	// Allows use of time functions
-	void FLUSH_TIME();
-	
-	// Must be used before end of macro if FLUSH_TIME() was used earlier
-	void CACHE_TIME();
-
-// Configuration (optional; commented behavior if defined)
-	
-	// Expanded just before beginning of code, to help debugger
-	#define CPU_BEGIN void my_run_cpu() {
-#endif
-
 /* Copyright (C) 2003-2008 Shay Green. This module is free software; you
 can redistribute it and/or modify it under the terms of the GNU Lesser
 General Public License as published by the Free Software Foundation; either

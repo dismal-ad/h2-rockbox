@@ -159,7 +159,6 @@ void x1000_dualboot_cleanup(void)
     jz_writef(LCD_CTRL, BEDN(0), EOFM(0), SOFM(0), IFUM(0), QDM(0));
     jz_writef(CPM_CLKGR, LCD(1));
 
-#if defined(FIIO_M3K) || defined(EROS_QN)
     /*
      * Need to bring up MPLL before booting Linux
      * (Doesn't apply to Q1 since it sticks with the default Ingenic config)
@@ -181,7 +180,6 @@ void x1000_dualboot_cleanup(void)
                     CLKDIV_AHB0(3) |    /* 200 MHz */
                     CLKDIV_AHB2(3) |    /* 200 MHz */
                     CLKDIV_PCLK(6));    /* 100 MHz */
-#endif
 }
 
 void x1000_dualboot_init_clocktree(void)

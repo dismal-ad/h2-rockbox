@@ -62,14 +62,6 @@ static void sinusoidal_coding(bitfile *ld, sbr_info *sbr, uint8_t ch);
 
 static void sbr_reset(sbr_info *sbr)
 {
-#if 0
-    printf("%d\n", sbr->bs_start_freq_prev);
-    printf("%d\n", sbr->bs_stop_freq_prev);
-    printf("%d\n", sbr->bs_freq_scale_prev);
-    printf("%d\n", sbr->bs_alter_scale_prev);
-    printf("%d\n", sbr->bs_xover_band_prev);
-    printf("%d\n\n", sbr->bs_noise_bands_prev);
-#endif
 
     /* if these are different from the previous frame: Reset = 1 */
     if ((sbr->bs_start_freq != sbr->bs_start_freq_prev) ||
@@ -299,37 +291,12 @@ static void sbr_header(bitfile *ld, sbr_info *sbr)
         sbr->bs_smoothing_mode = 1;
     }
 
-#if 0
-    /* print the header to screen */
-    printf("bs_amp_res: %d\n", sbr->bs_amp_res);
-    printf("bs_start_freq: %d\n", sbr->bs_start_freq);
-    printf("bs_stop_freq: %d\n", sbr->bs_stop_freq);
-    printf("bs_xover_band: %d\n", sbr->bs_xover_band);
-    if (bs_header_extra_1)
-    {
-        printf("bs_freq_scale: %d\n", sbr->bs_freq_scale);
-        printf("bs_alter_scale: %d\n", sbr->bs_alter_scale);
-        printf("bs_noise_bands: %d\n", sbr->bs_noise_bands);
-    }
-    if (bs_header_extra_2)
-    {
-        printf("bs_limiter_bands: %d\n", sbr->bs_limiter_bands);
-        printf("bs_limiter_gains: %d\n", sbr->bs_limiter_gains);
-        printf("bs_interpol_freq: %d\n", sbr->bs_interpol_freq);
-        printf("bs_smoothing_mode: %d\n", sbr->bs_smoothing_mode);
-    }
-    printf("\n");
-#endif
 }
 
 /* table 4 */
 static uint8_t sbr_data(bitfile *ld, sbr_info *sbr)
 {
     uint8_t result;
-#if 0
-    sbr->bs_samplerate_mode = faad_get1bit(ld
-        DEBUGVAR(1,219,"sbr_data(): bs_samplerate_mode"));
-#endif
 
     sbr->rate = (sbr->bs_samplerate_mode) ? 2 : 1;
 
@@ -771,13 +738,6 @@ static uint8_t sbr_grid(bitfile *ld, sbr_info *sbr, uint8_t ch)
         return result;
     }
     noise_floor_time_border_vector(sbr, ch);
-
-#if 0
-    for (env = 0; env < bs_num_env; env++)
-    {
-        printf("freq_res[ch:%d][env:%d]: %d\n", ch, env, sbr->f[ch][env]);
-    }
-#endif
 
     return 0;
 }

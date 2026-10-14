@@ -41,7 +41,7 @@ enum relate_result
 
 #if (CONFIG_PLATFORM & PLATFORM_GAME_CONSOLE) && !defined(SIMULATOR)
 #include "filesystem-console.h"
-#elif defined(APPLICATION) || defined(CHECKWPS)
+#elif defined(CHECKWPS)
 #include "filesystem-app.h"
 #elif defined(SIMULATOR) || defined(DBTOOL)
 #include "../../uisimulator/common/filesystem-sim.h"

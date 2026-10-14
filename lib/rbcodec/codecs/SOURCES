@@ -33,9 +33,7 @@ wav64.c
 tta.c
 wmapro.c
 ay.c
-#ifdef HAVE_FPU
 vtx.c
-#endif
 gbs.c
 hes.c
 nsf.c
@@ -49,13 +47,3 @@ aac_bsf.c
 dsd.c
 
 /* warble is decoder-only */
-#if defined(HAVE_RECORDING) && !defined(WARBLE)
-
-/* encoders */
-
-aiff_enc.c
-mp3_enc.c
-wav_enc.c
-wavpack_enc.c
-
-#endif /* HAVE_RECORDING && !WARBLE */

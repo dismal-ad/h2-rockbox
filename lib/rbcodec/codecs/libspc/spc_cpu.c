@@ -116,12 +116,6 @@ long CPU_run( THIS, long start_time )
     
     register long spc_time_ = start_time;
     
-#ifdef CPU_ARM
-    uint8_t* const ram_ = ram.ram;
-    #undef RAM
-    #define RAM ram_
-#endif
-    
     int a = this->r.a;
     int x = this->r.x;
     int y = this->r.y;

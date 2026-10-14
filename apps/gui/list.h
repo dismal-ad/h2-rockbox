@@ -109,7 +109,6 @@ typedef void list_draw_item(struct list_putlineinfo_t *list_info);
  * Returns an integer, 0 means success, ignored really...
  */
 typedef int list_speak_item(int selected_item, void * data);
-#ifdef HAVE_LCD_COLOR
 /*
  * Color callback
  *  - selected_item : an integer that tells the number of the item to display
@@ -139,7 +138,6 @@ struct list_selection_color
      * If using the default viewport you should call
      * gui_synclist_set_sel_color(gui_synclist*, NULL) when finished */
 };
-#endif
 
 struct gui_synclist
 {
@@ -177,55 +175,12 @@ struct gui_synclist
     /* Optional title icon */
     enum themable_icons title_icon;
 
-#ifdef HAVE_LCD_COLOR
     int title_color;
     list_get_color *callback_get_item_color;
     struct list_selection_color *selection_color;
-#endif
     struct viewport *parent[NB_SCREENS];
 
-#ifdef HAVE_TOUCHSCREEN
-    int y_pos; /* absolute Y coordinate, used for smooth scrolling */
-    int scroll_base_y; /* used for swipe scrolling */
-    int scroll_mode; /* see apps/gui/bitmap/list.c */
-#endif
 };
-
-#ifdef HAVE_TOUCHSCREEN
-#define LIST_KINETIC_FRACBITS 8
-
-struct list_kinetic_scroll_settings
-{
-    /* Coefficients for a polynomial a1*x + a0, in fixed point.
-     * x is the kinetic scroll speed in pixels/sec (always positive) */
-    long a0;
-    long a1;
-
-    /* Delay (in ticks) during which the acceleration is not applied. */
-    long delay;
-};
-
-/*
- * accel: Extra impulse applied when swiping in the direction of scrolling,
- *        proportional to the current velocity. This is what allows for high
- *        scroll speeds. Delay is ignored.
- *
- * brake: Braking impulse applied when swiping in the opposite direction of
- *        scrolling, which helps to change direction quickly even at high
- *        speed. Delay is ignored.
- *
- * decel: Deceleration applied during scrolling. The delay is measured from
- *        the start of scrolling or last change of direction.
- *
- * press: Deceleration applied while the screen is pressed (motion is not
- *        needed to trigger). Additive with "decel". The delay is measured
- *        from the start of the press.
- */
-extern const struct list_kinetic_scroll_settings list_kinetic_scroll_accel_default;
-extern const struct list_kinetic_scroll_settings list_kinetic_scroll_brake_default;
-extern const struct list_kinetic_scroll_settings list_kinetic_scroll_decel_default;
-extern const struct list_kinetic_scroll_settings list_kinetic_scroll_press_default;
-#endif
 
 extern void list_init(void);
 
@@ -241,10 +196,8 @@ extern void gui_synclist_set_nb_items(struct gui_synclist * lists, int nb_items)
 extern void gui_synclist_set_icon_callback(struct gui_synclist * lists, list_get_icon icon_callback);
 extern void gui_synclist_set_voice_callback(struct gui_synclist * lists, list_speak_item voice_callback);
 extern void gui_synclist_set_viewport_defaults(struct viewport *vp, enum screen_type screen);
-#ifdef HAVE_LCD_COLOR
 extern void gui_synclist_set_color_callback(struct gui_synclist * lists, list_get_color color_callback);
 extern void gui_synclist_set_sel_color(struct gui_synclist * lists, struct list_selection_color *list_sel_color);
-#endif
 extern void gui_synclist_speak_item(struct gui_synclist * lists);
 extern int gui_synclist_get_nb_items(struct gui_synclist * lists);
 
@@ -284,13 +237,6 @@ void skinlist_get_scrollbar(int* nb_item, int* first_shown, int* last_shown);
 int skinlist_get_line_count(enum screen_type screen, struct gui_synclist *list);
 #endif /* !PLUGIN) */
 
-#if  defined(HAVE_TOUCHSCREEN)
-/* this needs to be fixed if we ever get more than 1 touchscreen on a target */
-extern unsigned gui_synclist_do_touchscreen(struct gui_synclist * gui_list);
-/* only for private use in gui/list.c */
-extern void _gui_synclist_stop_kinetic_scrolling(struct gui_synclist * gui_list);
-#endif
-
 /* If the list has a pending postponed scheduled announcement, that
    may become due before the next get_action tmieout. This function
    adjusts the get_action timeout appropriately. */
@@ -328,19 +274,13 @@ struct simplelist_info {
     list_get_icon *get_icon; /* can be NULL */
     list_get_name *get_name; /* NULL if you're using simplelist_addline() */
     list_speak_item *get_talk; /* can be NULL to not speak */
-#ifdef HAVE_LCD_COLOR
     list_get_color *get_color;
     struct list_selection_color *selection_color;
-#endif
     void *callback_data; /* data for callbacks */
 };
 
 #define SIMPLELIST_MAX_LINES 32
-#ifdef HAVE_ATA_SMART
-#define SIMPLELIST_MAX_LINELENGTH 48
-#else
 #define SIMPLELIST_MAX_LINELENGTH 32
-#endif
 
 /** The next three functions are used if the text is mostly static.
     These should be called in the action callback for the list.

@@ -593,25 +593,13 @@ void qmf_synth(const spx_word16_t *x1, const spx_word16_t *x2, const spx_word16_
 #endif
 
 #ifdef FIXED_POINT
-#if 0
-static const spx_word16_t shift_filt[3][7] = {{-33,    1043,   -4551,   19959,   19959,   -4551,    1043},
-                                 {-98,    1133,   -4425,   29179,    8895,   -2328,     444},
-                                 {444,   -2328,    8895,   29179,   -4425,    1133,     -98}};
-#else
 static const spx_word16_t shift_filt[3][7] = {{-390,    1540,   -4993,   20123,   20123,   -4993,    1540},
                                 {-1064,    2817,   -6694,   31589,    6837,    -990,    -209},
                                  {-209,    -990,    6837,   31589,   -6694,    2817,   -1064}};
-#endif
-#else
-#if 0
-static const float shift_filt[3][7] = {{-9.9369e-04, 3.1831e-02, -1.3889e-01, 6.0910e-01, 6.0910e-01, -1.3889e-01, 3.1831e-02},
-                          {-0.0029937, 0.0345613, -0.1350474, 0.8904793, 0.2714479, -0.0710304, 0.0135403},
-                          {0.0135403, -0.0710304, 0.2714479, 0.8904793, -0.1350474, 0.0345613,  -0.0029937}};
 #else
 static const float shift_filt[3][7] = {{-0.011915f, 0.046995f, -0.152373f, 0.614108f, 0.614108f, -0.152373f, 0.046995f},
                           {-0.0324855f, 0.0859768f, -0.2042986f, 0.9640297f, 0.2086420f, -0.0302054f, -0.0063646f},
                           {-0.0063646f, -0.0302054f, 0.2086420f, 0.9640297f, -0.2042986f, 0.0859768f, -0.0324855f}};
-#endif
 #endif
 
 static int interp_pitch(
@@ -708,31 +696,7 @@ char *stack
 #ifdef FIXED_POINT
    int scaledown=0;
 #endif
-#if 0 /* Set to 1 to enable full pitch search */
-   int nol_pitch[6];
-   spx_word16_t nol_pitch_coef[6];
-   spx_word16_t ol_pitch_coef;
-   open_loop_nbest_pitch(exc, 20, 120, nsf, 
-                         nol_pitch, nol_pitch_coef, 6, stack);
-   corr_pitch=nol_pitch[0];
-   ol_pitch_coef = nol_pitch_coef[0];
-   /*Try to remove pitch multiples*/
-   for (i=1;i<6;i++)
-   {
-#ifdef FIXED_POINT
-      if ((nol_pitch_coef[i]>MULT16_16_Q15(nol_pitch_coef[0],19661)) && 
-#else
-      if ((nol_pitch_coef[i]>.6*nol_pitch_coef[0]) && 
-#endif
-         (ABS(2*nol_pitch[i]-corr_pitch)<=2 || ABS(3*nol_pitch[i]-corr_pitch)<=3 || 
-         ABS(4*nol_pitch[i]-corr_pitch)<=4 || ABS(5*nol_pitch[i]-corr_pitch)<=5))
-      {
-         corr_pitch = nol_pitch[i];
-      }
-   }
-#else
    corr_pitch = pitch;
-#endif
    
    ALLOC(iexc, 2*nsf, spx_word16_t);
    

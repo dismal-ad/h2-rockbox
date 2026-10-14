@@ -358,23 +358,6 @@ static bool callback_show_item(char *name, int attr, struct tree_context *tc)
 {
     (void)name;
     (void)tc;
-#if 0
-    if(attr & ATTR_DIRECTORY)
-    {
-        if (strstr(tc->currdir, PLUGIN_DIR) != NULL)
-            return true;
-        tc->is_browsing = false; /* exit immediately */
-    }
-    else if(attr & FILE_ATTR_ROCK)
-    {
-        return true;
-    }
-    else if(attr & FILE_ATTR_OPX)
-    {
-        return true;
-    }
-    return false;
-#endif
     return attr & ATTR_DIRECTORY ||
                     (filetype_supported(attr) && (attr & FILE_ATTR_AUDIO) != FILE_ATTR_AUDIO);
 }

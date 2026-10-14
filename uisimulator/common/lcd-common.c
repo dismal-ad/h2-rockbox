@@ -25,24 +25,13 @@
 #include "config.h"
 #include "system.h"
 #include "lcd.h"
-#if defined(HAVE_TRANSFLECTIVE_LCD) && defined(HAVE_LCD_SLEEP)
-/* in uisimulator/sdl/lcd-bitmap.c */
-extern void sim_backlight(int value);
-#endif
 
-#ifdef HAVE_LCD_ENABLE
 static bool lcd_enabled = false;
-#endif
-#ifdef HAVE_LCD_SLEEP
-static bool lcd_sleeping = true;
-#endif
 
-#if !defined(HAVE_LCD_FLIP)
 void lcd_set_flip(bool yesno)
 {
     (void)yesno;
 }
-#endif
 
 void lcd_set_invert_display(bool invert)
 {
@@ -54,85 +43,22 @@ int lcd_default_contrast(void)
     return 28;
 }
 
-#ifdef HAVE_REMOTE_LCD
-void lcd_remote_set_contrast(int val)
-{
-    (void)val;
-}
-void lcd_remote_backlight_on(int val)
-{
-    (void)val;
-}
-void lcd_remote_backlight_off(int val)
-{
-    (void)val;
-}
-
-void lcd_remote_set_flip(bool yesno)
-{
-    (void)yesno;
-}
-
-void lcd_remote_set_invert_display(bool invert)
-{
-    (void)invert;
-}
-#endif
-
-#ifdef HAVE_LCD_SLEEP
-void lcd_sleep(void)
-{
-    lcd_sleeping = true;
-#ifdef HAVE_TRANSFLECTIVE_LCD
-    sim_backlight(0);   /* completely blacken the screen */
-#endif
-}
-
-void lcd_awake(void)
-{
-    if (lcd_sleeping)
-    {
-        send_event(LCD_EVENT_ACTIVATION, NULL);
-        lcd_sleeping = false;
-#ifdef HAVE_TRANSFLECTIVE_LCD
-        sim_backlight(0);   /* Make LCD visible again */
-#endif
-    }
-}
-#endif
-#ifdef HAVE_LCD_ENABLE
 void lcd_enable(bool on)
 {
     if (on && !lcd_enabled)
     {
-#ifdef HAVE_LCD_SLEEP
-        /* lcd_awake will handle the activation call */
-        lcd_awake();
-#else
         send_event(LCD_EVENT_ACTIVATION, NULL);
-#endif
     }
     lcd_enabled = on;
 }
-#endif
 
-#if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
 bool lcd_active(void)
 {
     bool retval = false;
-#ifdef HAVE_LCD_ENABLE
     retval = lcd_enabled;
-#endif
-#ifdef HAVE_LCD_SLEEP
-    if (!retval)
-        retval = !lcd_sleeping;
-#endif
     return retval;
 }
-#endif
 
-#ifdef HAVE_LCD_SHUTDOWN
 void lcd_shutdown(void)
 {
 }
-#endif

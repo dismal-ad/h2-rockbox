@@ -32,15 +32,8 @@
 #endif
 
 void button_init_device(void);
-#ifdef HAVE_BUTTON_DATA
-int button_read_device(int *);
-#else
 int button_read_device(void);
-#endif
 
-#ifdef HAS_BUTTON_HOLD
-bool button_hold(void);
-#endif
 #ifdef HAS_REMOTE_BUTTON_HOLD
 bool remote_button_hold(void);
 #endif
@@ -49,17 +42,9 @@ void button_init (void) INIT_ATTR;
 void button_close(void);
 
 int button_status(void);
-#ifdef HAVE_BUTTON_DATA
-int button_status_wdata(int *pdata);
-#endif
 
 void button_set_flip(bool flip); /* turn 180 degrees */
-#ifdef HAVE_BACKLIGHT
 void set_backlight_filter_keypress(bool value);
-#ifdef HAVE_REMOTE_LCD
-void set_remote_backlight_filter_keypress(bool value);
-#endif
-#endif
 
 /* button queue functions (in button_queue.c) */
 void button_queue_init(void);
@@ -75,19 +60,11 @@ long button_get(bool block);
 long button_get_w_tmo(int ticks);
 intptr_t button_get_data(void);
 
-#ifdef HAVE_HEADPHONE_DETECTION
 bool headphones_inserted(void);
-#endif
-#ifdef HAVE_LINEOUT_DETECTION
 bool lineout_inserted(void);
-#endif
 #ifdef HAVE_WHEEL_POSITION
 int wheel_status(void);
 void wheel_send_events(bool send);
-#endif
-
-#ifdef HAVE_WHEEL_ACCELERATION
-int button_apply_acceleration(const unsigned int data);
 #endif
 
 #define BUTTON_NONE         0x00000000
@@ -118,31 +95,7 @@ int button_apply_acceleration(const unsigned int data);
                                      BUTTON_MULTIMEDIA_VOLUME_UP| \
                                      BUTTON_MULTIMEDIA_VOLUME_DOWN)
 
-#ifdef HAVE_TOUCHSCREEN
-long touchscreen_last_touch(void);
-
-#if (!defined(BUTTON_TOPLEFT) || !defined(BUTTON_TOPMIDDLE) \
- || !defined(BUTTON_TOPRIGHT) || !defined(BUTTON_MIDLEFT) \
- || !defined(BUTTON_CENTER) || !defined(BUTTON_MIDRIGHT) \
- || !defined(BUTTON_BOTTOMLEFT) || !defined(BUTTON_BOTTOMMIDDLE) \
- || !defined(BUTTON_BOTTOMRIGHT)) && !defined(__PCTOOL__)
-#error Touchscreen button mode BUTTON_* defines not set up correctly
-#endif
-
-#include "touchscreen.h"
-#endif
-
-#ifdef HAVE_TOUCHPAD
-#include "touchpad.h"
-#endif
-
-#if (defined(HAVE_TOUCHPAD) || defined(HAVE_TOUCHSCREEN)) && !defined(HAS_BUTTON_HOLD)
-void button_enable_touch(bool en);
-#endif
-
-#ifdef HAVE_SW_POWEROFF
 void button_set_sw_poweroff_state(bool en);
 bool button_get_sw_poweroff_state(void);
-#endif
 
 #endif /* _BUTTON_H_ */

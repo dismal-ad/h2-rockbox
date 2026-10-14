@@ -37,9 +37,7 @@
 #include "talk.h"
 #include "playlist.h"
 #include "abrepeat.h"
-#ifdef HAVE_PLAY_FREQ
 #include "pcm_mixer.h"
-#endif
 #include "pcmbuf.h"
 #include "audio_thread.h"
 #include "playback.h"
@@ -51,23 +49,19 @@
 #include "iap-usb.h"
 #include <stdio.h>
 
-#ifdef HAVE_TAGCACHE
 #include "tagcache.h"
-#endif
 
 #ifdef HAVE_ALBUMART
 #include "albumart.h"
 #endif
 
-#ifdef HAVE_PLAY_FREQ
 #include "pcm_mixer.h"
-#endif
 
-#if defined(SIMULATOR) || defined(SDLAPP)
+#if defined(SIMULATOR)
 #include <strings.h>  /* For strncasecmp() */
 #endif
 
-#if defined(USB_ENABLE_AUDIO) || defined(HAVE_HOST_USB_AUDIO)
+#if defined(USB_ENABLE_AUDIO)
 #ifdef USB_ENABLE_AUDIO
 #include "usbstack/usb_audio.h"
 #endif
@@ -88,9 +82,6 @@
 #define AUDIO_REBUFFER_GUESS_SIZE    (1024*32)
 
 /* Define LOGF_ENABLE to enable logf output in this file */
-#if 0
-#define LOGF_ENABLE
-#endif
 #include "logf.h"
 
 /* Macros to enable logf for queues
@@ -182,11 +173,7 @@ struct audio_resume_info
 static struct mutex id3_mutex SHAREDBSS_ATTR; /* (A,O)*/
 
 /** For album art support **/
-#if defined(USB_ENABLE_IAP)
-#define MAX_MULTIPLE_AA (SKINNABLE_SCREENS_COUNT + 1)
-#else
 #define MAX_MULTIPLE_AA SKINNABLE_SCREENS_COUNT
-#endif
 #ifdef HAVE_ALBUMART
 
 static int albumart_mode = -1;
@@ -279,11 +266,6 @@ static struct
 
 /* Playlist steps from playlist position to next track to be buffered */
 static int playlist_peek_offset = 0;
-
-#ifdef HAVE_DISK_STORAGE
-/* Buffer margin A.K.A. anti-skip buffer (in seconds) */
-static size_t buffer_margin = 5;
-#endif
 
 /* Values returned for track loading */
 enum track_load_status
@@ -1095,38 +1077,8 @@ static void audio_update_filebuf_watermark(int seconds)
 {
     size_t bytes = 0;
 
-#ifdef HAVE_DISK_STORAGE
-    int spinup = storage_spinup_time();
-
-    if (seconds == 0)
-    {
-        /* By current setting */
-        seconds = buffer_margin;
-    }
-    else
-    {
-        /* New setting */
-        buffer_margin = seconds;
-
-        if (buf_get_watermark() == 0)
-        {
-            /* Write a watermark only if the audio thread already did so for
-               itself or it will fail to set the event and the watermark - if
-               it hasn't yet, it will use the new setting when it does */
-            return;
-        }
-    }
-
-    if (spinup)
-        seconds += (spinup / HZ) + 1;
-    else
-        seconds += 5;
-
-    seconds += buffer_margin;
-#else
     /* flash storage */
     seconds = 1;
-#endif
 
     /* Watermark is a function of the bitrate of the last track in the buffer */
     struct track_info info;
@@ -1284,12 +1236,8 @@ void allocate_playback_log(void)
             }
             else
             {
-#if CONFIG_RTC
                 create_datetime_filename(filename, "", " Time ", "", false);
                 fdprintf(fd, "# Started Ver. %s %s\n", rbversion, filename);
-#else
-                fdprintf(fd, "# Started Ver. %s\n", rbversion);
-#endif
             }
             close(fd);
         }
@@ -1323,11 +1271,7 @@ void add_playbacklog(struct mp3entry *id3)
 #endif
     if (id3 && id3->elapsed > PLAYBACK_LOG_MIN_ELAPSED_MS)
     {
-#if     CONFIG_RTC
         timestamp = mktime(get_time());
-#else
-        timestamp = current_tick * (1000 / HZ); /* milliseconds */
-#endif
 #if (CONFIG_STORAGE & STORAGE_ATA)
         if (buf)  /* we have a buffer allocd from core */
         {
@@ -1695,7 +1639,6 @@ static bool audio_init_codec(struct track_info *track_infop,
     (void)track_infop; /* When codec buffering isn't supported */
 }
 
-#ifdef HAVE_TAGCACHE
 /* Check settings for whether the file should be autoresumed */
 enum { AUTORESUMABLE_UNKNOWN = 0, AUTORESUMABLE_TRUE, AUTORESUMABLE_FALSE };
 static bool autoresumable(struct mp3entry *id3)
@@ -1745,7 +1688,6 @@ static bool autoresumable(struct mp3entry *id3)
 
     return is_resumable;
 }
-#endif  /* HAVE_TAGCACHE */
 
 /* Start the codec for the current track scheduled to be decoded */
 static bool audio_start_codec(bool auto_skip)
@@ -1766,7 +1708,6 @@ static bool audio_start_codec(bool auto_skip)
         return false;
     }
 
-    #ifdef HAVE_TAGCACHE
     bool autoresume_enable = !cur_id3->skip_resume_adjustments && global_settings.autoresume_enable;
 
     if (autoresume_enable && !(cur_id3->elapsed || cur_id3->offset))
@@ -1807,7 +1748,6 @@ static bool audio_start_codec(bool auto_skip)
         logf("%s: Set resume for %s to %lu %lX", __func__,
              cur_id3->title, cur_id3->elapsed, cur_id3->offset);
     }
-#endif /* HAVE_TAGCACHE */
 
     /* Rewind the required amount - if an autoresume was done, this also rewinds
        that by the setting's amount
@@ -1833,9 +1773,7 @@ static bool audio_start_codec(bool auto_skip)
     /* All required data is now available for the codec */
     codec_go();
 
-#ifdef HAVE_TAGCACHE
     if (!autoresume_enable || cur_id3->elapsed || cur_id3->offset)
-#endif
     {
         /* Send the "buffer" event now */
         send_track_event(PLAYBACK_EVENT_TRACK_BUFFER, 0, cur_id3);
@@ -2236,9 +2174,7 @@ static int audio_load_track(void)
     return LOAD_TRACK_OK;
 }
 
-#ifdef HAVE_PLAY_FREQ
 static bool audio_auto_change_frequency(struct mp3entry *id3, bool play);
-#endif
 
 /* Second part of the track loading: We now have the metadata available, so we
    can load the codec, the album art and finally the audio data.
@@ -2274,7 +2210,6 @@ static int audio_finish_load_track(struct track_info *infop)
 
     struct track_info user_cur;
 
-#ifdef HAVE_PLAY_FREQ
     track_list_user_current(0, &user_cur);
     bool is_current_user = infop->self_hid == user_cur.self_hid;
     if (audio_auto_change_frequency(track_id3, is_current_user))
@@ -2288,7 +2223,6 @@ static int audio_finish_load_track(struct track_info *infop)
 
         goto audio_finish_load_track_exit;
     }
-#endif
 
     /* Try to load a cuesheet for the track */
     if (!audio_load_cuesheet(infop, track_id3))
@@ -2778,10 +2712,8 @@ static void audio_finalise_track_change(void)
 
     audio_playlist_track_change();
 
-#ifdef HAVE_PLAY_FREQ
     if (filling == STATE_STOPPED)
         audio_auto_change_frequency(track_id3, true);
-#endif
 }
 
 /* Actually begin a transition and take care of the codec change - may complete
@@ -3000,7 +2932,7 @@ static void audio_start_playback(const struct audio_resume_info *resume_info,
  * a splash message to the user.
  * NOTE: if USBAudio ever gets its own DSP channel, this block can go away!
  */
-#if defined(USB_ENABLE_AUDIO) || defined(HAVE_HOST_USB_AUDIO)
+#if defined(USB_ENABLE_AUDIO)
     if (usb_audio_get_active())
     {
         queue_reply(&audio_queue, 0);
@@ -3083,13 +3015,7 @@ static void audio_start_playback(const struct audio_resume_info *resume_info,
              resume.offset);
 
         /* Set audio parameters */
-#if INPUT_SRC_CAPS != 0
-        audio_set_input_source(AUDIO_SRC_PLAYBACK, SRCF_PLAYBACK);
-        audio_set_output_source(AUDIO_SRC_PLAYBACK);
-#endif
-#ifndef PLATFORM_HAS_VOLUME_CHANGE
         sound_set_volume(global_status.volume);
-#endif
 
         /* Be sure channel is audible */
         pcmbuf_fade(false, true);
@@ -3600,10 +3526,6 @@ void audio_playback_handler(struct queue_event *ev)
             audio_start_playback((struct audio_resume_info *)ev->data, 0);
             break;
 
-#ifdef HAVE_RECORDING
-        /* So we can go straight from playback to recording */
-        case Q_AUDIO_INIT_RECORDING:
-#endif
         case SYS_USB_CONNECTED:
         case Q_AUDIO_STOP:
             LOGFQUEUE("playback < Q_AUDIO_STOP");
@@ -3675,17 +3597,6 @@ void audio_playback_handler(struct queue_event *ev)
             if (play_status == PLAY_STOPPED)
                 return; /* just need to change buffer state */
             break;
-
-#ifdef HAVE_DISK_STORAGE
-        case Q_AUDIO_UPDATE_WATERMARK:
-            /* buffering watermark needs updating */
-            LOGFQUEUE("playback < Q_AUDIO_UPDATE_WATERMARK: %d",
-                      (int)ev->data);
-            audio_update_filebuf_watermark(ev->data);
-            if (play_status == PLAY_STOPPED)
-                return; /* just need to update setting */
-            break;
-#endif /* HAVE_DISK_STORAGE */
 
         case SYS_TIMEOUT:
             LOGFQUEUE_SYS_TIMEOUT("playback < SYS_TIMEOUT");
@@ -3816,13 +3727,6 @@ void audio_codec_update_offset(size_t offset)
 /* Codec has finished running */
 void audio_codec_complete(int status)
 {
-#ifdef AB_REPEAT_ENABLE
-    if (status >= CODEC_OK)
-    {
-        /* Normal automatic skip */
-        ab_end_of_track_report();
-    }
-#endif
 
     LOGFQUEUE("codec > audio Q_AUDIO_CODEC_COMPLETE: %d", status);
     audio_queue_post(Q_AUDIO_CODEC_COMPLETE, status);
@@ -4230,17 +4134,6 @@ void audio_set_cuesheet(bool enable)
     }
 }
 
-#ifdef HAVE_DISK_STORAGE
-/* Set the audio antiskip buffer margin in SECONDS */
-void audio_set_buffer_margin(int seconds)
-{
-    logf("buffer margin: %u", (unsigned) seconds);
-    LOGFQUEUE("audio > audio Q_AUDIO_UPDATE_WATERMARK: %u",(unsigned) seconds);
-    audio_queue_post(Q_AUDIO_UPDATE_WATERMARK, (unsigned) seconds); /*SECONDS*/
-}
-#endif /* HAVE_DISK_STORAGE */
-
-#ifdef HAVE_CROSSFADE
 /* Take necessary steps to enable or disable the crossfade setting */
 void audio_set_crossfade(int enable)
 {
@@ -4256,9 +4149,7 @@ void audio_set_crossfade(int enable)
         audio_queue_send(Q_AUDIO_REMAKE_AUDIO_BUFFER, 0);
     }
 }
-#endif /* HAVE_CROSSFADE */
 
-#ifdef HAVE_PLAY_FREQ
 static unsigned long audio_guess_frequency(struct mp3entry *id3)
 {
     const struct pcm_sink_caps* caps = pcm_sink_caps(pcm_current_sink());
@@ -4335,7 +4226,6 @@ void audio_set_playback_frequency(unsigned int sample_rate_hz)
         audio_queue_send(Q_AUDIO_REMAKE_AUDIO_BUFFER, 0);
     }
 }
-#endif /* HAVE_PLAY_FREQ */
 
 unsigned int playback_status(void)
 {
@@ -4351,11 +4241,6 @@ void INIT_ATTR playback_init(void)
     mutex_init(&id3_mutex);
     track_list_init();
     buffering_init();
-#ifdef HAVE_CROSSFADE
     /* Set crossfade setting for next buffer init which should be about... */
     pcmbuf_request_crossfade_enable(global_settings.crossfade);
-#endif
-#ifdef HAVE_DISK_STORAGE
-    audio_set_buffer_margin(global_settings.buffer_margin);
-#endif
 }

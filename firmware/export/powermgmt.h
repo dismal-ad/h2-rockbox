@@ -136,18 +136,6 @@ void charging_algorithm_close(void);
 void charging_algorithm_step(void);
 #endif
 
-#ifdef HAVE_BATTERY_SWITCH
-unsigned int input_millivolts(void); /* voltage that device is running from */
-#endif /* HAVE_BATTERY_SWITCH */
-
-#if defined(HAVE_BATTERY_SWITCH) || defined(HAVE_RESET_BATTERY_FILTER)
-/* Set the filtered battery voltage (to adjust it before beginning a charge
- * cycle for instance where old, loaded readings will likely be invalid).
- * Also readjust when battery switch is opened or closed.
- */
-void reset_battery_filter(int millivolts);
-#endif /* HAVE_BATTERY_SWITCH || HAVE_RESET_BATTERY_FILTER */
-
 
 /* read unfiltered battery info */
 void battery_read_info(int *voltage, int *level);
@@ -156,9 +144,6 @@ void battery_read_info(int *voltage, int *level);
 bool battery_level_safe(void);
 
 void set_poweroff_timeout(int timeout);
-#if BATTERY_CAPACITY_INC > 0
-void set_battery_capacity(int capacity); /* set local battery capacity value */
-#endif
 int get_battery_capacity(void); /* get local battery capacity value */
 
 void set_sleeptimer_duration(int minutes);
@@ -175,11 +160,5 @@ void sys_reboot(void);
 /* Returns true if the system should force shutdown for some reason -
  * eg. low battery */
 bool query_force_shutdown(void);
-#ifdef HAVE_ACCESSORY_SUPPLY
-void accessory_supply_set(bool);
-#endif
-#ifdef HAVE_LINEOUT_POWEROFF
-void lineout_set(bool);
-#endif
 
 #endif /* _POWERMGMT_H_ */

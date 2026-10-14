@@ -30,22 +30,10 @@
 #define BCD2DEC(X) (((((X)>>4) & 0x0f) * 10) + ((X) & 0xf))
 #define DEC2BCD(X) ((((X)/10)<<4) | ((X)%10))
 
-#if CONFIG_RTC
-
 /* Common functions for all targets */
 void rtc_init(void);
 int rtc_read_datetime(struct tm *tm);
 int rtc_write_datetime(const struct tm *tm);
-
-#ifdef HAVE_RTC_ALARM
-void rtc_set_alarm(int h, int m);
-void rtc_get_alarm(int *h, int *m);
-void rtc_enable_alarm(bool enable);
-bool rtc_check_alarm_started(bool release_alarm);
-bool rtc_check_alarm_flag(void);
-#endif /* HAVE_RTC_ALARM */
-
-#endif /* CONFIG_RTC */
 
 #endif
 

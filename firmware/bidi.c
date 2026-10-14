@@ -47,7 +47,6 @@
 #define _ispunct(c) ((c) < 0x80 && ispunct((int)(c)))
 #define XOR(a,b) ((a||b) && !(a&&b))
 
-#ifndef BOOTLOADER
 /* True if the first strongly-directional character of the string is RTL, i.e.
  * the string should be laid out right-to-left. */
 bool text_is_rtl(const unsigned char *str)
@@ -156,19 +155,16 @@ static void arabjoin(ucschar_t *stringprt, int length)
         }
     }
 }
-#endif /* !BOOTLOADER */
 
 ucschar_t *bidi_l2v(const unsigned char *str, int orientation)
 {
     static ucschar_t utf_buf[SCROLL_LINE_SIZE];
     ucschar_t *target, *tmp;
-#ifndef BOOTLOADER
     static ucschar_t bidi_buf[SCROLL_LINE_SIZE];
     ucschar_t *heb_str; /* *broken_str */
     int block_start, block_end, block_type, block_length, i;
     int length = utf8length(str);
     length=length>=SCROLL_LINE_SIZE?SCROLL_LINE_SIZE-1:length;
-#endif
     /*
     long max_chars=0;
     int begin, end, char_count, orig_begin;
@@ -180,11 +176,6 @@ ucschar_t *bidi_l2v(const unsigned char *str, int orientation)
         str = utf8decode(str, target++);
     *target = 0;
 
-#ifdef BOOTLOADER
-    (void)orientation;
-    return utf_buf;
-
-#else /* !BOOTLOADER */
     if (target == utf_buf) /* empty string */
         return target;
 
@@ -248,73 +239,5 @@ ucschar_t *bidi_l2v(const unsigned char *str, int orientation)
 
     *target = 0;
 
-#if 0 /* Is this code really necessary? */
-    broken_str = utf_buf;
-    begin=end=length-1;
-    target = broken_str;
-
-    while (1) {
-        char_count=0;
-        while ((!max_chars || char_count<max_chars) && begin>0) {
-            char_count++;
-            begin--;
-            if (begin<=0 || _isnewline(heb_str[begin])) {
-                while(begin>0 && _isnewline(heb_str[begin-1])) {
-                    begin--;
-                    char_count++;
-                }
-                break;
-            }
-        }
-        if (char_count==max_chars) { /* try to avoid breaking words */
-            int new_char_count = char_count;
-            int new_begin = begin;
-
-            while (new_char_count>0) {
-                if (_isblank(heb_str[new_begin]) ||
-                    _isnewline(heb_str[new_begin])) {
-                    break;
-                }
-                new_begin++;
-                new_char_count--;
-            }
-            if (new_char_count>0) {
-                char_count=new_char_count;
-                begin=new_begin;
-            }
-        }
-        orig_begin=begin;
-
-        /* if (_isblank(heb_str[begin])) {
-            heb_str[begin]='\n';
-        } */
-
-        /* skip leading newlines */
-        while (begin<=end && _isnewline(heb_str[begin])) {
-            begin++;
-        }
-
-        /* copy content */
-        for (i=begin; i<=end; i++) {
-            *target = heb_str[i];
-            target++;
-        }
-
-        for (i=orig_begin; i<=end && _isnewline(heb_str[i]); i++) {
-            *target = heb_str[i];
-            target++;
-        }
-        begin=orig_begin;
-
-        if (begin<=0) {
-            *target = 0;
-            break;
-        }
-        begin--;
-        end=begin;
-    }
-    return broken_str;
-#endif
     return heb_str;
-#endif /* !BOOTLOADER */
 }

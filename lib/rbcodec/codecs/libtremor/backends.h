@@ -115,11 +115,6 @@ typedef struct vorbis_info_mapping0{
   int   floorsubmap[16];   /* [mux] submap to floors */
   int   residuesubmap[16]; /* [mux] submap to residue */
 
-#if 0
-  int   psy[2]; /* by blocktype; impulse/padding for short,
-                   transition/normal for long */
-#endif
-
   int   coupling_steps;
   unsigned char coupling_mag[256];
   unsigned char coupling_ang[256];

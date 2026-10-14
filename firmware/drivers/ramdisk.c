@@ -135,7 +135,6 @@ int ramdisk_num_drives(int first_drive)
 }
 #endif
 
-#ifdef HAVE_HOTSWAP
 bool ramdisk_removable(IF_MD(int drive))
 {
 #ifdef HAVE_MULTIDRIVE
@@ -153,7 +152,6 @@ bool ramdisk_present(IF_MD(int drive))
 
     return true;
 }
-#endif
 
 int ramdisk_event(long id, intptr_t data)
 {

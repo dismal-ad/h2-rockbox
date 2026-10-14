@@ -80,70 +80,6 @@ spx_word32_t inner_prod(const spx_word16_t *x, const spx_word16_t *y, int len)
 
 #ifndef SPEEX_DISABLE_ENCODER
 #ifndef OVERRIDE_PITCH_XCORR
-#if 0 /* HINT: Enable this for machines with enough registers (i.e. not x86) */
-void pitch_xcorr(const spx_word16_t *_x, const spx_word16_t *_y, spx_word32_t *corr, int len, int nb_pitch, char *stack)
-{
-   int i,j;
-   for (i=0;i<nb_pitch;i+=4)
-   {
-      /* Compute correlation*/
-      /*corr[nb_pitch-1-i]=inner_prod(x, _y+i, len);*/
-      spx_word32_t sum1=0;
-      spx_word32_t sum2=0;
-      spx_word32_t sum3=0;
-      spx_word32_t sum4=0;
-      const spx_word16_t *y = _y+i;
-      const spx_word16_t *x = _x;
-      spx_word16_t y0, y1, y2, y3;
-      /*y0=y[0];y1=y[1];y2=y[2];y3=y[3];*/
-      y0=*y++;
-      y1=*y++;
-      y2=*y++;
-      y3=*y++;
-      for (j=0;j<len;j+=4)
-      {
-         spx_word32_t part1;
-         spx_word32_t part2;
-         spx_word32_t part3;
-         spx_word32_t part4;
-         part1 = MULT16_16(*x,y0);
-         part2 = MULT16_16(*x,y1);
-         part3 = MULT16_16(*x,y2);
-         part4 = MULT16_16(*x,y3);
-         x++;
-         y0=*y++;
-         part1 = MAC16_16(part1,*x,y1);
-         part2 = MAC16_16(part2,*x,y2);
-         part3 = MAC16_16(part3,*x,y3);
-         part4 = MAC16_16(part4,*x,y0);
-         x++;
-         y1=*y++;
-         part1 = MAC16_16(part1,*x,y2);
-         part2 = MAC16_16(part2,*x,y3);
-         part3 = MAC16_16(part3,*x,y0);
-         part4 = MAC16_16(part4,*x,y1);
-         x++;
-         y2=*y++;
-         part1 = MAC16_16(part1,*x,y3);
-         part2 = MAC16_16(part2,*x,y0);
-         part3 = MAC16_16(part3,*x,y1);
-         part4 = MAC16_16(part4,*x,y2);
-         x++;
-         y3=*y++;
-         
-         sum1 = ADD32(sum1,SHR32(part1,6));
-         sum2 = ADD32(sum2,SHR32(part2,6));
-         sum3 = ADD32(sum3,SHR32(part3,6));
-         sum4 = ADD32(sum4,SHR32(part4,6));
-      }
-      corr[nb_pitch-1-i]=sum1;
-      corr[nb_pitch-2-i]=sum2;
-      corr[nb_pitch-3-i]=sum3;
-      corr[nb_pitch-4-i]=sum4;
-   }
-
-}
-#else
 void pitch_xcorr(const spx_word16_t *_x, const spx_word16_t *_y, spx_word32_t *corr, int len, int nb_pitch, char *stack)
 {
    (void)stack;
@@ -155,7 +91,6 @@ void pitch_xcorr(const spx_word16_t *_x, const spx_word16_t *_y, spx_word32_t *c
    }
 
 }
-#endif
 #endif
 
 #ifndef OVERRIDE_COMPUTE_PITCH_ERROR

@@ -302,14 +302,7 @@ int read_sample_rate (WavpackContext *wpc, WavpackMetadata *wpmd)
 // samples unpacked, which can be less than the number requested if an error
 // occurs or the end of the block is reached.
 
-#if defined(CPU_COLDFIRE)
-extern void decorr_stereo_pass_cont_mcf5249 (struct decorr_pass *dpp, int32_t *buffer, int32_t sample_count);
-#elif defined(CPU_ARM_CLASSIC)
-extern void decorr_stereo_pass_cont_arm (struct decorr_pass *dpp, int32_t *buffer, int32_t sample_count);
-extern void decorr_stereo_pass_cont_arml (struct decorr_pass *dpp, int32_t *buffer, int32_t sample_count);
-#else
 static void decorr_stereo_pass_cont (struct decorr_pass *dpp, int32_t *buffer, int32_t sample_count);
-#endif
 
 static void decorr_mono_pass (struct decorr_pass *dpp, int32_t *buffer, int32_t sample_count);
 static void decorr_stereo_pass (struct decorr_pass *dpp, int32_t *buffer, int32_t sample_count);
@@ -367,16 +360,7 @@ int32_t unpack_samples (WavpackContext *wpc, int32_t *buffer, uint32_t sample_co
         else
             for (tcount = wps->num_terms, dpp = wps->decorr_passes; tcount--; dpp++) {
                 decorr_stereo_pass (dpp, buffer, 8);
-#if defined(CPU_COLDFIRE)
-                decorr_stereo_pass_cont_mcf5249 (dpp, buffer + 16, sample_count - 8);
-#elif defined(CPU_ARM_CLASSIC)
-                if (((flags & MAG_MASK) >> MAG_LSB) > 15)
-                    decorr_stereo_pass_cont_arml (dpp, buffer + 16, sample_count - 8);
-                else
-                    decorr_stereo_pass_cont_arm (dpp, buffer + 16, sample_count - 8);
-#else
                 decorr_stereo_pass_cont (dpp, buffer + 16, sample_count - 8);
-#endif
             }
 
         if (flags & JOINT_STEREO)
@@ -541,8 +525,6 @@ static void decorr_stereo_pass (struct decorr_pass *dpp, int32_t *buffer, int32_
     dpp->weight_B = weight_B;
 }
 
-#if (!defined(CPU_COLDFIRE) && !defined(CPU_ARM_CLASSIC))
-
 static void decorr_stereo_pass_cont (struct decorr_pass *dpp, int32_t *buffer, int32_t sample_count)
 {
     int32_t delta = dpp->delta, weight_A = dpp->weight_A, weight_B = dpp->weight_B;
@@ -639,8 +621,6 @@ static void decorr_stereo_pass_cont (struct decorr_pass *dpp, int32_t *buffer, i
     dpp->weight_A = weight_A;
     dpp->weight_B = weight_B;
 }
-
-#endif
 
 static void decorr_mono_pass (struct decorr_pass *dpp, int32_t *buffer, int32_t sample_count)
 {

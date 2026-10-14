@@ -3366,12 +3366,8 @@ do {                        \
 #define __cpm_suspend_usbhost()        (REG_CPM_SCR |= CPM_SCR_USBHOST_SUSPEND)
 #define __cpm_enable_osc_in_sleep()    (REG_CPM_SCR |= CPM_SCR_OSC_ENABLE)
 
-#ifdef CFG_EXTAL
-#define JZ_EXTAL        CFG_EXTAL
-#else
 #define JZ_EXTAL        3686400
 #warning Default EXTCLK is used!
-#endif
 #define JZ_EXTAL2       32768 /* RTC clock */
 
 /* PLL output frequency */

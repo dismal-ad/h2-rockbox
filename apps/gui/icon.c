@@ -34,9 +34,6 @@
 #include "misc.h"
 
 #include "bitmaps/default_icons.h"
-#if defined(HAVE_REMOTE_LCD) && (NB_SCREENS > 1)
-#include "bitmaps/remote_default_icons.h"
-#endif
 
 /* We dont actually do anything with these pointers,
    but they need to be grouped like this to save code
@@ -44,9 +41,6 @@
 static const struct bitmap *inbuilt_iconset[NB_SCREENS] =
 {
     &bm_default_icons,
-#if defined(HAVE_REMOTE_LCD) && (NB_SCREENS > 1)
-    &bm_remote_default_icons,
-#endif
 };
 
 enum Iconset {
@@ -213,17 +207,6 @@ void icons_init(void)
                     Iconset_viewers, SCREEN_MAIN);
             read_viewer_theme_file();
         }
-#if defined(HAVE_REMOTE_LCD) && (NB_SCREENS > 1)
-        load_icons(global_settings.remote_icon_file,
-                Iconset_user, SCREEN_REMOTE);
-
-        if (global_settings.remote_viewers_icon_file[0] != '-' &&
-            global_settings.remote_viewers_icon_file[0] != '\0')
-        {
-            load_icons(global_settings.remote_viewers_icon_file,
-                    Iconset_viewers, SCREEN_REMOTE);
-        }
-#endif
     }
 }
 
@@ -237,7 +220,6 @@ int get_icon_height(enum screen_type screen_type)
     return ICON_HEIGHT(screen_type);
 }
 
-#if (LCD_DEPTH > 1) || defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1)
 int get_icon_format(enum screen_type screen)
 {
     const struct bitmap *iconset;
@@ -249,4 +231,3 @@ int get_icon_format(enum screen_type screen)
 
     return iconset->format;
 }
-#endif

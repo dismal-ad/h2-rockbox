@@ -58,15 +58,4 @@ int ata_wait_for_rdy(void);
 void ata_set_pio_timings(int mode);
 #endif
 
-#ifdef HAVE_ATA_DMA
-/* Used to update last disk activity time while waiting for DMA */
-void ata_keep_active(void);
-/* Set DMA mode for ATA interface */
-void ata_dma_set_mode(unsigned char mode);
-/* Sets up DMA transfer */
-bool ata_dma_setup(void *addr, unsigned long bytes, bool write);
-/* Waits for DMA transfer completion */
-bool ata_dma_finish(void);
-#endif /* HAVE_ATA_DMA */
-
 #endif /* __ATA_DRIVER_H__ */

@@ -51,11 +51,7 @@
 #include "yesno.h"
 #include "playback.h"
 
-#ifdef HAVE_DISK_STORAGE
-#include "storage.h"
-#endif
-
-#if defined (HAVE_TAGCACHE) && defined(HAVE_TC_RAMCACHE) && defined(HAVE_DIRCACHE)
+#if defined(HAVE_TC_RAMCACHE) && defined(HAVE_DIRCACHE)
 #include "tagcache.h"
 #endif
 
@@ -298,7 +294,7 @@ static bool retrieve_id3_tags(const int index, const char* name, struct mp3entry
         copy_mp3entry(id3, audio_current_track()); /* retrieve id3 from RAM */
         id3_retrieval_successful = true;
     }
-#if defined (HAVE_TAGCACHE) && defined(HAVE_TC_RAMCACHE) && defined(HAVE_DIRCACHE)
+#if defined(HAVE_TC_RAMCACHE) && defined(HAVE_DIRCACHE)
     else if (flags & METADATA_EXCLUDE_ID3_PATH)
         /* retrieve id3 from database */
         id3_retrieval_successful = tagcache_fill_tags(id3, name);
@@ -621,7 +617,6 @@ static void close_playlist_viewer(void)
     viewer.is_open = false;
 }
 
-#if defined(HAVE_HOTKEY) || defined(HAVE_TAGCACHE)
 static enum pv_context_result
     open_with_plugin(const struct playlist_entry *current_track,
                      const char* plugin_name,
@@ -646,7 +641,6 @@ static enum pv_context_result
     }
 }
 
-#ifdef HAVE_HOTKEY
 static int list_viewers(const char* plugin, const char* file)
 {
     /* dummy function to match prototype with filetype_load_plugin */
@@ -657,15 +651,11 @@ static enum pv_context_result open_with(const struct playlist_entry *current_tra
 {
     return open_with_plugin(current_track, "", &list_viewers);
 }
-#endif /* HAVE_HOTKEY */
 
-#ifdef HAVE_TAGCACHE
 static enum pv_context_result open_pictureflow(const struct playlist_entry *current_track)
 {
     return open_with_plugin(current_track, "pictureflow", &filetype_load_plugin);
 }
-#endif
-#endif /*defined(HAVE_HOTKEY) || defined(HAVE_TAGCACHE)*/
 
 static enum pv_context_result delete_track(int current_track_index,
                                           int index, bool current_was_playing)
@@ -705,9 +695,7 @@ static enum pv_context_result context_menu(int index)
                         ID2P(LANG_MENU_SHOW_ID3_INFO),
                         ID2P(LANG_SHUFFLE), ID2P(LANG_SAVE),
                         ID2P(LANG_PLAYLISTVIEWER_SETTINGS)
-#ifdef HAVE_TAGCACHE
                         ,ID2P(LANG_ONPLAY_PICTUREFLOW)
-#endif
                         );
     int sel = do_menu(&menu_items, NULL, NULL, false);
     if (sel == MENU_ATTACHED_USB)
@@ -759,10 +747,8 @@ static enum pv_context_result context_menu(int index)
                     return (sel == global_settings.playlist_viewer_track_display) ?
                            PV_CONTEXT_UNCHANGED : PV_CONTEXT_PL_UPDATE;
             }
-#ifdef HAVE_TAGCACHE
             case 8:
                 return open_pictureflow(current_track);
-#endif
         }
     }
     return PV_CONTEXT_UNCHANGED;
@@ -945,13 +931,6 @@ static bool open_playlist_viewer(const char* filename,
        metadata, or on devices that use disk storage. */
     if (global_settings.playlist_viewer_track_display
         > PLAYLIST_VIEWER_ENTRY_SHOW_FULL_PATH
-#ifdef HAVE_DISK_STORAGE
-        || (!storage_disk_is_active()
-#ifdef HAVE_DIRCACHE
-            && (filename || !global_settings.dircache)
-#endif /* HAVE DIRCACHE */
-           )
-#endif /* HAVE_DISK_STORAGE */
        )
     {
         push_activity_without_refresh(ACTIVITY_PLAYLISTVIEWER);
@@ -1149,7 +1128,6 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename,
             case ACTION_STD_MENU:
                 ret = PLAYLIST_VIEWER_MAINMENU;
                 goto exit;
-#ifdef HAVE_QUICKSCREEN
             case ACTION_STD_QUICKSCREEN:
                     /* Shortcuts menu currently disabled in Playlist Viewer */
                     if (!global_settings.shortcuts_replaces_qs)
@@ -1161,18 +1139,14 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename,
                         update_gui(&playlist_lists, true);
                     }
                     break;
-#endif
-#ifdef HAVE_HOTKEY
             case ACTION_TREE_HOTKEY:
             {
                 struct playlist_entry *current_track = playlist_buffer_get_track(
                                                             &viewer.buffer,
                                                             viewer.selected_track);
                 enum pv_context_result (*do_plugin)(const struct playlist_entry *) = NULL;
-#ifdef HAVE_TAGCACHE
                 if (global_settings.hotkey_tree == HOTKEY_PICTUREFLOW)
                     do_plugin = &open_pictureflow;
-#endif
                 if (global_settings.hotkey_tree == HOTKEY_OPEN_WITH)
                     do_plugin = &open_with;
 
@@ -1214,7 +1188,6 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename,
                     onplay(current_track->name, FILE_ATTR_AUDIO, CONTEXT_STD, true, ONPLAY_NO_CUSTOMACTION);
                 break;
             }
-#endif /* HAVE_HOTKEY */
             default:
                 if(default_event_handler(button) == SYS_USB_CONNECTED)
                 {

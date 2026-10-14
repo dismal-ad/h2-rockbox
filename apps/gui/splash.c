@@ -32,23 +32,17 @@
 #include "strptokspn_r.h"
 #include "scrollbar.h"
 #include "font.h"
-#ifndef BOOTLOADER
 #include "misc.h" /* get_current_activity */
-#endif
 
 static long progress_next_tick, talked_tick;
 
 #define MAXLINES  (LCD_HEIGHT/6)
 
 
-#ifndef BOOTLOADER
 #if MEMORYSIZE > 8
     #define MAXBUFFER MAX(1024, (LCD_WIDTH/SYSFONT_WIDTH) * MAXLINES + 1)
 #else
     #define MAXBUFFER MAX(512, (LCD_WIDTH/SYSFONT_WIDTH) * MAXLINES + 1)
-#endif
-#else
-    #define MAXBUFFER (512)
 #endif
 
 #define RECT_SPACING 3
@@ -86,7 +80,6 @@ static bool splash_internal(struct screen * screen, const char *fmt, va_list ap,
     static const char matchstr[] = "\r\n\f\v\t\b";
     static int max_width[NB_SCREENS] = {0};
     static int max_height[NB_SCREENS] = {0};
-#ifndef BOOTLOADER
     static char splash_buf[MAXBUFFER] = {0};
     static enum current_activity last_act = ACTIVITY_UNKNOWN;
     enum current_activity act = get_current_activity();
@@ -100,9 +93,6 @@ static bool splash_internal(struct screen * screen, const char *fmt, va_list ap,
         }
         last_act = act;
     }
-#else /*def BOOTLOADER*/
-    char splash_buf[MAXBUFFER] = {0}; /* on the stack for the bootloader */
-#endif
 
     struct splash_lines {
         const char *str;
@@ -155,7 +145,6 @@ static bool splash_internal(struct screen * screen, const char *fmt, va_list ap,
 
     while(true) /* break splash string into display lines, doing proper word wrap */
     {
-#ifndef BOOTLOADER
         while (*lastbreak != '\0') /* handle escape chars*/
         {
             switch (*lastbreak) /* all chars in matchstr */
@@ -198,7 +187,6 @@ static bool splash_internal(struct screen * screen, const char *fmt, va_list ap,
             }
             lastbreak++;
         }
-#endif
         if (lines[line].len > 0)
         {
             x += w;
@@ -296,7 +284,6 @@ static bool splash_internal(struct screen * screen, const char *fmt, va_list ap,
     max_width[screen->screen_type] = width - 2*RECT_SPACING;
     max_height[screen->screen_type] = height - 2*RECT_SPACING;
 
-#if LCD_DEPTH > 1
     unsigned fg = 0, bg = 0;
     bool broken = false;
 
@@ -308,7 +295,6 @@ static bool splash_internal(struct screen * screen, const char *fmt, va_list ap,
         if (fg == bg)
             broken = true;
 
-#if defined(HAVE_LCD_COLOR)
         /* iPod reFresh themes from '22 */
         if (screen->is_color)
         {
@@ -316,7 +302,6 @@ static bool splash_internal(struct screen * screen, const char *fmt, va_list ap,
                 fg == SCREEN_COLOR_TO_NATIVE(screen, LCD_RGBPACK(255, 255, 255)))
                 broken = true;
         }
-#endif
 
         vp->drawmode = DRMODE_FG;
         /* can't do vp->fg_pattern here, since set_foreground does a bit more on
@@ -325,19 +310,16 @@ static bool splash_internal(struct screen * screen, const char *fmt, va_list ap,
                                bg);     /* gray as fallback for broken themes */
     }
     else
-#endif
         vp->drawmode = (DRMODE_SOLID|DRMODE_INVERSEVID);
 
     screen->fill_viewport();
 
-#if LCD_DEPTH > 1
     if (screen->depth > 1)
         /* can't do vp->fg_pattern here, since set_foreground does a bit more on
          * greyscale */
         screen->set_foreground(broken ? SCREEN_COLOR_TO_NATIVE(screen, LCD_BLACK) :
                                fg);     /* black as fallback for broken themes */
     else
-#endif
         vp->drawmode = DRMODE_SOLID;
 
     screen->draw_border_viewport();
@@ -444,11 +426,7 @@ void splash_progress(int current, int total, const char *fmt, ...)
             int y = vp.height - size - RECT_SPACING;
             int w = vp.width - RECT_SPACING * 2;
             int h = size;
-#ifdef HAVE_LCD_COLOR
             const int sb_flags = HORIZONTAL | FOREGROUND;
-#else
-            const int sb_flags = HORIZONTAL;
-#endif
             gui_scrollbar_draw(screen, x, y, w, h, total, 0, current, sb_flags);
 
             screen->update_viewport();

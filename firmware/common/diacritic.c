@@ -36,9 +36,7 @@
  * diacritic chars after [base]. RTL occupies the MSB and CNT the remaining bits
  */
 
-#ifdef UNICODE32
 //#define DIAC_UCSCHAR
-#endif
 
 struct diac_range
 {
@@ -53,7 +51,6 @@ struct diac_range
 #define DIAC_RANGE_ENTRY(first_diac, first_non_diac, is_rtl) \
  { first_diac, ((first_non_diac - first_diac) & DIAC_CNT) | (is_rtl * DIAC_RTL)}
 
-#ifndef BOOTLOADER
 /* Sorted by Unicode value */
 static const struct diac_range diac_ranges[] =
 {
@@ -200,7 +197,7 @@ static const struct diac_range diac_ranges[] =
     DIAC_RANGE_ENTRY(0xfe70, 0xfe70, 1),
     DIAC_RANGE_ENTRY(0xff00, 0xff00, 0),
     /* Final entry is a terminator */
-#if defined(UNICODE32) && defined(DIAC_UCSCHAR)
+#if defined(DIAC_UCSCHAR)
     DIAC_RANGE_ENTRY(0x010efa, 0x010f00, 1),  /* v15.0 - v17.0 */
     DIAC_RANGE_ENTRY(0x10ffff, 0xffff, 0),
 #else
@@ -273,12 +270,3 @@ bypass:
 
     return char_code < (uint32_t)(diac->base + (info & DIAC_CNT));
 }
-#else /*BOOTLOADER*/
-inline bool is_diacritic(const ucschar_t char_code, bool *is_rtl)
-{
-    (void)char_code;
-    if (is_rtl)
-        *is_rtl = false;
-    return false;
-}
-#endif /* ndef BOOTLOADER*/

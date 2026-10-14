@@ -25,9 +25,7 @@
 #include "system.h"
 #include "sound.h"
 
-#ifndef BOOTLOADER
 #include "settings.h" /* sound_current */
-#endif
 
 /* Define sound_setting_entries table */
 #define AUDIOHW_SOUND_SETTINGS_ENTRIES
@@ -110,10 +108,7 @@ int sound_current(int setting)
 {
     switch(setting)
     {
-#ifndef BOOTLOADER
-#ifndef PLATFORM_HAS_VOLUME_CHANGE
         SOUND_CUR_SET(VOLUME,             global_status.volume)
-#endif
 #if defined(AUDIOHW_HAVE_BASS)
         SOUND_CUR_SET(BASS,               global_settings.bass)
 #endif
@@ -139,51 +134,6 @@ int sound_current(int setting)
         SOUND_CUR_SET(POWER_MODE,         global_settings.power_mode)
 #endif
 
-#if 0 /*WRONG -- these need to index the hw_eq_bands[AUDIOHW_EQ_BAND_NUM] struct*/
-/* Hardware EQ tone controls */
-#if defined(AUDIOHW_HAVE_EQ)
-        SOUND_CUR_SET(EQ_BAND1_GAIN,      global_settings.hw_eq_band1_gain)
-#if defined(AUDIOHW_HAVE_EQ_BAND1_FREQUENCY)
-        SOUND_CUR_SET(EQ_BAND1_FREQUENCY, global_settings.hw_eq_band1_frequency)
-#endif
-#if defined(AUDIOHW_HAVE_EQ_BAND2)
-        SOUND_CUR_SET(EQ_BAND2_GAIN,      global_settings.hw_eq_band2_gain)
-#if defined(AUDIOHW_HAVE_EQ_BAND2_FREQUENCY)
-        SOUND_CUR_SET(EQ_BAND2_FREQUENCY, global_settings.hw_eq_band2_frequency)
-#endif
-#if defined(AUDIOHW_HAVE_EQ_BAND2_WIDTH)
-        SOUND_CUR_SET(EQ_BAND2_WIDTH,     global_settings.hw_eq_band2_width)
-#endif
-#endif /* AUDIOHW_HAVE_EQ_BAND2 */
-#if defined(AUDIOHW_HAVE_EQ_BAND3)
-        SOUND_CUR_SET(EQ_BAND3_GAIN,      global_settings.hw_eq_band3_gain)
-#if defined(AUDIOHW_HAVE_EQ_BAND3_FREQUENCY)
-        SOUND_CUR_SET(EQ_BAND3_FREQUENCY, global_settings.hw_eq_band3_frequency)
-#endif
-#if defined(AUDIOHW_HAVE_EQ_BAND3_WIDTH)
-        SOUND_CUR_SET(EQ_BAND3_WIDTH,     global_settings.hw_eq_band3_width)
-#endif
-#endif /* AUDIOHW_HAVE_EQ_BAND3 */
-#if defined(AUDIOHW_HAVE_EQ_BAND4)
-        SOUND_CUR_SET(EQ_BAND4_GAIN,      global_settings.hw_eq_band4_gain)
-#if defined(AUDIOHW_HAVE_EQ_BAND4_FREQUENCY)
-        SOUND_CUR_SET(EQ_BAND4_FREQUENCY, global_settings.hw_eq_band4_frequency)
-#endif
-#if defined(AUDIOHW_HAVE_EQ_BAND4_WIDTH)
-        SOUND_CUR_SET(EQ_BAND4_WIDTH,     global_settings.hw_eq_band4_width)
-#endif
-#endif /* AUDIOHW_HAVE_EQ_BAND4 */
-#if defined(AUDIOHW_HAVE_EQ_BAND5)
-        SOUND_CUR_SET(EQ_BAND5_GAIN,      global_settings.hw_eq_band5_gain)
-#if defined(AUDIOHW_HAVE_EQ_BAND5_FREQUENCY)
-        SOUND_CUR_SET(EQ_BAND5_FREQUENCY, global_settings.hw_eq_band5_frequency)
-#endif
-
-#endif /* AUDIOHW_HAVE_EQ_BAND5 */
-#endif /* AUDIOHW_HAVE_EQ */
-#endif /*IF 0*/
-
-#endif /*ndef BOOTLOADER*/
 #ifdef INT_MIN
         default:
             return INT_MIN;
@@ -309,7 +259,6 @@ void sound_set_volume(int value)
     if (!audio_is_initialized)
         return;
 
-#ifndef BOOTLOADER
     /* Apply limits */
     const int min_vol = sound_min(SOUND_VOLUME);
     const int max_vol = sound_max(SOUND_VOLUME);
@@ -321,7 +270,6 @@ void sound_set_volume(int value)
         value = global_settings.volume_limit;
 
     global_status.volume = value;
-#endif
 
     sound_prescaler.volume = sound_value_to_cb(SOUND_VOLUME, value);
     set_prescaled_volume();

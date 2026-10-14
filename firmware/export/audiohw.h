@@ -159,94 +159,13 @@ struct sound_settings_info
     { return #expr[0] ? expr : val; }
 #endif
 
-#ifdef HAVE_UDA1380
-#include "uda1380.h"
-#elif defined(HAVE_UDA1341)
+#if   defined(HAVE_UDA1341)
 #include "uda1341.h"
-#elif defined(HAVE_WM8740)
-#include "wm8740.h"
-#elif defined(HAVE_WM8750) || defined(HAVE_WM8751)
-#include "wm8751.h"
-#elif defined(HAVE_WM8978)
-#include "wm8978.h"
-#elif defined(HAVE_WM8975) || defined(HAVE_WM1870)
-#include "wm8975.h"
-#elif defined(HAVE_WM8985)
-#include "wm8985.h"
-#elif defined(HAVE_WM8758)
-#include "wm8758.h"
-#elif defined(HAVE_WM8711) || defined(HAVE_WM8721) || \
-      defined(HAVE_WM8731)
-#include "wm8731.h"
-#elif defined(HAVE_TLV320)
-#include "tlv320.h"
-#elif defined(HAVE_AS3514)
-#include "as3514.h"
-#if defined(HAVE_DAC3550A)
-#include "dac3550a.h"
-#endif /* HAVE_DAC3550A */
-#elif defined(HAVE_TSC2100)
-#include "tsc2100.h"
-#elif defined(HAVE_JZ4740_CODEC)
-#include "jz4740-codec.h"
 #elif defined(HAVE_X1000_ICODEC_PLAY)
 #include "x1000-codec.h"
-#elif defined(HAVE_AK4537)
-#include "ak4537.h"
-#elif defined(HAVE_AK4376)
-#include "ak4376.h"
-#elif defined(HAVE_RK27XX_CODEC)
-#include "rk27xx_codec.h"
-#elif defined(HAVE_AIC3X)
-#include "aic3x.h"
-#elif defined(HAVE_CS42L55)
-#include "cs42l55.h"
-#elif defined(HAVE_IMX233_CODEC)
-#include "imx233-codec.h"
-#elif defined(HAVE_DUMMY_CODEC)
-#include "dummy_codec.h"
-#elif defined(HAVE_DF1704_CODEC)
-#include "df1704.h"
-#elif defined(HAVE_PCM1792_CODEC)
-#include "pcm1792.h"
-#elif defined(HAVE_EROS_QN_CODEC)
+#else
 #include "eros_qn_codec.h"
 #include "es9018k2m.h"
-#elif defined(HAVE_NWZ_LINUX_CODEC)
-#include "nwzlinux_codec.h"
-#elif defined(HAVE_CS4398)
-#include "cs4398.h"
-#elif defined(HAVE_ES9018)
-#include "es9018.h"
-#elif defined(HAVE_ES9218)
-#include "es9218.h"
-#elif (CONFIG_PLATFORM & PLATFORM_ANDROID)
-#include "android_codec.h"
-#elif ((CONFIG_PLATFORM & (PLATFORM_SDL | PLATFORM_GAME_CONSOLE)) | defined(RG_NANO))
-#include "sdl_codec.h"
-#elif defined(DX50)
-#include "codec-dx50.h"
-#elif defined(DX90)
-#include "codec-dx90.h"
-#elif defined(HAVE_ROCKER_CODEC)
-#include "rocker_codec.h"
-#elif defined(HAVE_SURFANS_LINUX_CODEC)
-#include "surfanslinux_codec.h"
-#elif defined(HAVE_XDUOO_LINUX_CODEC)
-#include "xduoolinux_codec.h"
-#elif defined(HAVE_FIIO_LINUX_CODEC)
-#include "fiiolinux_codec.h"
-#elif defined(HAVE_EROSQ_LINUX_CODEC)
-#include "erosqlinux_codec.h"
-#elif defined(HAVE_ECHOPLAYER_CODEC)
-#include "echoplayer_codec.h"
-#elif defined(HAVE_HIBY_LINUX_CODEC)
-#include "hibylinux_codec.h"
-#endif
-
-#if defined(HAVE_X1000_ICODEC_REC) && !defined(HAVE_X1000_ICODEC_PLAY)
-/* Targets may have an external DAC above, but use icodec for recording only */
-#include "x1000-codec.h"
 #endif
 
 /* convert caps into defines */
@@ -387,16 +306,6 @@ enum AUDIOHW_EQ_SETTINGS
 #if (AUDIOHW_CAPS & MONO_VOL_CAP)
 #define AUDIOHW_HAVE_MONO_VOLUME
 #endif
-
-#ifdef HAVE_RECORDING
-#if (AUDIOHW_CAPS & LIN_GAIN_CAP)
-#define AUDIOHW_HAVE_LIN_GAIN
-#endif
-
-#if (AUDIOHW_CAPS & MIC_GAIN_CAP)
-#define AUDIOHW_HAVE_MIC_GAIN
-#endif
-#endif /* HAVE_RECORDING */
 
 #if (AUDIOHW_CAPS & FILTER_ROLL_OFF_CAP)
 #define AUDIOHW_HAVE_FILTER_ROLL_OFF
@@ -607,38 +516,6 @@ void audiohw_set_power_mode(int mode);
 
 void audiohw_set_frequency(int fsel);
 
-#ifdef HAVE_RECORDING
-
-/**
- * Enable recording.
- * @param source_mic if this is true, we want to record from microphone,
- *                   else we want to record FM/LineIn.
- */
-void audiohw_enable_recording(bool source_mic);
-
-/**
- * Disable recording.
- */
-void audiohw_disable_recording(void);
-
-/**
- * Set gain of recording source.
- * @param left gain value.
- * @param right will not be used if recording from micophone (mono).
- * @param type AUDIO_GAIN_MIC, AUDIO_GAIN_LINEIN.
- */
-void audiohw_set_recvol(int left, int right, int type);
-
-#endif /* HAVE_RECORDING */
-
-#if defined(HAVE_RECORDING) || defined(HAVE_FMRADIO_IN)
-/**
- * Enable or disable recording monitor.
- * @param enable true or false.
- */
-void audiohw_set_monitor(bool enable);
-#endif
-
 /**
  * Set channel configuration.
  * @param val new channel value (see enum below).
@@ -697,11 +574,7 @@ AUDIOHW_SETTING(STEREO_WIDTH, "%", 0, 5,    0, 250, 100)
 #endif
 
 #ifndef PCM_NATIVE_VOLUME_TYPE
-#if !defined(HAVE_SW_VOLUME_CONTROL) || defined(PCM_SW_VOLUME_UNBUFFERED)
-#define PCM_NATIVE_VOLUME_TYPE PCM_SINK_HWVOL
-#else
 #define PCM_NATIVE_VOLUME_TYPE PCM_SINK_SWVOL
-#endif
 #endif
 
 #endif /* _AUDIOHW_H_ */

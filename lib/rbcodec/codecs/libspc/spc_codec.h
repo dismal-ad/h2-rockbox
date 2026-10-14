@@ -47,21 +47,6 @@
 #endif
 
 /* Only some targets are too slow for gaussian and realtime BRR decode */
-#if defined(CPU_COLDFIRE)
-    /* Cache BRR waves */
-    #define SPC_BRRCACHE 1 
-    /* Disable gaussian interpolation */
-    #define SPC_NOINTERP 1
-#elif defined (CPU_PP)
-    /* Cache BRR waves */
-    #define SPC_BRRCACHE 1 
-    /* Disable gaussian interpolation */
-    #define SPC_NOINTERP 1
-#if !SPC_DUAL_CORE
-    /* Disable echo processing */
-    #define SPC_NOECHO 1
-#endif
-#endif /* CPU_* */
 
 /** Turn on, by default, all the good stuff **/
 #ifndef SPC_BRRCACHE
@@ -127,11 +112,7 @@
 #endif
 
 /* Samples per channel per iteration */
-#if defined(CPU_PP) && NUM_CORES == 1
-#define WAV_CHUNK_SIZE 2048
-#else
 #define WAV_CHUNK_SIZE 1024
-#endif
 
 /**************** Little-endian handling ****************/
 
@@ -319,17 +300,6 @@ struct Spc_Dsp;
 /* These must go before the definition of struct Spc_Dsp because a
    definition of struct echo_filter is required. Only declarations
    are created unless SPC_DSP_C is defined before including these. */
-#if defined(CPU_ARM)
-#if ARM_ARCH >= 6
-#include "cpu/spc_dsp_armv6.h"
-#elif ARM_ARCH >= 5
-#include "cpu/spc_dsp_armv5.h"
-#else
-#include "cpu/spc_dsp_armv4.h"
-#endif
-#elif defined (CPU_COLDFIRE)
-#include "cpu/spc_dsp_coldfire.h"
-#endif
 
 /* Above may still use generic implementations. Also defines final 
    function names. */

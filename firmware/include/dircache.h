@@ -31,13 +31,6 @@
  ** Configurable values
  **/
 
-#if 0
-/* enable dumping code */
-#define DIRCACHE_DUMPSTER
-#define DIRCACHE_DUMPSTER_BIN   "/dircache_dump.bin"
-#define DIRCACHE_DUMPSTER_CSV   "/dircache_dump.csv"
-#endif
-
 /* dircache builds won't search below this but will work down to this point
    while below it the cache will just pass requests through to the storage;
    the limiting factor is the scanning thread stack size, not the

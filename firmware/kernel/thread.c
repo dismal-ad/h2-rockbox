@@ -180,10 +180,6 @@ static FORCE_INLINE void load_context(const void* addr);
 
 #include "asm/thread.c"
 
-#if defined (CPU_PP)
-#include "thread-pp.c"
-#endif /* CPU_PP */
-
 /*
  * End Processor-specific section
  ***************************************************************************/
@@ -237,21 +233,12 @@ static NO_INLINE void thread_stkov(struct thread_entry *thread)
 #define RTR_UNLOCK(corep) \
     corelock_unlock(&(corep)->rtr_cl)
 
-#ifdef HAVE_PRIORITY_SCHEDULING
 #define rtr_add_entry(corep, priority) \
     prio_add_entry(&(corep)->rtr_dist, (priority))
 #define rtr_subtract_entry(corep, priority) \
     prio_subtract_entry(&(corep)->rtr_dist, (priority))
 #define rtr_move_entry(corep, from, to) \
     prio_move_entry(&(corep)->rtr_dist, (from), (to))
-#else /* !HAVE_PRIORITY_SCHEDULING */
-#define rtr_add_entry(corep, priority) \
-    do {} while (0)
-#define rtr_subtract_entry(corep, priority) \
-    do {} while (0)
-#define rtr_move_entry(corep, from, to) \
-    do {} while (0)
-#endif /* HAVE_PRIORITY_SCHEDULING */
 
 static FORCE_INLINE void thread_store_context(struct thread_entry *thread)
 {
@@ -272,7 +259,6 @@ static FORCE_INLINE void thread_load_context(struct thread_entry *thread)
 static FORCE_INLINE unsigned int
 should_switch_tasks(struct thread_entry *thread)
 {
-#ifdef HAVE_PRIORITY_SCHEDULING
     const unsigned int core = CURRENT_CORE;
 #if NUM_CORES > 1
     /* Forget about it if different CPU */
@@ -288,13 +274,7 @@ should_switch_tasks(struct thread_entry *thread)
     /* There is a thread ready to run of higher priority on the same
      * core as the current one; recommend a task switch. */
     return THREAD_OK | THREAD_SWITCH;
-#else
-    return THREAD_OK;
-    (void)thread;
-#endif /* HAVE_PRIORITY_SCHEDULING */
 }
-
-#ifdef HAVE_PRIORITY_SCHEDULING
 
 /*---------------------------------------------------------------------------
  * Increment frequency at category "priority"
@@ -336,8 +316,6 @@ static inline void prio_move_entry(
         priobit_set_bit(&pd->mask, to);
 }
 
-#endif /* HAVE_PRIORITY_SCHEDULING */
-
 /*---------------------------------------------------------------------------
  * Common init for new thread basic info
  *---------------------------------------------------------------------------
@@ -355,14 +333,12 @@ static void new_thread_base_init(struct thread_entry *thread,
     wait_queue_init(&thread->queue);
     thread->wqp = NULL;
     tmo_set_dequeued(thread);
-#ifdef HAVE_PRIORITY_SCHEDULING
     thread->skip_count    = 0;
     thread->blocker       = NULL;
     thread->base_priority = priority;
     thread->priority      = priority;
     memset(&thread->pdist, 0, sizeof(thread->pdist));
     prio_add_entry(&thread->pdist, priority);
-#endif
 #if NUM_CORES > 1
     thread->core = core;
 #endif
@@ -381,9 +357,7 @@ static inline void core_rtr_add(struct core_entry *corep,
     RTR_LOCK(corep);
     rtr_queue_add(&corep->rtr, thread);
     rtr_add_entry(corep, thread->priority);
-#ifdef HAVE_PRIORITY_SCHEDULING
     thread->skip_count = thread->base_priority;
-#endif
     thread->state = STATE_RUNNING;
     RTR_UNLOCK(corep);
 }
@@ -417,7 +391,6 @@ static NO_INLINE void core_schedule_wakeup(struct thread_entry *thread)
 #endif
 }
 
-#ifdef HAVE_PRIORITY_SCHEDULING
 /*---------------------------------------------------------------------------
  * Locks the thread registered as the owner of the block and makes sure it
  * didn't change in the meantime
@@ -836,8 +809,6 @@ static void wakeup_thread_release(struct thread_entry *thread)
     inherit_priority(bl, bl, blt, newblpr);
 }
 
-#endif /* HAVE_PRIORITY_SCHEDULING */
-
 
 /*---------------------------------------------------------------------------
  * Explicitly wakeup a thread on a blocking queue. Only effects threads of
@@ -856,7 +827,6 @@ unsigned int wakeup_thread_(struct thread_entry *thread
     {
     case STATE_BLOCKED:
     case STATE_BLOCKED_W_TMO:
-#ifdef HAVE_PRIORITY_SCHEDULING
         /* Threads with PIP blockers cannot specify "WAKEUP_DEFAULT" */
         if (thread->blocker != NULL)
         {
@@ -873,7 +843,6 @@ unsigned int wakeup_thread_(struct thread_entry *thread
             funcs[proto](thread);
         }
         else
-#endif /* HAVE_PRIORITY_SCHEDULING */
         {
             wait_queue_remove(thread);
             core_schedule_wakeup(thread);
@@ -1054,7 +1023,6 @@ void switch_thread(void)
     thread = (thread && thread->state == STATE_RUNNING) ?
         RTR_THREAD_NEXT(thread) : RTR_THREAD_FIRST(&corep->rtr);
 
-#ifdef HAVE_PRIORITY_SCHEDULING
     /* Select the new task based on priorities and the last time a
      * process got CPU time relative to the highest priority runnable
      * task. If priority is not a feature, then FCFS is used (above). */
@@ -1090,7 +1058,6 @@ void switch_thread(void)
     }
 
     thread->skip_count = 0; /* Reset aging counter */
-#endif /* HAVE_PRIORITY_SCHEDULING */
 
     rtr_queue_make_first(&corep->rtr, thread);
     corep->running = thread;
@@ -1132,7 +1099,6 @@ void block_thread_(struct thread_entry *current, int timeout)
 {
     LOCK_THREAD(current);
 
-#ifdef HAVE_PRIORITY_SCHEDULING
     struct blocker *bl = current->blocker;
     struct thread_entry *blt = NULL;
     if (bl != NULL)
@@ -1140,12 +1106,10 @@ void block_thread_(struct thread_entry *current, int timeout)
         current->blocker = bl;
         blt = lock_blocker_thread(bl);
     }
-#endif /* HAVE_PRIORITY_SCHEDULING */
 
     wait_queue_register(current);
     prepare_block(current, STATE_BLOCKED, timeout);
 
-#ifdef HAVE_PRIORITY_SCHEDULING
     if (bl != NULL)
     {
         int newblpr = current->priority;
@@ -1157,7 +1121,6 @@ void block_thread_(struct thread_entry *current, int timeout)
             unlock_blocker_thread(bl); /* Queue priority won't change */
     }
     else
-#endif /* HAVE_PRIORITY_SCHEDULING */
     {
         UNLOCK_THREAD(current);
     }
@@ -1296,14 +1259,12 @@ void thread_exit(void)
     corelock_lock(&current->waiter_cl);
     LOCK_THREAD(current);
 
-#ifdef HAVE_PRIORITY_SCHEDULING
     /* Only one bit in the mask should be set with a frequency on 1 which
      * represents the thread's own base priority otherwise threads are waiting
      * on an abandoned object */
     if (priobit_popcount(&current->pdist.mask) != 1 ||
         current->pdist.hist[priobit_ffs(&current->pdist.mask)] > 1)
         thread_panicf("abandon ship!", current);
-#endif /* HAVE_PRIORITY_SCHEDULING */
 
     /* Remove from scheduler lists */
     tmo_queue_remove(&corep->tmo, current);
@@ -1322,7 +1283,6 @@ void thread_exit(void)
 #endif
 }
 
-#ifdef HAVE_PRIORITY_SCHEDULING
 /*---------------------------------------------------------------------------
  * Sets the thread's relative base priority for the core it runs on. Any
  * needed inheritance changes also may happen.
@@ -1419,7 +1379,6 @@ int thread_get_priority(unsigned int thread_id)
 
     return base_priority;
 }
-#endif /* HAVE_PRIORITY_SCHEDULING */
 
 /*---------------------------------------------------------------------------
  * Starts a frozen thread - similar semantics to wakeup_thread except that

@@ -19,9 +19,7 @@
  ****************************************************************************/
 
 #include "gpio-ingenic.h"
-#if defined(EROS_QN)
 # include "devicedata.h"
-#endif
 
 static const struct gpio_setting gpio_settings[PIN_COUNT] INITDATA_ATTR = {
 #define DEFINE_GPIO(_name, _gpio, _func) \
@@ -41,34 +39,10 @@ static const struct pingroup_setting pingroup_settings[PINGROUP_COUNT] INITDATA_
 #undef DEFINE_PINGROUP
 };
 
-#if 0 /* not needed for the time being */
-static const char* const gpio_names[PIN_COUNT] = {
-#define DEFINE_GPIO(_name, ...) #_name,
-#define DEFINE_PINGROUP(...)
-#include "gpio-target.h"
-#undef DEFINE_GPIO
-#undef DEFINE_PINGROUP
-};
-
-static const char* const pingroup_names[PINGROUP_COUNT] = {
-#define DEFINE_GPIO(...)
-#define DEFINE_PINGROUP(_name, ...) #_name,
-#include "gpio-target.h"
-#undef DEFINE_GPIO
-#undef DEFINE_PINGROUP
-};
-#endif
-
 void gpio_init(void)
 {
-#if defined(EROS_QN)
     int devicever;
-# if defined(BOOTLOADER)
-    devicever = EROSQN_VER;
-# else
     devicever = device_data.hw_rev;
-# endif
-#endif
     /* Apply all initial GPIO settings */
     for(int i = 0; i < PINGROUP_COUNT; ++i) {
         const struct pingroup_setting* d = &pingroup_settings[i];
@@ -79,7 +53,6 @@ void gpio_init(void)
     for(int i = 0; i < PIN_COUNT; ++i) {
         const struct gpio_setting* d = &gpio_settings[i];
 
-#ifdef EROS_QN
 // eros_qn only
         // There surely has to be a nicer way to do this...
         // Note: PIN_ indicates position in the list,
@@ -94,10 +67,6 @@ void gpio_init(void)
               (i > PIN_HW4_START && i < PIN_HW4_END))))
 
         // if((d->gpio != GPIO_NONE) && (d->gpio != GPIO_BTN_POWER_HW1))
-#else
-        // non-eros_qn devices
-        if(d->gpio != GPIO_NONE)
-#endif
         {
             gpioz_configure(GPION_PORT(d->gpio), GPION_MASK(d->gpio), d->func);
         }

@@ -254,19 +254,6 @@ static double compute_func(float x, struct FuncDef *func)
    return interp[0]*func->table[ind] + interp[1]*func->table[ind+1] + interp[2]*func->table[ind+2] + interp[3]*func->table[ind+3];
 }
 
-#if 0
-#include <stdio.h>
-int main(int argc, char **argv)
-{
-   int i;
-   for (i=0;i<256;i++)
-   {
-      printf ("%f\n", compute_func(i/256., KAISER12));
-   }
-   return 0;
-}
-#endif
-
 #ifdef FIXED_POINT
 /* The slow way of computing a sinc for the table. Should improve that some day */
 static spx_word16_t sinc(float cutoff, float x, int N, struct FuncDef *window_func)

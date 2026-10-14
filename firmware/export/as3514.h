@@ -23,100 +23,54 @@
 
 #include "config.h"
 
-#if 0
-#define AUDIOHW_CAPS    (LINEOUT_CAP | LIN_GAIN_CAP | MIC_GAIN_CAP)
-#endif
-
 #define AUDIOHW_CAPS    (LIN_GAIN_CAP | MIC_GAIN_CAP)
 
 /*different volume ranges for different AMS chips*/
-#ifdef HAVE_AS3543
-AUDIOHW_SETTING(VOLUME,     "dB",   0,   1, -82,   6, -25)
-#else /* !HAVE_AS3543 */
 AUDIOHW_SETTING(VOLUME,     "dB",   0,   1, -74,   6, -25)
-#endif /* HAVE_AS3543 */
-
-#ifdef HAVE_RECORDING
-/* Line in   : 0 .. 23 .. 31 =>  Volume -34.5 .. +00.0 .. +12.0 dB
- * Mic (left): 0 .. 23 .. 39 =>  Volume -34.5 .. +00.0 .. +24.0 dB
- */
-AUDIOHW_SETTING(MIC_GAIN,   "dB",   1,   1,   0,  39,  23, (val - 23) * 15)
-AUDIOHW_SETTING(LEFT_GAIN,  "dB",   1,   1,   0,  31,  23, (val - 23) * 15)
-AUDIOHW_SETTING(RIGHT_GAIN, "dB",   1,   1,   0,  31,  23, (val - 23) * 15)
-#endif /* HAVE_RECORDING */
 
 void audiohw_set_sampr_dividers(int fsel);
 
 /* Register Descriptions */
 
-#ifndef HAVE_AS3543
 #define AS3514_LINE_OUT_R 0x00
 #define AS3514_LINE_OUT_L 0x01
-#endif
 
 #define AS3514_HPH_OUT_R  0x02
 #define AS3514_HPH_OUT_L  0x03
 
-#ifndef HAVE_AS3543
 #define AS3514_LSP_OUT_R  0x04
 #define AS3514_LSP_OUT_L  0x05
-#endif
 
 #define AS3514_MIC1_R     0x06
 #define AS3514_MIC1_L     0x07
 
-#ifndef HAVE_AS3543
 #define AS3514_MIC2_R     0x08
 #define AS3514_MIC2_L     0x09
-#endif
 
 #define AS3514_LINE_IN1_R 0x0a
 #define AS3514_LINE_IN1_L 0x0b
 
-#ifndef HAVE_AS3543
 #define AS3514_LINE_IN2_R 0x0c
 #define AS3514_LINE_IN2_L 0x0d
-#endif
 
 #define AS3514_DAC_R      0x0e
 #define AS3514_DAC_L      0x0f
 #define AS3514_ADC_R      0x10
 #define AS3514_ADC_L      0x11
 
-#ifdef HAVE_AS3543
-#define AS3543_DAC_IF     0x12
-#endif
-
 #define AS3514_AUDIOSET1  0x14
 #define AS3514_AUDIOSET2  0x15
 #define AS3514_AUDIOSET3  0x16
 #define AS3515_USB_UTIL   0x17  /* only in as3515 */
 
-#ifdef HAVE_AS3543
-#define AS3543_BACKLIGHT  0x1b
-#define AS3543_PMU_ENABLE 0x1c
-#endif
-
-#ifndef HAVE_AS3543
 #define AS3514_PLLMODE    0x1d
-#endif
-
-#ifdef HAVE_AS3543
-#define AS3543_CHARGER    0x19  /* PMU: 2 sub registers */
-#endif
 
 #define AS3514_SYSTEM     0x20
 
-#ifndef HAVE_AS3543
 #define AS3514_CVDD_DCDC3 0x21
 #define AS3514_CHARGER    0x22
 #define AS3514_DCDC15     0x23
 #define AS3514_SUPERVISOR 0x24
-#endif
-
-#ifdef HAVE_AS3543
-#define AS3543_WAKEUP     0x22
-#endif
 
 /* AS3543 has 2 IRQ_ENRD registers at 0x23 and 0x24, but we don't use them
  * We call the real IRQ_ENRD2 register, IRQ_ENRD0, to stay compatible with
@@ -135,13 +89,8 @@ void audiohw_set_sampr_dividers(int fsel);
 #define AS3514_ADC_0      0x2e
 #define AS3514_ADC_1      0x2f
 
-#ifdef HAVE_AS3543
-#define AS3514_UID_0      0x38
-#define AS3514_UID_LEN    8
-#else
 #define AS3514_UID_0      0x30
 #define AS3514_UID_LEN    16
-#endif
 
 /*** Audio Registers ***/
 
@@ -224,9 +173,6 @@ void audiohw_set_sampr_dividers(int fsel);
 /* Use AS3514_VOL_MASK */
 
 /* LINE_IN1_R (0Ah) */
-#ifdef HAVE_AS3543
-#define LINE_IN_R_LINE_SELECT       (0x1 << 6)
-#endif
 #define LINE_IN1_R_LI1R_MUTE_off    (0x1 << 5)
 /* Use AS3514_VOL_MASK */
 
@@ -255,11 +201,7 @@ void audiohw_set_sampr_dividers(int fsel);
 /* Use AS3514_VOL_MASK */
 
 /* DAC_L (0Fh) */
-#ifdef HAVE_AS3543
-#define DAC_L_DAC_MUTE_off      (0x1 << 5)
-#else
 #define DAC_L_DAC_MUTE_off      (0x1 << 6)
-#endif
 /* Use AS3514_VOL_MASK */
 
 /* ADC_R (10h) */
@@ -271,29 +213,16 @@ void audiohw_set_sampr_dividers(int fsel);
 /* Use AS3514_VOL_MASK */
 
 /* ADC_L (11h) */
-#ifdef HAVE_AS3543
-#define ADC_L_ADC_MUTE_off      (0x1 << 5)
-#else
 #define ADC_L_FS_2              (0x1 << 7)
 #define ADC_L_ADC_MUTE_off      (0x1 << 6)
-#endif
 /* Use AS3514_VOL_MASK */
 
 /* DAC_IF (11h) */
-#ifdef HAVE_AS3543
-#define AS3543_DAC_INT_PLL      (0x0 << 7)
-#define AS3543_DAC_EXT_MCLK     (0x1 << 7)
-#endif
 
 /* AUDIOSET1 (14h)*/
-#ifdef HAVE_AS3543
-#define AUDIOSET1_DAC_on        (0x1 << 6)
-#define AUDIOSET1_DAC_GAIN_on   (0x1 << 5)
-#else
 #define AUDIOSET1_SUM_on        (0x1 << 6)
 #define AUDIOSET1_DAC_on        (0x1 << 5)
 #define AUDIOSET1_LOUT_on       (0x1 << 4)
-#endif /* HAVE_AS3543 */
 /* common bits */
 #define AUDIOSET1_ADC_on        (0x1 << 7)
 #define AUDIOSET1_LIN2_on       (0x1 << 3)
@@ -306,14 +235,6 @@ void audiohw_set_sampr_dividers(int fsel);
 
 
 /* AUDIOSET2 (15h) */
-#ifdef HAVE_AS3543
-#define AUDIOSET2_BIAS_on      (0x0 << 7)
-#define AUDIOSET2_BIAS_off      (0x1 << 7)
-#define AUDIOSET2_SUM_off      (0x1 << 6)
-#define AUDIOSET2_AGC_off       (0x1 << 5)
-#define AUDIOSET2_HPH_QUALITY_LOW_POWER (0x0 << 4)
-#define AUDIOSET2_HPH_QUALITY_HIGH      (0x1 << 4)
-#else
 #define AUDIOSET2_BIAS_off      (0x1 << 7)
 #define AUDIOSET2_DITH_off      (0x1 << 6)
 #define AUDIOSET2_AGC_off       (0x1 << 5)
@@ -328,20 +249,11 @@ void audiohw_set_sampr_dividers(int fsel);
     #define AUDIOSET2_IBR_LSP_17    (0x1 << 0)
     #define AUDIOSET2_IBR_LSP_34    (0x2 << 0)
     #define AUDIOSET2_IBR_LSP_50    (0x3 << 0)
-#endif
 
 /* AUDIOSET3 (16h) */
-#ifdef HAVE_AS3543
-#define AUDIOSET3_HP_FASTSTART  (0x1 << 2)
-#define AUDIOSET3_HP_LONGSTART  (0x0 << 2)
-#define AUDIOSET3_HP_BIAS_150   (0x1 << 1)
-#define AUDIOSET3_HPCM_on       (0x1 << 0)
-#define AUDIOSET3_HPCM_off      (0x0 << 0)
-#else
 #define AUDIOSET3_ZCU_off       (0x1 << 2)
 #define AUDIOSET3_IBR_HPH       (0x1 << 1)
 #define AUDIOSET3_HPCM_off      (0x1 << 0)
-#endif
 
 /* PLLMODE (1Dh) */
 #define PLLMODE_LRCK             (0x3 << 1)
@@ -374,16 +286,6 @@ void audiohw_set_sampr_dividers(int fsel);
 /* AS3514_CHARGER */
 #define TMPSUP_OFF      (0x1 << 7)
 #define CHG_I           (0x7 << 4)
-#ifdef HAVE_AS3543  /* AS3543 uses charge current steps of 70 mA */
-#define CHG_I_55MA      (0x0 << 4)
-#define CHG_I_70MA      (0x1 << 4)
-#define CHG_I_140MA     (0x2 << 4)
-#define CHG_I_210MA     (0x3 << 4)
-#define CHG_I_280MA     (0x4 << 4)
-#define CHG_I_350MA     (0x5 << 4)
-#define CHG_I_420MA     (0x6 << 4)
-#define CHG_I_460MA     (0x7 << 4)
-#else               /* AS3514 uses charge current steps of 50 mA */
 #define CHG_I_50MA      (0x0 << 4)
 #define CHG_I_100MA     (0x1 << 4)
 #define CHG_I_150MA     (0x2 << 4)
@@ -392,7 +294,6 @@ void audiohw_set_sampr_dividers(int fsel);
 #define CHG_I_300MA     (0x5 << 4)
 #define CHG_I_350MA     (0x6 << 4)
 #define CHG_I_400MA     (0x7 << 4)
-#endif
 #define CHG_V           (0x7 << 1)
 #define CHG_V_4_25V     (0x7 << 1)
 #define CHG_V_4_20V     (0x6 << 1)

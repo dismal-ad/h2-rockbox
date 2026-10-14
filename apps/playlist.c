@@ -114,17 +114,6 @@
 #include "logf.h"
 #include "panic.h"
 
-#if 0//def ROCKBOX_HAS_LOGDISKF
-#undef DEBUGF
-#undef ERRORF
-#undef WARNF
-#undef NOTEF
-#define DEBUGF logf
-#define ERRORF DEBUGF
-#define WARNF DEBUGF
-#define NOTEF DEBUGF
-#endif
-
 /* default load buffer size (should be at least 1 KiB) */
 #define PLAYLIST_LOAD_BUFLEN    (32*1024)
 
@@ -1735,9 +1724,6 @@ static int get_next_index(const struct playlist_info* playlist, int steps,
         }
 
         case REPEAT_ONE:
-#ifdef AB_REPEAT_ENABLE
-        case REPEAT_AB:
-#endif
             next_index = current_index;
             break;
 
@@ -1814,11 +1800,6 @@ static void dc_thread_playlist(void)
                     /* Start the background scanning after either the disk
                      * spindown timeout or 5s, whichever is less */
                     sleep_time = 5 * HZ;
-#ifdef HAVE_DISK_STORAGE
-                    if (global_settings.disk_spindown > 1 &&
-                        global_settings.disk_spindown <= 5)
-                        sleep_time = (global_settings.disk_spindown - 1) * HZ;
-#endif
                 }
                 break;
 
@@ -2934,11 +2915,7 @@ int playlist_next(int steps)
     }
     if (steps > 0)
     {
-#ifdef AB_REPEAT_ENABLE
-        if (repeat_mode != REPEAT_AB && repeat_mode != REPEAT_ONE)
-#else
         if (repeat_mode != REPEAT_ONE)
-#endif
         {
             int i, j;
             /* We need to delete all the queued songs */

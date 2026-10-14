@@ -32,13 +32,7 @@
 #include "timeout.h"
 #endif
 
-#ifdef HAVE_SEMAPHORE_OBJECTS
 #include "semaphore.h"
-#endif
-
-#ifdef HAVE_CORELOCK_OBJECT
-#include "corelock.h"
-#endif
 
 #define OBJ_WAIT_TIMEDOUT     (-1)
 #define OBJ_WAIT_FAILED       0

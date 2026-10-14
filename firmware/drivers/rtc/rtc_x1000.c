@@ -70,34 +70,3 @@ int rtc_write_datetime(const struct tm* tm)
     return 1;
 }
 
-#ifdef HAVE_RTC_ALARM
-/* TODO: implement the RTC alarm */
-
-void rtc_set_alarm(int h, int m)
-{
-    (void)h;
-    (void)m;
-}
-
-void rtc_get_alarm(int* h, int* m)
-{
-    (void)h;
-    (void)m;
-}
-
-void rtc_enable_alarm(bool enable)
-{
-    (void)enable;
-}
-
-bool rtc_check_alarm_started(bool release_alarm)
-{
-    (void)release_alarm;
-    return false;
-}
-
-bool rtc_check_alarm_flag(void)
-{
-    return false;
-}
-#endif

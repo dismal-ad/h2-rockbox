@@ -39,8 +39,6 @@ void voice_thread_kill(void);
 
 void voice_set_mixer_level(int percent);
 
-#ifdef HAVE_PRIORITY_SCHEDULING
 void voice_thread_set_priority(int priority);
-#endif
 
 #endif /* VOICE_THREAD_H */

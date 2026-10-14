@@ -39,15 +39,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA
 #define APE_OUTPUT_DEPTH 29
 
 /* On ARMv4, using 32 bit ints for the filters is faster. */
-#if defined(CPU_ARM) && (ARM_ARCH == 4)
-#define FILTER_BITS 32
-#endif
 
-#if !defined(CPU_PP) && !defined(CPU_S5L87XX)
 #define FILTER256_IRAM
-#endif
 
-#if CONFIG_CPU == PP5002 || defined(CPU_S5L87XX)
+#if CONFIG_CPU == PP5002
 /* Code and data IRAM for speed (PP5002 has a broken cache), not enough IRAM
  * for the insane filter buffer. Reciprocal table for division in IRAM. */
 #define ICODE_SECTION_DEMAC_ARM   .icode
@@ -124,14 +119,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA
 
 #ifndef __ASSEMBLER__
 
-#if defined(CPU_ARM) && (ARM_ARCH < 5 || defined(USE_IRAM)) && !defined(ARM_HAVE_HW_DIV)
-/* optimised unsigned integer division for ARMv4, in IRAM */
-unsigned udiv32_arm(unsigned a, unsigned b);
-#define UDIV32(a, b) udiv32_arm(a, b)
-#else
 /* default */
 #define UDIV32(a, b) (a / b)
-#endif
 
 #include <inttypes.h>
 #if FILTER_BITS == 32

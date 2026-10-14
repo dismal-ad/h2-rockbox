@@ -42,10 +42,8 @@ int mmc_spinup_time(void);
 #ifdef STORAGE_GET_INFO
 void mmc_get_info(IF_MD(int drive,) struct storage_info *info);
 #endif
-#ifdef HAVE_HOTSWAP
 bool mmc_removable(IF_MD_NONVOID(int drive));
 bool mmc_present(IF_MD_NONVOID(int drive));
-#endif
 
 long mmc_last_disk_activity(void);
 

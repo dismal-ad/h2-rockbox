@@ -20,13 +20,9 @@
 #ifndef __IMX233_H__
 #define __IMX233_H__
 
-#ifndef IMX233_SUBTARGET
 #error You must define IMX233_SUBTARGET to select the chip family
-#endif
 
-#ifndef IMX233_PACKAGE
 #error You must IMX233_PACKAGE to select the chip package
-#endif
 
 /*
  * Chip Memory Map (stmp3700,imx233):
@@ -51,30 +47,14 @@
  */
 
 #define IRAM_ORIG           0
-#if IMX233_SUBTARGET >= 3780
-#define IRAM_SIZE           (32 * 1024)
-#elif IMX233_SUBTARGET >= 3770
-#define IRAM_SIZE           (512 * 1024)
-#else
 #define IRAM_SIZE           (256 * 1024)
-#endif
 
-#if IMX233_SUBTARGET >= 3700
-#define DRAM_ORIG           0x40000000
-#else
 #define DRAM_ORIG           0x60000000
-#endif
 #define DRAM_SIZE           (MEMORYSIZE * 0x100000)
 
-#if IMX233_SUBTARGET >= 3700
-#define UNCACHED_DRAM_ADDR  0x40000000
-#define CACHED_DRAM_ADDR    0x60000000
-#define BUFFERED_DRAM_ADDR  0x90000000
-#else
 #define UNCACHED_DRAM_ADDR  0x60000000
 #define CACHED_DRAM_ADDR    0x40000000
 #define BUFFERED_DRAM_ADDR  0x90000000
-#endif
 
 /* 32 bytes per cache line */
 #define CACHEALIGN_SIZE     32
@@ -109,11 +89,7 @@
 #define USB_QHARRAY_ATTR    __attribute__((section(".qharray"),nocommon,aligned(2048)))
 #define USB_NUM_ENDPOINTS   5
 /* STMP3600 doesn't have the bandwidth to put buffer in SDRAM */
-#if IMX233_SUBTARGET < 3700
 #define USB_DEVBSS_ATTR     IBSS_ATTR
-#else
-#define USB_DEVBSS_ATTR     NOCACHEBSS_ATTR
-#endif
 #define USB_BASE            0x80080000
 
 #define ___ENSURE_ZERO(line, x) static uint8_t __ensure_zero_##line[-(x)] __attribute__((unused));

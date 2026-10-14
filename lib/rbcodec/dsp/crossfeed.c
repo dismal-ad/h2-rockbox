@@ -171,7 +171,6 @@ void dsp_set_crossfeed_cross_params(long lf_gain, long hf_gain, long cutoff)
                                    dsp_get_output_frequency(dsp));
 }
 
-#if (!defined(CPU_COLDFIRE) && !defined(CPU_ARM)) || defined(CPU_ARM_MICRO)
 /* Apply the crossfade to the buffer in place */
 void crossfeed_process(struct dsp_proc_entry *this, struct dsp_buffer **buf_p)
 {
@@ -221,9 +220,7 @@ void crossfeed_process(struct dsp_proc_entry *this, struct dsp_buffer **buf_p)
     /* Write back local copies of data we've modified */
     state->index = di;
 }
-#endif /* CPU */
 
-#if (!defined(CPU_COLDFIRE) && !defined(CPU_ARM)) || defined(CPU_ARM_MICRO)
 /**
  * Implementation of the "simple" passive crossfeed circuit by Jan Meier.
  * See also: http://www.meier-audio.homepage.t-online.de/passivefilter.htm
@@ -265,7 +262,6 @@ void crossfeed_meier_process(struct dsp_proc_entry *this,
     state->vcr = vcr;
     state->vdiff = vdiff;
 }
-#endif /* CPU */
 
 /* Update the processing function according to crossfeed type */
 static void update_process_fn(struct dsp_proc_entry *this,

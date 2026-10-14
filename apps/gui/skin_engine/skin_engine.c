@@ -30,9 +30,6 @@
 #include "wps.h"
 #include "file.h"
 #include "misc.h"
-#if CONFIG_TUNER
-#include "radio.h"
-#endif
 #include "gui/list.h"
 #include "skin_engine.h"
 #include "skin_buffer.h"
@@ -65,9 +62,6 @@ static const struct gui_skin_helper * const skin_helpers[SKINNABLE_SCREENS_COUNT
     &empty_skin_helper,
     [CUSTOM_STATUSBAR] = SKH(sb_process, sb_create_from_settings, true),
     [WPS] =  SKH(dummy_process, wps_default_skin, true),
-#if CONFIG_TUNER
-    [FM_SCREEN] = SKH(dummy_process, default_radio_skin, false),
-#endif
 };
 
 static struct gui_skin {
@@ -113,22 +107,13 @@ static void gui_skin_reset(struct gui_skin *skin)
     skin->data.wps_loaded = false;
     skin->data.buflib_handle = -1;
     skin->data.tree = -1;
-#ifdef HAVE_TOUCHSCREEN
-    skin->data.touchregions = -1;
-    gesture_reset(&skin->data.gesture);
-#endif
-#ifdef HAVE_SKIN_VARIABLES
-    skin->data.skinvars = -1;
-#endif
     skin->data.font_ids = -1;
     skin->data.images = -1;
 #ifdef HAVE_ALBUMART
     skin->data.albumart = -1;
     skin->data.playback_aa_slot = -1;
 #endif
-#ifdef HAVE_BACKDROP_IMAGE
     skin->gui_wps.data->backdrop_id = -1;
-#endif
 }
 
 void gui_sync_skin_init(void)
@@ -139,10 +124,8 @@ void gui_sync_skin_init(void)
         FOR_NB_SCREENS(i)
         {
             skin_data_free_buflib_allocs(&skins[j][i].data);
-#ifdef HAVE_BACKDROP_IMAGE
             if (skins[j][i].data.backdrop_id != -1)
                 skin_backdrop_unload(skins[j][i].data.backdrop_id);
-#endif
             gui_skin_reset(&skins[j][i]);
             skins[j][i].gui_wps.display = &screens[i];
         }
@@ -156,10 +139,8 @@ static void skin_reset_buffers(int item, int screen)
     if (skins[item][screen].data.playback_aa_slot >= 0)
         playback_release_aa_slot(skins[item][screen].data.playback_aa_slot);
 #endif
-#ifdef HAVE_BACKDROP_IMAGE
     if (skins[item][screen].data.backdrop_id >= 0)
         skin_backdrop_unload(skins[item][screen].data.backdrop_id);
-#endif
 }
 
 void settings_apply_skins(void)
@@ -224,10 +205,8 @@ static void skin_load(enum skinnable_screens skin, enum screen_type screen,
 
     skins[skin][screen].needs_full_update = true;
     skin_helpers[skin]->process(screen, &skins[skin][screen].data, false);
-#ifdef HAVE_BACKDROP_IMAGE
     if (loaded)
         skin_backdrops_preload();
-#endif
 }
 
 static char* get_skin_filename(enum skinnable_screens skin, enum screen_type screen,
@@ -238,49 +217,17 @@ static char* get_skin_filename(enum skinnable_screens skin, enum screen_type scr
     switch (skin)
     {
         case CUSTOM_STATUSBAR:
-#if defined(HAVE_REMOTE_LCD) && NB_SCREENS > 1
-            if (screen == SCREEN_REMOTE)
-            {
-                setting = global_settings.rsbs_file;
-                ext = "rsbs";
-            }
-            else
-#endif
             {
                 setting = global_settings.sbs_file;
                 ext = "sbs";
             }
             break;
         case WPS:
-#if defined(HAVE_REMOTE_LCD) && NB_SCREENS > 1
-            if (screen == SCREEN_REMOTE)
-            {
-                setting = global_settings.rwps_file;
-                ext = "rwps";
-            }
-            else
-#endif
             {
                 setting = global_settings.wps_file;
                 ext = "wps";
             }
             break;
-#if CONFIG_TUNER
-        case FM_SCREEN:
-#if defined(HAVE_REMOTE_LCD) && NB_SCREENS > 1
-            if (screen == SCREEN_REMOTE)
-            {
-                setting = global_settings.rfms_file;
-                ext = "rfms";
-            }
-            else
-#endif
-            {
-                setting = global_settings.fms_file;
-                ext = "fms";
-            }
-            break;
-#endif
         default:
             return NULL;
     }
@@ -343,21 +290,16 @@ void skin_request_update_locked(bool locked)
     /* fix themes that draw on top of the UI viewport when locked */
     if (!locked)
         skin_request_full_update(CUSTOM_STATUSBAR);
-#ifdef HAS_BUTTON_HOLD
-    button_queue_post(BUTTON_NONE, 0);
-#endif
 }
 
 bool dbg_skin_engine(void)
 {
     struct simplelist_info info;
     int i, total = 0;
-#if defined(HAVE_BACKDROP_IMAGE)
     int ref_count;
     char *path;
     size_t bytes;
     int path_prefix_len = strlen(ROCKBOX_DIR "/wps/");
-#endif
     simplelist_info_init(&info, "Skin engine usage", 0, NULL);
     simplelist_reset_lines();
     FOR_NB_SCREENS(j) {
@@ -382,7 +324,6 @@ bool dbg_skin_engine(void)
         }
     }
     simplelist_addline("%s usage: %d bytes", "Skin total", total);
-#if defined(HAVE_BACKDROP_IMAGE)
     simplelist_setline("Backdrop Images:");
     i = 0;
     while (skin_backdrop_get_debug(i++, &path, &ref_count, &bytes)) {
@@ -397,6 +338,5 @@ bool dbg_skin_engine(void)
         }
     }
     simplelist_addline("%s usage: %d bytes", "Total", total);
-#endif
     return simplelist_show_list(&info);
 }

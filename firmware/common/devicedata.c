@@ -24,7 +24,6 @@
 #include <string.h>
 #include "debug.h"
 
-#ifndef BOOTLOADER
 void verify_device_data(void) INIT_ATTR;
 void verify_device_data(void)
 {
@@ -42,15 +41,12 @@ void verify_device_data(void)
 }
 
 /******************************************************************************/
-#endif /* ndef BOOTLOADER ******************************************************/
 /******************************************************************************/
 
-#if defined(HAVE_DEVICEDATA)
 void  __attribute__((weak)) fill_devicedata(struct device_data_t *data)
 {
     memset(data->payload, 0xff, data->length);
 }
-#endif
 
 /* Write bootdata into location in FIRMWARE marked by magic header
  * Assumes buffer is already loaded with the firmware image

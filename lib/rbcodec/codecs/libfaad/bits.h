@@ -172,12 +172,7 @@ static INLINE uint8_t faad_get1bit(bitfile *ld DEBUGDEC)
     }
 
     /* bits_left == 0 */
-#if 0
-    r = (uint8_t)(ld->bufb >> 31);
-    faad_flushbits_ex(ld, 1);
-#else
     r = (uint8_t)faad_getbits(ld, 1);
-#endif
     return r;
 }
 

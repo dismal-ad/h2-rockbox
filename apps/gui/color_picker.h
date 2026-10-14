@@ -19,9 +19,6 @@
  ****************************************************************************/
 #include "screen_access.h"
 
-#ifdef HAVE_LCD_COLOR /* this file is a bit useless on non color lcds.. */
-
 bool set_color(struct screen *display, char *title,
                unsigned *color, unsigned banned_color);
 
-#endif

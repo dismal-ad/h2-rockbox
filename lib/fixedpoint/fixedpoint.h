@@ -88,11 +88,7 @@ long ipow(long x, long y);
 
 /* fast unsigned multiplication (16x16bit->32bit or 32x32bit->32bit,
  * whichever is faster for the architecture) */
-#ifdef CPU_ARM
-#define FMULU(a, b) ((uint32_t) (((uint32_t) (a)) * ((uint32_t) (b))))
-#else /* SH1, coldfire */
 #define FMULU(a, b) ((uint32_t) (((uint16_t) (a)) * ((uint16_t) (b))))
-#endif
 
 /** MODIFIED FROM replaygain.c */
 #define FP_INF          (0x7fffffff)

@@ -134,9 +134,7 @@ MENUITEM_SETTING(depth_3d, &global_settings.depth_3d, NULL);
 MENUITEM_SETTING(roll_off, &global_settings.roll_off, NULL);
 #endif
 
-#ifdef HAVE_EROS_QN_CODEC
 MENUITEM_SETTING(hp_lo_select, &global_settings.hp_lo_select,NULL);
-#endif
 
 #ifdef AUDIOHW_HAVE_POWER_MODE
 MENUITEM_SETTING(power_mode, &global_settings.power_mode, NULL);
@@ -256,9 +254,7 @@ MAKE_MENU(sound_settings, ID2P(LANG_SOUND_SETTINGS), NULL, Icon_Audio,
 #ifdef AUDIOHW_HAVE_FILTER_ROLL_OFF
           ,&roll_off
 #endif
-#ifdef HAVE_EROS_QN_CODEC
           ,&hp_lo_select
-#endif
 #ifdef AUDIOHW_HAVE_POWER_MODE
           ,&power_mode
 #endif

@@ -33,13 +33,6 @@ void reset_profile_timers(void)
 {
     RESET_TIMER(total);
     RESET_TIMER(render);
-#if 0
-    RESET_TIMER(cpu);
-    RESET_TIMER(dsp);
-    RESET_TIMER(dsp_pregen);
-    RESET_TIMER(dsp_gen);
-    RESET_TIMER(dsp_mix);
-#endif
 }
 
 void print_timers(char * path)
@@ -48,14 +41,6 @@ void print_timers(char * path)
     ci->fdprintf(logfd,"%s:\t",path);
     ci->fdprintf(logfd,"%10ld total\t",READ_TIMER(total));
     PRINT_TIMER_PCT(render,total,"render");
-#if 0
-    PRINT_TIMER_PCT(cpu,total,"CPU");
-    PRINT_TIMER_PCT(dsp,total,"DSP");
-    ci->fdprintf(logfd,"(");
-    PRINT_TIMER_PCT(dsp_pregen,dsp,"pregen");
-    PRINT_TIMER_PCT(dsp_gen,dsp,"gen");
-    PRINT_TIMER_PCT(dsp_mix,dsp,"mix");
-#endif
     ci->fdprintf(logfd,"\n");
     
     ci->close(logfd);

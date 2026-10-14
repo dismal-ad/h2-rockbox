@@ -42,13 +42,8 @@
 #define LAST_ITEM_IN_LIST { CONTEXT_STOPSEARCHING, BUTTON_NONE, BUTTON_NONE }
 #define LAST_ITEM_IN_LIST__NEXTLIST(a) { a, BUTTON_NONE, BUTTON_NONE }
 
-#if !defined(HAS_BUTTON_HOLD)
 #define ALLOW_SOFTLOCK 0x08000000 /* will be stripped.. never needed except in calls to get_action() */
-#else
-#define ALLOW_SOFTLOCK 0
-#endif
 
-#if defined(HAVE_BACKLIGHT) || !defined(HAS_BUTTON_HOLD)
 /* Selective action selection flags */
 #define SEL_ACTION_NONE       0
 #define SEL_ACTION_VOL        0x001U
@@ -68,7 +63,6 @@
 #define SEL_ACTION_ENABLED    0x800U
 /* Selective Actions flags */
 
-#if !defined(HAS_BUTTON_HOLD)
 /* returns true if keys_locked and screen_has_lock */
 bool is_keys_locked(void);
 
@@ -81,16 +75,10 @@ void set_selective_softlock_actions(bool selective, unsigned int mask);
  * also arm autolock if enabled. */
 void action_autosoftlock_init(void);
 
-#endif /* !defined(HAS_BUTTON_HOLD) */
-
-#if defined(HAVE_BACKLIGHT)
 /* Enable selected actions to leave the backlight off
 * mask is combination of Selective action selection flags */
 void set_selective_backlight_actions(bool selective, unsigned int mask,
                                                              bool filter_fkp);
-#endif
-
-#endif /* defined(HAVE_BACKLIGHT) || !defined(HAS_BUTTON_HOLD) */
 
 enum {
     CONTEXT_STD = 0,
@@ -182,11 +170,6 @@ enum {
     ACTION_WPS_LIST_BOOKMARKS,/* optional */
     ACTION_WPS_CREATE_BOOKMARK,/* optional */
     ACTION_WPS_REC,
-#if 0
-    ACTION_WPSAB_SINGLE, /* This needs to be #defined in
-                            the config-<target>.h to one of the ACTION_WPS_ actions
-                            so it can be used */
-#endif
     ACTION_WPS_ABSETA_PREVDIR, /* these should be safe to put together seen as */
     ACTION_WPS_ABSETB_NEXTDIR, /* you shouldnt want to change dir in ab-mode */
     ACTION_WPS_ABRESET,
@@ -195,10 +178,8 @@ enum {
     /* list and tree page up/down */
     ACTION_LISTTREE_PGUP,/* optional */
     ACTION_LISTTREE_PGDOWN,/* optional */
-#ifdef HAVE_VOLUME_IN_LIST
     ACTION_LIST_VOLUP,
     ACTION_LIST_VOLDOWN,
-#endif
 
     /* tree */
     ACTION_TREE_ROOT_INIT,
@@ -294,21 +275,6 @@ enum {
     ACTION_KBD_DOWN,
     ACTION_KBD_MORSE_INPUT,
     ACTION_KBD_MORSE_SELECT,
-
-#ifdef HAVE_TOUCHSCREEN
-    /* the following are helper actions for touchscreen targets,
-     * These are for actions which are not doable or required if buttons are
-     * being used, but are nice additions if the touchscreen is used */
-    ACTION_TOUCH_SHUFFLE,
-    ACTION_TOUCH_REPMODE,
-    ACTION_TOUCH_MUTE,
-    ACTION_TOUCH_SCROLLBAR,
-    ACTION_TOUCH_SCROLLBAR_SET,
-    ACTION_TOUCH_SCROLLBAR_END,
-    ACTION_TOUCH_VOLUME,
-    ACTION_TOUCH_SOFTLOCK,
-    ACTION_TOUCH_SETTING,
-#endif
 
     /* USB HID codes */
     ACTION_USB_HID_FIRST, /* Place holder */
@@ -416,27 +382,6 @@ int get_action_statuscode(int *button);
 /* returns the data value associated with the last action that is not
    BUTTON_NONE or flagged with SYS_EVENT */
 intptr_t get_action_data(void);
-
-#ifdef HAVE_TOUCHSCREEN
-/* Return a touch event and screen coordinates of the touch. */
-int action_get_touch_event(struct touchevent *ev);
-
-/* Action system gesture recognition */
-void action_gesture_reset(void);
-bool action_gesture_get_event_in_vp(struct gesture_event *gevt,
-                                    const struct viewport *vp);
-bool action_gesture_is_valid(void);
-bool action_gesture_is_pressed(void);
-
-static inline bool action_gesture_get_event(struct gesture_event *gevt)
-{
-    return action_gesture_get_event_in_vp(gevt, NULL);
-}
-
-/* DEPRECATED, do not use these anymore */
-int action_get_touchscreen_press(short *x, short *y);
-int action_get_touchscreen_press_in_vp(short *x1, short *y1, struct viewport *vp);
-#endif
 
 /*******************************************************
 * action_wait_for_release will not allow

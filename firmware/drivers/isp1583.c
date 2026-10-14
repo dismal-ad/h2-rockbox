@@ -55,14 +55,7 @@ struct usb_endpoint
 static unsigned char setup_pkt_buf[8];
 static struct usb_endpoint endpoints[USB_NUM_ENDPOINTS];
 
-#if 0
-#define ZVM_SPECIFIC                asm volatile( \
-                                                 "LDR     R12, =0x50FFC000\n" \
-                                                 "LDRH    R12, [R12]\n"  \
-                                                 : : : "r12");
-#else
 #define ZVM_SPECIFIC
-#endif
 
 static bool high_speed_mode = false;
 
@@ -383,11 +376,7 @@ static void usb_handle_data_int(int ep, int dir)
 
 bool usb_drv_powered(void)
 {
-#if 0
-    return (ISP1583_INIT_OTG & INIT_OTG_BSESS_VALID) ? true : false;
-#else
     return (ISP1583_INIT_MODE & INIT_MODE_VBUSSTAT) ? true : false;
-#endif
 }
 
 static void setup_endpoints(void)
@@ -419,17 +408,6 @@ static void setup_endpoints(void)
 
     ZVM_SPECIFIC;
 }
-
-#if 0 /* currently unused */
-static void usb_helper(void)
-{
-    if(ISP1583_GEN_INT_READ & ISP1583_INIT_INTEN_READ)
-    {
-        logf("Helper detected interrupt... [%d]", (int)current_tick);
-        usb_drv_int();
-    }
-}
-#endif
 
 void usb_drv_init(void)
 {
@@ -775,7 +753,6 @@ void usb_drv_set_test_mode(int mode)
     }
 }
 
-#ifndef BOOTLOADER
 int dbg_usb_num_items(void)
 {
     return 2+USB_NUM_ENDPOINTS*2;
@@ -823,7 +800,6 @@ const char* dbg_usb_item(int selected_item, void *data,
     return NULL;
     (void)data;
 }
-#endif
 
 static bool handle_set_address(struct usb_ctrlrequest *req)
 {

@@ -24,8 +24,6 @@
 
 #include "config.h"
 
-#ifndef HAVE_CORELOCK_OBJECT
-
 /* No atomic corelock op needed or just none defined */
 #define corelock_init(cl) \
     do {} while (0)
@@ -35,22 +33,5 @@
     do {} while (0)
 #define corelock_unlock(cl) \
     do {} while (0)
-
-#else
-
-/* No reliable atomic instruction available - use Peterson's algorithm */
-struct corelock
-{
-    volatile unsigned char myl[NUM_CORES];
-    volatile unsigned char turn;
-} __attribute__((packed));
-
-/* Too big to inline everywhere */
-extern void corelock_init(struct corelock *cl);
-extern void corelock_lock(struct corelock *cl);
-extern int  corelock_try_lock(struct corelock *cl);
-extern void corelock_unlock(struct corelock *cl);
-
-#endif /* HAVE_CORELOCK_OBJECT */
 
 #endif /* CORELOCK_H */

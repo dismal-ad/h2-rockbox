@@ -346,50 +346,6 @@ static bool quickscreen_do_button(struct quickscreen * qs, int button,
     return true;
 }
 
-#ifdef HAVE_TOUCHSCREEN
-static int quickscreen_touchscreen_button(void)
-{
-    struct gesture_event gevent;
-    if (!action_gesture_get_event(&gevent))
-        return ACTION_NONE;
-
-    switch (gevent.id) {
-    case GESTURE_TAP:
-    case GESTURE_HOLD:
-        break;
-    default:
-        return ACTION_NONE;
-    }
-
-    enum { left=1, right=2, top=4, bottom=8 };
-
-    int bits = 0;
-
-    if(gevent.x < LCD_WIDTH/3)
-        bits |= left;
-    else if(gevent.x > 2*LCD_WIDTH/3)
-        bits |= right;
-
-    if(gevent.y < LCD_HEIGHT/3)
-        bits |= top;
-    else if(gevent.y > 2*LCD_HEIGHT/3)
-        bits |= bottom;
-
-    switch(bits) {
-    case top:
-        return ACTION_QS_TOP;
-    case bottom:
-        return ACTION_QS_DOWN;
-    case left:
-        return ACTION_QS_LEFT;
-    case right:
-        return ACTION_QS_RIGHT;
-    default:
-        return ACTION_STD_CANCEL;
-    }
-}
-#endif
-
 /* Undo activity, viewport, and event listener setup. */
 static void cleanup(void *parameter)
 {
@@ -448,16 +404,9 @@ static void quickscreen_main(struct quickscreen * qs)
     if (qs->items[QUICKSCREEN_LEFT] != qs->items[QUICKSCREEN_RIGHT])
         talk_qs_option(qs->items[QUICKSCREEN_RIGHT], true);
 
-#ifdef HAVE_TOUCHSCREEN
-    action_gesture_reset();
-#endif
     while (true)
     {
         button = get_action(CONTEXT_QUICKSCREEN, HZ/5);
-#ifdef HAVE_TOUCHSCREEN
-        if (button == ACTION_TOUCHSCREEN)
-            button = quickscreen_touchscreen_button();
-#endif
         if (default_event_handler_ex(button, cleanup, qs)
             == SYS_USB_CONNECTED)
         {

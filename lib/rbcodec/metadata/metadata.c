@@ -214,10 +214,8 @@ const struct afmt_entry audio_formats[AFMT_NUM_CODECS] =
     [AFMT_AY] =
         AFMT_ENTRY("AY",    "ay",  "N/A", get_ay_metadata,           "ay\0"),
     /* AY (ZX Spectrum Sound Format) */
-#ifdef HAVE_FPU
     [AFMT_VTX] =
         AFMT_ENTRY("VTX",   "vtx", "N/A", get_vtx_metadata,          "vtx\0"),
-#endif
     /* GBS (Game Boy Sound Format) */
     [AFMT_GBS] =
         AFMT_ENTRY("GBS",   "gbs",  "N/A",       get_gbs_metadata,   "gbs\0"),
@@ -242,48 +240,6 @@ const struct afmt_entry audio_formats[AFMT_NUM_CODECS] =
     [AFMT_DSD] =
         AFMT_ENTRY("DSD", "dsd", "N/A", get_dsd_metadata, "dsf\0dff\0iso\0"),
 };
-
-#if defined (HAVE_RECORDING)
-inline const char *get_codec_enc_root_fn(int type) /* filename of encoder codec */
-{
-    /* NOTE these are the same as above audio_formats but only enc_root_fname is used.. */
-    if (type == AFMT_MPA_L3)
-        return AFMT_ENTRY_ENC("MP3",   "mpa",  "mp3_enc",  get_mp3_metadata,   "mp3\0");
-    if (type == AFMT_AIFF)
-        return AFMT_ENTRY_ENC("AIFF",  "aiff", "aiff_enc", get_aiff_metadata,  "aiff\0aif\0");
-    if (type == AFMT_PCM_WAV)
-        return AFMT_ENTRY_ENC("WAV",   "wav",  "wav_enc",  get_wave_metadata,  "wav\0at3\0");
-    if (AFMT_WAVPACK)
-        return AFMT_ENTRY_ENC("WV","wavpack","wavpack_enc",get_wavpack_metadata,"wv\0");
-    return NULL;
-}
-
-/* get REC_FORMAT_* corresponding AFMT_* */
-const int rec_format_afmt[REC_NUM_FORMATS] =
-{
-    /* give AFMT_UNKNOWN by default */
-    [0 ... REC_NUM_FORMATS-1] = AFMT_UNKNOWN,
-    /* add new entries below this line */
-    [REC_FORMAT_AIFF]    = AFMT_AIFF,
-    [REC_FORMAT_MPA_L3]  = AFMT_MPA_L3,
-    [REC_FORMAT_WAVPACK] = AFMT_WAVPACK,
-    [REC_FORMAT_PCM_WAV] = AFMT_PCM_WAV,
-};
-
-#if 0 /* Currently unused, left for reference and future use */
-/* get AFMT_* corresponding REC_FORMAT_* */
-const int afmt_rec_format[AFMT_NUM_CODECS] =
-{
-    /* give -1 by default */
-    [0 ... AFMT_NUM_CODECS-1] = -1,
-    /* add new entries below this line */
-    [AFMT_AIFF]    = REC_FORMAT_AIFF,
-    [AFMT_MPA_L3]  = REC_FORMAT_MPA_L3,
-    [AFMT_WAVPACK] = REC_FORMAT_WAVPACK,
-    [AFMT_PCM_WAV] = REC_FORMAT_PCM_WAV,
-};
-#endif
-#endif /* defined (HAVE_RECORDING) */
 
 /* Get the canonical AFMT type */
 int get_audio_base_codec_type(int type)
@@ -349,9 +305,7 @@ bool rbcodec_format_is_atomic(int afmt)
     case AFMT_MOD:
     case AFMT_SAP:
     case AFMT_AY:
-#ifdef HAVE_FPU
     case AFMT_VTX:
-#endif
     case AFMT_GBS:
     case AFMT_HES:
     case AFMT_SGC:

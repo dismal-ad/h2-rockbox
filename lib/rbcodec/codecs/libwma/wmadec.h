@@ -59,12 +59,6 @@
 #define IBSS_ATTR_WMA_XL_IRAM
 #define ICONST_ATTR_WMA_XL_IRAM
 
-#elif defined(CPU_S5L87XX)
-/* S5L87xx has even more IRAM. Use it. */
-#define IBSS_ATTR_WMA_LARGE_IRAM IBSS_ATTR
-#define IBSS_ATTR_WMA_XL_IRAM    IBSS_ATTR
-#define ICONST_ATTR_WMA_XL_IRAM  ICONST_ATTR
-
 #else
 /* other PP's and MCF5249 have 96KB of IRAM */
 #define IBSS_ATTR_WMA_LARGE_IRAM

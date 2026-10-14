@@ -3,10 +3,6 @@
 
 #include "codeclib.h" 
 
-#ifdef CPU_ARM
-#define _ARM_ASSEM_
-#endif
-
 #ifndef BYTE_ORDER
 #ifdef ROCKBOX_BIG_ENDIAN
 #define BIG_ENDIAN 1
@@ -28,24 +24,6 @@
    * No special iram, uses double buffers to avoid copying data
    * Small special iram, copies buffers to run hottest processing in iram
    * Large iram, uses double buffers in iram */
-#ifdef USE_IRAM
-#define TREMOR_USE_IRAM
-
-/* Define CPU of large IRAM (PP5022/5024, S5L87XX, MCF5250)     */
-#if (CONFIG_CPU == PP5022) || (CONFIG_CPU == PP5024) || defined(CPU_S5L87XX) || (CONFIG_CPU == MCF5250)
-/* PCM_BUFFER    : 32768 byte (4096*2*4 or 2048*4*4)   *
- * WINDOW_LOOKUP : 9216 Byte (256*4 + 2048*4)          *
- * TOTAL         : 41984                               */
-#define IRAM_IBSS_SIZE 41984
-
-/* Define CPU of Normal IRAM (96KB)                    */
-#else
-/* floor and double residue buffer : 24576 Byte (2048/2*4*2*3)  *
- * WINDOW_LOOKUP                   : 4608 Byte (128*4 + 1024*4) *
- * TOTAL                           : 29184                      */
-#define IRAM_IBSS_SIZE 29184
-#endif
-#endif
 
 /* max 2 channels  */
 #define CHANNELS 2

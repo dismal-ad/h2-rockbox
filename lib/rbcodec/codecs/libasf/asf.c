@@ -113,13 +113,6 @@ int asf_read_packet(uint8_t** audiobuf, int* audiobufsize, int* packetlength,
               GETLEN2b((packet_flags >> 3) & 0x03) +
               GETLEN2b((packet_flags >> 5) & 0x03) + 6;
 
-#if 0
-    if (datalen > sizeof(data)) {
-        DEBUGF("Unexpectedly long datalen in data - %d\n",datalen);
-        return ASF_ERROR_OUTOFMEM;
-    }
-#endif
-
     if (ci->read_filebuf(data, datalen) == 0) {
         return ASF_ERROR_EOF;
     }
@@ -214,12 +207,6 @@ int asf_read_packet(uint8_t** audiobuf, int* audiobufsize, int* packetlength,
                          GETLEN2b((packet_property >> 4) & 0x03);
 
         //DEBUGF("payload_hdrlen = %d\n",payload_hdrlen);
-#if 0
-        /* TODO */
-        if (payload_hdrlen > size) {
-            return ASF_ERROR_INVALID_LENGTH;
-        }
-#endif
         if (payload_hdrlen > sizeof(data)) {
             DEBUGF("Unexpectedly long datalen in data - %d\n",datalen);
             return ASF_ERROR_OUTOFMEM;
@@ -251,12 +238,6 @@ int asf_read_packet(uint8_t** audiobuf, int* audiobufsize, int* packetlength,
                 return ASF_ERROR_INVALID_VALUE;
             }
 
-#if 0
-            if (skip + tmp > datalen) {
-                /* not enough data */
-                return ASF_ERROR_INVALID_LENGTH;
-            }
-#endif
             payload_datalen = GETVALUE2b(payload_length_type, datap);
             datap += x;
             bytesread += x;

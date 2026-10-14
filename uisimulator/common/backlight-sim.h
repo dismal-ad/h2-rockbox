@@ -27,16 +27,7 @@ bool backlight_hw_init(void);
 void backlight_hw_on(void);
 void backlight_hw_off(void);
 
-#ifdef HAVE_BACKLIGHT_BRIGHTNESS
 void backlight_hw_brightness(int val);
-#endif /* HAVE_BACKLIGHT_BRIGHTNESS */
-#ifdef HAVE_BUTTON_LIGHT
-void buttonlight_hw_on(void);
-void buttonlight_hw_off(void);
-#ifdef HAVE_BUTTONLIGHT_BRIGHTNESS
-void buttonlight_hw_brightness(int val);
-#endif /* HAVE_BUTTONLIGHT_BRIGHTNESS */
-#endif /* HAVE_BUTTON_LIGHT */
 
 #endif /* BACKLIGHT_SIM_H */
 

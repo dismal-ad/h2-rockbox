@@ -64,11 +64,6 @@ void viewportmanager_theme_changed(const int);
 void viewport_set_buffer(struct viewport *vp, struct frame_buffer_t *buffer,
                                                 const enum screen_type screen);
 
-#ifdef HAVE_TOUCHSCREEN
-bool viewport_point_within_vp(const struct viewport *vp,
-                               const int x, const int y);
-#endif
-
 #endif /* __PCTOOL__ */
 
 #endif /* __VIEWPORT_H__ */

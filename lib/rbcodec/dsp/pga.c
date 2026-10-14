@@ -97,7 +97,6 @@ void pga_enable_gain(enum pga_gain_ids id, bool enable)
 
 /** DSP interface **/
 
-#if !defined(CPU_COLDFIRE) && !defined(CPU_ARM)
 /* Apply a constant gain to the samples (e.g., for ReplayGain). */
 void pga_process(struct dsp_proc_entry *this, struct dsp_buffer **buf_p)
 {
@@ -116,7 +115,6 @@ void pga_process(struct dsp_proc_entry *this, struct dsp_buffer **buf_p)
 
     (void)this;
 }
-#endif /* CPU */
 
 /* DSP message hook */
 static intptr_t pga_configure(struct dsp_proc_entry *this,

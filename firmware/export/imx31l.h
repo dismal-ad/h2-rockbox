@@ -179,10 +179,6 @@
 #define IOMUXC_PAD_PUS                  (0x3 << 5)
 #define IOMUXC_PAD_PUS_DOWN_100K        (0x0 << 5)
 #define IOMUXC_PAD_PUS_UP_100K          (0x1 << 5)
-#if 0 /* Completeness */
-#define IOMUXC_PAD_PUS_UP_47K           (0x2 << 5) /* Not in IMX31/L */
-#define IOMUXC_PAD_PUS_UP_22K           (0x3 << 5) /* Not in IMX31/L */
-#endif
 #define IOMUXC_PAD_HYS                  (0x1 << 4) /* Schmitt trigger input */
 #define IOMUXC_PAD_ODE                  (0x1 << 3) /* Open drain output 0=CMOS pushpull*/
 #define IOMUXC_PAD_DSE                  (0x3 << 1)

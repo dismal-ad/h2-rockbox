@@ -88,42 +88,11 @@ char* NEAACDECAPI NeAACDecGetErrorMessage(uint8_t errcode)
 }
 
 /* rockbox: not used */
-#if 0
-uint32_t NEAACDECAPI NeAACDecGetCapabilities(void)
-{
-    uint32_t cap = 0;
-
-    /* can't do without it */
-    cap += LC_DEC_CAP;
-
-#ifdef MAIN_DEC
-    cap += MAIN_DEC_CAP;
-#endif
-#ifdef LTP_DEC
-    cap += LTP_DEC_CAP;
-#endif
-#ifdef LD_DEC
-    cap += LD_DEC_CAP;
-#endif
-#ifdef ERROR_RESILIENCE
-    cap += ERROR_RESILIENCE_CAP;
-#endif
-#ifdef FIXED_POINT
-    cap += FIXED_POINT_CAP;
-#endif
-
-    return cap;
-}
-#endif
 
 NeAACDecHandle NEAACDECAPI NeAACDecOpen(void)
 {
     uint8_t i;
     NeAACDecHandle hDecoder = NULL;
-
-    #if defined(CPU_COLDFIRE)
-    coldfire_set_macsr(EMAC_FRACTIONAL | EMAC_SATURATE);
-    #endif
 
     hDecoder = &s_AACDec;
 
@@ -545,212 +514,6 @@ void NEAACDECAPI NeAACDecPostSeekReset(NeAACDecHandle hDecoder, int32_t frame)
 }
 
 /* not used by rockbox */
-#if 0
-static void create_channel_config(NeAACDecHandle hDecoder, NeAACDecFrameInfo *hInfo)
-{
-    hInfo->num_front_channels = 0;
-    hInfo->num_side_channels = 0;
-    hInfo->num_back_channels = 0;
-    hInfo->num_lfe_channels = 0;
-    memset(hInfo->channel_position, 0, MAX_CHANNELS*sizeof(uint8_t));
-
-    if (hDecoder->downMatrix)
-    {
-        hInfo->num_front_channels = 2;
-        hInfo->channel_position[0] = FRONT_CHANNEL_LEFT;
-        hInfo->channel_position[1] = FRONT_CHANNEL_RIGHT;
-        return;
-    }
-
-    /* check if there is a PCE */
-    if (hDecoder->pce_set)
-    {
-        uint8_t i, chpos = 0;
-        uint8_t chdir, back_center = 0;
-
-        hInfo->num_front_channels = hDecoder->pce.num_front_channels;
-        hInfo->num_side_channels = hDecoder->pce.num_side_channels;
-        hInfo->num_back_channels = hDecoder->pce.num_back_channels;
-        hInfo->num_lfe_channels = hDecoder->pce.num_lfe_channels;
-
-        chdir = hInfo->num_front_channels;
-        if (chdir & 1)
-        {
-            hInfo->channel_position[chpos++] = FRONT_CHANNEL_CENTER;
-            chdir--;
-        }
-        for (i = 0; i < chdir; i += 2)
-        {
-            hInfo->channel_position[chpos++] = FRONT_CHANNEL_LEFT;
-            hInfo->channel_position[chpos++] = FRONT_CHANNEL_RIGHT;
-        }
-
-        for (i = 0; i < hInfo->num_side_channels; i += 2)
-        {
-            hInfo->channel_position[chpos++] = SIDE_CHANNEL_LEFT;
-            hInfo->channel_position[chpos++] = SIDE_CHANNEL_RIGHT;
-        }
-
-        chdir = hInfo->num_back_channels;
-        if (chdir & 1)
-        {
-            back_center = 1;
-            chdir--;
-        }
-        for (i = 0; i < chdir; i += 2)
-        {
-            hInfo->channel_position[chpos++] = BACK_CHANNEL_LEFT;
-            hInfo->channel_position[chpos++] = BACK_CHANNEL_RIGHT;
-        }
-        if (back_center)
-        {
-            hInfo->channel_position[chpos++] = BACK_CHANNEL_CENTER;
-        }
-
-        for (i = 0; i < hInfo->num_lfe_channels; i++)
-        {
-            hInfo->channel_position[chpos++] = LFE_CHANNEL;
-        }
-
-    } else {
-        switch (hDecoder->channelConfiguration)
-        {
-        case 1:
-            hInfo->num_front_channels = 1;
-            hInfo->channel_position[0] = FRONT_CHANNEL_CENTER;
-            break;
-        case 2:
-            hInfo->num_front_channels = 2;
-            hInfo->channel_position[0] = FRONT_CHANNEL_LEFT;
-            hInfo->channel_position[1] = FRONT_CHANNEL_RIGHT;
-            break;
-        case 3:
-            hInfo->num_front_channels = 3;
-            hInfo->channel_position[0] = FRONT_CHANNEL_CENTER;
-            hInfo->channel_position[1] = FRONT_CHANNEL_LEFT;
-            hInfo->channel_position[2] = FRONT_CHANNEL_RIGHT;
-            break;
-        case 4:
-            hInfo->num_front_channels = 3;
-            hInfo->num_back_channels = 1;
-            hInfo->channel_position[0] = FRONT_CHANNEL_CENTER;
-            hInfo->channel_position[1] = FRONT_CHANNEL_LEFT;
-            hInfo->channel_position[2] = FRONT_CHANNEL_RIGHT;
-            hInfo->channel_position[3] = BACK_CHANNEL_CENTER;
-            break;
-        case 5:
-            hInfo->num_front_channels = 3;
-            hInfo->num_back_channels = 2;
-            hInfo->channel_position[0] = FRONT_CHANNEL_CENTER;
-            hInfo->channel_position[1] = FRONT_CHANNEL_LEFT;
-            hInfo->channel_position[2] = FRONT_CHANNEL_RIGHT;
-            hInfo->channel_position[3] = BACK_CHANNEL_LEFT;
-            hInfo->channel_position[4] = BACK_CHANNEL_RIGHT;
-            break;
-        case 6:
-            hInfo->num_front_channels = 3;
-            hInfo->num_back_channels = 2;
-            hInfo->num_lfe_channels = 1;
-            hInfo->channel_position[0] = FRONT_CHANNEL_CENTER;
-            hInfo->channel_position[1] = FRONT_CHANNEL_LEFT;
-            hInfo->channel_position[2] = FRONT_CHANNEL_RIGHT;
-            hInfo->channel_position[3] = BACK_CHANNEL_LEFT;
-            hInfo->channel_position[4] = BACK_CHANNEL_RIGHT;
-            hInfo->channel_position[5] = LFE_CHANNEL;
-            break;
-        case 7:
-            hInfo->num_front_channels = 3;
-            hInfo->num_side_channels = 2;
-            hInfo->num_back_channels = 2;
-            hInfo->num_lfe_channels = 1;
-            hInfo->channel_position[0] = FRONT_CHANNEL_CENTER;
-            hInfo->channel_position[1] = FRONT_CHANNEL_LEFT;
-            hInfo->channel_position[2] = FRONT_CHANNEL_RIGHT;
-            hInfo->channel_position[3] = SIDE_CHANNEL_LEFT;
-            hInfo->channel_position[4] = SIDE_CHANNEL_RIGHT;
-            hInfo->channel_position[5] = BACK_CHANNEL_LEFT;
-            hInfo->channel_position[6] = BACK_CHANNEL_RIGHT;
-            hInfo->channel_position[7] = LFE_CHANNEL;
-            break;
-        default: /* channelConfiguration == 0 || channelConfiguration > 7 */
-            {
-                uint8_t i;
-                uint8_t ch = hDecoder->fr_channels - hDecoder->has_lfe;
-                if (ch & 1) /* there's either a center front or a center back channel */
-                {
-                    uint8_t ch1 = (ch-1)/2;
-                    if (hDecoder->first_syn_ele == ID_SCE)
-                    {
-                        hInfo->num_front_channels = ch1 + 1;
-                        hInfo->num_back_channels = ch1;
-                        hInfo->channel_position[0] = FRONT_CHANNEL_CENTER;
-                        for (i = 1; i <= ch1; i+=2)
-                        {
-                            hInfo->channel_position[i] = FRONT_CHANNEL_LEFT;
-                            hInfo->channel_position[i+1] = FRONT_CHANNEL_RIGHT;
-                        }
-                        for (i = ch1+1; i < ch; i+=2)
-                        {
-                            hInfo->channel_position[i] = BACK_CHANNEL_LEFT;
-                            hInfo->channel_position[i+1] = BACK_CHANNEL_RIGHT;
-                        }
-                    } else {
-                        hInfo->num_front_channels = ch1;
-                        hInfo->num_back_channels = ch1 + 1;
-                        for (i = 0; i < ch1; i+=2)
-                        {
-                            hInfo->channel_position[i] = FRONT_CHANNEL_LEFT;
-                            hInfo->channel_position[i+1] = FRONT_CHANNEL_RIGHT;
-                        }
-                        for (i = ch1; i < ch-1; i+=2)
-                        {
-                            hInfo->channel_position[i] = BACK_CHANNEL_LEFT;
-                            hInfo->channel_position[i+1] = BACK_CHANNEL_RIGHT;
-                        }
-                        hInfo->channel_position[ch-1] = BACK_CHANNEL_CENTER;
-                    }
-                } else {
-                    uint8_t ch1 = (ch)/2;
-                    hInfo->num_front_channels = ch1;
-                    hInfo->num_back_channels = ch1;
-                    if (ch1 & 1)
-                    {
-                        hInfo->channel_position[0] = FRONT_CHANNEL_CENTER;
-                        for (i = 1; i <= ch1; i+=2)
-                        {
-                            hInfo->channel_position[i] = FRONT_CHANNEL_LEFT;
-                            hInfo->channel_position[i+1] = FRONT_CHANNEL_RIGHT;
-                        }
-                        for (i = ch1+1; i < ch-1; i+=2)
-                        {
-                            hInfo->channel_position[i] = BACK_CHANNEL_LEFT;
-                            hInfo->channel_position[i+1] = BACK_CHANNEL_RIGHT;
-                        }
-                        hInfo->channel_position[ch-1] = BACK_CHANNEL_CENTER;
-                    } else {
-                        for (i = 0; i < ch1; i+=2)
-                        {
-                            hInfo->channel_position[i] = FRONT_CHANNEL_LEFT;
-                            hInfo->channel_position[i+1] = FRONT_CHANNEL_RIGHT;
-                        }
-                        for (i = ch1; i < ch; i+=2)
-                        {
-                            hInfo->channel_position[i] = BACK_CHANNEL_LEFT;
-                            hInfo->channel_position[i+1] = BACK_CHANNEL_RIGHT;
-                        }
-                    }
-                }
-                hInfo->num_lfe_channels = hDecoder->has_lfe;
-                for (i = ch; i < hDecoder->fr_channels; i++)
-                {
-                    hInfo->channel_position[i] = LFE_CHANNEL;
-                }
-            }
-            break;
-        }
-    }
-}
-#endif
 
 void* NEAACDECAPI NeAACDecDecode(NeAACDecHandle hDecoder,
                                  NeAACDecFrameInfo *hInfo,
@@ -778,10 +541,6 @@ static void* aac_frame_decode(NeAACDecHandle hDecoder, NeAACDecFrameInfo *hInfo,
         return NULL;
     }
 
-#if 0
-    printf("%d\n", buffer_size*8);
-#endif
-
     frame_len = hDecoder->frameLength;
 
 
@@ -790,24 +549,6 @@ static void* aac_frame_decode(NeAACDecHandle hDecoder, NeAACDecFrameInfo *hInfo,
 
     /* initialize the bitstream */
     faad_initbits(&ld, buffer, buffer_size);
-
-#if 0
-    {
-        int i;
-        for (i = 0; i < ((buffer_size+3)>>2); i++)
-        {
-            uint8_t *buf;
-            uint32_t temp = 0;
-            buf = faad_getbitbuffer(&ld, 32);
-            //temp = getdword((void*)buf);
-            temp = *((uint32_t*)buf);
-            printf("0x%.8X\n", temp);
-            free(buf);
-        }
-        faad_endbits(&ld);
-        faad_initbits(&ld, buffer, buffer_size);
-    }
-#endif
 
 #ifdef DRM
     if (hDecoder->object_type == DRM_ER_LC)

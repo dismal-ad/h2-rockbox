@@ -324,10 +324,6 @@ int decode_init(asf_waveformatex_t *wfx)
         s->channel[i].out = g_out_multichannel[i-2];
 #endif
 
-#if defined(CPU_COLDFIRE)
-    coldfire_set_macsr(EMAC_FRACTIONAL | EMAC_SATURATE);
-#endif
-
     init_put_bits(&s->pb, s->frame_data, MAX_FRAMESIZE);
 
     if (wfx->datalen >= 18) {
@@ -508,12 +504,6 @@ int decode_init(asf_waveformatex_t *wfx)
         s->subwoofer_cutoffs[i] = av_clip(cutoff, 4, block_size);
     }
 
-#if 0
-    /** calculate sine values for the decorrelation matrix */
-    for (i = 0; i < 33; i++)
-        sin64[i] = sin(i*M_PI / 64.0);
-#endif
-
 #ifdef WMAPRO_DUMP_CTX_EN
     dump_context(s);
 #endif
@@ -661,77 +651,6 @@ static int decode_tilehdr(WMAProDecodeCtx *s)
     return 0;
 }
 
-#if 0
-/**
- *@brief Calculate a decorrelation matrix from the bitstream parameters.
- *@param s codec context
- *@param chgroup channel group for which the matrix needs to be calculated
- */
-static void decode_decorrelation_matrix(WMAProDecodeCtx *s,
-                                        WMAProChannelGrp *chgroup)
-{
-    int i;
-    int offset = 0;
-    int8_t rotation_offset[WMAPRO_MAX_CHANNELS * WMAPRO_MAX_CHANNELS];
-    memset(chgroup->decorrelation_matrix, 0, s->num_channels *
-           s->num_channels * sizeof(*chgroup->decorrelation_matrix));
-
-    for (i = 0; i < chgroup->num_channels * (chgroup->num_channels - 1) >> 1; i++)
-        rotation_offset[i] = get_bits(&s->gb, 6);
-
-    for (i = 0; i < chgroup->num_channels; i++) {
-        chgroup->decorrelation_matrix[chgroup->num_channels * i + i] =
-            get_bits1(&s->gb) ? 1.0 : -1.0;
-
-        if(chgroup->decorrelation_matrix[chgroup->num_channels * i + i] > 0)
-            chgroup->fixdecorrelation_matrix[chgroup->num_channels * i + i] =  ONE_FRACT16;
-        else
-            chgroup->fixdecorrelation_matrix[chgroup->num_channels * i + i] = -ONE_FRACT16;
-    }
-
-    for (i = 1; i < chgroup->num_channels; i++) {
-        int x;
-        for (x = 0; x < i; x++) {
-            int y;
-            for (y = 0; y < i + 1; y++) {
-                float v1 = chgroup->decorrelation_matrix[x * chgroup->num_channels + y];
-                float v2 = chgroup->decorrelation_matrix[i * chgroup->num_channels + y];
-                int32_t f1 = chgroup->fixdecorrelation_matrix[x * chgroup->num_channels + y];
-                int32_t f2 = chgroup->fixdecorrelation_matrix[i * chgroup->num_channels + y];
-                int n = rotation_offset[offset + x];
-                float sinv;
-                float cosv;
-                int32_t fixsinv;
-                int32_t fixcosv;
-
-                if (n < 32) {
-                    sinv = sin64[n];
-                    cosv = sin64[32 - n];
-                    fixsinv = fixed_sin64[n];
-                    fixcosv = fixed_sin64[32-n];
-                } else {
-                    sinv =  sin64[64 -  n];
-                    cosv = -sin64[n  - 32];
-                    fixsinv = fixed_sin64[64-n];
-                    fixcosv = -fixed_sin64[n-32];
-                }
-
-                chgroup->decorrelation_matrix[y + x * chgroup->num_channels] =
-                                               (v1 * sinv) - (v2 * cosv);
-                chgroup->decorrelation_matrix[y + i * chgroup->num_channels] =
-                                               (v1 * cosv) + (v2 * sinv);
-                chgroup->fixdecorrelation_matrix[y + x * chgroup->num_channels] =
-                                               fixmul31(f1, fixsinv) - fixmul31(f2, fixcosv);
-                chgroup->fixdecorrelation_matrix[y + i * chgroup->num_channels] =
-                                               fixmul31(f1, fixcosv) + fixmul31(f2, fixsinv);
-
-            }
-        }
-        offset += i;
-    }
-}
-#endif
-
 /**
  *@brief Decode channel transformation parameters
  *@param s codec context
@@ -807,25 +726,6 @@ static int decode_channel_transform(WMAProDecodeCtx* s)
             } else if (chgroup->num_channels > 2) {
                 DEBUGF("in wmaprodec.c: Multichannel streams still not supported\n");
                 return -1;
-#if 0
-                if (get_bits1(&s->gb)) {
-                    chgroup->transform = 1;
-                    if (get_bits1(&s->gb)) {
-                        decode_decorrelation_matrix(s, chgroup);
-                    } else {
-                        /** FIXME: more than 6 coupled channels not supported */
-                        if (chgroup->num_channels > 6) {
-                            av_log_ask_for_sample(s->avctx,
-                                                  "coupled channels > 6\n");
-                        } else {
-                            memcpy(chgroup->decorrelation_matrix,
-                                   default_decorrelation[chgroup->num_channels],
-                                   chgroup->num_channels * chgroup->num_channels *
-                                   sizeof(*chgroup->decorrelation_matrix));
-                        }
-                    }
-                }
-#endif
             }
 
             /** decode transform on / off */
@@ -1434,18 +1334,6 @@ static int decode_frame(WMAProDecodeCtx *s)
     int i;
 
 
-#if 0
-    /** check for potential output buffer overflow */
-    /* Rockbox : No need to check that anymore since we work directly on the
-       buffers in the WMAProDecCtx */
-    if (s->num_channels * s->samples_per_frame > s->samples_end - s->samples) {
-        /** return an error if no frame could be decoded at all */
-           DEBUGF("not enough space for the output samples\n");
-        s->packet_loss = 1;
-        return 0;
-    }
-#endif
-
     /** get frame length */
     if (s->len_prefix)
         len = get_bits(gb, s->log2_frame_size);
@@ -1568,16 +1456,6 @@ static void save_bits(WMAProDecodeCtx *s, GetBitContext* gb, int len,
         s->packet_loss = 1;
         return;
     }
-
-#if 0
-    if (len > put_bits_left(&s->pb)) {
-        av_log(s->avctx, AV_LOG_ERROR,
-               "Cannot append %d bits, only %d bits available.\n",
-               len, put_bits_left(&s->pb));
-        s->packet_loss = 1;
-        return;
-    }
-#endif
 
     s->num_saved_bits += len;
     if (!append) {
@@ -1728,21 +1606,3 @@ int decode_packet(asf_waveformatex_t *wfx, int32_t *dec[2], int *data_size,
     return (s->packet_loss) ? AVERROR_INVALIDDATA : get_bits_count(gb) >> 3;
 }
 
-#if 0
-/**
- *@brief wmapro decoder
- */
-AVCodec wmapro_decoder = {
-    "wmapro",
-    AVMEDIA_TYPE_AUDIO,
-    CODEC_ID_WMAPRO,
-    sizeof(WMAProDecodeCtx),
-    decode_init,
-    NULL,
-    decode_end,
-    decode_packet,
-    .capabilities = CODEC_CAP_SUBFRAMES,
-    .flush= flush,
-    .long_name = NULL_IF_CONFIG_SMALL("Windows Media Audio 9 Professional"),
-};
-#endif

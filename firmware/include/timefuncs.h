@@ -30,11 +30,9 @@ time_t dostime_mktime(uint16_t dosdate, uint16_t dostime);
 void dostime_localtime(time_t time, uint16_t* dosdate, uint16_t* dostime);
 struct tm *get_time(void);
 int set_time(const struct tm *tm);
-#if CONFIG_RTC
 bool valid_time(const struct tm *tm);
 void set_day_of_week(struct tm *tm);
 void set_day_of_year(struct tm *tm);
-#endif
 
 #endif /* _TIMEFUNCS_H_ */
 

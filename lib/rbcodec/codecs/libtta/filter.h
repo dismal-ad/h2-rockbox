@@ -42,11 +42,6 @@
 ///////// Filter Settings //////////
 static int flt_set[3] = {10, 9, 10};
 
-#if defined(CPU_ARM_CLASSIC) || defined(CPU_COLDFIRE)
-int hybrid_filter(fltst *fs, int *in); /* implements in filter_arm.S */
-
-#else
-
 static inline void
 memshl (register int *pA) {
     register int *pB = pA + 16;
@@ -123,7 +118,6 @@ hybrid_filter (fltst *fs, int *in) {
         fs->index = 0;
     }
 }
-#endif
 
 static inline void
 filter_init (fltst *fs, int shift) {

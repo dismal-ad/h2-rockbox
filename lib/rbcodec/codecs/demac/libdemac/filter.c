@@ -30,24 +30,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA
      
 #if FILTER_BITS == 32
 
-#if defined(CPU_ARM) && (ARM_ARCH == 4)
-#include "vector_math32_armv4.h"
-#else
 #include "vector_math_generic.h"
-#endif
 
 #else /* FILTER_BITS == 16 */
 
-#ifdef CPU_COLDFIRE
-#include "vector_math16_cf.h"
-#elif defined(CPU_ARM) && (ARM_ARCH >= 7) && defined(__ARM_NEON__)
-#include "vector_math16_armv7.h"
-#elif defined(CPU_ARM) && (ARM_ARCH >= 6)
-#include "vector_math16_armv6.h"
-#elif defined(CPU_ARM) && (ARM_ARCH >= 5)
-/* Assume all our ARMv5 targets are ARMv5te(j) */
-#include "vector_math16_armv5te.h"
-#elif (defined(__i386__) || defined(__i486__))  && defined(__MMX__) \
+#if   (defined(__i386__) || defined(__i486__))  && defined(__MMX__) \
     || defined(__x86_64__)
 #include "vector_math16_mmx.h"
 #else
@@ -101,28 +88,7 @@ struct filter_t {
 #define FP_HALF  (1 << (FRACBITS - 1))   /* 0.5 in fixed-point format. */
 #define FP_TO_INT(x) ((x + FP_HALF) >> FRACBITS)  /* round(x) */
 
-#ifdef CPU_ARM
-#if ARM_ARCH >= 6
-#define SATURATE(x) ({int __res; asm("ssat %0, #16, %1" : "=r"(__res) : "r"(x)); __res; })
-#else /* ARM_ARCH < 6 */
-/* Keeping the asr #31 outside of the asm allows loads to be scheduled between
-   it and the rest of the block on ARM9E, with the load's result latency filled
-   by the other calculations. */
-#define SATURATE(x) ({ \
-    int __res = (x) >> 31; \
-    asm volatile ( \
-        "teq %0, %1, asr #15\n\t" \
-        "moveq %0, %1\n\t" \
-        "eorne %0, %0, #0xff\n\t" \
-        "eorne %0, %0, #0x7f00" \
-        : "+r" (__res) : "r" (x) : "cc" \
-    ); \
-    __res; \
-})
-#endif /* ARM_ARCH */
-#else /* CPU_ARM */
 #define SATURATE(x) (LIKELY((x) == (int16_t)(x)) ? (x) : ((x) >> 31) ^ 0x7FFF)
-#endif
 
 /* Apply the filter with state f to count entries in data[] */
 

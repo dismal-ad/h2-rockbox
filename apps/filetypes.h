@@ -57,15 +57,11 @@ long tree_get_filetype_voiceclip(int attr);
 void filetype_init(void) INIT_ATTR;
 
 void read_viewer_theme_file(void);
-#ifdef HAVE_LCD_COLOR
 void read_color_theme_file(void);
-#endif
 
 /* Return the attribute (FILE_ATTR_*) of the file */
 int filetype_get_attr(const char* file);
-#ifdef HAVE_LCD_COLOR
 int filetype_get_color(const char* name, int attr);
-#endif
 int filetype_get_icon(int attr);
 /* return the plugin filename associated with the file */
 char* filetype_get_plugin(int attr, char *buffer, size_t buffer_len);

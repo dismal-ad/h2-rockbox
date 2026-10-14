@@ -6,24 +6,8 @@
  */
 
 #include "config.h"
-#ifdef CPU_ARM
-/*
- * All callee preserved registers:
- * v1 - v7, fp, ip, sp, lr, f4, f5, f6, f7
- */
-#define _JBLEN 23
-#endif
 
 /* necv70 was 9 as well. */
-
-#ifdef CPU_COLDFIRE
-/*
- * onsstack,sigmask,sp,pc,psl,d2-d7,a2-a6,
- * fp2-fp7  for 68881.
- * All else recovered by under/over(flow) handling.
- */
-#define _JBLEN  34
-#endif
 
 #ifdef CPU_MIPS
 #if CPU_MIPS == 64

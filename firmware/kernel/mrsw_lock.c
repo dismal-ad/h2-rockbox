@@ -21,8 +21,6 @@
 #include <string.h>
 #include "mrsw_lock.h"
 
-#ifdef HAVE_PRIORITY_SCHEDULING
-
 static FORCE_INLINE void
 mrsw_reader_claim(struct mrsw_lock *mrsw, struct thread_entry *current,
                   int count, unsigned int slotnum)
@@ -95,50 +93,6 @@ mrsw_writer_wakeup_readers(struct mrsw_lock *mrsw, struct thread_entry *first)
     return result;
 }
 
-#else /* !HAVE_PRIORITY_SCHEDULING */
-
-#define mrsw_reader_claim(mrsw, current, count, slotnum) \
-    do {} while (0)
-
-#define mrsw_reader_relinquish(mrsw, current, first, count, slotnum) \
-    do {} while (0)
-
-static FORCE_INLINE unsigned int
-mrsw_reader_wakeup_writer(struct mrsw_lock *mrsw, struct thread_entry *thread)
-{
-    mrsw->splay.blocker.thread = thread;
-    return wakeup_thread(thread);
-}
-
-static FORCE_INLINE unsigned int
-mrsw_writer_wakeup_writer(struct mrsw_lock *mrsw, struct thread_entry *thread)
-{
-    mrsw->splay.blocker.thread = thread;
-    return wakeup_thread(thread);
-}
-
-static FORCE_INLINE unsigned int
-mrsw_writer_wakeup_readers(struct mrsw_lock *mrsw, struct thread_entry *first)
-{
-    mrsw->splay.blocker.thread = NULL;
-    int count = 1;
-
-    while (1)
-    {
-        wakeup_thread(first);
-
-        if (!(first = WQ_THREAD_FIRST(&mrsw->queue)) || first->retval == 0)
-            break;
-
-        count++;
-    }
-
-    mrsw->count = count;
-    return THREAD_OK;
-}
-
-#endif /* HAVE_PRIORITY_SCHEDULING */
-
 /** Public interface **/
 
 /* Initializes a multi-reader, single-writer object */
@@ -147,9 +101,7 @@ void mrsw_init(struct mrsw_lock *mrsw)
     mrsw->count = 0;
     wait_queue_init(&mrsw->queue);
     blocker_splay_init(&mrsw->splay);
-#ifdef HAVE_PRIORITY_SCHEDULING
     memset(mrsw->rdrecursion, 0, sizeof (mrsw->rdrecursion));
-#endif
     corelock_init(&mrsw->cl);
 }
 
@@ -165,7 +117,6 @@ void mrsw_read_acquire(struct mrsw_lock *mrsw)
     if (current == mrsw->splay.blocker.thread IF_PRIO( && mrsw->count < 0 ))
         return; /* Read request while holding write access; pass */
 
-#ifdef HAVE_PRIORITY_SCHEDULING
     /* Track recursion counts for each thread:
        IF_PRIO, mrsw->count just tracks unique owners  */
     unsigned int slotnum = THREAD_ID_SLOT(current->id);
@@ -178,7 +129,6 @@ void mrsw_read_acquire(struct mrsw_lock *mrsw)
         mrsw->rdrecursion[slotnum]++;
         return;
     }
-#endif /* HAVE_PRIORITY_SCHEDULING */
 
     corelock_lock(&mrsw->cl);
 
@@ -215,7 +165,6 @@ void mrsw_read_release(struct mrsw_lock *mrsw)
     if (current == mrsw->splay.blocker.thread IF_PRIO( && mrsw->count < 0 ))
         return; /* Read release while holding write access; ignore */
 
-#ifdef HAVE_PRIORITY_SCHEDULING
     unsigned int slotnum = THREAD_ID_SLOT(current->id);
     KERNEL_ASSERT(threadbit_test_bit(&mrsw->splay.mask, slotnum),
                   "mrsw_read_release() -"
@@ -230,7 +179,6 @@ void mrsw_read_release(struct mrsw_lock *mrsw)
         *rdcountp = rdcount - 1;
         return;
     }
-#endif /* HAVE_PRIORITY_SCHEDULING */
 
     corelock_lock(&mrsw->cl);
     int count = mrsw->count;
@@ -257,10 +205,8 @@ void mrsw_read_release(struct mrsw_lock *mrsw)
     restore_irq(oldlevel);
     corelock_unlock(&mrsw->cl);
 
-#ifdef HAVE_PRIORITY_SCHEDULING
     if (result & THREAD_SWITCH)
         switch_thread();
-#endif /* HAVE_PRIORITY_SCHEDULING */
     (void)result;
 }
 
@@ -340,9 +286,7 @@ void mrsw_write_release(struct mrsw_lock *mrsw)
     restore_irq(oldlevel);
     corelock_unlock(&mrsw->cl);
 
-#ifdef HAVE_PRIORITY_SCHEDULING
     if (result & THREAD_SWITCH)
         switch_thread();
-#endif /* HAVE_PRIORITY_SCHEDULING */
     (void)result;
 }

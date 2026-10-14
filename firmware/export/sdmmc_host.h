@@ -221,10 +221,8 @@ struct sdmmc_host
     /* Physical drive number */
     int drive;
 
-#ifdef HAVE_HOTSWAP
     /* Medium presence flag */
     volatile int present;
-#endif
 
     /*
      * Lock which protects most controller operations

@@ -92,9 +92,6 @@ struct codec_api ci = {
     NULL, /* strip_filesize */
 
     /* kernel/ system */
-#if defined(ARM_NEED_DIV0)
-    __div0,
-#endif
     sleep,
     yield,
 
@@ -137,17 +134,6 @@ struct codec_api ci = {
     __cyg_profile_func_exit,
 #endif
 
-#ifdef HAVE_RECORDING
-    NULL, /* enc_pcmbuf_read */
-    NULL, /* enc_pcmbuf_advance */
-    NULL, /* enc_encbuf_get_buffer */
-    NULL, /* enc_encbuf_finish_buffer */
-    NULL, /* enc_stream_read */
-    NULL, /* enc_stream_lseek */
-    NULL, /* enc_stream_write */
-    round_value_to_list32,
-#endif /* HAVE_RECORDING */
-
     /* new stuff at the end, sort into place next time
        the API gets incompatible */
     panicf,
@@ -188,9 +174,6 @@ static int codec_load_ram(struct codec_api *api)
 
     if (hdr == NULL
         || (hdr->magic != CODEC_MAGIC
-#ifdef HAVE_RECORDING
-             && hdr->magic != CODEC_ENC_MAGIC
-#endif
             )
         || hdr->target_id != TARGET_ID
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
@@ -288,15 +271,3 @@ int codec_close(void)
     return status;
 }
 
-#ifdef HAVE_RECORDING
-enc_callback_t codec_get_enc_callback(void)
-{
-    if (curr_handle == NULL ||
-        c_hdr->lc_hdr.magic != CODEC_ENC_MAGIC) {
-        logf("Codec: not an encoder");
-        return NULL;
-    }
-
-    return c_hdr->rec_extension[0];
-}
-#endif /* HAVE_RECORDING */

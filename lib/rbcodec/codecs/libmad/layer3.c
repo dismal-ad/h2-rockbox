@@ -45,11 +45,7 @@
 # include "layer3.h"
 
 /* depending on the cpu "leftshift32" may be supported or not */
-# if defined(CPU_COLDFIRE)
-#define MAXLSHIFT 32
-#else
 #define MAXLSHIFT 31
-#endif
 
 /* --- Layer III ----------------------------------------------------------- */
 
@@ -921,19 +917,8 @@ mad_fixed_t III_requantize(unsigned int value, signed int exp)
 }
 
 /* we must take care that sz >= bits and sz < sizeof(long) lest bits == 0 */
-# if defined(CPU_ARM_CLASSIC)
-# define MASK(cache, sz, bits) \
-    ({ unsigned long res; \
-       asm ("mov  %0, #1\n\t" \
-            "rsb  %0, %0, %0, lsl %3\n\t" \
-            "and  %0, %0, %1, lsr %2" \
-           : "=&r" (res) : "r" (cache), "r" ((sz) - (bits)), "r" (bits)); \
-       res; \
-    })
-#else
 # define MASK(cache, sz, bits)  \
     (((cache) >> ((sz) - (bits))) & ((1 << (bits)) - 1))
-#endif
 # define MASK1BIT(cache, sz)  \
     ((cache) & (1 << ((sz) - 1)))
 
@@ -1556,9 +1541,6 @@ enum mad_error III_stereo(mad_fixed_t xr[2][576],
   return MAD_ERROR_NONE;
 }
 
-#if defined(CPU_ARM_CLASSIC)
-void III_aliasreduce(mad_fixed_t xr[576], int lines);
-#else
 /*
  * NAME:        III_aliasreduce()
  * DESCRIPTION: perform frequency line alias reduction
@@ -1579,21 +1561,6 @@ void III_aliasreduce(mad_fixed_t xr[576], int lines)
       a = xr[-1 - i];
       b = xr[     i];
 
-# if defined(CPU_COLDFIRE)
-      (void)hi, (void)lo;
-      asm volatile ("mac.l %[a], %[csi], %%acc0\n\t"
-                    "msac.l %[b], %[cai], %%acc0\n\t"
-                    "mac.l %[b], %[csi], %%acc1\n\t"
-                    "mac.l %[a], %[cai], %%acc1\n\t"
-                    "movclr.l %%acc0, %[a]\n\t"
-                    "asl.l #3, %[a]\n\t"
-                    "movclr.l %%acc1, %[b]\n\t"
-                    "asl.l #3, %[b]\n\t"
-                    : [a] "+d" (a), [b] "+d" (b)
-                    : [csi] "r" (cs[i]), [cai] "r" (ca[i]));
-      xr[-1 - i] = a;
-      xr[     i] = b;
-# else
         MAD_F_ML0(hi, lo,  a, cs[i]);
         MAD_F_MLA(hi, lo, -b, ca[i]);
 
@@ -1603,11 +1570,9 @@ void III_aliasreduce(mad_fixed_t xr[576], int lines)
         MAD_F_MLA(hi, lo,  a, ca[i]);
 
         xr[     i] = MAD_F_MLZ(hi, lo);
-# endif
     }
   }
 }
-#endif
 
 # if defined(FPM_ARM)
 void III_imdct_l(mad_fixed_t const [18], mad_fixed_t [36], unsigned int);
@@ -1616,672 +1581,6 @@ void III_imdct_l(mad_fixed_t const [18], mad_fixed_t [36], unsigned int);
  * NAME:        imdct36
  * DESCRIPTION: perform X[18]->x[36] IMDCT
  */
-#  if defined(CPU_COLDFIRE)
-/* emac optimized imdct36, it is very ugly and i hope to replace it soon.
- * for now it is actually somewhat faster than the stock implementation. 
- */
-static inline
-void imdct36(mad_fixed_t const X[18], mad_fixed_t x[36])
-{
-  mad_fixed_t t[16];
-  /* assumes FRACBITS = 28 */
-  asm volatile (
-  /* MAD_F_ML0(hi, lo, X[4],  MAD_F(0x0ec835e8)); */
-  /* MAD_F_MLA(hi, lo, X[13], MAD_F(0x061f78aa)); */
-  /* t6 = MAD_F_MLZ(hi, lo);                      */
-    "move.l (4*4, %[X]), %%d0\n"
-    "move.l #0x0ec835e8, %%d1\n"
-    "move.l #0x061f78aa, %%d2\n"
-    "mac.l %%d1, %%d0, (13*4, %[X]), %%d0, %%acc0\n"
-    "mac.l %%d2, %%d0, ( 1*4, %[X]), %%d0, %%acc0\n"
-    "move.l %%acc0, %%d7\n"
-    "asl.l #3, %%d7\n"
-    "move.l %%d7, (6*4, %[t])\n"
-
-  /* MAD_F_ML0(hi, lo, (t14 = X[1] - X[10]), -MAD_F(0x0ec835e8)); */
-  /* MAD_F_MLA(hi, lo, (t15 = X[7] + X[16]),  MAD_F(0x061f78aa)); */
-  /* t4 = MAD_F_MLZ(hi, lo);                                      */
-  /* MAD_F_MLA(hi, lo, t14, -MAD_F(0x061f78aa));                  */
-  /* MAD_F_MLA(hi, lo, t15, -MAD_F(0x0ec835e8));                  */ 
-  /* t0 = MAD_F_MLZ(hi, lo);                                      */
-    "sub.l (10*4, %[X]), %%d0\n" /* t14 */
-    "msac.l %%d0, %%d1,                    %%acc1\n"
-    "msac.l %%d0, %%d2, (7*4, %[X]), %%d5, %%acc0\n"
-    "add.l (16*4, %[X]), %%d5\n" /* t15 */
-    "mac.l  %%d5, %%d2,                    %%acc1\n"
-    "msac.l %%d5, %%d1, (     %[X]), %%d5, %%acc0\n"
-    "movclr.l %%acc1, %%d6\n"
-    "asl.l #3, %%d6\n" /* t4 */
-    "move.l %%d6, (4*4, %[t])\n"
-    "move.l %%acc0, %%d0\n"
-    "asl.l #3, %%d0\n" /* t0 */
-    "move.l %%d0, (0*4, %[t])\n"
-    
-  /* MAD_F_MLA(hi, lo, (t8 =X[0]-X[11]-X[12]),  MAD_F(0x0216a2a2)); */
-  /* MAD_F_MLA(hi, lo, (t9 =X[2]-X[ 9]-X[14]),  MAD_F(0x09bd7ca0)); */
-  /* MAD_F_MLA(hi, lo, (t10=X[3]-X[ 8]-X[15]), -MAD_F(0x0cb19346)); */
-  /* MAD_F_MLA(hi, lo, (t11=X[5]-X[ 6]-X[17]), -MAD_F(0x0fdcf549)); */
-  /* x[10] = -(x[7] = MAD_F_MLZ(hi, lo)); */
-
-  /* MAD_F_ML0(hi, lo, t8,  -MAD_F(0x0cb19346)); */
-  /* MAD_F_MLA(hi, lo, t9,   MAD_F(0x0fdcf549)); */
-  /* MAD_F_MLA(hi, lo, t10,  MAD_F(0x0216a2a2)); */
-  /* MAD_F_MLA(hi, lo, t11, -MAD_F(0x09bd7ca0)); */
-  /* x[19] = x[34] = MAD_F_MLZ(hi, lo) - t0; */
-
-  /* MAD_F_ML0(hi, lo, t8,   MAD_F(0x09bd7ca0)); */
-  /* MAD_F_MLA(hi, lo, t9,  -MAD_F(0x0216a2a2)); */
-  /* MAD_F_MLA(hi, lo, t10,  MAD_F(0x0fdcf549)); */
-  /* MAD_F_MLA(hi, lo, t11, -MAD_F(0x0cb19346)); */
-  /* x[ 1] = MAD_F_MLZ(hi, lo); */
-
-  /* MAD_F_ML0(hi, lo, t8,  -MAD_F(0x0fdcf549)); */
-  /* MAD_F_MLA(hi, lo, t9,  -MAD_F(0x0cb19346)); */
-  /* MAD_F_MLA(hi, lo, t10, -MAD_F(0x09bd7ca0)); */
-  /* MAD_F_MLA(hi, lo, t11, -MAD_F(0x0216a2a2)); */
-  /* x[25] = MAD_F_MLZ(hi, lo); */
-
-  /* t12 = t8 - t10; */
-  /* t13 = t9 + t11; */
-    "move.l #0x0216a2a2, %%d1\n"
-    "move.l #0x0cb19346, %%d2\n"
-    "move.l #0x09bd7ca0, %%d3\n"
-    "move.l #0x0fdcf549, %%d4\n"
-    "sub.l (11*4, %[X]), %%d5\n"
-    "sub.l (12*4, %[X]), %%d5\n"
-    "mac.l  %%d1, %%d5,                    %%acc0\n"
-    "msac.l %%d2, %%d5,                    %%acc1\n"
-    "mac.l  %%d3, %%d5,                    %%acc2\n"
-    "msac.l %%d4, %%d5, (2*4, %[X]), %%d6, %%acc3\n"
-    "sub.l ( 9*4, %[X]), %%d6\n"
-    "sub.l (14*4, %[X]), %%d6\n"
-    "mac.l  %%d3, %%d6,                    %%acc0\n"
-    "mac.l  %%d4, %%d6,                    %%acc1\n"
-    "msac.l %%d1, %%d6,                    %%acc2\n"
-    "msac.l %%d2, %%d6, (3*4, %[X]), %%d7, %%acc3\n"
-    "sub.l ( 8*4, %[X]), %%d7\n"
-    "sub.l (15*4, %[X]), %%d7\n"
-    "sub.l %%d7, %%d5\n" /* d5: t12 */
-    "move.l %%d5, (12*4, %[t])\n"
-    "msac.l %%d2, %%d7,                    %%acc0\n"
-    "mac.l  %%d1, %%d7,                    %%acc1\n"
-    "mac.l  %%d4, %%d7,                    %%acc2\n"
-    "msac.l %%d3, %%d7, (5*4, %[X]), %%d7, %%acc3\n"
-    "sub.l ( 6*4, %[X]), %%d7\n"
-    "sub.l (17*4, %[X]), %%d7\n"
-    "add.l %%d7, %%d6\n" /* d6: t13 */
-    "move.l %%d6, (13*4, %[t])\n"
-    "msac.l %%d4, %%d7,                    %%acc0\n"
-    "msac.l %%d3, %%d7,                    %%acc1\n"
-    "msac.l %%d2, %%d7,                    %%acc2\n"
-    "msac.l %%d1, %%d7, (1*4, %[X]), %%d5, %%acc3\n"
-    
-    "movclr.l %%acc0, %%d7\n"
-    "asl.l #3, %%d7\n"
-    "move.l %%d7, (7*4, %[x])\n"
-    "neg.l %%d7\n"
-    "move.l %%d7, (10*4, %[x])\n"
-
-    "movclr.l %%acc1, %%d7\n"
-    "asl.l #3, %%d7\n"
-    "sub.l %%d0, %%d7\n"
-    "move.l %%d7, (19*4, %[x])\n"
-    "move.l %%d7, (34*4, %[x])\n"
-    
-    "movclr.l %%acc2, %%d7\n"
-    "asl.l #3, %%d7\n"
-    "move.l %%d7, ( 1*4, %[x])\n"
-    
-    "movclr.l %%acc3, %%d7\n"
-    "asl.l #3, %%d7\n"
-    "move.l %%d7, (25*4, %[x])\n"
-    
-  /* MAD_F_ML0(hi, lo, X[1],  -MAD_F(0x09bd7ca0)); */
-  /* MAD_F_MLA(hi, lo, X[7],   MAD_F(0x0216a2a2)); */
-  /* MAD_F_MLA(hi, lo, X[10], -MAD_F(0x0fdcf549)); */
-  /* MAD_F_MLA(hi, lo, X[16],  MAD_F(0x0cb19346)); */
-  /* t1 = MAD_F_MLZ(hi, lo) + t6; */
-  
-  /* MAD_F_ML0(hi, lo, X[1],  -MAD_F(0x0216a2a2)); */
-  /* MAD_F_MLA(hi, lo, X[7],  -MAD_F(0x09bd7ca0)); */
-  /* MAD_F_MLA(hi, lo, X[10],  MAD_F(0x0cb19346)); */
-  /* MAD_F_MLA(hi, lo, X[16],  MAD_F(0x0fdcf549)); */
-  /* t3 = MAD_F_MLZ(hi, lo); */
-
-  /* MAD_F_ML0(hi, lo, X[1],  -MAD_F(0x0fdcf549)); */
-  /* MAD_F_MLA(hi, lo, X[7],  -MAD_F(0x0cb19346)); */
-  /* MAD_F_MLA(hi, lo, X[10], -MAD_F(0x09bd7ca0)); */
-  /* MAD_F_MLA(hi, lo, X[16], -MAD_F(0x0216a2a2)); */
-  /* t5 = MAD_F_MLZ(hi, lo) - t6; */
-    "msac.l %%d3, %%d5,                     %%acc0\n"
-    "msac.l %%d1, %%d5,                     %%acc1\n"
-    "msac.l %%d4, %%d5, ( 7*4, %[X]), %%d5, %%acc2\n"
-    "mac.l  %%d1, %%d5,                     %%acc0\n"
-    "msac.l %%d3, %%d5,                     %%acc1\n"
-    "msac.l %%d2, %%d5, (10*4, %[X]), %%d5, %%acc2\n"
-    "msac.l %%d4, %%d5,                     %%acc0\n"
-    "mac.l  %%d2, %%d5,                     %%acc1\n"
-    "msac.l %%d3, %%d5, (16*4, %[X]), %%d5, %%acc2\n"
-    "mac.l  %%d2, %%d5,                     %%acc0\n"
-    "mac.l  %%d4, %%d5,                     %%acc1\n"
-    "msac.l %%d1, %%d5, ( 0*4, %[X]), %%d0, %%acc2\n"
-
-    "movclr.l %%acc0, %%d7\n"
-    "asl.l #3, %%d7\n"
-    "add.l (6*4, %[t]), %%d7\n" /* t1 */
-    
-    "movclr.l %%acc1, %%d5\n"
-    "asl.l #3, %%d5\n"          /* t3 */
-    
-    "movclr.l %%acc2, %%d6\n"
-    "asl.l #3, %%d6\n"
-    "sub.l (6*4, %[t]), %%d6\n" /* t5 */
-    "move.l %%d6, (5*4, %[t])\n"
-
-  /* MAD_F_ML0(hi, lo, X[0],   MAD_F(0x03768962)); */
-  /* MAD_F_MLA(hi, lo, X[2],   MAD_F(0x0e313245)); */
-  /* MAD_F_MLA(hi, lo, X[3],  -MAD_F(0x0ffc19fd)); */
-  /* MAD_F_MLA(hi, lo, X[5],  -MAD_F(0x0acf37ad)); */
-  /* MAD_F_MLA(hi, lo, X[6],   MAD_F(0x04cfb0e2)); */
-  /* MAD_F_MLA(hi, lo, X[8],  -MAD_F(0x0898c779)); */
-  /* MAD_F_MLA(hi, lo, X[9],   MAD_F(0x0d7e8807)); */
-  /* MAD_F_MLA(hi, lo, X[11],  MAD_F(0x0f426cb5)); */
-  /* MAD_F_MLA(hi, lo, X[12], -MAD_F(0x0bcbe352)); */
-  /* MAD_F_MLA(hi, lo, X[14],  MAD_F(0x00b2aa3e)); */
-  /* MAD_F_MLA(hi, lo, X[15], -MAD_F(0x07635284)); */
-  /* MAD_F_MLA(hi, lo, X[17], -MAD_F(0x0f9ee890)); */
-  /* x[11] = -(x[6] = MAD_F_MLZ(hi, lo) + t1); */
-  /* MAD_F_ML0(hi, lo, X[0],  -MAD_F(0x0f426cb5)); */
-  /* MAD_F_MLA(hi, lo, X[2],  -MAD_F(0x00b2aa3e)); */
-  /* MAD_F_MLA(hi, lo, X[3],   MAD_F(0x0898c779)); */
-  /* MAD_F_MLA(hi, lo, X[5],   MAD_F(0x0f9ee890)); */
-  /* MAD_F_MLA(hi, lo, X[6],   MAD_F(0x0acf37ad)); */
-  /* MAD_F_MLA(hi, lo, X[8],  -MAD_F(0x07635284)); */
-  /* MAD_F_MLA(hi, lo, X[9],  -MAD_F(0x0e313245)); */
-  /* MAD_F_MLA(hi, lo, X[11], -MAD_F(0x0bcbe352)); */
-  /* MAD_F_MLA(hi, lo, X[12], -MAD_F(0x03768962)); */
-  /* MAD_F_MLA(hi, lo, X[14],  MAD_F(0x0d7e8807)); */
-  /* MAD_F_MLA(hi, lo, X[15],  MAD_F(0x0ffc19fd)); */
-  /* MAD_F_MLA(hi, lo, X[17],  MAD_F(0x04cfb0e2)); */
-  /* x[23] = x[30] = MAD_F_MLZ(hi, lo) + t1; */
-  /* MAD_F_ML0(hi, lo, X[0],  -MAD_F(0x0bcbe352)); */
-  /* MAD_F_MLA(hi, lo, X[2],   MAD_F(0x0d7e8807)); */
-  /* MAD_F_MLA(hi, lo, X[3],  -MAD_F(0x07635284)); */
-  /* MAD_F_MLA(hi, lo, X[5],   MAD_F(0x04cfb0e2)); */
-  /* MAD_F_MLA(hi, lo, X[6],   MAD_F(0x0f9ee890)); */
-  /* MAD_F_MLA(hi, lo, X[8],  -MAD_F(0x0ffc19fd)); */
-  /* MAD_F_MLA(hi, lo, X[9],  -MAD_F(0x00b2aa3e)); */
-  /* MAD_F_MLA(hi, lo, X[11],  MAD_F(0x03768962)); */
-  /* MAD_F_MLA(hi, lo, X[12], -MAD_F(0x0f426cb5)); */
-  /* MAD_F_MLA(hi, lo, X[14],  MAD_F(0x0e313245)); */
-  /* MAD_F_MLA(hi, lo, X[15],  MAD_F(0x0898c779)); */
-  /* MAD_F_MLA(hi, lo, X[17], -MAD_F(0x0acf37ad)); */
-  /* x[18] = x[35] = MAD_F_MLZ(hi, lo) - t1; */
-    "move.l #0x03768962, %%d1\n"
-    "move.l #0x0f426cb5, %%d2\n"
-    "move.l #0x0bcbe352, %%d3\n"
-    "mac.l  %%d1, %%d0,                     %%acc0\n"
-    "msac.l %%d2, %%d0,                     %%acc1\n"
-    "msac.l %%d3, %%d0, (11*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d2, %%d0,                     %%acc0\n"
-    "msac.l %%d3, %%d0,                     %%acc1\n"
-    "mac.l  %%d1, %%d0, (12*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d3, %%d0,                     %%acc0\n"
-    "msac.l %%d1, %%d0,                     %%acc1\n"
-    "msac.l %%d2, %%d0, ( 2*4, %[X]), %%d0, %%acc2\n"
-    "move.l #0x0e313245, %%d1\n"
-    "move.l #0x00b2aa3e, %%d2\n"
-    "move.l #0x0d7e8807, %%d3\n"
-    "mac.l  %%d1, %%d0,                     %%acc0\n"
-    "msac.l %%d2, %%d0,                     %%acc1\n"
-    "mac.l  %%d3, %%d0, ( 9*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d3, %%d0,                     %%acc0\n"
-    "msac.l %%d1, %%d0,                     %%acc1\n"
-    "msac.l %%d2, %%d0, (14*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d2, %%d0,                     %%acc0\n"
-    "mac.l  %%d3, %%d0,                     %%acc1\n"
-    "mac.l  %%d1, %%d0, ( 3*4, %[X]), %%d0, %%acc2\n"
-    "move.l #0x0ffc19fd, %%d1\n"
-    "move.l #0x0898c779, %%d2\n"
-    "move.l #0x07635284, %%d3\n"
-    "msac.l %%d1, %%d0,                     %%acc0\n"
-    "mac.l  %%d2, %%d0,                     %%acc1\n"
-    "msac.l %%d3, %%d0, ( 8*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d2, %%d0,                     %%acc0\n"
-    "msac.l %%d3, %%d0,                     %%acc1\n"
-    "msac.l %%d1, %%d0, (15*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d3, %%d0,                     %%acc0\n"
-    "mac.l  %%d1, %%d0,                     %%acc1\n"
-    "mac.l  %%d2, %%d0, ( 5*4, %[X]), %%d0, %%acc2\n"
-    "move.l #0x0acf37ad, %%d1\n"
-    "move.l #0x0f9ee890, %%d2\n"
-    "move.l #0x04cfb0e2, %%d3\n"
-    "msac.l %%d1, %%d0,                     %%acc0\n"
-    "mac.l  %%d2, %%d0,                     %%acc1\n"
-    "mac.l  %%d3, %%d0, ( 6*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d3, %%d0,                     %%acc0\n"
-    "mac.l  %%d1, %%d0,                     %%acc1\n"
-    "mac.l  %%d2, %%d0, (17*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d2, %%d0,                     %%acc0\n"
-    "mac.l  %%d3, %%d0,                     %%acc1\n"
-    "msac.l %%d1, %%d0, ( 4*4, %[X]), %%d0, %%acc2\n"
-
-    "movclr.l %%acc0, %%d6\n"
-    "asl.l #3, %%d6\n"
-    "add.l %%d7, %%d6\n"
-    "move.l %%d6, (6*4, %[x])\n"
-    "neg.l %%d6\n"
-    "move.l %%d6, (11*4, %[x])\n"
-    
-    "movclr.l %%acc1, %%d6\n"
-    "asl.l #3, %%d6\n"
-    "add.l %%d7, %%d6\n"
-    "move.l %%d6, (23*4, %[x])\n"
-    "move.l %%d6, (30*4, %[x])\n"
-    
-    "movclr.l %%acc2, %%d6\n"
-    "asl.l #3, %%d6\n"
-    "sub.l %%d7, %%d6\n"
-    "move.l %%d6, (18*4, %[x])\n"
-    "move.l %%d6, (35*4, %[x])\n"
-    
-  /* MAD_F_ML0(hi, lo, X[4],   MAD_F(0x061f78aa)); */
-  /* MAD_F_MLA(hi, lo, X[13], -MAD_F(0x0ec835e8)); */
-  /* t3 += (t7 = MAD_F_MLZ(hi, lo)); */
-  /* t4 -= t7; */
-    "move.l #0x061f78aa, %%d1\n"
-    "mac.l %%d1, %%d0, (13*4, %[X]), %%d0, %%acc0\n"
-    "move.l #0x0ec835e8, %%d1\n"
-    "msac.l %%d1, %%d0, (1*4, %[X]), %%d0, %%acc0\n"
-    "move.l %%acc0, %%d6\n"
-    "asl.l #3, %%d6\n"   /* t7 */
-    "add.l %%d6, %%d5\n" /* t3 */
-    "move.l (4*4, %[t]), %%d1\n"
-    "sub.l %%d6, %%d1\n" /* t4 */
-    "move.l %%d1, (4*4, %[t])\n"
-    
-  /* MAD_F_MLA(hi, lo, X[1],  -MAD_F(0x0cb19346)); */
-  /* MAD_F_MLA(hi, lo, X[7],   MAD_F(0x0fdcf549)); */
-  /* MAD_F_MLA(hi, lo, X[10],  MAD_F(0x0216a2a2)); */
-  /* MAD_F_MLA(hi, lo, X[16], -MAD_F(0x09bd7ca0)); */
-  /* t2 = MAD_F_MLZ(hi, lo); */
-    "move.l #0x0cb19346, %%d1\n"
-    "msac.l %%d1, %%d0, ( 7*4, %[X]), %%d0, %%acc0\n"
-    "move.l #0x0fdcf549, %%d1\n"
-    "mac.l  %%d1, %%d0, (10*4, %[X]), %%d0, %%acc0\n"
-    "move.l #0x0216a2a2, %%d1\n"
-    "mac.l  %%d1, %%d0, (16*4, %[X]), %%d0, %%acc0\n"
-    "move.l #0x09bd7ca0, %%d1\n"
-    "msac.l %%d1, %%d0, (      %[X]), %%d0, %%acc0\n"
-    "move.l %%acc0, %%d7\n"
-    "asl.l #3, %%d7\n" /* t2 */
-    
-  /* MAD_F_MLA(hi, lo, X[0],   MAD_F(0x04cfb0e2)); */
-  /* MAD_F_MLA(hi, lo, X[2],   MAD_F(0x0ffc19fd)); */
-  /* MAD_F_MLA(hi, lo, X[3],  -MAD_F(0x0d7e8807)); */
-  /* MAD_F_MLA(hi, lo, X[5],   MAD_F(0x03768962)); */
-  /* MAD_F_MLA(hi, lo, X[6],  -MAD_F(0x0bcbe352)); */
-  /* MAD_F_MLA(hi, lo, X[8],  -MAD_F(0x0e313245)); */
-  /* MAD_F_MLA(hi, lo, X[9],   MAD_F(0x07635284)); */
-  /* MAD_F_MLA(hi, lo, X[11], -MAD_F(0x0acf37ad)); */
-  /* MAD_F_MLA(hi, lo, X[12],  MAD_F(0x0f9ee890)); */
-  /* MAD_F_MLA(hi, lo, X[14],  MAD_F(0x0898c779)); */
-  /* MAD_F_MLA(hi, lo, X[15],  MAD_F(0x00b2aa3e)); */
-  /* MAD_F_MLA(hi, lo, X[17],  MAD_F(0x0f426cb5)); */
-  /* x[12] = -(x[5] = MAD_F_MLZ(hi, lo)); */
-  /* MAD_F_ML0(hi, lo, X[0],   MAD_F(0x0acf37ad)); */
-  /* MAD_F_MLA(hi, lo, X[2],  -MAD_F(0x0898c779)); */
-  /* MAD_F_MLA(hi, lo, X[3],   MAD_F(0x0e313245)); */
-  /* MAD_F_MLA(hi, lo, X[5],  -MAD_F(0x0f426cb5)); */
-  /* MAD_F_MLA(hi, lo, X[6],  -MAD_F(0x03768962)); */
-  /* MAD_F_MLA(hi, lo, X[8],   MAD_F(0x00b2aa3e)); */
-  /* MAD_F_MLA(hi, lo, X[9],  -MAD_F(0x0ffc19fd)); */
-  /* MAD_F_MLA(hi, lo, X[11],  MAD_F(0x0f9ee890)); */
-  /* MAD_F_MLA(hi, lo, X[12], -MAD_F(0x04cfb0e2)); */
-  /* MAD_F_MLA(hi, lo, X[14],  MAD_F(0x07635284)); */
-  /* MAD_F_MLA(hi, lo, X[15],  MAD_F(0x0d7e8807)); */
-  /* MAD_F_MLA(hi, lo, X[17], -MAD_F(0x0bcbe352)); */
-  /* x[17] = -(x[0] = MAD_F_MLZ(hi, lo) + t2); */
-  /* MAD_F_ML0(hi, lo, X[0],  -MAD_F(0x0f9ee890)); */
-  /* MAD_F_MLA(hi, lo, X[2],  -MAD_F(0x07635284)); */
-  /* MAD_F_MLA(hi, lo, X[3],  -MAD_F(0x00b2aa3e)); */
-  /* MAD_F_MLA(hi, lo, X[5],   MAD_F(0x0bcbe352)); */
-  /* MAD_F_MLA(hi, lo, X[6],   MAD_F(0x0f426cb5)); */
-  /* MAD_F_MLA(hi, lo, X[8],   MAD_F(0x0d7e8807)); */
-  /* MAD_F_MLA(hi, lo, X[9],   MAD_F(0x0898c779)); */
-  /* MAD_F_MLA(hi, lo, X[11], -MAD_F(0x04cfb0e2)); */
-  /* MAD_F_MLA(hi, lo, X[12], -MAD_F(0x0acf37ad)); */
-  /* MAD_F_MLA(hi, lo, X[14], -MAD_F(0x0ffc19fd)); */
-  /* MAD_F_MLA(hi, lo, X[15], -MAD_F(0x0e313245)); */
-  /* MAD_F_MLA(hi, lo, X[17], -MAD_F(0x03768962)); */
-  /* x[24] = x[29] = MAD_F_MLZ(hi, lo) + t2; */
-    "move.l #0x0acf37ad, %%d1\n"
-    "move.l #0x0f9ee890, %%d2\n"
-    "move.l #0x04cfb0e2, %%d3\n"
-    "mac.l  %%d3, %%d0,                     %%acc0\n"
-    "mac.l  %%d1, %%d0,                     %%acc1\n"
-    "msac.l %%d2, %%d0, (11*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d1, %%d0,                     %%acc0\n"
-    "mac.l  %%d2, %%d0,                     %%acc1\n"
-    "msac.l %%d3, %%d0, (12*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d2, %%d0,                     %%acc0\n"
-    "msac.l %%d3, %%d0,                     %%acc1\n"
-    "msac.l %%d1, %%d0, ( 2*4, %[X]), %%d0, %%acc2\n"
-    "move.l #0x0ffc19fd, %%d1\n"
-    "move.l #0x0898c779, %%d2\n"
-    "move.l #0x07635284, %%d3\n"
-    "mac.l  %%d1, %%d0,                     %%acc0\n"
-    "msac.l %%d2, %%d0,                     %%acc1\n"
-    "msac.l %%d3, %%d0, ( 9*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d3, %%d0,                     %%acc0\n"
-    "msac.l %%d1, %%d0,                     %%acc1\n"
-    "mac.l  %%d2, %%d0, (14*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d2, %%d0,                     %%acc0\n"
-    "mac.l  %%d3, %%d0,                     %%acc1\n"
-    "msac.l %%d1, %%d0, ( 3*4, %[X]), %%d0, %%acc2\n"
-    "move.l #0x0e313245, %%d1\n"
-    "move.l #0x00b2aa3e, %%d2\n"
-    "move.l #0x0d7e8807, %%d3\n"
-    "msac.l %%d3, %%d0,                     %%acc0\n"
-    "mac.l  %%d1, %%d0,                     %%acc1\n"
-    "msac.l %%d2, %%d0, ( 8*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d1, %%d0,                     %%acc0\n"
-    "mac.l  %%d2, %%d0,                     %%acc1\n"
-    "mac.l  %%d3, %%d0, (15*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d2, %%d0,                     %%acc0\n"
-    "mac.l  %%d3, %%d0,                     %%acc1\n"
-    "msac.l %%d1, %%d0, ( 5*4, %[X]), %%d0, %%acc2\n"
-    "move.l #0x03768962, %%d1\n"
-    "move.l #0x0f426cb5, %%d2\n"
-    "move.l #0x0bcbe352, %%d3\n"
-    "mac.l  %%d1, %%d0,                     %%acc0\n"
-    "msac.l %%d2, %%d0,                     %%acc1\n"
-    "mac.l  %%d3, %%d0, ( 6*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d3, %%d0,                     %%acc0\n"
-    "msac.l %%d1, %%d0,                     %%acc1\n"
-    "mac.l  %%d2, %%d0, (17*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d2, %%d0,                     %%acc0\n"
-    "msac.l %%d3, %%d0,                     %%acc1\n"
-    "msac.l %%d1, %%d0, (      %[X]), %%d0, %%acc2\n"
-
-    "movclr.l %%acc0, %%d6\n"
-    "asl.l #3, %%d6\n"
-    "move.l %%d6, ( 5*4, %[x])\n"
-    "neg.l %%d6\n"
-    "move.l %%d6, (12*4, %[x])\n"
-    
-    "movclr.l %%acc1, %%d6\n"
-    "asl.l #3, %%d6\n"
-    "add.l %%d7, %%d6\n"
-    "move.l %%d6, (      %[x])\n"
-    "neg.l %%d6\n"
-    "move.l %%d6, (17*4, %[x])\n"
-    
-    "movclr.l %%acc2, %%d6\n"
-    "asl.l #3, %%d6\n"
-    "add.l %%d7, %%d6\n"
-    "move.l %%d6, (24*4, %[x])\n"
-    "move.l %%d6, (29*4, %[x])\n"
-
-  /* MAD_F_ML0(hi, lo, X[0],   MAD_F(0x00b2aa3e)); */
-  /* MAD_F_MLA(hi, lo, X[2],   MAD_F(0x03768962)); */
-  /* MAD_F_MLA(hi, lo, X[3],  -MAD_F(0x04cfb0e2)); */
-  /* MAD_F_MLA(hi, lo, X[5],  -MAD_F(0x07635284)); */
-  /* MAD_F_MLA(hi, lo, X[6],   MAD_F(0x0898c779)); */
-  /* MAD_F_MLA(hi, lo, X[8],   MAD_F(0x0acf37ad)); */
-  /* MAD_F_MLA(hi, lo, X[9],  -MAD_F(0x0bcbe352)); */
-  /* MAD_F_MLA(hi, lo, X[11], -MAD_F(0x0d7e8807)); */
-  /* MAD_F_MLA(hi, lo, X[12],  MAD_F(0x0e313245)); */
-  /* MAD_F_MLA(hi, lo, X[14],  MAD_F(0x0f426cb5)); */
-  /* MAD_F_MLA(hi, lo, X[15], -MAD_F(0x0f9ee890)); */
-  /* MAD_F_MLA(hi, lo, X[17], -MAD_F(0x0ffc19fd)); */
-  /* x[9] = -(x[8] = MAD_F_MLZ(hi, lo) + t3); */
-
-  /* MAD_F_ML0(hi, lo, X[0],  -MAD_F(0x0e313245)); */
-  /* MAD_F_MLA(hi, lo, X[2],   MAD_F(0x0bcbe352)); */
-  /* MAD_F_MLA(hi, lo, X[3],   MAD_F(0x0f9ee890)); */
-  /* MAD_F_MLA(hi, lo, X[5],  -MAD_F(0x0898c779)); */
-  /* MAD_F_MLA(hi, lo, X[6],  -MAD_F(0x0ffc19fd)); */
-  /* MAD_F_MLA(hi, lo, X[8],   MAD_F(0x04cfb0e2)); */
-  /* MAD_F_MLA(hi, lo, X[9],   MAD_F(0x0f426cb5)); */
-  /* MAD_F_MLA(hi, lo, X[11], -MAD_F(0x00b2aa3e)); */
-  /* MAD_F_MLA(hi, lo, X[12], -MAD_F(0x0d7e8807)); */
-  /* MAD_F_MLA(hi, lo, X[14], -MAD_F(0x03768962)); */
-  /* MAD_F_MLA(hi, lo, X[15],  MAD_F(0x0acf37ad)); */
-  /* MAD_F_MLA(hi, lo, X[17],  MAD_F(0x07635284)); */
-  /* x[21] = x[32] = MAD_F_MLZ(hi, lo) + t3; */
-
-  /* MAD_F_ML0(hi, lo, X[0],  -MAD_F(0x0d7e8807)); */
-  /* MAD_F_MLA(hi, lo, X[2],   MAD_F(0x0f426cb5)); */
-  /* MAD_F_MLA(hi, lo, X[3],   MAD_F(0x0acf37ad)); */
-  /* MAD_F_MLA(hi, lo, X[5],  -MAD_F(0x0ffc19fd)); */
-  /* MAD_F_MLA(hi, lo, X[6],  -MAD_F(0x07635284)); */
-  /* MAD_F_MLA(hi, lo, X[8],   MAD_F(0x0f9ee890)); */
-  /* MAD_F_MLA(hi, lo, X[9],   MAD_F(0x03768962)); */
-  /* MAD_F_MLA(hi, lo, X[11], -MAD_F(0x0e313245)); */
-  /* MAD_F_MLA(hi, lo, X[12],  MAD_F(0x00b2aa3e)); */
-  /* MAD_F_MLA(hi, lo, X[14],  MAD_F(0x0bcbe352)); */
-  /* MAD_F_MLA(hi, lo, X[15], -MAD_F(0x04cfb0e2)); */
-  /* MAD_F_MLA(hi, lo, X[17], -MAD_F(0x0898c779)); */
-  /* x[20] = x[33] = MAD_F_MLZ(hi, lo) - t3; */
-    "move.l #0x0e313245, %%d1\n"
-    "move.l #0x00b2aa3e, %%d2\n"
-    "move.l #0x0d7e8807, %%d3\n"
-    "mac.l  %%d2, %%d0,                     %%acc0\n"
-    "msac.l %%d1, %%d0,                     %%acc1\n"
-    "msac.l %%d3, %%d0, (11*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d3, %%d0,                     %%acc0\n"
-    "msac.l %%d2, %%d0,                     %%acc1\n"
-    "msac.l %%d1, %%d0, (12*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d1, %%d0,                     %%acc0\n"
-    "msac.l %%d3, %%d0,                     %%acc1\n"
-    "mac.l  %%d2, %%d0, ( 2*4, %[X]), %%d0, %%acc2\n"
-    "move.l #0x03768962, %%d1\n"
-    "move.l #0x0f426cb5, %%d2\n"
-    "move.l #0x0bcbe352, %%d3\n"
-    "mac.l  %%d1, %%d0,                     %%acc0\n"
-    "mac.l  %%d3, %%d0,                     %%acc1\n"
-    "mac.l  %%d2, %%d0, ( 9*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d3, %%d0,                     %%acc0\n"
-    "mac.l  %%d2, %%d0,                     %%acc1\n"
-    "mac.l  %%d1, %%d0, (14*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d2, %%d0,                     %%acc0\n"
-    "msac.l %%d1, %%d0,                     %%acc1\n"
-    "mac.l  %%d3, %%d0, ( 3*4, %[X]), %%d0, %%acc2\n"
-    "move.l #0x0acf37ad, %%d1\n"
-    "move.l #0x0f9ee890, %%d2\n"
-    "move.l #0x04cfb0e2, %%d3\n"
-    "msac.l %%d3, %%d0,                     %%acc0\n"
-    "mac.l  %%d2, %%d0,                     %%acc1\n"
-    "mac.l  %%d1, %%d0, ( 8*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d1, %%d0,                     %%acc0\n"
-    "mac.l  %%d3, %%d0,                     %%acc1\n"
-    "mac.l  %%d2, %%d0, (15*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d2, %%d0,                     %%acc0\n"
-    "mac.l  %%d1, %%d0,                     %%acc1\n"
-    "msac.l %%d3, %%d0, ( 5*4, %[X]), %%d0, %%acc2\n"
-    "move.l #0x0ffc19fd, %%d1\n"
-    "move.l #0x0898c779, %%d2\n"
-    "move.l #0x07635284, %%d3\n"
-    "msac.l %%d3, %%d0,                     %%acc0\n"
-    "msac.l %%d2, %%d0,                     %%acc1\n"
-    "msac.l %%d1, %%d0, ( 6*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d2, %%d0,                     %%acc0\n"
-    "msac.l %%d1, %%d0,                     %%acc1\n"
-    "msac.l %%d3, %%d0, (17*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d1, %%d0,                     %%acc0\n"
-    "mac.l  %%d3, %%d0,                     %%acc1\n"
-    "msac.l %%d2, %%d0, (12*4, %[t]), %%d0, %%acc2\n"
-
-    "movclr.l %%acc0, %%d6\n"
-    "asl.l #3, %%d6\n"
-    "add.l %%d5, %%d6\n"
-    "move.l %%d6, (8*4, %[x])\n"
-    "neg.l %%d6\n"
-    "move.l %%d6, (9*4, %[x])\n"
-    
-    "movclr.l %%acc1, %%d6\n"
-    "asl.l #3, %%d6\n"
-    "add.l %%d5, %%d6\n"
-    "move.l %%d6, (21*4, %[x])\n"
-    "move.l %%d6, (32*4, %[x])\n"
-    
-    "movclr.l %%acc2, %%d6\n"
-    "asl.l #3, %%d6\n"
-    "sub.l %%d5, %%d6\n"
-    "move.l %%d6, (20*4, %[x])\n"
-    "move.l %%d6, (33*4, %[x])\n"
-    
-  /* MAD_F_ML0(hi, lo, t12, -MAD_F(0x0ec835e8)); */
-  /* MAD_F_MLA(hi, lo, t13,  MAD_F(0x061f78aa)); */
-  /* x[22] = x[31] = MAD_F_MLZ(hi, lo) + t0; */
-    "move.l #0x0ec835e8, %%d1\n"
-    "move.l #0x061f78aa, %%d2\n"
-    "msac.l %%d1, %%d0, (13*4, %[t]), %%d3, %%acc0\n"
-    "mac.l  %%d2, %%d3, ( 1*4, %[x]), %%d4, %%acc0\n"
-    "movclr.l %%acc0, %%d6\n"
-    "asl.l #3, %%d6\n"
-    "add.l (0*4, %[t]), %%d6\n"
-    "move.l %%d6, (22*4, %[x])\n"
-    "move.l %%d6, (31*4, %[x])\n"
-    
-  /* MAD_F_ML0(hi, lo, t12, MAD_F(0x061f78aa)); */
-  /* MAD_F_MLA(hi, lo, t13, MAD_F(0x0ec835e8)); */
-  /* x[13] = -(x[4] = MAD_F_MLZ(hi, lo) + t4); */
-  /* x[16] = -(x[1] = x[1]              + t4); */
-  /* x[25] =  x[28] = x[25]             + t4;  */
-    "mac.l  %%d2, %%d0, (4*4, %[t]), %%d2, %%acc0\n"
-    "mac.l  %%d1, %%d3, (     %[X]), %%d0, %%acc0\n"
-    "movclr.l %%acc0, %%d6\n"
-    "asl.l #3, %%d6\n"
-    "add.l %%d2, %%d6\n"
-    "move.l %%d6, ( 4*4, %[x])\n"
-    "neg.l %%d6\n"
-    "move.l %%d6, (13*4, %[x])\n"
-
-    "add.l %%d2, %%d4\n"
-    "move.l %%d4, ( 1*4, %[x])\n"
-    "neg.l %%d4\n"
-    "move.l %%d4, (16*4, %[x])\n"
-
-    "move.l (25*4, %[x]), %%d4\n"
-    "add.l %%d2, %%d4\n"
-    "move.l %%d4, (25*4, %[x])\n"
-    "move.l %%d4, (28*4, %[x])\n"
-
-  /* MAD_F_ML0(hi, lo, X[0],   MAD_F(0x0898c779)); */
-  /* MAD_F_MLA(hi, lo, X[2],   MAD_F(0x04cfb0e2)); */
-  /* MAD_F_MLA(hi, lo, X[3],   MAD_F(0x0bcbe352)); */
-  /* MAD_F_MLA(hi, lo, X[5],   MAD_F(0x00b2aa3e)); */
-  /* MAD_F_MLA(hi, lo, X[6],   MAD_F(0x0e313245)); */
-  /* MAD_F_MLA(hi, lo, X[8],  -MAD_F(0x03768962)); */
-  /* MAD_F_MLA(hi, lo, X[9],   MAD_F(0x0f9ee890)); */
-  /* MAD_F_MLA(hi, lo, X[11], -MAD_F(0x07635284)); */
-  /* MAD_F_MLA(hi, lo, X[12],  MAD_F(0x0ffc19fd)); */
-  /* MAD_F_MLA(hi, lo, X[14], -MAD_F(0x0acf37ad)); */
-  /* MAD_F_MLA(hi, lo, X[15],  MAD_F(0x0f426cb5)); */
-  /* MAD_F_MLA(hi, lo, X[17], -MAD_F(0x0d7e8807)); */
-  /* x[15] = -(x[2] = MAD_F_MLZ(hi, lo) + t5); */
-  /* MAD_F_ML0(hi, lo, X[0],   MAD_F(0x07635284)); */
-  /* MAD_F_MLA(hi, lo, X[2],   MAD_F(0x0acf37ad)); */
-  /* MAD_F_MLA(hi, lo, X[3],   MAD_F(0x03768962)); */
-  /* MAD_F_MLA(hi, lo, X[5],   MAD_F(0x0d7e8807)); */
-  /* MAD_F_MLA(hi, lo, X[6],  -MAD_F(0x00b2aa3e)); */
-  /* MAD_F_MLA(hi, lo, X[8],   MAD_F(0x0f426cb5)); */
-  /* MAD_F_MLA(hi, lo, X[9],  -MAD_F(0x04cfb0e2)); */
-  /* MAD_F_MLA(hi, lo, X[11],  MAD_F(0x0ffc19fd)); */
-  /* MAD_F_MLA(hi, lo, X[12], -MAD_F(0x0898c779)); */
-  /* MAD_F_MLA(hi, lo, X[14],  MAD_F(0x0f9ee890)); */
-  /* MAD_F_MLA(hi, lo, X[15], -MAD_F(0x0bcbe352)); */
-  /* MAD_F_MLA(hi, lo, X[17],  MAD_F(0x0e313245)); */
-  /* x[14] = -(x[3] = MAD_F_MLZ(hi, lo) + t5); */
-  /* MAD_F_ML0(hi, lo, X[0],  -MAD_F(0x0ffc19fd)); */
-  /* MAD_F_MLA(hi, lo, X[2],  -MAD_F(0x0f9ee890)); */
-  /* MAD_F_MLA(hi, lo, X[3],  -MAD_F(0x0f426cb5)); */
-  /* MAD_F_MLA(hi, lo, X[5],  -MAD_F(0x0e313245)); */
-  /* MAD_F_MLA(hi, lo, X[6],  -MAD_F(0x0d7e8807)); */
-  /* MAD_F_MLA(hi, lo, X[8],  -MAD_F(0x0bcbe352)); */
-  /* MAD_F_MLA(hi, lo, X[9],  -MAD_F(0x0acf37ad)); */
-  /* MAD_F_MLA(hi, lo, X[11], -MAD_F(0x0898c779)); */
-  /* MAD_F_MLA(hi, lo, X[12], -MAD_F(0x07635284)); */
-  /* MAD_F_MLA(hi, lo, X[14], -MAD_F(0x04cfb0e2)); */
-  /* MAD_F_MLA(hi, lo, X[15], -MAD_F(0x03768962)); */
-  /* MAD_F_MLA(hi, lo, X[17], -MAD_F(0x00b2aa3e)); */
-  /* x[26] = x[27] = MAD_F_MLZ(hi, lo) + t5; */
-    "move.l #0x0ffc19fd, %%d1\n"
-    "move.l #0x0898c779, %%d2\n"
-    "move.l #0x07635284, %%d3\n"
-    "mac.l  %%d2, %%d0,                     %%acc0\n"
-    "mac.l  %%d3, %%d0,                     %%acc1\n"
-    "msac.l %%d1, %%d0, (11*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d3, %%d0,                     %%acc0\n"
-    "mac.l  %%d1, %%d0,                     %%acc1\n"
-    "msac.l %%d2, %%d0, (12*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d1, %%d0,                     %%acc0\n"
-    "msac.l %%d2, %%d0,                     %%acc1\n"
-    "msac.l %%d3, %%d0, ( 2*4, %[X]), %%d0, %%acc2\n"
-    "move.l #0x0acf37ad, %%d1\n"
-    "move.l #0x0f9ee890, %%d2\n"
-    "move.l #0x04cfb0e2, %%d3\n"
-    "mac.l  %%d3, %%d0,                     %%acc0\n"
-    "mac.l  %%d1, %%d0,                     %%acc1\n"
-    "msac.l %%d2, %%d0, ( 9*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d2, %%d0,                     %%acc0\n"
-    "msac.l %%d3, %%d0,                     %%acc1\n"
-    "msac.l %%d1, %%d0, (14*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d1, %%d0,                     %%acc0\n"
-    "mac.l  %%d2, %%d0,                     %%acc1\n"
-    "msac.l %%d3, %%d0, ( 3*4, %[X]), %%d0, %%acc2\n"
-    "move.l #0x03768962, %%d1\n"
-    "move.l #0x0f426cb5, %%d2\n"
-    "move.l #0x0bcbe352, %%d3\n"
-    "mac.l  %%d3, %%d0,                     %%acc0\n"
-    "mac.l  %%d1, %%d0,                     %%acc1\n"
-    "msac.l %%d2, %%d0, ( 8*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d1, %%d0,                     %%acc0\n"
-    "mac.l  %%d2, %%d0,                     %%acc1\n"
-    "msac.l %%d3, %%d0, (15*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d2, %%d0,                     %%acc0\n"
-    "msac.l %%d3, %%d0,                     %%acc1\n"
-    "msac.l %%d1, %%d0, ( 5*4, %[X]), %%d0, %%acc2\n"
-    "move.l #0x0e313245, %%d1\n"
-    "move.l #0x00b2aa3e, %%d2\n"
-    "move.l #0x0d7e8807, %%d3\n"
-    "mac.l  %%d2, %%d0,                     %%acc0\n"
-    "mac.l  %%d3, %%d0,                     %%acc1\n"
-    "msac.l %%d1, %%d0, ( 6*4, %[X]), %%d0, %%acc2\n"
-    "mac.l  %%d1, %%d0,                     %%acc0\n"
-    "msac.l %%d2, %%d0,                     %%acc1\n"
-    "msac.l %%d3, %%d0, (17*4, %[X]), %%d0, %%acc2\n"
-    "msac.l %%d3, %%d0,                     %%acc0\n"
-    "mac.l  %%d1, %%d0,                     %%acc1\n"
-    "msac.l %%d2, %%d0, ( 5*4, %[t]), %%d6, %%acc2\n"
-    "movclr.l %%acc0, %%d7\n"
-    "asl.l #3, %%d7\n"
-    "add.l %%d6, %%d7\n"
-    "move.l %%d7, (2*4, %[x])\n"
-    "neg.l %%d7\n"
-    "move.l %%d7, (15*4, %[x])\n"
-    
-    "movclr.l %%acc1, %%d7\n"
-    "asl.l #3, %%d7\n"
-    "add.l %%d6, %%d7\n"
-    "move.l %%d7, (3*4, %[x])\n"
-    "neg.l %%d7\n"
-    "move.l %%d7, (14*4, %[x])\n"
-    
-    "movclr.l %%acc2, %%d7\n"
-    "asl.l #3, %%d7\n"
-    "add.l %%d6, %%d7\n"
-    "move.l %%d7, (26*4, %[x])\n"
-    "move.l %%d7, (27*4, %[x])\n"
-
-    : : [X] "a" (X), [x] "a" (x), [t] "a" (t) 
-    : "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7");
-  /* pfew */
-}
-
-#  else /* if defined(CPU_COLDFIRE) */
 
 static inline
 void imdct36(mad_fixed_t const X[18], mad_fixed_t x[36])
@@ -2537,7 +1836,6 @@ void imdct36(mad_fixed_t const X[18], mad_fixed_t x[36])
   MAD_F_MLA(hi, lo, X[17], -MAD_F(0x00b2aa3e));
   x[26] = x[27] = MAD_F_MLZ(hi, lo) + t5;
 }
-#  endif /* CPU_COLDFIRE */
 
 /*
  * NAME:        III_imdct_l()
@@ -2557,7 +1855,6 @@ void III_imdct_l(mad_fixed_t const X[18], mad_fixed_t z[36],
 
   switch (block_type) {
   case 0:  /* normal window */
-# if 1
     /* loop unrolled implementation */
     for (i = 0; i < 36; i += 4) {
       z[i + 0] = mad_f_mul(z[i + 0], window_l[i + 0]);
@@ -2565,10 +1862,6 @@ void III_imdct_l(mad_fixed_t const X[18], mad_fixed_t z[36],
       z[i + 2] = mad_f_mul(z[i + 2], window_l[i + 2]);
       z[i + 3] = mad_f_mul(z[i + 3], window_l[i + 3]);
     }
-# else
-    /* reference implementation */
-    for (i =  0; i < 36; ++i) z[i] = mad_f_mul(z[i], window_l[i]);
-# endif
     break;
 
   case 1:  /* start block */
@@ -2600,10 +1893,6 @@ void III_imdct_l(mad_fixed_t const X[18], mad_fixed_t z[36],
  * NAME:        III_imdct_s()
  * DESCRIPTION: perform IMDCT and windowing for short blocks
  */
-
-# if defined(CPU_COLDFIRE)
-void III_imdct_s(mad_fixed_t const X[18], mad_fixed_t z[36]);
-#else
 
 static
 void III_imdct_s(mad_fixed_t const X[18], mad_fixed_t z[36])
@@ -2680,13 +1969,6 @@ void III_imdct_s(mad_fixed_t const X[18], mad_fixed_t z[36])
   }
 }
 
-#endif
-
-#if defined(CPU_ARM_CLASSIC)
-void III_overlap(mad_fixed_t const output[36], mad_fixed_t overlap[18],
-                 mad_fixed_t sample[18][32], unsigned int sb);
-#else
-
 /*
  * NAME:        III_overlap()
  * DESCRIPTION: perform overlap-add of windowed IMDCT outputs
@@ -2701,7 +1983,6 @@ void III_overlap(mad_fixed_t const output[36], mad_fixed_t overlap[18],
     overlap[i]    = output[i + 18];
   }
 }
-#endif
 
 /*
  * NAME:        III_overlap_z()
@@ -2923,32 +2204,11 @@ int mad_layer_III(struct mad_stream *stream, struct mad_frame *frame)
   enum mad_error error;
   int result = 0;
 
-#if 0 /* rockbox: do not allocate */
-  /* allocate Layer III dynamic structures */
-  /* rockbox: not used. Both pointers are linked to an array in
-   * ../mpa.c before calling this. */
-  if (stream->main_data == 0) {
-    stream->main_data = malloc(MAD_BUFFER_MDLEN);
-    if (stream->main_data == 0) {
-      stream->error = MAD_ERROR_NOMEM;
-      return -1;
-    }
-  }
-
-  if (frame->overlap == 0) {
-    frame->overlap = calloc(2 * 32 * 18, sizeof(mad_fixed_t));
-    if (frame->overlap == 0) {
-      stream->error = MAD_ERROR_NOMEM;
-      return -1;
-    }
-  }
-#else
   /* rockbox: This should not happen. Return with error. */
   if ((stream->main_data == 0) || (frame->overlap == 0)) {
       stream->error = MAD_ERROR_NOMEM;
       return -1;
   }
-#endif /* rockbox */
 
   nch = MAD_NCHANNELS(header);
   si_len = (header->flags & MAD_FLAG_LSF_EXT) ?
@@ -3064,14 +2324,6 @@ int mad_layer_III(struct mad_stream *stream, struct mad_frame *frame)
     stream->anc_ptr    = ptr;
     stream->anc_bitlen = md_len * CHAR_BIT - data_bitlen;
   }
-
-# if 0 && defined(DEBUG)
-  fprintf(stderr,
-          "main_data_begin:%u, md_len:%u, frame_free:%u, "
-          "data_bitlen:%u, anc_bitlen: %u\n",
-          si.main_data_begin, md_len, frame_free,
-          data_bitlen, stream->anc_bitlen);
-# endif
 
   /* preload main_data buffer with up to 511 bytes for next frame(s) */
 

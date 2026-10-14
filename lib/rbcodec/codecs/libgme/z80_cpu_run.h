@@ -5,53 +5,6 @@
 // Address wrap-around isn't completely correct, but is prevented from crashing emulator.
 // 16-bit memory accesses are made directly to mapped memory, instead of using macro.
 
-#if 0
-/* Define these macros in the source file before #including this file.
-- Parameters might be expressions, so they are best evaluated only once,
-though they NEVER have side-effects, so multiple evaluation is OK.
-- Output parameters might be a multiple-assignment expression like "a=x",
-so they must NOT be parenthesized.
-- Except where noted, time() and related functions will NOT work
-correctly inside a macro. TIME() is always correct, and between FLUSH_TIME() and
-CACHE_TIME() the normal time changing functions can be used.
-- Macros "returning" void may use a {} statement block. */
-
-	// 0 <= addr <= 0xFFFF + 0x100
-	// Optional; default uses whatever was set with map_mem()
-	int  READ_MEM(  addr_t );
-	void WRITE_MEM( addr_t, int data );
-	
-	// 0 <= port <= 0xFFFF (apparently upper 8 bits are output by hardware)
-	void OUT_PORT( int port, int data );
-	int  IN_PORT   int port );
-	
-	// Reference to Z80_Cpu object used for emulation
-	#define CPU cpu
-	
-// The following can be used within macros:
-	
-	// Current time
-	time_t TIME();
-	
-	// Allows use of time functions
-	void FLUSH_TIME();
-	
-	// Must be used before end of macro if FLUSH_TIME() was used earlier
-	void CACHE_TIME();
-
-// Configuration (optional; commented behavior if defined)
-	
-	// Optimizes as if map_mem( 0, 0x10000, FLAT_MEM, FLAT_MEM ) is always in effect
-	#define FLAT_MEM my_mem_array
-	
-	// If RST 7 ($FF) is encountered and PC = IDLE_ADDR, stops execution
-	#define IDLE_ADDR 0x1234
-	
-	// Expanded just before beginning of code, to help debugger
-	#define CPU_BEGIN void my_run_cpu() {
-	
-#endif
-
 /* Copyright (C) 2006-2008 Shay Green. This module is free software; you
 can redistribute it and/or modify it under the terms of the GNU Lesser
 General Public License as published by the Free Software Foundation; either

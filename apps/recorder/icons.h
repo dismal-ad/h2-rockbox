@@ -27,9 +27,6 @@
 
 /* External bitmaps */
 #include "bitmaps/rockboxlogo.h"
-#ifdef HAVE_REMOTE_LCD
-#include "bitmaps/remote_rockboxlogo.h"
-#endif
 #endif /* !(PLUGIN || __PCTOOL__) */
 
 struct cbmp_bitmap_info_entry /* */
@@ -87,37 +84,6 @@ enum icons_12x8 {
 };
 
 #ifndef PLUGIN
-#if defined (HAVE_RECORDING)
-#define BM_GLYPH_WIDTH 4
-enum Glyphs_4x8 {
-    Glyph_4x8_0 = 0,
-    Glyph_4x8_1,
-    Glyph_4x8_2,
-    Glyph_4x8_3,
-    Glyph_4x8_4,
-    Glyph_4x8_5,
-    Glyph_4x8_6,
-    Glyph_4x8_7,
-    Glyph_4x8_8,
-    Glyph_4x8_9,
-    Glyph_4x8_k,
-    Glyph_4x8Last
-};
-extern const unsigned char bitmap_glyphs_4x8[Glyph_4x8Last][4];
-
-#define BM_MPA_L3_M_WIDTH 6
-
-/* This enum is redundant but sort of in keeping with the style */
-enum rec_format_18x8 {
-    Format_18x8_AIFF    = REC_FORMAT_AIFF,
-    Format_18x8_MPA_L3  = REC_FORMAT_MPA_L3,
-    Format_18x8_WAVPACK = REC_FORMAT_WAVPACK,
-    Format_18x8_PCM_WAV = REC_FORMAT_PCM_WAV,
-    Format_18x8Last     = REC_NUM_FORMATS
-};
-extern const unsigned char bitmap_formats_18x8[Format_18x8Last][18];
-
-#endif /* defined (HAVE_RECORDING) */
 
 extern const unsigned char bitmap_icons_5x8[Icon5x8Last][5];
 extern const unsigned char bitmap_icons_7x8[Icon7x8Last][7];

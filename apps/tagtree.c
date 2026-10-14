@@ -1131,15 +1131,8 @@ static bool alloc_menu_parse_buf(char *buf, int type)
 
 static void build_firstletter_menu(char *buf, size_t bufsz)
 {
-#if 0 /* GCC complains about this I can't find a definitive answer */
-    const char *subitem = buf;
-    size_t l = strlen(buf) + 1;
-    buf+=l;
-    bufsz-=l;
-#else
     char subitem[32]; /* canonicalartist longest subitem we expect add a bit extra..*/
     strmemccpy(subitem, buf, sizeof(subitem));
-#endif
 
     const char * const fmt ="\"%s\"-> %s ? %s %c\"%c\"-> %s =\"fmt_title\"";
     const char * const showsub = /* album subitem for canonicalartist */
@@ -1612,14 +1605,7 @@ static int retrieve_entries(struct tree_context *c, int offset, bool init)
     /* Show search progress straight away if the disk needs to spin up,
        otherwise show it after the normal 1/2 second delay */
     show_search_progress(
-#ifdef HAVE_DISK_STORAGE
-#ifdef HAVE_TC_RAMCACHE
-        tagcache_is_in_ram() ? true :
-#endif
-        storage_disk_is_active()
-#else
         true
-#endif
         , 0, 0, 0);
 
     if (c->currtable == TABLE_ALLSUBENTRIES || c->currtable == TABLE_ALLSUBENTRIES_SORTED_BY_ALBUMS)
@@ -2621,11 +2607,7 @@ static bool tagtree_insert_selection(int position, bool queue,
     int ret;
 
     show_search_progress(
-#ifdef HAVE_DISK_STORAGE
-        storage_disk_is_active()
-#else
         true
-#endif
         , 0, 0, 0);
 
     newtable = tagtree_get_entry(tc, tc->selected_item)->newtable;

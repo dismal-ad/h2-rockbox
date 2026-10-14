@@ -62,11 +62,7 @@ void usb_dw_target_enable_clocks(void)
 {
     /* Enable CPM clock */
     jz_writef(CPM_CLKGR, OTG(0));
-#if X1000_EXCLK_FREQ == 24000000
     jz_writef(CPM_USBCDR, CLKSRC_V(EXCLK), CE(1), CLKDIV(0), PHY_GATE(0));
-#else
-# error "please add USB clock settings for 26 MHz EXCLK"
-#endif
     while(jz_readf(CPM_USBCDR, BUSY));
     jz_writef(CPM_USBCDR, CE(0));
 

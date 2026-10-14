@@ -98,11 +98,6 @@
  * charging control.
  * */
 
-#if defined(IPOD_COLOR) || defined(IPOD_4G) \
- || defined(IPOD_MINI)  || defined(IPOD_MINI2G)
-#define USB_FIREWIRE_HANDLING
-#endif
-
 /* Messages from usb_tick and thread states */
 enum
 {
@@ -146,11 +141,7 @@ enum
 #define USBPOWER_BTN_IGNORE 0
 #endif
 
-#if defined(BOOTLOADER)
 #define USBMODE_DEFAULT USB_MODE_MASS_STORAGE
-#else
-#define USBMODE_DEFAULT USB_MODE_MASS_STORAGE
-#endif
 
 #endif
 
@@ -163,17 +154,11 @@ enum {
 #ifdef USB_ENABLE_SERIAL
     USB_DRIVER_SERIAL,
 #endif
-#ifdef USB_ENABLE_CHARGING_ONLY
-    USB_DRIVER_CHARGING_ONLY,
-#endif
 #ifdef USB_ENABLE_HID
     USB_DRIVER_HID,
 #endif
 #ifdef USB_ENABLE_AUDIO
     USB_DRIVER_AUDIO,
-#endif
-#ifdef USB_ENABLE_IAP
-    USB_DRIVER_IAP,
 #endif
     USB_NUM_DRIVERS
 };
@@ -277,7 +262,7 @@ void usb_set_serial(bool enable);
 bool usb_get_serial(void);
 #endif
 
-#if defined(USB_ENABLE_AUDIO) || defined(HAVE_HOST_USB_AUDIO)
+#if defined(USB_ENABLE_AUDIO)
 /* Select when the USB Audio (DAC) function is active. Values follow the
  * usb_audio setting: 0 never, 1 always, 2 while charge-only, 3 while
  * mass-storage. Native targets use the usbstack driver; hosted targets
@@ -296,7 +281,7 @@ bool usb_audio_get_active(void);
 void usb_set_skip_first_drive(bool skip);
 #endif
 
-#if !defined(SIMULATOR) && !defined(USB_NONE)
+#if !defined(SIMULATOR)
 /* initialise the USB hardware, this is a one-time init and it should setup what
  * is necessary to do proper USB detection, and it should call usb_drv_startup()
  * to do the one-time initialisation of the USB driver */

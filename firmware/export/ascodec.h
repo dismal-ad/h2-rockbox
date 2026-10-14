@@ -26,9 +26,7 @@
 
 #include "as3514.h"
 
-#ifndef HAVE_AS3514
 # error Only for AS3514!
-#endif
 
 void ascodec_init(void) INIT_ATTR;
 void ascodec_close(void);
@@ -50,12 +48,6 @@ bool ascodec_chg_status(void);
 void ascodec_monitor_endofch(void);
 void ascodec_write_charger(int value);
 int ascodec_read_charger(void);
-#endif
-
-#ifdef HAVE_AS3543
-void ascodec_write_pmu(unsigned int index, unsigned int subreg,
-                       unsigned int value);
-int ascodec_read_pmu(unsigned int index, unsigned int subreg);
 #endif
 
 #endif

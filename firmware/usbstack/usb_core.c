@@ -38,10 +38,6 @@
 #include "usb_serial.h"
 #endif
 
-#if defined(USB_ENABLE_CHARGING_ONLY)
-#include "usb_charging_only.h"
-#endif
-
 #ifdef USB_ENABLE_HID
 #include "usb_hid.h"
 #endif
@@ -49,10 +45,6 @@
 #ifdef USB_ENABLE_AUDIO
 #include "usb_audio.h"
 #include "usb_audio_def.h" // DEBUG
-#endif
-
-#ifdef USB_ENABLE_IAP
-#include "usb_iap.h"
 #endif
 
 /* include order matters, include driver header before usb_drv.h */
@@ -65,16 +57,7 @@
 
 /* TODO: Move target-specific stuff somewhere else (serial number reading) */
 
-#if defined(IPOD_ARCH) && defined(CPU_PP)
-// no need to include anything
-#elif defined(HAVE_AS3514)
-#include "ascodec.h"
-#include "as3514.h"
-#elif (CONFIG_CPU == IMX233) && IMX233_SUBTARGET >= 3700
-#include "ocotp-imx233.h"
-#elif defined(SANSA_CONNECT)
-#include "cryptomem-sansaconnect.h"
-#elif (CONFIG_STORAGE & STORAGE_ATA)
+#if   (CONFIG_STORAGE & STORAGE_ATA)
 #include "ata.h"
 #endif
 
@@ -82,11 +65,7 @@
 #define USB_MAX_CURRENT 500
 #endif
 
-#ifdef USB_ENABLE_IAP
-#define NUM_CONFIGS 2
-#else
 #define NUM_CONFIGS 1
-#endif
 
 /*-------------------------------------------------------------------------*/
 /* USB protocol descriptors: */
@@ -275,17 +254,11 @@ static struct usb_class_driver* drivers[USB_NUM_DRIVERS] =
 #ifdef USB_ENABLE_SERIAL
     [USB_DRIVER_SERIAL] = &usb_cdrv_serial,
 #endif
-#ifdef USB_ENABLE_CHARGING_ONLY
-    [USB_DRIVER_CHARGING_ONLY] = &usb_cdrv_charging_only,
-#endif
 #ifdef USB_ENABLE_HID
     [USB_DRIVER_HID] = &usb_cdrv_hid,
 #endif
 #ifdef USB_ENABLE_AUDIO
     [USB_DRIVER_AUDIO] = &usb_cdrv_audio,
-#endif
-#ifdef USB_ENABLE_IAP
-    [USB_DRIVER_IAP] = &usb_cdrv_iap,
 #endif
 };
 
@@ -307,76 +280,7 @@ static void usb_core_control_request_handler(struct usb_ctrlrequest* req, uint8_
 
 static const short hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
                         '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-#if defined(IPOD_ARCH) && defined(CPU_PP)
-static void set_serial_descriptor(void)
-{
-#ifdef IPOD_VIDEO
-    uint32_t* serial = (uint32_t*)0x20004034;
-#else
-    uint32_t* serial = (uint32_t*)0x20002034;
-#endif
-
-    /* We need to convert from a little-endian 64-bit int
-       into a utf-16 string of hex characters */
-    short* p = &usb_string_iSerial.wString[24];
-    uint32_t x;
-    int i, j;
-
-    for(i = 0; i < 2; i++) {
-       x = serial[i];
-       for(j = 0; j < 8; j++) {
-          *p-- = hex[x & 0xf];
-          x >>= 4;
-       }
-    }
-    usb_string_iSerial.bLength = 52;
-}
-#elif defined(HAVE_AS3514)
-static void set_serial_descriptor(void)
-{
-    unsigned char serial[AS3514_UID_LEN];
-    /* Align 32 digits right in the 40-digit serial number */
-    short* p = &usb_string_iSerial.wString[1];
-    int i;
-
-    ascodec_readbytes(AS3514_UID_0, AS3514_UID_LEN, serial);
-    for(i = 0; i < AS3514_UID_LEN; i++) {
-        *p++ = hex[(serial[i] >> 4) & 0xF];
-        *p++ = hex[(serial[i] >> 0) & 0xF];
-    }
-    usb_string_iSerial.bLength = 36 + (2 * AS3514_UID_LEN);
-}
-#elif (CONFIG_CPU == IMX233) && IMX233_SUBTARGET >= 3700
-// FIXME where is the STMP3600 serial number stored ?
-static void set_serial_descriptor(void)
-{
-    short* p = &usb_string_iSerial.wString[1];
-    for(int i = 0; i < IMX233_NUM_OCOTP_OPS; i++) {
-        uint32_t ops = imx233_ocotp_read(&HW_OCOTP_OPSn(i));
-        for(int j = 0; j < 8; j++) {
-            *p++ = hex[(ops >> 28) & 0xF];
-            ops <<= 4;
-        }
-    }
-    usb_string_iSerial.bLength = 2 + 2 * (1 + IMX233_NUM_OCOTP_OPS * 8);
-}
-#elif defined(SANSA_CONNECT)
-static void set_serial_descriptor(void)
-{
-    char deviceid[32];
-    short* p = &usb_string_iSerial.wString[1];
-    int i;
-
-    if(!cryptomem_read_deviceid(deviceid)) {
-        for(i = 0; i < 32; i++) {
-            *p++ = deviceid[i];
-        }
-        usb_string_iSerial.bLength = 2 + 2 * (1 + 32);
-    } else {
-        device_descriptor.iSerialNumber = 0;
-    }
-}
-#elif (CONFIG_STORAGE & STORAGE_ATA)
+#if   (CONFIG_STORAGE & STORAGE_ATA)
 /* If we don't know the device serial number, use the one
  * from the disk */
 static void set_serial_descriptor(void)
@@ -518,7 +422,6 @@ bool usb_core_driver_enabled(int driver)
     return drivers[driver]->enabled;
 }
 
-#ifdef HAVE_HOTSWAP
 void usb_core_hotswap_event(int volume, bool inserted)
 {
     int i;
@@ -526,7 +429,6 @@ void usb_core_hotswap_event(int volume, bool inserted)
         if(is_active(drivers[i]) && drivers[i]->notify_hotswap != NULL)
             drivers[i]->notify_hotswap(volume, inserted);
 }
-#endif
 
 
 #ifdef USB_BATCH_NON_NATIVE
@@ -885,11 +787,6 @@ static void usb_core_set_address(uint8_t address)
     usb_state = ADDRESS;
 }
 
-#if !defined(HAVE_PRIORITY_SCHEDULING)
-#define thread_set_priority(...)
-#define thread_get_priority(...)
-#endif /* HAVE_PRIORITY_SCHEDULING */
-
 static int usb_core_do_set_config(uint8_t new_config)
 {
     logf("usb_core: SET_CONFIG %d to %d", usb_config, new_config);
@@ -1010,11 +907,6 @@ static void request_handler_device(struct usb_ctrlrequest* req, uint8_t* reqdata
             reqdata[1] = 0;
             usb_core_control_response(USB_CONTROL_ACK, reqdata, 2);
             break;
-        #ifdef USB_ENABLE_IAP
-        case USB_REQ_APPLE_SET_AVAIL_CURRENT:
-            usb_core_control_response(USB_CONTROL_ACK, NULL, 0);
-            break;
-        #endif
         default:
             logf("bad req:desc %d:%d", req->bRequest, req->wValue);
             usb_core_control_response(USB_CONTROL_STALL, NULL, 0);

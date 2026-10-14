@@ -21,7 +21,7 @@
 #ifndef _BACKDROP_H
 #define _BACKDROP_H
 
-#if LCD_DEPTH > 1 && !defined(__PCTOOL__)
+#if !defined(__PCTOOL__)
 
 #include "lcd.h"
 #include "bmp.h"
@@ -32,19 +32,6 @@ void backdrop_show(char* backdrop_buffer);
 
 #else
 #define LCD_BACKDROP_BYTES 0
-#endif
-
-#if defined(HAVE_REMOTE_LCD) 
-bool remote_backdrop_load(const char *filename, char* backdrop_buffer);
-void remote_backdrop_show(char* backdrop_buffer);
-
-#if LCD_DEPTH > 1 && LCD_REMOTE_DEPTH > 1 && !defined(__PCTOOL__)
-#define REMOTE_LCD_BACKDROP_BYTES \
-            (LCD_REMOTE_FBHEIGHT*LCD_REMOTE_FBWIDTH*sizeof(fb_remote_data))
-#else
-#define REMOTE_LCD_BACKDROP_BYTES 0
-#endif
-
 #endif
 
 #endif /* _BACKDROP_H */

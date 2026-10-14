@@ -317,10 +317,8 @@ int thread_get_debug_info(unsigned int thread_id,
 #if NUM_CORES > 1
         infop->core = thread->core;
 #endif
-#ifdef HAVE_PRIORITY_SCHEDULING
         infop->base_priority = thread->base_priority;
         infop->current_priority = thread->priority;
-#endif
 
         snprintf(infop->statusstr, sizeof (infop->statusstr), "%c%c",
                  cpu_boost ? '+' : (state == STATE_RUNNING ? '*' : ' '),

@@ -60,22 +60,3 @@ const unsigned long hw_freq_sampr[HW_NUM_FREQ] =
     HW_HAVE_8_( [HW_FREQ_8 ] = SAMPR_8 ,)
 };
 
-#ifdef HAVE_RECORDING
-/* List of recording supported sample rates (set or subset of master list) */
-const unsigned long rec_freq_sampr[REC_NUM_FREQ] =
-{
-    [0 ... REC_NUM_FREQ-1] = -1,
-    REC_HAVE_96_([REC_FREQ_96] = SAMPR_96,)
-    REC_HAVE_88_([REC_FREQ_88] = SAMPR_88,)
-    REC_HAVE_64_([REC_FREQ_64] = SAMPR_64,)
-    REC_HAVE_48_([REC_FREQ_48] = SAMPR_48,)
-    REC_HAVE_44_([REC_FREQ_44] = SAMPR_44,)
-    REC_HAVE_32_([REC_FREQ_32] = SAMPR_32,)
-    REC_HAVE_24_([REC_FREQ_24] = SAMPR_24,)
-    REC_HAVE_22_([REC_FREQ_22] = SAMPR_22,)
-    REC_HAVE_16_([REC_FREQ_16] = SAMPR_16,)
-    REC_HAVE_12_([REC_FREQ_12] = SAMPR_12,)
-    REC_HAVE_11_([REC_FREQ_11] = SAMPR_11,)
-    REC_HAVE_8_( [REC_FREQ_8 ] = SAMPR_8 ,)
-};
-#endif /* HAVE_RECORDING */

@@ -24,19 +24,6 @@
 
 /** Clip sample to signed 16 bit range **/
 
-#ifdef CPU_ARM
-#if ARM_ARCH >= 6
-static FORCE_INLINE int32_t clip_sample_16(int32_t sample)
-{
-    int32_t out;
-	asm ("ssat %0, #16, %1"
-        : "=r" (out) : "r"(sample));
-    return out;
-}
-#define CLIP_SAMPLE_16_DEFINED
-#endif /* ARM_ARCH */
-#endif /* CPU_ARM */
-
 #ifndef CLIP_SAMPLE_16_DEFINED
 /* Generic implementation */
 static FORCE_INLINE int32_t clip_sample_16(int32_t sample)

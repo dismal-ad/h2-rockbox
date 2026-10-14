@@ -65,11 +65,7 @@
 #define IO_PRIORITY_IMMEDIATE    0
 #define IO_PRIORITY_BACKGROUND   32
 
-# ifdef HAVE_HARDWARE_CLICK
-#  define BASETHREADS  17
-# else
 #  define BASETHREADS  16
-# endif
 
 #ifndef TARGET_EXTRA_THREADS
 #define TARGET_EXTRA_THREADS 0
@@ -88,7 +84,7 @@ struct thread_entry;
  *
  * simulator (possibly) doesn't simulate stack usage anyway but well ... */
 
-#if defined(HAVE_SDL_THREADS) || defined(__PCTOOL__) || defined(N3DS)
+#if defined(HAVE_SDL_THREADS) || defined(__PCTOOL__)
 #define DEFAULT_STACK_SIZE 0x100 /* tiny, ignored anyway */
 #else
 #include "asm/thread.h"
@@ -97,13 +93,8 @@ struct thread_entry;
 extern void yield(void);
 extern unsigned sleep(unsigned ticks);
 
-#ifdef HAVE_PRIORITY_SCHEDULING
 #define IF_PRIO(...)    __VA_ARGS__
 #define IFN_PRIO(...)
-#else
-#define IF_PRIO(...)
-#define IFN_PRIO(...)   __VA_ARGS__
-#endif
 
 #define __wait_queue      lld_head
 #define __wait_queue_node lld_node
@@ -113,9 +104,7 @@ struct blocker
 {
     struct thread_entry * volatile thread; /* thread blocking other threads
                                               (aka. object owner) */
-#ifdef HAVE_PRIORITY_SCHEDULING
     int priority;                          /* highest priority waiter */
-#endif
 };
 
 /* If a thread has a blocker but the blocker's registered thread is NULL,
@@ -124,12 +113,10 @@ struct blocker
 struct blocker_splay
 {
     struct blocker  blocker;             /* blocker info (first!) */
-#ifdef HAVE_PRIORITY_SCHEDULING
     threadbit_t     mask;                /* mask of nonzero tcounts */
 #if NUM_CORES > 1
     struct corelock cl;                  /* mutual exclusion */
 #endif
-#endif /* HAVE_PRIORITY_SCHEDULING */
 };
 
 void core_idle(void);
@@ -159,10 +146,8 @@ void thread_wait(unsigned int thread_id);
 /* Exit the current thread */
 void thread_exit(void) NORETURN_ATTR;
 
-#ifdef HAVE_PRIORITY_SCHEDULING
 int thread_set_priority(unsigned int thread_id, int priority);
 int thread_get_priority(unsigned int thread_id);
-#endif /* HAVE_PRIORITY_SCHEDULING */
 
 #if NUM_CORES > 1
 unsigned int switch_core(unsigned int new_core);
@@ -201,10 +186,8 @@ struct thread_debug_info
 #if NUM_CORES > 1
     unsigned int core;
 #endif
-#ifdef HAVE_PRIORITY_SCHEDULING
     int          base_priority;
     int          current_priority;
-#endif
 };
 int thread_get_debug_info(unsigned int thread_id,
                           struct thread_debug_info *infop);

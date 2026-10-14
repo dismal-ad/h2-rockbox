@@ -100,32 +100,6 @@ int ogg_page_packets(const ogg_page *og){
 }
 
 
-#if 0
-/* helper to initialize lookup for direct-table CRC (illustrative; we
-   use the static init in crctable.h) */
-
-static void _ogg_crc_init(){
-  int i, j;
-  ogg_uint32_t polynomial, crc;
-  polynomial = 0x04c11db7; /* The same as the ethernet generator
-                              polynomial, although we use an
-                              unreflected alg and an init/final
-                              of 0, not 0xffffffff */
-  for (i = 0; i <= 0xFF; i++){
-    crc = i << 24;
-
-    for (j = 0; j < 8; j++)
-      crc = (crc << 1) ^ (crc & (1 << 31) ? polynomial : 0);
-
-    crc_lookup[0][i] = crc;
-  }
-
-  for (i = 0; i <= 0xFF; i++)
-    for (j = 1; j < 8; j++)
-      crc_lookup[j][i] = crc_lookup[0][(crc_lookup[j - 1][i] >> 24) & 0xFF] ^ (crc_lookup[j - 1][i] << 8);
-}
-#endif
-
 #include "crctable.h"
 
 /* init the encode/decode logical stream state */

@@ -27,9 +27,6 @@
 
 enum pcm_dma_status
 {
-#ifdef HAVE_SPDIF_REC
-    PCM_DMAST_ERR_SPDIF = -2,
-#endif
     PCM_DMAST_ERR_DMA   = -1,
     PCM_DMAST_OK        =  0,
     PCM_DMAST_STARTED   =  1,
@@ -47,11 +44,6 @@ typedef enum pcm_dma_status (*pcm_status_callback_type)(enum pcm_dma_status stat
  * when CONFIG_SAMPR_TYPES is #defined, or-in SAMPR_TYPE_* fields with
  * frequency value. SAMPR_TYPE_PLAY is 0 and the default if none is
  * specified. */
-#ifdef CONFIG_SAMPR_TYPES
-#ifdef SAMPR_TYPE_REC
-unsigned int pcm_sampr_type_rec_to_play(unsigned int samplerate);
-#endif
-#endif /* CONFIG_SAMPR_TYPES */
 
 /* Reenterable locks for locking and unlocking the playback interrupt */
 void pcm_play_lock(void);
@@ -77,36 +69,5 @@ struct pcm_peaks
     long period;    /* For tracking calling period */
     long tick;      /* Last tick called */
 };
-
-#ifdef HAVE_RECORDING
-
-/** RAW PCM recording routines **/
-
-/* Typedef for registered data callback */
-typedef void (*pcm_rec_callback_type)(void **start, size_t *size);
-
-/* Reenterable locks for locking and unlocking the recording interrupt */
-void pcm_rec_lock(void);
-void pcm_rec_unlock(void);
-
-/* Initialize pcm recording interface */
-void pcm_init_recording(void);
-/* Uninitialize pcm recording interface */
-void pcm_close_recording(void);
-
-/* Start recording "raw" PCM data */
-void pcm_record_data(pcm_rec_callback_type more_ready,
-                     pcm_status_callback_type status_cb,
-                     void *start, size_t size);
-
-/* Stop tranferring data into supplied buffer */
-void pcm_stop_recording(void);
-
-/* Is pcm currently recording? */
-bool pcm_is_recording(void);
-
-void pcm_calculate_rec_peaks(int *left, int *right);
-
-#endif /* HAVE_RECORDING */
 
 #endif /* PCM_PLAYBACK_H */

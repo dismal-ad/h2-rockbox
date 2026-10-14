@@ -101,9 +101,6 @@ int plugin_open(const char *plugin, const char *parameter);
 #include "codecs.h"
 #include "playback.h"
 #include "codec_thread.h"
-#ifdef HAVE_RECORDING
-#include "recording.h"
-#endif
 #include "settings.h"
 #include "timer.h"
 #include "playlist.h"
@@ -135,10 +132,6 @@ int plugin_open(const char *plugin, const char *parameter);
 
 #ifdef HAVE_ALBUMART
 #include "albumart.h"
-#endif
-
-#ifdef HAVE_REMOTE_LCD
-#include "lcd-remote.h"
 #endif
 
 #include "yesno.h"
@@ -221,9 +214,6 @@ struct plugin_api {
     void (*splashf)(int ticks, const char *fmt, ...) ATTRIBUTE_PRINTF(2, 3);
     void (*splash_progress)(int current, int total, const char *fmt, ...) ATTRIBUTE_PRINTF(3, 4);
     void (*splash_progress_set_delay)(long delay_ticks);
-#ifdef HAVE_LCD_CONTRAST
-    void (*lcd_set_contrast)(int x);
-#endif
     void (*lcd_update)(void);
     void (*lcd_clear_display)(void);
     int  (*lcd_getstringsize)(const unsigned char *str, int *w, int *h);
@@ -250,7 +240,6 @@ struct plugin_api {
                                  int stride, int x, int y, int width, int height);
     void (*lcd_mono_bitmap)(const unsigned char *src, int x, int y,
                             int width, int height);
-#if LCD_DEPTH > 1
     void     (*lcd_set_foreground)(unsigned foreground);
     unsigned (*lcd_get_foreground)(void);
     void     (*lcd_set_background)(unsigned foreground);
@@ -261,8 +250,6 @@ struct plugin_api {
                        int height);
     fb_data* (*lcd_get_backdrop)(void);
     void (*lcd_set_backdrop)(fb_data* backdrop);
-#endif
-#if LCD_DEPTH >= 16
     void (*lcd_bitmap_transparent_part)(const fb_data *src,
             int src_x, int src_y, int stride,
             int x, int y, int width, int height);
@@ -272,35 +259,17 @@ struct plugin_api {
     void (*lcd_blit_yuv)(unsigned char * const src[3],
                          int src_x, int src_y, int stride,
                          int x, int y, int width, int height);
-#if defined(TOSHIBA_GIGABEAT_F) || defined(SANSA_E200) || defined(SANSA_C200) \
-    || defined(IRIVER_H10) || defined(COWON_D2) || defined(PHILIPS_HDD1630) \
-    || defined(SANSA_FUZE) || defined(SANSA_E200V2) || defined(SANSA_FUZEV2) \
-    || defined(TOSHIBA_GIGABEAT_S) || defined(PHILIPS_SA9200)
-    void (*lcd_yuv_set_options)(unsigned options);
-#endif
 #endif /* MEMORYSIZE > 2 */
-#elif (LCD_DEPTH < 4) && (CONFIG_PLATFORM & PLATFORM_NATIVE)
-    void (*lcd_blit_mono)(const unsigned char *data, int x, int by, int width,
-                          int bheight, int stride);
-    void (*lcd_blit_grey_phase)(unsigned char *values, unsigned char *phases,
-                                int bx, int by, int bwidth, int bheight,
-                                int stride);
-#endif /* LCD_DEPTH */
 #if defined(HAVE_LCD_MODES) && (HAVE_LCD_MODES & LCD_MODE_PAL256)
     void (*lcd_blit_pal256)(unsigned char *src, int src_x, int src_y, int x, int y,
                             int width, int height);
     void (*lcd_pal256_update_pal)(fb_data *palette);
 #endif
-#ifdef HAVE_LCD_INVERT
-    void (*lcd_set_invert_display)(bool yesno);
-#endif /* HAVE_LCD_INVERT */
 #if defined(HAVE_LCD_MODES)
     void (*lcd_set_mode)(int mode);
 #endif
 
-#if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
     void (*button_queue_post)(long id, intptr_t data);
-#endif
     ucschar_t *(*bidi_l2v)(const unsigned char *str, int orientation);
     bool (*is_diacritic)(const ucschar_t char_code, bool *is_rtl);
     const unsigned char *(*font_get_bits)(struct font *pf, ucschar_t char_code);
@@ -320,43 +289,6 @@ struct plugin_api {
                                unsigned flags);
     const char* (*get_codepage_name)(int cp);
 
-#ifdef HAVE_REMOTE_LCD
-    /* remote lcd */
-    void (*lcd_remote_set_contrast)(int x);
-    void (*lcd_remote_clear_display)(void);
-    void (*lcd_remote_puts)(int x, int y, const unsigned char *string);
-    bool (*lcd_remote_puts_scroll)(int x, int y, const unsigned char* string);
-    void (*lcd_remote_scroll_stop)(void);
-    void (*lcd_remote_set_drawmode)(int mode);
-    int  (*lcd_remote_get_drawmode)(void);
-    void (*lcd_remote_setfont)(int font);
-    int  (*lcd_remote_getstringsize)(const unsigned char *str, int *w, int *h);
-    void (*lcd_remote_drawpixel)(int x, int y);
-    void (*lcd_remote_drawline)(int x1, int y1, int x2, int y2);
-    void (*lcd_remote_hline)(int x1, int x2, int y);
-    void (*lcd_remote_vline)(int x, int y1, int y2);
-    void (*lcd_remote_drawrect)(int x, int y, int nx, int ny);
-    void (*lcd_remote_fillrect)(int x, int y, int nx, int ny);
-    void (*lcd_remote_mono_bitmap_part)(const unsigned char *src, int src_x,
-                                        int src_y, int stride, int x, int y,
-                                        int width, int height);
-    void (*lcd_remote_mono_bitmap)(const unsigned char *src, int x, int y,
-                                   int width, int height);
-    void (*lcd_remote_putsxy)(int x, int y, const unsigned char *string);
-    void (*lcd_remote_update)(void);
-    void (*lcd_remote_update_rect)(int x, int y, int width, int height);
-#if (LCD_REMOTE_DEPTH > 1)
-    void     (*lcd_remote_set_foreground)(unsigned foreground);
-    unsigned (*lcd_remote_get_foreground)(void);
-    void     (*lcd_remote_set_background)(unsigned background);
-    unsigned (*lcd_remote_get_background)(void);
-    void (*lcd_remote_bitmap_part)(const fb_remote_data *src,
-                                   int src_x, int src_y, int stride,
-                                   int x, int y, int width, int height);
-    void (*lcd_remote_bitmap)(const fb_remote_data *src, int x, int y,
-                              int width, int height);
-#endif
-#endif /* HAVE_REMOTE_LCD */
     struct screen* screens[NB_SCREENS];
 
     void (*viewport_set_defaults)(struct viewport *vp,
@@ -369,7 +301,6 @@ struct plugin_api {
     void (*viewport_set_buffer)(struct viewport *vp, struct frame_buffer_t *buffer,
                                                      const enum screen_type screen);
 
-#ifdef HAVE_BACKLIGHT
     /* lcd backlight */
     /* For OLED targets like the Sansa Clip, the backlight_* functions control
      * the display enable, which has essentially the same effect. */
@@ -378,25 +309,10 @@ struct plugin_api {
     void (*backlight_off)(void);
     void (*backlight_set_on_button_hold)(int index);
     void (*backlight_set_timeout)(int index);
-#ifdef HAVE_BACKLIGHT_BRIGHTNESS
     void (*backlight_set_brightness)(int val);
-#endif /* HAVE_BACKLIGHT_BRIGHTNESS */
 #if CONFIG_CHARGING
     void (*backlight_set_timeout_plugged)(int index);
 #endif
-
-#ifdef HAVE_REMOTE_LCD
-    void (*remote_backlight_on)(void);
-    void (*remote_backlight_off)(void);
-    void (*remote_backlight_set_timeout)(int index);
-#if CONFIG_CHARGING
-    void (*remote_backlight_set_timeout_plugged)(int index);
-#endif
-#if defined(HAS_REMOTE_BUTTON_HOLD)
-    void (*remote_backlight_set_on_button_hold)(int index);
-#endif
-#endif /* HAVE_REMOTE_LCD */
-#endif /* HAVE_BACKLIGHT */
 
     /* list */
     void (*gui_synclist_init)(struct gui_synclist * lists,
@@ -437,29 +353,6 @@ struct plugin_api {
     int (*get_custom_action)(int context,int timeout,
                           const struct button_mapping* (*get_context_map)(int));
     int (*get_action)(int context, int timeout);
-#ifdef HAVE_TOUCHSCREEN
-    int (*action_get_touchscreen_press)(short *x, short *y);
-    int (*action_get_touchscreen_press_in_vp)(short *x1, short *y1, struct viewport *vp);
-    int (*action_get_touch_event)(struct touchevent *ev);
-    void (*action_gesture_reset)(void);
-    bool (*action_gesture_get_event_in_vp)(struct gesture_event *gevt,
-                                           const struct viewport *vp);
-    bool (*action_gesture_get_event)(struct gesture_event *gevt);
-    bool (*action_gesture_is_valid)(void);
-    bool (*action_gesture_is_pressed)(void);
-    void (*gesture_reset)(struct gesture *g);
-    void (*gesture_process)(struct gesture *g, const struct touchevent *ev);
-    bool (*gesture_get_event_in_vp)(struct gesture *g,
-                                    struct gesture_event *gevt,
-                                    const struct viewport *vp);
-    void (*gesture_vel_reset)(struct gesture_vel *gv);
-    void (*gesture_vel_process)(struct gesture_vel *gv,
-                                const struct touchevent *ev);
-    bool (*gesture_vel_get)(struct gesture_vel *gv, int *xvel, int *yvel);
-    int (*gesture_flick_get_in_vp)(const struct gesture_event *gevt,
-                                   const struct viewport *vp);
-    int (*gesture_flick_get)(const struct gesture_event *gevt);
-#endif
     bool (*action_userabort)(int timeout);
     int (*core_set_keyremap)(struct button_mapping* core_keymap, int count);
 
@@ -467,31 +360,10 @@ struct plugin_api {
     long (*button_get)(bool block);
     long (*button_get_w_tmo)(int ticks);
     int (*button_status)(void);
-#ifdef HAVE_BUTTON_DATA
-    intptr_t (*button_get_data)(void);
-    int (*button_status_wdata)(int *pdata);
-#endif
     void (*button_clear_queue)(void);
     int (*button_queue_count)(void);
-#ifdef HAS_BUTTON_HOLD
-    bool (*button_hold)(void);
-#endif
-#ifdef HAVE_SW_POWEROFF
     void (*button_set_sw_poweroff_state)(bool enable);
     bool (*button_get_sw_poweroff_state)(void);
-#endif
-#ifdef HAVE_TOUCHSCREEN
-    void (*touchscreen_set_mode)(enum touchscreen_mode);
-    enum touchscreen_mode (*touchscreen_get_mode)(void);
-#endif
-#ifdef HAVE_BUTTON_LIGHT
-    void (*buttonlight_set_timeout)(int value);
-    void (*buttonlight_off)(void);
-    void (*buttonlight_on)(void);
-#ifdef HAVE_BUTTONLIGHT_BRIGHTNESS
-    void (*buttonlight_set_brightness)(int val);
-#endif /* HAVE_BUTTONLIGHT_BRIGHTNESS */
-#endif /* HAVE_BUTTON_LIGHT */
 
     /* file */
     int (*open_utf8)(const char* pathname, int flags);
@@ -578,9 +450,6 @@ struct plugin_api {
 
     /* kernel/ system */
     void (*panicf)(const char *msg, ...);
-#if defined(ARM_NEED_DIV0)
-    void (*__div0)(void);
-#endif
     unsigned (*sleep)(unsigned ticks);
     void (*yield)(void);
     volatile long* current_tick;
@@ -596,24 +465,17 @@ struct plugin_api {
     void (*thread_exit)(void);
     void (*thread_wait)(unsigned int thread_id);
     void (*thread_thaw)(unsigned int thread_id);
-#ifdef HAVE_PRIORITY_SCHEDULING
     int (*thread_set_priority)(unsigned int thread_id, int priority);
-#endif
     void (*mutex_init)(struct mutex *m);
     void (*mutex_lock)(struct mutex *m);
     void (*mutex_unlock)(struct mutex *m);
-#ifdef HAVE_SEMAPHORE_OBJECTS
     void (*semaphore_init)(struct semaphore *s, int max, int start);
     int  (*semaphore_wait)(struct semaphore *s, int timeout);
     void (*semaphore_release)(struct semaphore *s);
-#endif
     void (*reset_poweroff_timer)(void);
     void (*set_sleeptimer_duration)(int minutes);
     int (*get_sleep_timer)(void);
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
-#if defined(CPU_COLDFIRE)
-    int (*system_memory_guard)(int newmode);
-#endif
     long *cpu_frequency;
 #ifdef HAVE_ADJUSTABLE_CPU_FREQ
 #ifdef CPU_BOOST_LOGGING
@@ -681,10 +543,6 @@ struct plugin_api {
 
 #if (CONFIG_PLATFORM & PLATFORM_HOSTED)
     /* special simulator hooks */
-#if LCD_DEPTH < 8
-    void (*sim_lcd_ex_init)(unsigned long (*getpixel)(int, int));
-    void (*sim_lcd_ex_update_rect)(int x, int y, int width, int height);
-#endif
 #endif
 
     /* strings and memory */
@@ -770,21 +628,6 @@ struct plugin_api {
     const struct pcm_sink_caps* (*pcm_current_sink_caps)(void);
     void (*beep_play)(unsigned int frequency, unsigned int duration,
                       unsigned int amplitude);
-#ifdef HAVE_RECORDING
-    const unsigned long *rec_freq_sampr;
-    void (*pcm_init_recording)(void);
-    void (*pcm_close_recording)(void);
-    void (*pcm_record_data)(pcm_rec_callback_type more_ready,
-                            pcm_status_callback_type status_cb,
-                            void *start, size_t size);
-    void (*pcm_stop_recording)(void);
-    void (*pcm_calculate_rec_peaks)(int *left, int *right);
-    void (*audio_set_recording_gain)(int left, int right, int type);
-#endif /* HAVE_RECORDING */
-#if INPUT_SRC_CAPS != 0
-    void (*audio_set_output_source)(int monitor);
-    void (*audio_set_input_source)(int source, unsigned flags);
-#endif
     void (*dsp_set_crossfeed_type)(int type);
     void (*dsp_eq_enable)(bool enable);
     void (*dsp_dither_enable)(bool enable);
@@ -833,7 +676,6 @@ struct plugin_api {
             unsigned long rec_time, unsigned long header_template,
             void (*progressfunc)(int), bool generate_toc,
             unsigned char* tempbuf, size_t tempbuf_len);
-#ifdef HAVE_TAGCACHE
     bool (*tagtree_entries_iterate)(struct tagcache_search *tcs,
                                     bool (*action_cb)(const char *file_name),
                                     char *buf, size_t buf_sz);
@@ -855,7 +697,6 @@ struct plugin_api {
     bool (*tagcache_fill_tags)(struct mp3entry *id3, const char *filename);
 #endif /* HAVE_DIRCACHE */
 #endif /* HAVE_TC_RAMCACHE */
-#endif /* HAVE_TAGCACHE */
 
 #ifdef HAVE_ALBUMART
     bool (*search_albumart_files)(const struct mp3entry *id3, const char *size_string,
@@ -943,10 +784,8 @@ struct plugin_api {
                        int32_t (*get_talk_id)(int, int));
     bool (*set_bool)(const char* string, const bool* variable );
 
-#ifdef HAVE_LCD_COLOR
     bool (*set_color)(struct screen *display, char *title,
                       unsigned *color, unsigned banned_color);
-#endif
 
     /* power */
     struct battery_tables_t *device_battery_tables;
@@ -984,9 +823,7 @@ struct plugin_api {
     int (*kbd_input)(char* buffer, int buflen, ucschar_t *kbd);
     struct tm* (*get_time)(void);
     struct tm * (*gmtime_r)(const time_t *timep, struct tm *tm);
-#if CONFIG_RTC
     time_t (*mktime)(struct tm *t);
-#endif
     const char* (*format_time_auto)(char *buffer, int buf_len, long value,
                                     int unit_idx, bool supress_unit);
 #if defined(DEBUG) || defined(SIMULATOR)
@@ -1012,12 +849,10 @@ struct plugin_api {
                          int format, const struct custom_format *cformat);
     int (*read_bmp_fd)(int fd, struct bitmap *bm, int maxsize,
                        int format, const struct custom_format *cformat);
-#ifdef HAVE_JPEG
     int (*read_jpeg_file)(const char* filename, struct bitmap *bm, int maxsize,
                           int format, const struct custom_format *cformat);
     int (*read_jpeg_fd)(int fd, struct bitmap *bm, int maxsize,
                         int format, const struct custom_format *cformat);
-#endif
     void (*screen_dump_set_hook)(void (*hook)(int fh));
 
 #ifdef HAVE_WHEEL_POSITION
@@ -1025,12 +860,6 @@ struct plugin_api {
     void (*wheel_send_events)(bool send);
 #endif
 
-#if !defined(SIMULATOR) && (defined(IRIVER_H100_SERIES) || defined(IRIVER_H300_SERIES))
-    /* Routines for the iriver_flash -plugin. */
-    bool (*detect_original_firmware)(void);
-    bool (*detect_flashed_ramimage)(void);
-    bool (*detect_flashed_romimage)(void);
-#endif
     /*plugin*/
     int (*plugin_open)(const char *path, const char *parameter);
     void* (*plugin_get_buffer)(size_t *buffer_size);
@@ -1046,10 +875,6 @@ struct plugin_api {
     void (*fix_path_part)(char* path, int offset, int count);
 #ifdef HAVE_MULTIVOLUME
     int (*path_strip_volume)(const char *name, const char **nameptr, bool greedy);
-#endif
-
-#ifdef HAVE_HW_H264
-    const struct hw_h264_api *hw_h264;
 #endif
 
     /* new stuff at the end, sort into place next time

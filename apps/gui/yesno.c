@@ -97,55 +97,6 @@ static void gui_yesno_draw(struct gui_yesno * yn)
 
     line_shift += put_message(display, main_message, line_shift, vp_lines);
 
-#ifdef HAVE_TOUCHSCREEN
-    if (display->screen_type == SCREEN_MAIN)
-    {
-        int w,h,tmo_w;
-        int tm_rem = 0;
-        const char *btn_fmt;
-        int rect_w = vp->width/2, rect_h = vp->height/2;
-        int old_pattern = vp->fg_pattern;
-        vp->fg_pattern = LCD_RGBPACK(0,255,0);
-        display->drawrect(0, rect_h, rect_w, rect_h);
-        display->getstringsize(str(LANG_SET_BOOL_YES), &w, &h);
-
-        if (def_res == YESNO_YES)
-        {
-            display->getstringsize(" (00)", &tmo_w, NULL);
-            tm_rem = ((yn->end_tick - current_tick) / 100);
-            btn_fmt = "%s (%02d)";
-        }
-        else
-        {
-            btn_fmt = "%s\0%d";
-            tmo_w = 0;
-        }
-
-        display->putsxyf((rect_w-(w+tmo_w))/2, rect_h+(rect_h-h)/2,
-                         btn_fmt, str(LANG_SET_BOOL_YES), tm_rem);
-
-        vp->fg_pattern = LCD_RGBPACK(255,0,0);
-        display->drawrect(rect_w, rect_h, rect_w, rect_h);
-        display->getstringsize(str(LANG_SET_BOOL_NO), &w, &h);
-
-        if (def_res == YESNO_NO)
-        {
-            display->getstringsize(" (00)", &tmo_w, NULL);
-            tm_rem = ((yn->end_tick - current_tick) / 100);
-            btn_fmt = "%s (%02d)";
-        }
-        else
-        {
-            btn_fmt = "%s\0%d";
-            tmo_w = 0;
-        }
-
-        display->putsxyf(rect_w + (rect_w-(w+tmo_w))/2, rect_h+(rect_h-h)/2,
-                         btn_fmt, str(LANG_SET_BOOL_NO), tm_rem);
-
-        vp->fg_pattern = old_pattern;
-    }
-#else
     /* Space remaining for yes / no text ? */
     if(line_shift + 2 <= vp_lines)
     {
@@ -165,7 +116,6 @@ static void gui_yesno_draw(struct gui_yesno * yn)
                                str(LANG_CANCEL_WITH_ANY), tm_rem);
         }
     }
-#endif
     display->update_viewport();
     display->set_viewport(last_vp);
 }
@@ -188,19 +138,6 @@ static void gui_yesno_draw_result(struct gui_yesno * yn, const struct text_messa
     display->update_viewport();
     display->set_viewport(last_vp);
 }
-#if 0
-static void gui_yesno_ui_update(unsigned short id, void *event_data, void *user_data)
-{
-    (void)id;
-    (void)event_data;
-
-    struct gui_yesno* yn = (struct gui_yesno*)user_data;
-    FOR_NB_SCREENS(i)
-    {
-        gui_yesno_draw(&yn[i]);
-    }
-}
-#endif
 /* Display a YES_NO prompt to the user
  *
  * ticks < HZ will be ignored and the prompt will be blocking
@@ -248,13 +185,6 @@ enum yesno_res gui_syncyesno_run_w_tmo(int ticks, enum yesno_res tmo_default_res
         yn[i].vp_lines = viewport_get_nb_lines(&(yn[i].vp));
     }
 
-#ifdef HAVE_TOUCHSCREEN
-    /* switch to point mode because that's more intuitive */
-    enum touchscreen_mode old_mode = touchscreen_get_mode();
-    touchscreen_set_mode(TOUCHSCREEN_POINT);
-    action_gesture_reset();
-#endif
-
     /* make sure to eat any extranous keypresses */
     action_wait_for_release();
 
@@ -279,23 +209,6 @@ enum yesno_res gui_syncyesno_run_w_tmo(int ticks, enum yesno_res tmo_default_res
         action = get_action(CONTEXT_YESNOSCREEN, HZ / 2); /* for statubar and tmo */
         switch (action)
         {
-#ifdef HAVE_TOUCHSCREEN
-            case ACTION_TOUCHSCREEN:
-            {
-                struct gesture_event gevent;
-                if (action_gesture_get_event_in_vp(&gevent, &yn[0].vp) &&
-                    gevent.id == GESTURE_TAP)
-                {
-                    if (gevent.y > yn[0].vp.height/2)
-                    {
-                        if (gevent.x <= yn[0].vp.width/2)
-                            result = YESNO_YES;
-                        else
-                            result = YESNO_NO;
-                    }
-                }
-            } break;
-#endif
             case ACTION_YESNO_ACCEPT:
                 result = YESNO_YES;
                 break;
@@ -357,9 +270,6 @@ exit:
         viewportmanager_theme_undo(i, false);
     }
 
-#ifdef HAVE_TOUCHSCREEN
-    touchscreen_set_mode(old_mode);
-#endif
     return result;
 }
 

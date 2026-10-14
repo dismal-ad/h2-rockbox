@@ -68,68 +68,15 @@ static unsigned short * strcpy_utf8utf16(unsigned short *buffer,
     ucschar_t cp = 0xffffffff;
     for (wchar_t *ucs = buffer; cp ; ucs++) {
         utf8 = utf8decode(utf8, &cp);
-#ifdef UNICODE32
         if (cp > 0x10000) {
             cp -= 0x10000;
             *ucs++ = 0xd800 | (cp >> 10);
             cp = 0xdc00 | (cp & 0x3ff);
         }
-#endif
         *ucs = cp;
     }
     return buffer;
 }
-
-#if 0 /* Unused in current code */
-static unsigned char * strcpy_utf16utf8(unsigned char *buffer,
-                                        const unsigned short *utf16buf)
-{
-    unsigned char *utf8 = buffer;
-
-    /* windows is always LE */
-    const int le = 1;
-
-    while (*utf16buf) {
-        const unsigned char *utf16 = (const unsigned char *)utf16buf;
-        unsigned long ucs;
-        /* Check for a surrogate pair */
-        if (*(utf16 + le) >= 0xD8 && *(utf16 + le) < 0xE0) {
-            ucs = 0x10000 + ((utf16[1 - le] << 10) | ((utf16[le] - 0xD8) << 18)
-                  | utf16[2 + (1 - le)] | ((utf16[2 + le] - 0xDC) << 8));
-            utf16buf += 2;
-        } else {
-            ucs = utf16[le] << 8 | utf16[1 - le];
-            utf16buf++;
-        }
-        utf8 = utf8encode(ucs, utf8);
-    }
-    return buffer;
-}
-static size_t strlen_utf16utf8(const unsigned short *utf16buf)
-{
-    size_t length = 0;
-    unsigned char utf8char[4];
-
-    /* windows is always LE */
-    const int le = 1;
-
-    while (*utf16buf) {
-        const unsigned char *utf16 = (const unsigned char *)utf16buf;
-        unsigned long ucs;
-        /* Check for a surrogate pair */
-        if (*(utf16 + le) >= 0xD8 && *(utf16 + le) < 0xE0) {
-            ucs = 0x10000 + ((utf16[1 - le] << 10) | ((utf16[le] - 0xD8) << 18)
-                  | utf16[2 + (1 - le)] | ((utf16[2 + le] - 0xDC) << 8));
-            utf16buf += 2;
-        } else {
-            ucs = utf16[le] << 8 | utf16[1 - le];
-            utf16buf++;
-        }
-        length += utf8encode(ucs, utf8char) - utf8char;
-    }
-    return length;
-}
-#endif
 
 /* Note: Must be exported */
 size_t strlcpy_utf16utf8(char *buffer, const unsigned short *utf16,

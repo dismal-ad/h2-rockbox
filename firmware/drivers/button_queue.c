@@ -83,9 +83,7 @@ static void button_queue_wait(struct queue_event *evp, int timeout)
         {
             /* GUI boost build gets immediate kick, otherwise at least 3
                messages had to be there */
-        #ifndef HAVE_GUI_BOOST
             if (queue_count(&button_queue) >= 2)
-        #endif
                 button_boost(true);
 
             break;
@@ -139,18 +137,11 @@ void button_queue_post_remove_head(long id, intptr_t data)
 
 bool button_queue_try_post(long button, int data)
 {
-#ifdef HAVE_TOUCHSCREEN
-    /* one can swipe over the scren very quickly,
-     * for this to work we want to forget about old presses and
-     * only respect the very latest ones */
-    const bool force_post = true;
-#else
     /* Only post events if the queue is empty,
      * to avoid afterscroll effects.
      * i.e. don't post new buttons if previous ones haven't been
      * processed yet - but always post releases */
     const bool force_post = button & BUTTON_REL;
-#endif
 
     if (!queue_empty(&button_queue))
     {

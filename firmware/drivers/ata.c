@@ -49,9 +49,6 @@
 #define CMD_WRITE_MULTIPLE         0xC5
 #define CMD_WRITE_MULTIPLE_EXT     0x39
 #define CMD_SET_MULTIPLE_MODE      0xC6
-#ifdef HAVE_ATA_SMART
-#define CMD_SMART                  0xB0
-#endif
 #define CMD_STANDBY_IMMEDIATE      0xE0
 #define CMD_STANDBY                0xE2
 #define CMD_IDENTIFY               0xEC
@@ -60,12 +57,6 @@
 #define CMD_FLUSH_CACHE_EXT        0xEA
 #define CMD_SET_FEATURES           0xEF
 #define CMD_SECURITY_FREEZE_LOCK   0xF5
-#ifdef HAVE_ATA_DMA
-#define CMD_READ_DMA               0xC8
-#define CMD_READ_DMA_EXT           0x25
-#define CMD_WRITE_DMA              0xCA
-#define CMD_WRITE_DMA_EXT          0x35
-#endif
 
 #define READWRITE_TIMEOUT 5*HZ
 
@@ -104,10 +95,6 @@ static long power_off_tick = 0;
 #endif
 
 static uint8_t  multisectors; /* number of supported multisectors */
-
-#ifdef HAVE_ATA_DMA
-static int dma_mode = 0;
-#endif
 
 #ifdef HAVE_ATA_POWER_OFF
 static int ata_power_on(void);
@@ -236,10 +223,6 @@ static int ata_perform_flush_cache(void)
 
     if (!canflush) {
         return 0;
-#ifdef HAVE_LBA48
-    } else if (ata_lba48 && identify_info[83] & (1 << 13)) {
-        cmd = CMD_FLUSH_CACHE_EXT;  /* Flag, optional, ATA-6 and up, for use with LBA48 devices */
-#endif
     } else if (identify_info[83] & (1 << 12)) {
         cmd = CMD_FLUSH_CACHE; /* Flag, mandatory, ATA-6 and up */
     } else if (identify_info[80] >= (1 << 5)) { /* Use >= instead of '&' because bits lower than the latest standard we support don't have to be set */
@@ -384,9 +367,6 @@ static int ata_transfer_sectors(uint64_t start,
     int count;
     void* buf;
     long spinup_start = spinup_start;
-#ifdef HAVE_ATA_DMA
-    bool usedma = false;
-#endif
 
     if (start + incount > total_sectors) {
         ret = -1;
@@ -425,49 +405,13 @@ static int ata_transfer_sectors(uint64_t start,
         ret = 0;
         keep_ata_active();
 
-#ifdef HAVE_ATA_DMA
-        /* If DMA is supported and parameters are ok for DMA, use it */
-        if (dma_mode && ata_dma_setup(inbuf, incount * log_sector_size, write))
-            usedma = true;
-#endif
-
-#ifdef HAVE_LBA48
-        if (ata_lba48)
-        {
-            ATA_OUT8(ATA_NSECTOR, count >> 8);
-            ATA_OUT8(ATA_NSECTOR, count & 0xff);
-            ATA_OUT8(ATA_SECTOR, (start >> 24) & 0xff); /* 31:24 */
-            ATA_OUT8(ATA_SECTOR, start & 0xff); /* 7:0 */
-            ATA_OUT8(ATA_LCYL, (start >> 32) & 0xff); /* 39:32 */
-            ATA_OUT8(ATA_LCYL, (start >> 8) & 0xff); /* 15:8 */
-            ATA_OUT8(ATA_HCYL, (start >> 40) & 0xff); /* 47:40 */
-            ATA_OUT8(ATA_HCYL, (start >> 16) & 0xff); /* 23:16 */
-            ATA_OUT8(ATA_SELECT, SELECT_LBA | ata_device);
-#ifdef HAVE_ATA_DMA
-            if (write)
-                ATA_OUT8(ATA_COMMAND, usedma ? CMD_WRITE_DMA_EXT : CMD_WRITE_MULTIPLE_EXT);
-            else
-                ATA_OUT8(ATA_COMMAND, usedma ? CMD_READ_DMA_EXT : CMD_READ_MULTIPLE_EXT);
-#else
-            ATA_OUT8(ATA_COMMAND, write ? CMD_WRITE_MULTIPLE_EXT : CMD_READ_MULTIPLE_EXT);
-#endif
-        }
-        else
-#endif
         {
             ATA_OUT8(ATA_NSECTOR, count & 0xff); /* 0 means 256 sectors */
             ATA_OUT8(ATA_SECTOR, start & 0xff);
             ATA_OUT8(ATA_LCYL, (start >> 8) & 0xff);
             ATA_OUT8(ATA_HCYL, (start >> 16) & 0xff);
             ATA_OUT8(ATA_SELECT, ((start >> 24) & 0xf) | SELECT_LBA | ata_device);  /* LBA28, mask off upper 4 bits of 32-bit sector address */
-#ifdef HAVE_ATA_DMA
-            if (write)
-                ATA_OUT8(ATA_COMMAND, usedma ? CMD_WRITE_DMA : CMD_WRITE_MULTIPLE);
-            else
-                ATA_OUT8(ATA_COMMAND, usedma ? CMD_READ_DMA : CMD_READ_MULTIPLE);
-#else
             ATA_OUT8(ATA_COMMAND, write ? CMD_WRITE_MULTIPLE : CMD_READ_MULTIPLE);
-#endif
         }
 
         /* wait at least 400ns between writing command and reading status */
@@ -477,23 +421,6 @@ static int ata_transfer_sectors(uint64_t start,
         __asm__ volatile ("nop");
         __asm__ volatile ("nop");
 
-#ifdef HAVE_ATA_DMA
-        if (usedma) {
-            if (!ata_dma_finish())
-                ret = -7;
-
-            if (ret != 0) {
-                perform_soft_reset();
-                goto retry;
-            }
-
-            if (ata_state == ATA_SPINUP) {
-                ata_state = ATA_ON;
-                spinup_time = current_tick - spinup_start;
-            }
-        }
-        else
-#endif /* HAVE_ATA_DMA */
         {
             while (count) {
                 int sectors;
@@ -585,7 +512,6 @@ static int ata_transfer_sectors(uint64_t start,
     return ret;
 }
 
-#ifndef MAX_PHYS_SECTOR_SIZE
 int ata_read_sectors(IF_MD(int drive,)
                      sector_t start,
                      int incount,
@@ -615,7 +541,6 @@ int ata_write_sectors(IF_MD(int drive,)
     mutex_unlock(&ata_mutex);
     return rc;
 }
-#endif /* ndef MAX_PHYS_SECTOR_SIZE */
 
 static int STORAGE_INIT_ATTR check_registers(void)
 {
@@ -719,46 +644,6 @@ static int STORAGE_INIT_ATTR ata_hard_reset(void)
     return ret;
 }
 
-#ifdef HAVE_ATA_SMART
-static int ata_smart(uint16_t *buf, uint8_t cmd)
-{
-    int i;
-
-    ATA_OUT8(ATA_SELECT, ata_device);
-
-    if(!wait_for_rdy()) {
-        DEBUGF("identify() - not RDY\n");
-        return -1;
-    }
-
-    ATA_OUT8(ATA_FEATURE, cmd);
-    ATA_OUT8(ATA_HCYL, 0xc2);
-    ATA_OUT8(ATA_LCYL, 0x4f);
-    ATA_OUT8(ATA_SELECT, SELECT_LBA | ata_device);
-    ATA_OUT8(ATA_COMMAND, CMD_SMART);
-
-    if (!wait_for_start_of_transfer())
-    {
-        DEBUGF("identify() - CMD failed\n");
-        return -2;
-    }
-
-    for (i = 0 ; i < 256 ; i++) {
-        /* The SMART words are already swapped, so we need to treat
-           this info differently that normal sector data */
-        buf[i] = ATA_SWAP_IDENTIFY(ATA_IN16(ATA_DATA));
-    }
-    return 0;
-}
-int ata_read_smart(struct ata_smart_values* smart_data, uint8_t cmd)
-{
-    mutex_lock(&ata_mutex);
-    int rc = ata_smart((uint16_t*)smart_data, cmd);
-    mutex_unlock(&ata_mutex);
-    return rc;
-}
-#endif /* HAVE_ATA_SMART */
-
 // not putting this into STORAGE_INIT_ATTR, as ATA spec recommends to
 // re-read identify_info after soft reset. So we'll do that.
 static int identify(void)
@@ -804,12 +689,7 @@ static int perform_soft_reset(void)
     ATA_OUT8(ATA_CONTROL, CONTROL_nIEN|CONTROL_SRST );
     sleep(1); /* >= 5us */
 
-#ifdef HAVE_ATA_DMA
-    /* DMA requires INTRQ be enabled */
-    ATA_OUT8(ATA_CONTROL, 0);
-#else
     ATA_OUT8(ATA_CONTROL, CONTROL_nIEN);
-#endif
     sleep(1); /* >2ms */
 
     /* This little sucker can take up to 30 seconds */
@@ -936,22 +816,6 @@ static int set_multiple_mode(int sectors)
     return 0;
 }
 
-#ifdef HAVE_ATA_DMA
-static int ata_get_best_mode(unsigned short identword, int max, int modetype)
-{
-    unsigned short testbit = BIT_N(max);
-
-    while (1) {
-        if (identword & testbit)
-            return max | modetype;
-        testbit >>= 1;
-        if (!testbit)
-            return 0;
-        max--;
-    }
-}
-#endif
-
 static int set_features(void)
 {
     static struct {
@@ -961,9 +825,6 @@ static int set_features(void)
         unsigned char parameter;
     } features[] = {
         { 83, 14, 0x03, 0 },   /* force PIO mode by default */
-#ifdef HAVE_ATA_DMA
-        { 0, 0, 0x03, 0 },     /* DMA mode */
-#endif
         /* NOTE: Above two MUST come first! */
         { 83, 3, 0x05, 0x80 }, /* adv. power management: lowest w/o standby */
         { 83, 9, 0x42, 0x80 }, /* acoustic management: lowest noise */
@@ -983,29 +844,6 @@ static int set_features(void)
 
     /* Update the table: set highest supported pio mode that we also support */
     features[0].parameter = 8 + pio_mode;
-
-#ifdef HAVE_ATA_DMA
-    if (identify_info[53] & (1<<2)) {
-        int max_udma = ATA_MAX_UDMA;
-#if ATA_MAX_UDMA > 2
-        if (!identify_info[76] && !(identify_info[93] & (1<<13))) /* w93b13 is only valid for PATA, w76 is 0 PATA */
-            max_udma = 2;
-#endif
-        /* Ultra DMA mode info present, find a mode */
-        dma_mode = ata_get_best_mode(identify_info[88], max_udma, 0x40);
-    }
-
-    if (!dma_mode) {
-        /* No UDMA mode found, try to find a multi-word DMA mode */
-        dma_mode = ata_get_best_mode(identify_info[63], ATA_MAX_MWDMA, 0x20);
-        features[1].id_word = 63;
-    } else {
-        features[1].id_word = 88;
-    }
-
-    features[1].id_bit = dma_mode & 7;
-    features[1].parameter = dma_mode;
-#endif /* HAVE_ATA_DMA */
 
     ATA_OUT8(ATA_SELECT, ata_device);
 
@@ -1037,10 +875,6 @@ static int set_features(void)
 
 #ifdef ATA_SET_PIO_TIMING
     ata_set_pio_timings(pio_mode);
-#endif
-
-#ifdef HAVE_ATA_DMA
-    ata_dma_set_mode(dma_mode);
 #endif
 
     return 0;
@@ -1104,11 +938,6 @@ int STORAGE_INIT_ATTR ata_init(void)
             sleep(HZ/4); /* allow voltage to build up */
         }
 
-#ifdef HAVE_ATA_DMA
-        /* DMA requires INTRQ be enabled */
-        ATA_OUT8(ATA_CONTROL, 0);
-#endif
-
         /* first try, hard reset at cold start only */
         rc = init_and_check(coldstart);
 
@@ -1137,16 +966,6 @@ int STORAGE_INIT_ATTR ata_init(void)
 
         total_sectors = (identify_info[61] << 16) | identify_info[60];
 
-#ifdef HAVE_LBA48
-        if (identify_info[83] & 0x0400 && total_sectors == 0x0FFFFFFF) {
-            total_sectors = ((uint64_t)identify_info[103] << 48) |
-                    ((uint64_t)identify_info[102] << 32) |
-                    ((uint64_t)identify_info[101] << 16) |
-                    identify_info[100];
-            ata_lba48 = true; /* use BigLBA */
-        }
-#endif /* HAVE_LBA48 */
-
         /* Logical sector size > 512B ? */
         if ((identify_info[106] & 0xd000) == 0x5000) /* B14, B12 */
             log_sector_size = (identify_info[117] | (identify_info[118] << 16)) * 2;
@@ -1165,13 +984,6 @@ int STORAGE_INIT_ATTR ata_init(void)
             goto error;
         }
 
-#ifdef MAX_PHYS_SECTOR_SIZE
-        rc = ata_get_phys_sector_mult();
-        if (rc) {
-            rc = -70 + rc;
-            goto error;
-        }
-#endif
         ata_state = ATA_ON;
         keep_ata_active();
     }
@@ -1206,18 +1018,6 @@ long ata_last_disk_activity(void)
 {
     return last_disk_activity;
 }
-
-#ifdef HAVE_ATA_DMA
-/* Returns last DMA mode as set by set_features() */
-int ata_get_dma_mode(void)
-{
-    return dma_mode;
-}
-
-/* Needed to allow updating while waiting for DMA to complete */
-void ata_keep_active(void)
-    __attribute__((alias("ata_spin")));
-#endif
 
 #ifdef CONFIG_STORAGE_MULTI
 int ata_num_drives(int first_drive)
@@ -1258,7 +1058,6 @@ int ata_event(long id, intptr_t data)
     else if (id == Q_STORAGE_SLEEP) {
         last_disk_activity = current_tick - sleep_timeout + HZ / 5;
     }
-#ifndef USB_NONE
     else if (id == SYS_USB_CONNECTED) {
         logf("deq USB %ld", current_tick);
         if (ATA_ACTIVE_IN_USB) {
@@ -1277,7 +1076,6 @@ int ata_event(long id, intptr_t data)
             mutex_unlock(&ata_mutex);
         }
     }
-#endif /* ndef USB_NONE */
     else {
         rc = storage_event_default_handler(id, data, last_disk_activity,
                                            STORAGE_ATA);

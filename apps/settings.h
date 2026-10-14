@@ -86,7 +86,6 @@ enum {
     PLAYLIST_VIEWER_ENTRY_SHOW_ID3_TITLE = 3
 };
 
-#ifdef HAVE_CROSSFADE
 enum {
     CROSSFADE_ENABLE_OFF = 0,
     CROSSFADE_ENABLE_AUTOSKIP,
@@ -95,7 +94,6 @@ enum {
     CROSSFADE_ENABLE_SHUFFLE_OR_MANSKIP,
     CROSSFADE_ENABLE_ALWAYS,
 };
-#endif
 
 enum {
     FOLDER_ADVANCE_OFF = 0,
@@ -110,9 +108,6 @@ enum
     REPEAT_ALL,
     REPEAT_ONE,
     REPEAT_SHUFFLE,
-#ifdef AB_REPEAT_ENABLE
-    REPEAT_AB,
-#endif
     NUM_REPEAT_MODES
 };
 
@@ -180,25 +175,6 @@ enum { AUTORESUME_NEXTTRACK_NEVER = 0, AUTORESUME_NEXTTRACK_ALWAYS,
        AUTORESUME_NEXTTRACK_CUSTOM};
 
 /* Alarm settings */
-#ifdef HAVE_RTC_ALARM
-enum {  ALARM_START_WPS = 0,
-#if CONFIG_TUNER
-        ALARM_START_FM,
-#endif
-#ifdef HAVE_RECORDING
-        ALARM_START_REC,
-#endif
-        ALARM_START_COUNT
-    };
-#if CONFIG_TUNER && defined(HAVE_RECORDING)
-#define ALARM_SETTING_TEXT "wps,fm,rec"
-#elif CONFIG_TUNER
-#define ALARM_SETTING_TEXT "wps,fm"
-#elif defined(HAVE_RECORDING)
-#define ALARM_SETTING_TEXT "wps,rec"
-#endif
-
-#endif /* HAVE_RTC_ALARM */
 
 /* Keyclick stuff */
 
@@ -219,16 +195,10 @@ enum {  ALARM_START_WPS = 0,
 */
 
 #define VIRT_SIZE 0xFFFF /* more than enough for our string ID range */
-#if defined(CPU_S5L87XX)
-/* 256K IRAM at 0x0 */
-#define VIRT_PTR ((unsigned char*)0x40000)
-#elif CONFIG_CPU==DM320 || CONFIG_CPU == RK27XX
+#if   CONFIG_CPU==DM320 || CONFIG_CPU == RK27XX
 /* 4K of IRAM at 0x0 */
 #define VIRT_PTR ((unsigned char*)0x4000)
-#elif defined(CPU_TCC780X)
-/* 1K of IRAM at 0x0 */
-#define VIRT_PTR ((unsigned char*)0x1000)
-#elif CONFIG_CPU == S3C2440 || defined(CPU_PP) || CONFIG_CPU==IMX31L
+#elif (CONFIG_CPU == S3C2440) || (CONFIG_CPU==IMX31L)
 /* up to 64MB of DRAM at 0x0 */
 #define VIRT_PTR ((unsigned char*)0x4000000)
 #elif CONFIG_CPU == STM32H743
@@ -270,9 +240,6 @@ enum {
     SETTINGS_SAVE_ALL,
     SETTINGS_SAVE_THEME,
     SETTINGS_SAVE_SOUND,
-#ifdef HAVE_RECORDING
-    SETTINGS_SAVE_RECPRESETS,
-#endif
     SETTINGS_SAVE_EQPRESET,
     SETTINGS_SAVE_RESUMEINFO,
 };
@@ -291,9 +258,6 @@ void settings_apply_skins(void);
 
 void settings_apply(bool read_disk);
 void settings_apply_pm_range(void);
-#ifdef HAVE_COMPOSITE_VIDEO_OUT
-void settings_apply_videoout(int mode);
-#endif
 void settings_display(void);
 
 enum optiontype { RB_INT, RB_BOOL };
@@ -350,10 +314,6 @@ struct system_status
 #ifdef HAVE_DIRCACHE
     int dircache_size;      /* directory cache structure last size, 22 bits */
 #endif
-#if CONFIG_TUNER
-    int last_frequency;  /* Last frequency for resuming, in FREQ_STEP units,
-                            relative to MIN_FREQ */
-#endif
     int last_screen;
     int last_browser;
     int  viewer_icon_count;
@@ -380,7 +340,6 @@ struct user_settings
     int treble_cutoff;
 #endif
 
-#ifdef HAVE_CROSSFADE
     /* Crossfade */
     int crossfade;     /* Enable crossfade (0=off, 1=shuffle, 2=trackskip,
                                             3=shuff&trackskip, 4=always) */
@@ -389,7 +348,6 @@ struct user_settings
     int crossfade_fade_in_duration;   /* Fade in duration (0-15s)          */
     int crossfade_fade_out_duration;  /* Fade out duration (0-15s)         */
     int crossfade_fade_out_mixmode;   /* Fade out mode (0=crossfade,1=mix) */
-#endif
 
     /* Replaygain */
     struct replaygain_settings replaygain_settings;
@@ -415,129 +373,17 @@ struct user_settings
     bool timestretch_enabled;
 #endif
 
-#ifdef HAVE_RECORDING
-    int rec_format;    /* record format index */
-    int rec_mono_mode; /* how to create mono: L, R, L+R */
-
-    /* Encoder Settings Start - keep these together */
-    struct mp3_enc_config     mp3_enc_config;
-#if 0 /* These currently contain no members but their places in line
-         should be held */
-    struct aiff_enc_config    aiff_enc_config;
-    struct wav_enc_config     wav_enc_config;
-    struct wavpack_enc_config wavpack_enc_config;
-#endif
-    /* Encoder Settings End */
-
-    int rec_source;    /* 0=mic, 1=line, 2=S/PDIF, 2 or 3=FM Radio */
-    int rec_frequency; /* 0 = 44.1kHz (depends on target)
-                          1 = 48kHz
-                          2 = 32kHz
-                          3 = 22.05kHz
-                          4 = 24kHz
-                          5 = 16kHz */
-    int rec_channels;  /* 0=Stereo, 1=Mono */
-
-    int rec_mic_gain;   /* depends on target */
-    int rec_left_gain;  /* depends on target */
-    int rec_right_gain; /* depends on target */
-    bool peak_meter_clipcounter; /* clipping count indicator */
-    bool rec_editable; /* true means that the bit reservoir is off */
-
-    /* note: timesplit setting is not saved */
-    int rec_timesplit;  /* IN MINUTES 0 = off */
-    int rec_sizesplit; /* 0 = off,
-                          1 = 5MB, 2 = 10MB, 3 = 15MB, 4 = 32MB
-                          5 = 64MB, 6 = 75MB, 7 = 100MB, 8 = 128MB
-                          9 = 256MB, 10= 512MB, 11= 650MB, 12= 700MB,
-                          13= 1GB, 14 = 1.5GB 15 = 1.75MB*/
-    int rec_split_type; /* split/stop */
-    int rec_split_method; /* time/filesize */
-
-    int rec_prerecord_time; /* In seconds, 0-30, 0 means OFF */
-    char rec_directory[MAX_PATHNAME+1];
-    int cliplight; /* 0 = off
-                      1 = main lcd
-                      2 = main and remote lcd
-                      3 = remote lcd */
-
-    int rec_start_thres_db;
-    int rec_start_thres_linear;
-    int rec_start_duration; /* index of trig_durations */
-    int rec_stop_thres_db;
-    int rec_stop_thres_linear;
-    int rec_stop_postrec;
-    int rec_stop_gap;       /* index of trig_durations */
-    int rec_trigger_mode;   /* see TRIG_MODE_XXX constants */
-    int rec_trigger_type;   /* what to do when trigger released */
-#ifdef HAVE_HISTOGRAM
-    int histogram_interval; /* recording peakmeter histogram */
-#endif
-
-#ifdef HAVE_AGC
-    int rec_agc_preset_mic; /* AGC mic preset modes:
-                             0 = Off
-                             1 = Safety (clip)
-                             2 = Live (slow)
-                             3 = DJ-Set (slow)
-                             4 = Medium
-                             5 = Voice (fast) */
-    int rec_agc_preset_line; /* AGC line-in preset modes:
-                              0 = Off
-                              1 = Safety (clip)
-                              2 = Live (slow)
-                              3 = DJ-Set (slow)
-                              4 = Medium
-                              5 = Voice (fast) */
-    int rec_agc_maxgain_mic;  /* AGC maximum mic gain */
-    int rec_agc_maxgain_line; /* AGC maximum line-in gain */
-    int rec_agc_cliptime;     /* 0.2, 0.4, 0.6, 0.8, 1s */
-#endif
-#endif /* HAVE_RECORDING */
-
-#if CONFIG_TUNER
-    int fm_region;
-    bool fm_force_mono;  /* Forces Mono mode if true */
-    unsigned char fmr_file[MAX_FILENAME+1]; /* last fmr preset */
-    unsigned char fms_file[MAX_FILENAME+1];  /* last fms */
-#ifdef HAVE_REMOTE_LCD
-    unsigned char rfms_file[MAX_FILENAME+1];  /* last remote-fms */
-#endif
-#endif /* CONFIG_TUNER */
-#if defined(HAVE_RDS_CAP) && defined(CONFIG_RTC)
-    bool sync_rds_time; /* use RDS time to set the clock */
-#endif
-
     /* misc options */
-#ifndef HAVE_WHEEL_ACCELERATION
     int list_accel_start_delay; /* ms before we start increaseing step size */
     int list_accel_wait; /* ms between increases */
-#endif
-
-#ifdef HAVE_TOUCHPAD_SENSITIVITY_SETTING
-    int touchpad_sensitivity;
-#endif
-
-#ifdef HAVE_TOUCHPAD_DEADZONE
-    int touchpad_deadzone;
-#endif
 
     int  pause_rewind; /* time in s to rewind when pausing */
-#if defined(HAVE_HEADPHONE_DETECTION) || defined(HAVE_LINEOUT_DETECTION)
     int  unplug_mode; /* pause on headphone unplug */
     bool unplug_autoresume; /* disable auto-resume if no phones */
-#endif
 
-#ifdef HAVE_QUICKSCREEN
     const struct settings_list *qs_items[QUICKSCREEN_ITEM_COUNT];
-#endif
 
     int timeformat;    /* time format: 0=24 hour clock, 1=12 hour clock */
-
-#ifdef HAVE_DISK_STORAGE
-    int disk_spindown; /* time until disk spindown, in seconds (0=off) */
-    int buffer_margin; /* audio buffer watermark margin, in seconds */
-#endif
 
     int dirfilter;     /* 0=display all, 1=only supported, 2=only music,
                           3=dirs+playlists, 4=ID3 database */
@@ -553,10 +399,6 @@ struct user_settings
     bool car_adapter_mode; /* 0=off 1=on */
     int car_adapter_mode_delay; /* delay before resume,  in seconds*/
     int start_in_screen;
-#if defined(HAVE_RTC_ALARM) && \
-    (defined(HAVE_RECORDING) || CONFIG_TUNER)
-    int alarm_wake_up_screen;
-#endif
     int ff_rewind_min_step; /* FF/Rewind minimum step size */
     int ff_rewind_accel; /* FF/Rewind acceleration (in seconds per doubling) */
 
@@ -569,10 +411,6 @@ struct user_settings
 
     unsigned char wps_file[MAX_FILENAME+1];  /* last wps */
     unsigned char sbs_file[MAX_FILENAME+1];  /* last statusbar skin */
-#ifdef HAVE_REMOTE_LCD
-    unsigned char rwps_file[MAX_FILENAME+1];  /* last remote-wps */
-    unsigned char rsbs_file[MAX_FILENAME+1];  /* last remote statusbar skin */
-#endif
     unsigned char lang_file[MAX_FILENAME+1]; /* last language */
     unsigned char playlist_catalog_dir[MAX_PATHNAME+1];
     int skip_length; /* skip length */
@@ -582,20 +420,12 @@ struct user_settings
     int battery_display; /* how battery is displayed: 0=graphic, 1=percent */
     bool show_icons;   /* 0=hide 1=show */
     int statusbar;    /* STATUSBAR_* enum values */
-#ifdef HAVE_REMOTE_LCD
-    int remote_statusbar;
-#endif
 
     int scrollbar;    /* SCROLLBAR_* enum values */
     int scrollbar_width;
 
-#ifdef HAVE_TOUCHSCREEN
-    int list_line_padding;
-#endif
-#if LCD_DEPTH > 1
     int list_separator_height; /* -1=auto (== 1 currently), 0=disabled, X=height in pixels */
     int list_separator_color;
-#endif
     /* goto current song when exiting WPS */
     bool browse_current; /* 1=goto current song,
                             0=goto previous location */
@@ -617,7 +447,6 @@ struct user_settings
 #ifdef HAVE_DIRCACHE
     bool dircache;          /* enable directory cache */
 #endif
-#ifdef HAVE_TAGCACHE
 #ifdef HAVE_TC_RAMCACHE
     int tagcache_ram;        /* load tagcache to ram: 1=on, 2=quick (ignore dircache) */
 #endif
@@ -629,20 +458,15 @@ struct user_settings
     bool runtimedb;           /* runtime database active? */
     unsigned char tagcache_scan_paths[MAX_PATHLIST+1];
     unsigned char tagcache_db_path[MAX_PATHNAME+1];
-#endif /* HAVE_TAGCACHE */
 
-#if LCD_DEPTH > 1
     unsigned char backdrop_file[MAX_PATHNAME+1];  /* backdrop bitmap file */
-#endif
 
-#ifdef HAVE_LCD_COLOR
     int bg_color; /* background color native format */
     int fg_color; /* foreground color native format */
     int lss_color; /* background color for the selector or start color for the gradient */
     int lse_color; /* end color for the selector gradient */
     int lst_color; /* color of the text for the selector */
     unsigned char colors_file[MAX_FILENAME+1];
-#endif
 
     /* playlist/playback settings */
     int  repeat_mode; /* 0=off 1=repeat all 2=repeat one 3=shuffle 4=ab */
@@ -685,26 +509,11 @@ struct user_settings
 
     /* power settings */
     int poweroff;   /* idle power off timer */
-#if BATTERY_CAPACITY_INC > 0
-    int battery_capacity; /* in mAh */
-#endif
-#ifdef HAVE_SPDIF_POWER
-    bool spdif_enable; /* S/PDIF power on/off */
-#endif
 #ifdef HAVE_USB_CHARGING_ENABLE
     int usb_charging;
 #endif
     /* device settings */
-#ifdef HAVE_LCD_CONTRAST
-    int contrast;   /* lcd contrast */
-#endif
 
-#ifdef HAVE_LCD_INVERT
-    bool invert;    /* invert display */
-#endif
-#ifdef HAVE_LCD_FLIP
-    bool flip_display; /* turn display (and button layout) by 180 degrees */
-#endif
     int  cursor_style; /* style of the selection cursor */
     int  screen_scroll_step;
     int  show_path_in_browser; /* 0=off, 1=current directory, 2=full path */
@@ -714,9 +523,6 @@ struct user_settings
     unsigned char viewers_icon_file[MAX_FILENAME+1];
     unsigned char font_file[MAX_FILENAME+1]; /* last font */
     int glyphs_to_cache; /* default font allocation size in glyphs */
-#ifdef HAVE_REMOTE_LCD
-    unsigned char remote_font_file[MAX_FILENAME+1]; /* last font */
-#endif
     unsigned char kbd_file[MAX_FILENAME+1];  /* last keyboard */
     int  backlight_timeout;  /* backlight off timeout:  -1=never,
                                 0=always, or time in seconds */
@@ -725,93 +531,25 @@ struct user_settings
 #if CONFIG_CHARGING
     int backlight_timeout_plugged;
 #endif
-#ifndef HAS_BUTTON_HOLD
     bool bt_selective_softlock_actions;
     int bt_selective_softlock_actions_mask;
-#endif
-#ifdef HAVE_BACKLIGHT
     bool bl_selective_actions; /* backlight disable on some actions */
     int  bl_selective_actions_mask;/* mask of actions that will not enable backlight */
     int backlight_on_button_hold; /* what to do with backlight when hold
                                      switch is on */
-#ifdef HAVE_LCD_SLEEP_SETTING
-    int lcd_sleep_after_backlight_off; /* when to put lcd to sleep after backlight
-                                          has turned off:  -1=never, 0=always,
-                                          or time in seconds */
-#endif
-#endif /* HAVE_BACKLIGHT */
 
-#if defined(HAVE_BACKLIGHT_FADING_INT_SETTING)
-    int backlight_fade_in;  /* backlight fade in timing: 0..3 */
-    int backlight_fade_out; /* backlight fade in timing: 0..7 */
-#elif defined(HAVE_BACKLIGHT_FADING_BOOL_SETTING)
     bool backlight_fade_in;
     bool backlight_fade_out;
-#endif
-#ifdef HAVE_BACKLIGHT_BRIGHTNESS
     int brightness;
-#endif
-#ifdef HAVE_COMPOSITE_VIDEO_OUT
-    int composite_video_output;
-#endif
-
-#ifdef HAVE_REMOTE_LCD
-    /* remote lcd */
-    int  remote_contrast;          /* lcd contrast:       0-63 0=low 63=high */
-    int  remote_backlight_timeout; /* backlight off timeout:  -1=never,
-                                      0=always, or time in seconds */
-    int  remote_backlight_timeout_plugged;
-    int  remote_scroll_speed;      /* long texts scrolling speed: 1-30 */
-    int  remote_scroll_delay;      /* delay (in 1/10s) before starting scroll */
-    int  remote_scroll_step;       /* pixels to advance per update */
-    int  remote_bidir_limit;       /* bidir scroll length limit */
-    bool remote_invert;            /* invert display */
-    bool remote_flip_display;      /* turn display (and button layout) by 180 degrees */
-    bool remote_caption_backlight; /* turn on backlight at end and start of track */
-    bool remote_bl_filter_first_keypress; /* filter first remote keypress when remote dark? */
-    unsigned char remote_icon_file[MAX_FILENAME+1];
-    unsigned char remote_viewers_icon_file[MAX_FILENAME+1];
-#ifdef HAS_REMOTE_BUTTON_HOLD
-    int remote_backlight_on_button_hold; /* what to do with remote backlight when hold
-                                            switch is on */
-#endif
-#ifdef HAVE_REMOTE_LCD_TICKING
-    bool remote_reduce_ticking; /* 0=normal operation,
-                                   1=EMI reduce on with cost more CPU. */
-#endif
-#endif /* HAVE_REMOTE_LCD */
-
-#ifdef HAVE_BUTTON_LIGHT
-    int buttonlight_timeout;
-#endif
-#ifdef HAVE_BUTTONLIGHT_BRIGHTNESS
-    int buttonlight_brightness;
-#endif
 
 #ifdef IPOD_ACCESSORY_PROTOCOL
     int serial_bitrate; /* 0=auto 1=9600 2=19200 3=38400 4=57600 */
-#endif
-#ifdef HAVE_ACCESSORY_SUPPLY
-    bool accessory_supply; /* 0=off 1=on, accessory power supply for iPod */
-#endif
-#ifdef HAVE_LINEOUT_POWEROFF
-    bool lineout_active;
 #endif
 
 #ifdef HAVE_SPEAKER
     int speaker_mode; /* 0: off, 1: on, 2: auto (only if headphone detection) */
 #endif /* HAVE_SPEAKER */
     bool prevent_skip;
-
-#ifdef HAVE_TOUCHSCREEN
-    int touch_mode;
-    bool touch_enable_flick_shortcuts;
-    struct touchscreen_parameter ts_calibration_data;
-    struct list_kinetic_scroll_settings kinetic_scroll_accel;
-    struct list_kinetic_scroll_settings kinetic_scroll_brake;
-    struct list_kinetic_scroll_settings kinetic_scroll_decel;
-    struct list_kinetic_scroll_settings kinetic_scroll_press;
-#endif
 
 #ifdef HAVE_PITCHCONTROL
     /* pitch screen settings */
@@ -827,7 +565,7 @@ struct user_settings
     int usb_keypad_mode;
 #endif
 
-#if defined(USB_ENABLE_AUDIO) || defined(HAVE_HOST_USB_AUDIO)
+#if defined(USB_ENABLE_AUDIO)
     int usb_audio;
 #endif
 
@@ -836,9 +574,6 @@ struct user_settings
 #endif
 
     unsigned char ui_vp_config[64]; /* viewport string for the lists */
-#ifdef HAVE_REMOTE_LCD
-    unsigned char remote_ui_vp_config[64]; /* viewport string for the remote lists */
-#endif
 
     struct compressor_settings compressor_settings;
 
@@ -849,15 +584,9 @@ struct user_settings
     bool show_shutdown_message; /* toggle whether display lights up and displays message
                                 when shutting down */
 
-#ifdef HAVE_MORSE_INPUT
-    bool morse_input; /* text input method setting */
-#endif
-
-#ifdef HAVE_HOTKEY
     /* hotkey assignments - acceptable values are in
        hotkey_action enum in onplay.h */
     int hotkey_tree;
-#endif
     /* WPS context assignments - acceptable values are in
        hotkey_action enum in onplay.h */
     int context_wps;
@@ -891,27 +620,17 @@ struct user_settings
     } hw_eq_bands[AUDIOHW_EQ_BAND_NUM];
 #endif /* AUDIOHW_HAVE_EQ */
 
-#ifdef HAVE_HARDWARE_CLICK
-    bool keyclick_hardware; /* hardware piezo keyclick */
-#endif
-
     char start_directory[MAX_PATHNAME+1];
     /* Has the root been customized from the .cfg file? false = no, true = loaded from cfg */
     bool keep_directory;  /* this saves the last path visited in the file browser */
     bool root_menu_customized;
-#ifdef HAVE_QUICKSCREEN
     bool shortcuts_replaces_qs;
-#endif
 
-#ifdef HAVE_PLAY_FREQ
     int play_frequency; /* core audio output frequency selection */
-#endif
     int volume_limit; /* maximum volume limit */
 
-#ifdef HAVE_PERCEPTUAL_VOLUME
     int volume_adjust_mode;
     int volume_adjust_norm_steps;
-#endif
 
     int surround_enabled;
     int surround_balance;
@@ -925,25 +644,14 @@ struct user_settings
 
     int afr_enabled;
 
-#if defined(DX50) || defined(DX90)
-    int governor;
-#endif
-#if !defined(SIMULATOR) && !defined(USB_NONE) && (defined(HAVE_USB_ADB) || defined(HAVE_USB_POWER))
+#if !defined(SIMULATOR) && defined(HAVE_USB_POWER)
     int usb_mode;
 #endif
-#if defined(BUTTON_REC) || \
-    (CONFIG_KEYPAD == GIGABEAT_PAD) || \
-    (CONFIG_KEYPAD == IPOD_4G_PAD) || \
-    (CONFIG_KEYPAD == IRIVER_H10_PAD)
+#if defined(BUTTON_REC)
     bool clear_settings_on_hold;
 #endif
-#if defined(HAVE_EROS_QN_CODEC)
     int hp_lo_select; /* indicates automatic, headphone-only, or lineout-only operation */
-#endif
     bool playback_log; /* ROCKBOX_DIR/playback.log for tracks played */
-#if defined(HAVE_GENERAL_PURPOSE_LED)
-    bool use_led_indicators;
-#endif
 };
 
 /* global settings */

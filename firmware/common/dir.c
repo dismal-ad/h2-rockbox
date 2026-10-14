@@ -182,55 +182,6 @@ file_error:
     return res;
 }
 
-#if 0 /* not included now but probably should be */
-/* read a directory (reentrant) */
-int rbfs_readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result)
-{
-    if (!result)
-        FILE_ERROR_RETURN(EFAULT, -2);
-
-    *result = NULL;
-
-    if (!entry)
-        FILE_ERROR_RETURN(EFAULT, -3);
-
-    struct dirstr_desc * const dir = GET_DIRSTR(READER, dirp);
-    if (!dir)
-        FILE_ERROR_RETURN(ERRNO, -1);
-
-    int rc = ns_readdir_dirent(&dir->stream, &dir->scan, entry);
-    if (rc < 0)
-        FILE_ERROR(EIO, rc * 10 - 4);
-
-file_error:
-    RELEASE_DIRSTR(READER, dir);
-
-    if (rc > 0)
-    {
-        if (rc > 1)
-            iso_decode_d_name(entry->d_name);
-
-        *result = entry;
-        rc = 0;
-    }
-
-    return rc;
-}
-
-/* reset the position of a directory stream to the beginning of a directory */
-void rbfs_rewinddir(DIR *dirp)
-{
-    struct dirstr_desc * const dir = GET_DIRSTR(READER, dirp);
-    if (!dir)
-        FILE_ERROR_RETURN(ERRNO);
-
-    ns_dirscan_rewind(&dir->scan);
-
-    RELEASE_DIRSTR(READER, dir);
-}
-
-#endif /* 0 */
-
 /* make a directory */
 int rbfs_mkdir(const char *path)
 {

@@ -49,9 +49,6 @@
 #include "mv.h"
 #endif
 
-#if CONFIG_TUNER
-#include "radio.h"
-#endif
 #include "wps.h"
 
 static struct compare_data
@@ -100,13 +97,6 @@ int ft_build_playlist(struct tree_context* c, int start_index)
             int item = i;
             if (exceeds_pl)
                 item = (i + start) % c->filesindir;
-#if 0 /*only needed if displaying progress */
-            /* user abort */
-            if (action_userabort(TIMEOUT_NOBLOCK))
-            {
-                break;
-            }
-#endif
             if((entries[item].attr & FILE_ATTR_MASK) == FILE_ATTR_AUDIO)
             {
                 res = playlist_insert_context_add(&pl_context, entries[item].name);
@@ -376,17 +366,6 @@ int ft_load(struct tree_context* c, const char* tempdir)
             CHK_FT(SHOW_WPS,  FILE_ATTR_WPS)  ||
             CHK_FT(SHOW_FONT, FILE_ATTR_FONT) ||
             CHK_FT(SHOW_SBS,  FILE_ATTR_SBS)  ||
-#if CONFIG_TUNER
-            CHK_FT(SHOW_FMS, FILE_ATTR_FMS) ||
-            CHK_FT(SHOW_FMR, FILE_ATTR_FMR) ||
-#endif
-#ifdef HAVE_REMOTE_LCD
-            CHK_FT(SHOW_RWPS, FILE_ATTR_RWPS) ||
-            CHK_FT(SHOW_RSBS, FILE_ATTR_RSBS) ||
-#if CONFIG_TUNER
-            CHK_FT(SHOW_RFMS, FILE_ATTR_RFMS) ||
-#endif
-#endif
             CHK_FT(SHOW_M3U, FILE_ATTR_M3U) ||
             CHK_FT(SHOW_CFG, FILE_ATTR_CFG) ||
             CHK_FT(SHOW_LNG, FILE_ATTR_LNG) ||
@@ -643,39 +622,13 @@ int ft_enter(struct tree_context* c)
                 }
                 break;
             }
-#if CONFIG_TUNER
-                /* fmr preset file */
-            case FILE_ATTR_FMR:
-                radio_load_presets(buf);
-                rc = GO_TO_FM;
-                break;
-            case FILE_ATTR_FMS:
-                ft_apply_skin_file(buf, global_settings.fms_file);
-                break;
-#ifdef HAVE_REMOTE_LCD
-            case FILE_ATTR_RFMS:
-                ft_apply_skin_file(buf, global_settings.rfms_file);
-                break;
-#endif
-#endif
             case FILE_ATTR_SBS:
                 ft_apply_skin_file(buf, global_settings.sbs_file);
                 break;
-#ifdef HAVE_REMOTE_LCD
-            case FILE_ATTR_RSBS:
-                ft_apply_skin_file(buf, global_settings.rsbs_file);
-                break;
-#endif
                 /* wps config file */
             case FILE_ATTR_WPS:
                 ft_apply_skin_file(buf, global_settings.wps_file);
                 break;
-#if defined(HAVE_REMOTE_LCD) && (NB_SCREENS > 1)
-                /* remote-wps config file */
-            case FILE_ATTR_RWPS:
-                ft_apply_skin_file(buf, global_settings.rwps_file);
-                break;
-#endif
             case FILE_ATTR_CFG:
                 splash(0, ID2P(LANG_WAIT));
                 if (!settings_load_config(buf,true))

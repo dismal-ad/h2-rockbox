@@ -17,11 +17,6 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
-#if defined(CPU_ARM)
-#include "arm/beep.c"
-#elif defined (CPU_COLDFIRE)
-#include "m68k/beep.c"
-#else /* Generic */
 
 /* Actually output samples into beep_buf */
 static FORCE_INLINE void beep_generate(int16_t *out, int count,
@@ -48,4 +43,3 @@ static FORCE_INLINE void beep_generate(int16_t *out, int count,
 }
 
 #define BEEP_GENERIC
-#endif /* CPU_* */

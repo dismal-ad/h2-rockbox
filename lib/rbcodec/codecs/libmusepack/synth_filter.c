@@ -46,22 +46,8 @@
 #undef _
 
 #if defined(MPC_FIXED_POINT)
-    #if defined(CPU_ARM)
-      #if ARM_ARCH >= 6
-        // on ARMv6 we use 32*32=64>>32 multiplies (smmul/smmla) so we need to scale up the D coefficients
-        // the ARM11 multiplier doesn't have early termination so the magnitude of the multiplicands does not
-        // matter for speed.
-        #define D(value)  (value << (14))
-      #else
-        // do not up-scale D-values to achieve higher speed in smull/mlal
-        // operations. saves ~14/8 = 1.75 cycles per multiplication
-        #define D(value)  (value)
-      #endif
-      // in this configuration a post-shift by >>16 is needed after synthesis
-    #else
       // saturate to +/- 2^31 (= value << (31-17)), D-values are +/- 2^17
       #define D(value)  (value << (14))
-    #endif
 #else
    // IMPORTANT: internal scaling is somehow strange for floating point, therefore we scale the coefficients Di_opt
    // by the correct amount to have proper scaled output
@@ -479,12 +465,6 @@ mpc_dct32(const MPC_SAMPLE_FORMAT *in, MPC_SAMPLE_FORMAT *v)
   /* 31 */ v[17] = -(v[15] = MPC_DCT32_SHIFT((((((((MPC_DCT32_MUL(t171 - t172, costab16) * 2) - t173) * 2) - t174) * 2) - t175) * 2) - t176));
 }
 
-#if defined(CPU_ARM) || defined(CPU_COLDFIRE)
-extern void
-mpc_decoder_windowing_D(MPC_SAMPLE_FORMAT * Data, 
-                        const MPC_SAMPLE_FORMAT * V,
-                        const MPC_SAMPLE_FORMAT * D);
-#else
 static void 
 mpc_decoder_windowing_D(MPC_SAMPLE_FORMAT * Data, 
                         const MPC_SAMPLE_FORMAT * V,
@@ -507,7 +487,6 @@ mpc_decoder_windowing_D(MPC_SAMPLE_FORMAT * Data,
         // total: 16 muls, 15 adds, 16 shifts
     }
 }
-#endif /* CPU_ARM || CPU_COLDFIRE */
 
 static void 
 mpc_full_synthesis_filter(MPC_SAMPLE_FORMAT *OutData, MPC_SAMPLE_FORMAT *V, 
@@ -594,7 +573,6 @@ static const unsigned char Parity [256] = {  // parity
 mpc_uint32_t
 mpc_random_int(mpc_decoder *d) 
 {
-#if 1
     mpc_uint32_t  t1, t2, t3, t4;
 
     t3   = t1 = d->__r1;   t4   = t2 = d->__r2;  // Parity calculation is done via table lookup, this is also available
@@ -603,8 +581,4 @@ mpc_random_int(mpc_decoder *d)
     t1 <<= 31;          t2   = Parity [t2];
 
     return (d->__r1 = (t3 >> 1) | t1 ) ^ (d->__r2 = (t4 + t4) | t2 );
-#else
-    return (d->__r1 = (d->__r1 >> 1) | ((mpc_uint32_t)Parity [d->__r1 & 0xF5] << 31) ) ^
-        (d->__r2 = (d->__r2 << 1) |  (mpc_uint32_t)Parity [(d->__r2 >> 25) & 0x63] );
-#endif
 }

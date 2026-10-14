@@ -22,10 +22,6 @@
 #include "crc32.h"
 #include <stddef.h>
 
-#ifdef BOOTLOADER
-# error "not to be included in bootloader builds"
-#endif
-
 bool boot_data_valid;
 
 static bool verify_boot_data_v0(void) INIT_ATTR;

@@ -34,11 +34,9 @@
 
 static bool storage_spinning = false;
 
-#if defined(HAVE_DEVICEDATA)
 #include "devicedata.h"
 struct device_data_t device_data =
     {.length = DEVICE_DATA_PAYLOAD_SIZE};
-#endif /* def HAVE_DEVICEDATA */
 
 int fat_startsector(void)
 {
@@ -146,49 +144,6 @@ int rtc_write(int address, int value)
     return 0;
 }
 
-#ifdef HAVE_RTC_ALARM
-void rtc_get_alarm(int *h, int *m)
-{
-    *h = 11;
-    *m = 55;
-}
-
-void rtc_set_alarm(int h, int m)
-{
-    (void)h;
-    (void)m;
-}
-
-void rtc_enable_alarm(bool enable)
-{
-    (void)enable;
-}
-
-extern bool sim_alarm_wakeup;
-bool rtc_check_alarm_started(bool release_alarm)
-{
-    (void)release_alarm;
-    return sim_alarm_wakeup;
-}
-
-bool rtc_check_alarm_flag(void)
-{
-    return true;
-}
-#endif
-
-#ifdef HAVE_SPDIF_POWER
-void spdif_power_enable(bool on)
-{
-   (void)on;
-}
-
-bool spdif_powered(void)
-{
-    return false;
-}
-#endif
-
 #ifdef HAVE_USB_POWER
 bool usb_powered_only(void)
 {
@@ -202,25 +157,6 @@ bool usb_charging_enable(bool on)
 }
 #endif
 
-#if defined(HAVE_HOST_USB_AUDIO)
-void usb_set_audio(int value)
-{
-    (void)value;
-}
-
-bool usb_audio_get_active(void)
-{
-    return false;
-}
-#endif
-
-#ifdef HAVE_REMOTE_LCD_TICKING
-void lcd_remote_emireduce(bool state)
-{
-    (void)state;
-}
-#endif
-
 void lcd_set_contrast( int x )
 {
     (void)x;
@@ -231,23 +167,3 @@ void cpu_sleep(bool enabled)
     (void)enabled;
 }
 
-#ifdef HAVE_TOUCHPAD_SENSITIVITY_SETTING
-void touchpad_set_sensitivity(int level)
-{
-    (void)level;
-}
-#endif
-
-#if defined(HAVE_TOUCHSCREEN) && !defined(HAS_BUTTON_HOLD)
-void touchscreen_enable_device(bool en)
-{
-    (void)en;
-}
-#endif
-
-#if defined(HAVE_TOUCHPAD) && !defined(HAS_BUTTON_HOLD)
-void touchpad_enable_device(bool en)
-{
-    (void)en;
-}
-#endif

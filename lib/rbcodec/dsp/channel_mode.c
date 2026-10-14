@@ -26,12 +26,6 @@
 #include "channel_mode.h"
 #include <string.h>
 
-#if 0
-/* SOUND_CHAN_STEREO mode is a noop so has no function - just outline one for
- * completeness. */
-void channel_mode_proc_stereo(struct dsp_proc_entry *this,
-                              struct dsp_buffer **buf_p);
-#endif
 void channel_mode_proc_mono(struct dsp_proc_entry *this,
                             struct dsp_buffer **buf_p);
 void channel_mode_proc_mono_left(struct dsp_proc_entry *this,
@@ -57,18 +51,6 @@ static struct channel_mode_data
     .mode = SOUND_CHAN_STEREO
 };
 
-#if 0
-/* SOUND_CHAN_STEREO mode is a noop so has no function - just outline one for
- * completeness. */
-void channel_mode_proc_stereo(struct dsp_proc_entry *this,
-                              struct dsp_buffer **buf_p)
-{
-    /* The channels are each just themselves */
-    (void)this; (void)buf_p;
-}
-#endif
-
-#if !defined(CPU_COLDFIRE) && !defined(CPU_ARM)
 /* Unoptimized routines */
 void channel_mode_proc_mono(struct dsp_proc_entry *this,
                             struct dsp_buffer **buf_p)
@@ -130,7 +112,6 @@ void channel_mode_proc_karaoke(struct dsp_proc_entry *this,
 
     (void)this;
 }
-#endif /* CPU */
 
 void channel_mode_proc_swap(struct dsp_proc_entry *this,
                             struct dsp_buffer **buf_p)

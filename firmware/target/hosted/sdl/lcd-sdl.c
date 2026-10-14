@@ -31,9 +31,6 @@ void sdl_update_rect(SDL_Surface *surface, int x_start, int y_start, int width,
                      unsigned long (*getpixel)(int, int))
 {
     SDL_Rect dest;
-#if LCD_DEPTH >= 8 && (LCD_PIXELFORMAT == RGB565) && \
-    (LCD_STRIDEFORMAT == HORIZONTAL_STRIDE) && \
-    !defined(HAVE_LCD_SPLIT) && !defined(HAVE_REMOTE_LCD)
     SDL_Rect src;
     (void)max_x;
     (void)max_y;
@@ -51,44 +48,6 @@ void sdl_update_rect(SDL_Surface *surface, int x_start, int y_start, int width,
     dest = src;
     SDL_BlitSurface(lcd, &src, surface, &dest);
     SDL_FreeSurface(lcd);
-#else
-    int x, y;
-    int xmax, ymax;
-    /* Very slow pixel-by-pixel drawing */
-    ymax = y_start + height;
-    xmax = x_start + width;
-
-    if(xmax > max_x)
-        xmax = max_x;
-    if(ymax >= max_y)
-        ymax = max_y;
-
-    dest.w = 1;
-    dest.h = 1;
-
-    for (x = x_start; x < xmax; x++) {
-        dest.x = x;
-
-#ifdef HAVE_LCD_SPLIT
-        for (y = y_start; y < MIN(ymax, LCD_SPLIT_POS); y++) {
-            dest.y = y;
-
-            SDL_FillRect(surface, &dest, (Uint32)(getpixel(x, y) | 0x80));
-        }
-        for (y = MAX(y_start, LCD_SPLIT_POS); y < ymax; y++) {
-            dest.y = (y + LCD_SPLIT_LINES) ;
-
-            SDL_FillRect(surface, &dest, (Uint32)getpixel(x, y));
-        }
-#else
-        for (y = y_start; y < ymax; y++) {
-            dest.y = y;
-
-            SDL_FillRect(surface, &dest, (Uint32)getpixel(x, y));
-        }
-#endif
-    }
-#endif
 }
 
 void sdl_gui_update(SDL_Surface *surface, int x_start, int y_start, int width,

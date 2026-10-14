@@ -42,17 +42,13 @@ bool backlight_hw_init(void)
 void backlight_hw_on(void)
 {
     pwm_enable(BL_LCD_CHN);
-#ifdef HAVE_LCD_ENABLE
     lcd_enable(true);
-#endif
 }
 
 void backlight_hw_off(void)
 {
     pwm_disable(BL_LCD_CHN);
-#ifdef HAVE_LCD_ENABLE
     lcd_enable(false);
-#endif
 }
 
 void backlight_hw_brightness(int brightness)

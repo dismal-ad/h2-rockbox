@@ -75,11 +75,7 @@ static void *lcd_frameaddress_default(int x, int y)
     /* the default expects a buffer the same size as the screen */
     struct frame_buffer_t *fb = lcd_current_viewport->buffer;
 
-#if LCD_STRIDEFORMAT == VERTICAL_STRIDE
-    size_t element = (x * LCD_NATIVE_STRIDE(fb->stride)) + y;
-#else
     size_t element = (y * LCD_NATIVE_STRIDE(fb->stride)) + x;
-#endif
     return fb->fb_ptr + element;/*(element % fb->elems);*/
 }
 
@@ -165,7 +161,6 @@ void lcd_bitmap_transparent(const fb_data *src, int x, int y,
                                 STRIDE(SCREEN_MAIN, width, height), x, y, width, height);
 }
 
-#ifndef DISABLE_ALPHA_BITMAP
 /* draw alpha bitmap for anti-alias font */
 void ICODE_ATTR lcd_alpha_bitmap_part(const unsigned char *src, int src_x,
                                       int src_y, int stride, int x, int y,
@@ -173,7 +168,6 @@ void ICODE_ATTR lcd_alpha_bitmap_part(const unsigned char *src, int src_x,
 {
     lcd_alpha_bitmap_part_mix(NULL, src, src_x, src_y, x, y, width, height, 0, stride);
 }
-#endif /* !DISABLE_ALPHA_BITMAP */
 
 /* Draw a partial bitmap (mono or native) including alpha channel */
 void ICODE_ATTR lcd_bmp_part(const struct bitmap* bm, int src_x, int src_y,
@@ -182,12 +176,10 @@ void ICODE_ATTR lcd_bmp_part(const struct bitmap* bm, int src_x, int src_y,
     int bitmap_stride = LCD_FBSTRIDE(bm->width, bm->height);
     if (bm->format == FORMAT_MONO)
         lcd_mono_bitmap_part(bm->data, src_x, src_y, bm->width, x, y, width, height);
-#ifndef DISABLE_ALPHA_BITMAP
     else if (bm->alpha_offset > 0)
         lcd_alpha_bitmap_part_mix((fb_data*)bm->data, bm->data+bm->alpha_offset,
             src_x, src_y, x, y, width, height,
             bitmap_stride, ALIGN_UP(bm->width, 2));
-#endif /* !DISABLE_ALPHA_BITMAP */
     else
         lcd_bitmap_transparent_part((fb_data*)bm->data,
             src_x, src_y, bitmap_stride, x, y, width, height);
@@ -254,13 +246,8 @@ void lcd_blit_yuv(unsigned char * const src[3],
     width &= ~1;
     linecounter = height >> 1;
 
-#if LCD_WIDTH >= LCD_HEIGHT
     dst     = FBADDR(dst_x, dst_y);
     row_end = dst + width;
-#else
-    dst     = FBADDR(LCD_WIDTH - dst_y - 1, dst_x);
-    row_end = dst + LCD_WIDTH * width;
-#endif
 
     z    = stride * src_y;
     ysrc = src[0] + z + src_x;
@@ -299,11 +286,7 @@ void lcd_blit_yuv(unsigned char * const src[3],
 
             *dst = FB_RGBPACK(r >> 6, g >> 6, b >> 6);
 
-#if LCD_WIDTH >= LCD_HEIGHT
             dst++;
-#else
-            dst += LCD_WIDTH;
-#endif
 
             y = YFAC*(*ysrc++ - 16);
             r = y + rv;
@@ -319,11 +302,7 @@ void lcd_blit_yuv(unsigned char * const src[3],
 
             *dst = FB_RGBPACK(r >> 6, g >> 6, b >> 6);
 
-#if LCD_WIDTH >= LCD_HEIGHT
             dst++;
-#else
-            dst += LCD_WIDTH;
-#endif
         }
         while (dst < row_end);
 
@@ -331,13 +310,8 @@ void lcd_blit_yuv(unsigned char * const src[3],
         usrc    -= width >> 1;
         vsrc    -= width >> 1;
 
-#if LCD_WIDTH >= LCD_HEIGHT
         row_end += LCD_WIDTH;
         dst     += LCD_WIDTH - width;
-#else
-        row_end -= 1;
-        dst     -= LCD_WIDTH*width + 1;
-#endif
 
         do
         {
@@ -362,11 +336,7 @@ void lcd_blit_yuv(unsigned char * const src[3],
 
             *dst = FB_RGBPACK(r >> 6, g >> 6, b >> 6);
 
-#if LCD_WIDTH >= LCD_HEIGHT
             dst++;
-#else
-            dst += LCD_WIDTH;
-#endif
 
             y = YFAC*(*ysrc++ - 16);
             r = y + rv;
@@ -382,11 +352,7 @@ void lcd_blit_yuv(unsigned char * const src[3],
 
             *dst = FB_RGBPACK(r >> 6, g >> 6, b >> 6);
 
-#if LCD_WIDTH >= LCD_HEIGHT
             dst++;
-#else
-            dst += LCD_WIDTH;
-#endif
         }
         while (dst < row_end);
 
@@ -394,21 +360,12 @@ void lcd_blit_yuv(unsigned char * const src[3],
         usrc    += stride >> 1;
         vsrc    += stride >> 1;
 
-#if LCD_WIDTH >= LCD_HEIGHT
         row_end += LCD_WIDTH;
         dst     += LCD_WIDTH - width;
-#else
-        row_end -= 1;
-        dst     -= LCD_WIDTH*width + 1;
-#endif
     }
     while (--linecounter > 0);
 
-#if LCD_WIDTH >= LCD_HEIGHT
     lcd_update_rect(dst_x, dst_y, width, height);
-#else
-    lcd_update_rect(LCD_WIDTH - dst_y - height, dst_x, height, width);
-#endif
 }
 
 /* Fill a rectangle with a gradient. This function draws only the partial

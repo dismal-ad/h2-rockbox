@@ -69,11 +69,6 @@ void set_codepage(int cp);
 int get_codepage(void);
 int utf8seek(const unsigned char* utf8, int offset);
 const char* get_codepage_name(int cp);
-#ifdef APPLICATION
-#if defined(__linux__)
-const char *get_current_codepage_name_linux(void);
-#endif
-#endif /* APPLICATION */
 
 #ifdef UTF8PROC_EXPORTS
 void utf8_normalize(char *string);

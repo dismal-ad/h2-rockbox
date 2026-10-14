@@ -28,18 +28,6 @@
 
 #define CLAMP16( n ) clip_sample_16( n )
 
-#if defined(CPU_ARM)
-#if ARM_ARCH >= 6
-#include "cpu/spc_dsp_armv6.c"
-#elif ARM_ARCH >= 5
-#include "cpu/spc_dsp_armv5.c"
-#else
-#include "cpu/spc_dsp_armv4.c"
-#endif
-#elif defined (CPU_COLDFIRE)
-#include "cpu/spc_dsp_coldfire.c"
-#endif
-
 /* Above may still use generic implementations. Also defines final 
    function names. */
 #include "spc_dsp_generic.c"
@@ -419,10 +407,6 @@ brr_probe_cache( struct Spc_Dsp* this, unsigned start_addr,
 
         if ( e->start_addr == start_addr )
         {
-#if 0 /* do NOT want to see all the key down stuff for cached waves */
-            DEBUGF( "found in wave_entry_old (oldsize=%u)\n",
-                    this->oldsize );
-#endif
             *wave_entry = *e;
             return true; /* Wave in cache */
         }
@@ -566,12 +550,7 @@ key_on( struct Spc_Dsp* const this, struct voice_t* const voice,
 void DSP_run_( struct Spc_Dsp* this, long count, int32_t* out_buf )
 {
     #undef RAM
-#if defined(CPU_ARM) && !SPC_BRRCACHE
-    uint8_t* const ram_ = ram.ram;
-    #define RAM ram_
-#else
     #define RAM ram.ram
-#endif
     EXIT_TIMER(cpu);
     ENTER_TIMER(dsp);
 

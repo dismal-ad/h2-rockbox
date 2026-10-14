@@ -35,10 +35,6 @@
 /* These MIPS32r1 targets have a very high interrupt latency, which
    unfortunately causes a lot of audio underruns under even moderate load */
 #define MIX_FRAME_SAMPLES 2048
-#elif defined(DX50) || defined(DX90)
-/* iBasso Devices: Match Rockbox PCM buffer size to ALSA PCM buffer size
-   to minimize memory transfers. */
-#define MIX_FRAME_SAMPLES 2048
 #elif (CONFIG_PLATFORM & PLATFORM_HOSTED)
 /* Hosted targets need larger buffers for decent performance due to
    OS locking/scheduling overhead */
@@ -49,20 +45,10 @@
 #define MIX_FRAME_SAMPLES 256
 #endif
 
-#if defined(CPU_COLDFIRE) ||  defined(CPU_PP)
-/* For Coldfire, it's just faster
-   For PortalPlayer, this also avoids more expensive cache coherency */
-#define DOWNMIX_BUF_IBSS        IBSS_ATTR
-#else
 /* Otherwise can't DMA from IRAM, IRAM is pointless or worse */
 #define DOWNMIX_BUF_IBSS
-#endif
 
-#if defined(CPU_COLDFIRE) || defined(CPU_PP)
-#define MIXER_CALLBACK_ICODE    ICODE_ATTR
-#else
 #define MIXER_CALLBACK_ICODE
-#endif
 
 
 /** Definitions **/
@@ -71,7 +57,7 @@
 enum pcm_mixer_channel
 {
     PCM_MIXER_CHAN_PLAYBACK = 0,
-#if defined(USB_ENABLE_AUDIO) || defined(HAVE_HOST_USB_AUDIO)
+#if defined(USB_ENABLE_AUDIO)
     PCM_MIXER_CHAN_USBAUDIO,
 #endif
     PCM_MIXER_CHAN_VOICE,

@@ -30,7 +30,7 @@
 #include "disk.h"
 #include "panic.h"
 
-#if defined(HAVE_BOOTDATA) && !defined(SIMULATOR) && !defined(BOOTLOADER)
+#if !defined(SIMULATOR)
 #include "bootdata.h"
 #include "crc32.h"
 #endif
@@ -109,51 +109,7 @@ static void init_volume(struct volumeinfo *vi, int drive, int part)
     vi->partition = part;
 }
 
-#ifdef MAX_VIRT_SECTOR_SIZE
-static uint8_t disk_sector_multiplier[NUM_DRIVES] =
-    { [0 ... NUM_DRIVES-1] = 1 };
-
-int disk_get_sector_multiplier(IF_MD_NONVOID(int drive))
-{
-    if (!CHECK_DRV(drive))
-        return 0;
-
-    disk_reader_lock();
-    int multiplier = disk_sector_multiplier[IF_MD_DRV(drive)];
-    disk_reader_unlock();
-    return multiplier;
-}
-
-#ifdef DEFAULT_VIRT_SECTOR_SIZE
-void disk_set_sector_multiplier(IF_MD(int drive,) int mult)
-{
-    if (!CHECK_DRV(drive))
-        return;
-
-    disk_writer_lock();
-    disk_sector_multiplier[IF_MD_DRV(drive)] = mult;
-    disk_writer_unlock();
-}
-#endif /* DEFAULT_VIRT_SECTOR_SIZE */
-#endif /* MAX_VIRT_SECTOR_SIZE */
-
-#ifdef MAX_VARIABLE_LOG_SECTOR
-static uint16_t disk_log_sector_size[NUM_DRIVES] =
-    { [0 ... NUM_DRIVES-1] = SECTOR_SIZE }; /* Updated from STORAGE_INFO */
-int disk_get_log_sector_size(IF_MD_NONVOID(int drive))
-{
-    if (!CHECK_DRV(drive))
-        return 0;
-
-    disk_reader_lock();
-    int size = disk_log_sector_size[IF_MD_DRV(drive)];
-    disk_reader_unlock();
-    return size;
-}
-#define LOG_SECTOR_SIZE(__drive) disk_log_sector_size[IF_MD_DRV(__drive)]
-#else /* !MAX_VARIABLE_LOG_SECTOR */
 #define LOG_SECTOR_SIZE(__drive) SECTOR_SIZE
-#endif /* !MAX_VARIABLE_LOG_SECTOR */
 
 bool disk_init(IF_MD_NONVOID(int drive))
 {
@@ -168,28 +124,15 @@ bool disk_init(IF_MD_NONVOID(int drive))
     struct storage_info *info = (struct storage_info*) sector;
     storage_get_info(IF_MD_DRV(drive), info);
     sector_t num_sectors = info->num_sectors;
-#ifdef DEFAULT_VIRT_SECTOR_SIZE
-    unsigned int sector_size = info->sector_size;
-#endif
 
 #if (CONFIG_STORAGE & STORAGE_ATA)
     disk_writer_lock();
-#ifdef MAX_VARIABLE_LOG_SECTOR
-    disk_log_sector_size[IF_MD_DRV(drive)] = info->sector_size;
-#endif
     disk_writer_unlock();
 
-#ifdef MAX_VARIABLE_LOG_SECTOR
-    if (info->sector_size > MAX_VARIABLE_LOG_SECTOR || info->sector_size > DC_CACHE_BUFSIZE) {
-        panicf("Unsupported logical sector size: %d",
-               info->sector_size);
-    }
-#else  /* !MAX_VARIABLE_LOG_SECTOR */
     if (info->sector_size != SECTOR_SIZE) {
         panicf("Unsupported logical sector size: %d",
                info->sector_size);
     }
-#endif  /* !MAX_VARIABLE_LOG_SECTOR */
 #endif  /* STORAGE_ATA */
 
     memset(sector, 0, DC_CACHE_BUFSIZE);
@@ -228,14 +171,6 @@ bool disk_init(IF_MD_NONVOID(int drive))
 		is_gpt = 1;
 	    }
 
-#if 0 // Currently done in disk_mount() upon successful mount only
-            /* Auto-correct partition entries */
-            if (i == 0 && pinfo[i].type == 0 &&
-                pinfo[i].start != 0 && pinfo[i].size != 0) {
-                pinfo[i].type = PARTITION_TYPE_FAT32_LBA;
-                // XXX consider correcting MBR and writing sector back?
-            }
-#endif
 	}
 
 	while (is_gpt) {
@@ -245,25 +180,13 @@ bool disk_init(IF_MD_NONVOID(int drive))
 	    uint32_t part_entries = 0;
             unsigned char* ptr = sector;
 
-#ifdef DEFAULT_VIRT_SECTOR_SIZE
-            const sector_t try_gpt[4] = { 1, num_sectors - 1,
-                    (DEFAULT_VIRT_SECTOR_SIZE / sector_size),
-                    (num_sectors / (DEFAULT_VIRT_SECTOR_SIZE / sector_size)) - 1
-            };
-
-#else
             sector_t try_gpt[2] = { 1, num_sectors - 1 };
-#endif
 
             for (unsigned int i = 0 ; i < (sizeof(try_gpt) / sizeof(try_gpt[0])) ; i++) {
                 storage_read_sectors(IF_MD(drive,) try_gpt[i], 1, sector);
                 part_lba = BYTES2INT64(ptr, 0);
                 if (part_lba == 0x5452415020494645ULL) {
                     part_entries = 1;
-#ifdef MAX_VIRT_SECTOR_SIZE
-                    if (i >= 2)
-                        disk_sector_multiplier[IF_MD_DRV(drive)] = try_gpt[2];
-#endif
                     break;
                 }
             }
@@ -411,18 +334,12 @@ int disk_mount(int drive)
     }
 
     struct partinfo *pinfo = &part[IF_MD_DRV(drive)*MAX_PARTITIONS_PER_DRIVE];
-#ifdef MAX_VIRT_SECTOR_SIZE
-    disk_sector_multiplier[IF_MD_DRV(drive)] = 1;
-#endif
 
     /* try "superfloppy" mode */
     DEBUGF("Trying to mount sector 0.\n");
 
     if (!fat_mount(IF_MV(volume,) IF_MD(drive,) 0))
     {
-#ifdef MAX_VIRT_SECTOR_SIZE
-        disk_sector_multiplier[drive] = fat_get_bytes_per_sector(IF_MV(volume)) / LOG_SECTOR_SIZE(drive);
-#endif
         mounted = 1;
         init_volume(&volumes[volume], drive, 0);
         volume_onmount_internal(IF_MV(volume));
@@ -449,26 +366,6 @@ int disk_mount(int drive)
 
             DEBUGF("Trying to mount partition %d.\n", i);
 
-#ifdef MAX_VIRT_SECTOR_SIZE
-            for (int j = 1; j <= (MAX_VIRT_SECTOR_SIZE/LOG_SECTOR_SIZE(drive)); j <<= 1)
-            {
-                if (!fat_mount(IF_MV(volume,) IF_MD(drive,) pinfo[i].start * j))
-                {
-                    pinfo[i].start *= j;
-                    pinfo[i].size *= j;
-                    mounted++;
-                    init_volume(&volumes[volume], drive, i);
-                    disk_sector_multiplier[drive] = j;
-                    volume_onmount_internal(IF_MV(volume));
-                    volume = get_free_volume(); /* prepare next entry */
-                    if (pinfo[i].type == 0) {
-                        pinfo[i].type = PARTITION_TYPE_FAT32_LBA;
-                        // XXX write the sector back.?
-                    }
-                    break;
-                }
-            }
-#else /* ndef MAX_VIRT_SECTOR_SIZE */
             if (!fat_mount(IF_MV(volume,) IF_MD(drive,) pinfo[i].start))
             {
                 mounted++;
@@ -480,17 +377,8 @@ int disk_mount(int drive)
                     // XXX write the sector back.?
                 }
             }
-#endif /* MAX_VIRT_SECTOR_SIZE */
         }
 
-#if defined(MAX_VIRT_SECTOR_SIZE) && defined(MAX_PHYS_SECTOR_SIZE)
-#if (CONFIG_STORAGE & STORAGE_ATA)
-        if (mounted)
-            ata_set_phys_sector_mult(disk_sector_multiplier[IF_MD_DRV(drive)]);
-#else
-#error "MAX_VIRT_SECTOR_SIZE + MAX_PHYS_SECTOR_SIZE on non-ATA device; is this intentional?"
-#endif
-#endif
     }
 
     disk_writer_unlock();
@@ -624,14 +512,10 @@ void volume_size(IF_MV(int volume,) sector_t *sizep, sector_t *freep)
     disk_reader_unlock();
 }
 
-#if defined (HAVE_HOTSWAP) || defined (HAVE_MULTIDRIVE) \
-    || defined (HAVE_DIRCACHE) || defined(HAVE_BOOTDATA)
 enum volume_info_type
 {
-#ifdef HAVE_HOTSWAP
     VP_REMOVABLE,
     VP_PRESENT,
-#endif
 #if defined (HAVE_MULTIDRIVE) || defined (HAVE_DIRCACHE)
     VP_DRIVE,
 #endif
@@ -649,14 +533,12 @@ static int volume_properties(int volume, enum volume_info_type infotype)
         struct volumeinfo *vi = &volumes[volume];
         switch (infotype)
         {
-    #ifdef HAVE_HOTSWAP
         case VP_REMOVABLE:
             res = storage_removable(vi->drive) ? 1 : 0;
             break;
         case VP_PRESENT:
             res = storage_present(vi->drive) ? 1 : 0;
             break;
-    #endif
     #if defined(HAVE_MULTIDRIVE) || defined(HAVE_DIRCACHE)
         case VP_DRIVE:
             res = vi->drive;
@@ -672,7 +554,6 @@ static int volume_properties(int volume, enum volume_info_type infotype)
     return res;
 }
 
-#ifdef HAVE_HOTSWAP
 bool volume_removable(int volume)
 {
     return volume_properties(volume, VP_REMOVABLE) > 0;
@@ -682,7 +563,6 @@ bool volume_present(int volume)
 {
     return volume_properties(volume, VP_PRESENT) > 0;
 }
-#endif /* HAVE_HOTSWAP */
 
 #ifdef HAVE_MULTIDRIVE
 int volume_drive(int volume)
@@ -704,4 +584,3 @@ bool volume_ismounted(IF_MV_NONVOID(int volume))
 #endif /* HAVE_DIRCACHE */
 
 
-#endif /* HAVE_HOTSWAP || HAVE_MULTIDRIVE || HAVE_DIRCACHE || HAVE_BOOTDATA */

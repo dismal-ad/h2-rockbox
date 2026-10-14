@@ -18,12 +18,6 @@
  *
  ****************************************************************************/
 
-#if defined(CPU_ARM)
-  #include "arm/pcm-mixer.c"
-#elif defined(CPU_COLDFIRE)
-  #include "m68k/pcm-mixer.c"
-#else
-
 #include "dsp-util.h" /* for clip_sample_16 */
 /* Mix channels' samples and apply gain factors */
 static FORCE_INLINE void mix_samples(int16_t *out,
@@ -106,8 +100,6 @@ static FORCE_INLINE void write_samples(int16_t *out,
     }     
 }
 
-
-#endif /* CPU_* */
 
 #ifndef mixer_buffer_callback_exit
 #define mixer_buffer_callback_exit() do{}while(0)

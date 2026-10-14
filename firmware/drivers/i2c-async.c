@@ -80,10 +80,6 @@ typedef struct i2c_async_bus {
      */
     struct semaphore sema;
 
-#ifdef HAVE_CORELOCK_OBJECT
-    /* Corelock is required for multi-core CPUs */
-    struct corelock cl;
-#endif
 } i2c_async_bus;
 
 static i2c_async_txn i2c_async_txns[I2C_ASYNC_BUS_COUNT][I2C_ASYNC_QUEUE_SIZE];

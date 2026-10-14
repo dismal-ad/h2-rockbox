@@ -42,12 +42,6 @@
 
 #include "decoder.h"
 
-#if defined(CPU_COLDFIRE)
-#include "coldfire.h"
-#elif defined(CPU_ARM)
-#include "arm.h"
-#endif
-
 static const int sample_rate_table[] ICONST_ATTR =
 { 0, 88200, 176400, 192000,
   8000, 16000, 22050, 24000, 32000, 44100, 48000, 96000,
@@ -179,20 +173,6 @@ static int decode_residuals(FLACContext *s, int32_t *decoded, int pred_order)
             unsigned lim = tmp ? (UINT_MAX >> tmp) + 2 : INT_MAX;
             int real_limit = lim > INT_MAX ? INT_MAX : lim;
             while (i < samples) {
-#if defined(CPU_ARM_CLASSIC) && !defined(FLAC_NO_RICE_ASM)
-                /* The assembly decodes the common case and falls through
-                   anything it does not handle. Every unusual code still goes
-                   through the C reader, and k <= 17 keeps a code inside the
-                   window the assembly reads. */
-                if (tmp <= 17) {
-                    int got = flac_rice_decode_arm(decoded, samples - i, tmp,
-                                                   &gb);
-                    decoded += got;
-                    i       += got;
-                    if (i >= samples)
-                        break;
-                }
-#endif
                 int v = get_sr_golomb_flac(&gb, tmp, real_limit, 0);
                 if ((unsigned) v == 0x80000000){
                     return -3;
@@ -263,13 +243,9 @@ int decode_subframe_fixed(FLACContext *s, int32_t* decoded, int pred_order, int 
     return 0;
 }
 
-#if !defined(CPU_COLDFIRE)
 /* The assembler kernels in arm.S implement flac_lpc_32_c exactly; keep the C
    version compiled anyway when they are in use, so that a build can A/B the
    two by defining FLAC_NO_LPC32_ASM. */
-#if defined(CPU_ARM_CLASSIC) && !defined(FLAC_NO_LPC32_ASM)
-#define FLAC_LPC32_ASM
-#endif
 
 static void flac_lpc_32_c(int32_t *decoded, int coeffs[],
                           int pred_order, int qlevel, int len)
@@ -315,7 +291,6 @@ static void lpc_analyze_remodulate(int32_t *decoded, int coeffs[],
         decoded[j] += p >> qlevel;
     }
 }
-#endif
 
 static int decode_subframe_lpc(FLACContext *s, int32_t* decoded, int pred_order, int bps) ICODE_ATTR_FLAC;
 static int decode_subframe_lpc(FLACContext *s, int32_t* decoded, int pred_order, int bps)
@@ -354,15 +329,6 @@ static int decode_subframe_lpc(FLACContext *s, int32_t* decoded, int pred_order,
     /* bps is this subframe's width, one more than the stream's on a side
        channel, and it is what decides whether the sum fits in 32 bits. */
     if ((bps + coeff_prec + av_log2(pred_order)) <= 32) {
-        #if defined(CPU_COLDFIRE)
-        (void)sum;
-        lpc_decode_emac(s->blocksize - pred_order, qlevel, pred_order,
-                        decoded + pred_order, coeffs);
-        #elif defined(CPU_ARM_CLASSIC)
-        (void)sum;
-        lpc_decode_arm(s->blocksize - pred_order, qlevel, pred_order,
-                       decoded + pred_order, coeffs);
-        #else
         for (i = pred_order; i < s->blocksize; i++)
         {
             sum = 0;
@@ -370,12 +336,7 @@ static int decode_subframe_lpc(FLACContext *s, int32_t* decoded, int pred_order,
                 sum += coeffs[j] * decoded[i-j-1];
             decoded[i] += sum >> qlevel;
         }
-        #endif
     } else {
-        #if defined(CPU_COLDFIRE)
-        lpc_decode_emac_wide(s->blocksize - pred_order, qlevel, pred_order,
-                             decoded + pred_order, coeffs);
-        #else
         #if defined(FLAC_LPC32_ASM)
         /* The 16-bit multiply kernel needs every history sample to fit a
            signed halfword, which bps <= 16 guarantees, and checks its other
@@ -393,7 +354,6 @@ static int decode_subframe_lpc(FLACContext *s, int32_t* decoded, int pred_order,
 
         if (s->bps <= 16)
             lpc_analyze_remodulate(decoded, coeffs, pred_order, qlevel, s->blocksize, bps);
-        #endif
     }
 
     return 0;
@@ -518,13 +478,6 @@ static int decode_frame(FLACContext *s,
     if (s->min_blocksize == s->max_blocksize) {
         s->samplenumber*=s->min_blocksize;
     }
-
-#if 0    
-    if (/*((blocksize_code == 6) || (blocksize_code == 7)) &&*/
-        (s->min_blocksize != s->max_blocksize)){
-    }else{
-    }
-#endif
 
     if (blocksize_code == 0)
         blocksize = s->min_blocksize;
@@ -708,11 +661,6 @@ int flac_decode_frame(FLACContext *s,
 
     yield();
     
-#if defined(CPU_ARM_CLASSIC) && !defined(FLAC_NO_DECORRELATE_ASM)
-/* arm.S does the same, four pairs at a time. */
-#define DECORRELATE(arm, left, right)\
-             arm(s->decoded[0], s->decoded[1], s->blocksize, scale);
-#else
 #define DECORRELATE(arm, left, right)\
              for (int i = 0; i < s->blocksize; i++) {\
                 int32_t a = s->decoded[0][i];\
@@ -720,7 +668,6 @@ int flac_decode_frame(FLACContext *s,
                 s->decoded[0][i] = (left)  << scale;\
                 s->decoded[1][i] = (right) << scale;\
              }
-#endif
 
     scale=FLAC_OUTPUT_DEPTH-s->bps;
     switch(s->ch_mode)

@@ -25,11 +25,9 @@
 #include <string.h>
 
 /* Headers for the debug menu */
-#ifndef BOOTLOADER
 # include "action.h"
 # include "list.h"
 # include <stdio.h>
-#endif
 
 struct axp_adc_info {
     uint8_t reg;
@@ -407,19 +405,11 @@ int axp2101_battery_status(void)
 
 int axp2101_input_status(void)
 {
-#ifdef HAVE_BATTERY_SWITCH
-    int input_status = 0;
-#else
     int input_status = AXP2101_INPUT_BATTERY;
-#endif
 
     int r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_PMU_STATUS1);
     if(r & 0x20)
         input_status |= AXP2101_INPUT_USB;
-#ifdef HAVE_BATTERY_SWITCH
-    if(r & 0x80)
-        input_status |= AXP2101_INPUT_BATTERY;
-#endif
 
     return input_status;
 }
@@ -535,7 +525,6 @@ void axp2101_power_off(void)
                     AXP2101_REG_PMUCOMMCONFIG, 0, 1, NULL);
 }
 
-#ifndef BOOTLOADER
 enum {
     AXP_DEBUG_BATTERY_STATUS,
     AXP_DEBUG_INPUT_STATUS,
@@ -651,7 +640,6 @@ bool axp2101_debug_menu(void)
     info.get_name = axp2101_debug_menu_get_name;
     return simplelist_show_list(&info);
 }
-#endif /* !BOOTLOADER */
 
 /* This is basically the only valid implementation, so define it here */
 unsigned int axp2101_power_input_status(void)
@@ -664,11 +652,6 @@ unsigned int axp2101_power_input_status(void)
 
     if(input_status & AXP2101_INPUT_USB)
         state |= POWER_INPUT_USB_CHARGER;
-
-#ifdef HAVE_BATTERY_SWITCH
-    if(input_status & AXP2101_INPUT_BATTERY)
-        state |= POWER_INPUT_BATTERY;
-#endif
 
     return state;
 }

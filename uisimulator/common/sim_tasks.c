@@ -45,15 +45,11 @@ enum {
     SIM_SCREENDUMP,
     SIM_USB_INSERTED,
     SIM_USB_EXTRACTED,
-#ifdef HAVE_HOTSWAP
     SIM_EXT_INSERTED,
     SIM_EXT_EXTRACTED,
-#endif
 };
 
-#ifdef HAVE_HOTSWAP
 extern void sim_ext_extracted(int drive);
-#endif
 
 void sim_thread(void)
 {
@@ -72,9 +68,6 @@ void sim_thread(void)
 
             case SIM_SCREENDUMP:
                 screen_dump();
-#ifdef HAVE_REMOTE_LCD
-                remote_screen_dump();
-#endif
                 break;
             case SIM_USB_INSERTED:
             /* from firmware/usb.c: */
@@ -114,7 +107,6 @@ void sim_thread(void)
                  * do it here anyway but don't depend on the acks */
                 queue_broadcast(SYS_USB_DISCONNECTED, 0);
                 break;
-#ifdef HAVE_HOTSWAP
             case SIM_EXT_INSERTED:
             case SIM_EXT_EXTRACTED:
                 sim_ext_extracted(ev.data);
@@ -123,7 +115,6 @@ void sim_thread(void)
                 sleep(HZ/20);
                 queue_broadcast(SYS_FS_CHANGED, 0);
                 break;
-#endif /* HAVE_MULTIDRIVE */
             default:
                 DEBUGF("sim_tasks: unhandled event: %ld\n", ev.id);
                 break;
@@ -144,7 +135,6 @@ void sim_trigger_screendump(void)
     queue_post(&sim_queue, SIM_SCREENDUMP, 0);
 }
 
-#ifdef HAVE_HEADPHONE_DETECTION
 static bool is_hp_inserted = true;
 bool headphones_inserted(void)
 {
@@ -155,9 +145,7 @@ void sim_trigger_hp(bool inserted)
     is_hp_inserted = inserted;
     DEBUGF("Headphone %s.\n", inserted ? "inserted":"removed");
 }
-#endif
 
-#ifdef HAVE_LINEOUT_DETECTION
 static bool is_lo_inserted = false;
 bool lineout_inserted(void)
 {
@@ -168,7 +156,6 @@ void sim_trigger_lo(bool inserted)
     is_lo_inserted = inserted;
     DEBUGF("Lineout %s.\n", inserted ? "inserted":"removed");
 }
-#endif
 
 static bool is_usb_inserted;
 void sim_trigger_usb(bool inserted)
@@ -227,7 +214,6 @@ void usb_wait_for_disconnect(struct event_queue *q)
 
 static bool is_ext_inserted;
 
-#ifdef HAVE_HOTSWAP
 void sim_trigger_external(bool inserted)
 {
     is_ext_inserted = inserted;
@@ -240,7 +226,6 @@ void sim_trigger_external(bool inserted)
 
     DEBUGF("Ext %s\n", inserted ? "inserted":"removed");
 }
-#endif
 
 bool hostfs_present(int drive)
 {
@@ -252,7 +237,6 @@ bool hostfs_removable(int drive)
     return drive > 0;
 }
 
-#ifdef HAVE_HOTSWAP
 bool volume_removable(int volume)
 {
     /* volume == drive for now */
@@ -264,7 +248,6 @@ bool volume_present(int volume)
     /* volume == drive for now */
     return hostfs_present(volume);
 }
-#endif /* HAVE_HOTSWAP */
 
 #ifdef HAVE_MULTIDRIVE
 int volume_drive(int volume)

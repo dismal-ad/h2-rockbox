@@ -45,20 +45,12 @@ extern void peak_meter_peek(void);
 extern void peak_meter_init_range( bool dbfs, int range_min, int range_max);
 extern void peak_meter_init_times(int release, int hold_ms, int clip_hold_sec);
 extern void peak_meter_get_times(int *release, int *hold_ticks);
-#ifdef HAVE_AGC
-extern void peak_meter_get_peakhold(int *peak_left, int *peak_right);
-#endif
 extern int  peak_meter_get_min(void);
 extern int  peak_meter_get_max(void);
 extern void peak_meter_set_use_dbfs(bool use);
 extern bool peak_meter_get_use_dbfs(void);
 extern int  peak_meter_db2sample(int db);
 extern unsigned short peak_meter_scale_value(unsigned short val, int meterwidth);
-
-#ifdef HAVE_HISTOGRAM
-extern void histogram_init(void);
-extern void histogram_draw(int x1, int x2, int y1, int y2, int width, int height);
-#endif
 
 /* valid values for trigger_status */
 #define TRIG_OFF            0x00

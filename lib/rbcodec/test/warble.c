@@ -647,73 +647,6 @@ static void ci_logf(const char *fmt, ...)
 
 static void stub_void_void(void) { }
 
-#ifdef HAVE_RECORDING
-/* warble only ever loads decoders, so the encoder half of the codec API is
-   never entered. Fail loudly instead of leaving these NULL, which would turn
-   a mistake into a segfault. */
-static void stub_enc_unsupported(const char *func)
-{
-    fprintf(stderr, "error: warble does not support encoding (%s)\n", func);
-    abort();
-}
-
-static int ci_enc_pcmbuf_read(void *buf, int count)
-{
-    (void)buf; (void)count;
-    stub_enc_unsupported(__func__);
-    return 0;
-}
-
-static int ci_enc_pcmbuf_advance(int count)
-{
-    (void)count;
-    stub_enc_unsupported(__func__);
-    return 0;
-}
-
-static struct enc_chunk_data *ci_enc_encbuf_get_buffer(size_t need)
-{
-    (void)need;
-    stub_enc_unsupported(__func__);
-    return NULL;
-}
-
-static void ci_enc_encbuf_finish_buffer(void)
-{
-    stub_enc_unsupported(__func__);
-}
-
-static ssize_t ci_enc_stream_read(void *buf, size_t count)
-{
-    (void)buf; (void)count;
-    stub_enc_unsupported(__func__);
-    return -1;
-}
-
-static off_t ci_enc_stream_lseek(off_t offset, int whence)
-{
-    (void)offset; (void)whence;
-    stub_enc_unsupported(__func__);
-    return -1;
-}
-
-static ssize_t ci_enc_stream_write(const void *buf, size_t count)
-{
-    (void)buf; (void)count;
-    stub_enc_unsupported(__func__);
-    return -1;
-}
-
-static int ci_round_value_to_list32(unsigned long value,
-                                    const unsigned long list[],
-                                    int count, bool signd)
-{
-    (void)value; (void)list; (void)count; (void)signd;
-    stub_enc_unsupported(__func__);
-    return 0;
-}
-#endif /* HAVE_RECORDING */
-
 static struct codec_api ci = {
 
     0,                   /* filesize */
@@ -769,16 +702,6 @@ static struct codec_api ci = {
 
     qsort,
 
-#ifdef HAVE_RECORDING
-    ci_enc_pcmbuf_read,
-    ci_enc_pcmbuf_advance,
-    ci_enc_encbuf_get_buffer,
-    ci_enc_encbuf_finish_buffer,
-    ci_enc_stream_read,
-    ci_enc_stream_lseek,
-    ci_enc_stream_write,
-    ci_round_value_to_list32,
-#endif /* HAVE_RECORDING */
 };
 
 static void print_mp3entry(const struct mp3entry *id3, FILE *f)

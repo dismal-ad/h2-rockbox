@@ -25,11 +25,7 @@
 
 #include "mad_iram.h"
 
-#if defined(CPU_COLDFIRE)
-#define FPM_COLDFIRE_EMAC
-#elif defined(CPU_ARM_CLASSIC)
-#define FPM_ARM
-#elif defined(CPU_MIPS)
+#if   defined(CPU_MIPS)
 #define FPM_MIPS
 #else
 #define FPM_DEFAULT

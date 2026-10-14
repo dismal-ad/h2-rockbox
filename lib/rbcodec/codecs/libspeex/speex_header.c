@@ -186,9 +186,6 @@ EXPORT SpeexHeader *speex_packet_to_header(char *packet, int size)
    if (le_header->mode >= SPEEX_NB_MODES || le_header->mode < 0)
    {
       speex_notify("Invalid mode specified in Speex header");
-#if 0
-      speex_free (le_header);
-#endif
       return NULL;
    }
 
@@ -201,9 +198,3 @@ EXPORT SpeexHeader *speex_packet_to_header(char *packet, int size)
 
 }
 
-#if 0 /* Unused by rockbox */
-EXPORT void speex_header_free(void *ptr)
-{
-   speex_free(ptr);
-}
-#endif

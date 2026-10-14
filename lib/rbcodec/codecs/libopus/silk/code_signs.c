@@ -98,15 +98,8 @@ void silk_decode_signs(
             for( j = 0; j < SHELL_CODEC_FRAME_LENGTH; j++ ) {
                 if( q_ptr[ j ] > 0 ) {
                     /* attach sign */
-#if 0
-                    /* conditional implementation */
-                    if( ec_dec_icdf( psRangeDec, icdf, 8 ) == 0 ) {
-                        q_ptr[ j ] = -q_ptr[ j ];
-                    }
-#else
                     /* implementation with shift, subtraction, multiplication */
                     q_ptr[ j ] *= silk_dec_map( ec_dec_icdf( psRangeDec, icdf, 8 ) );
-#endif
                 }
             }
         }

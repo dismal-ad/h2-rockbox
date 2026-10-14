@@ -162,11 +162,7 @@ union raw_dirent
 #define FAT_NTRES_LC_NAME           0x08
 #define FAT_NTRES_LC_EXT            0x10
 
-#if defined(MAX_VIRT_SECTOR_SIZE) || defined(MAX_VARIABLE_LOG_SECTOR)
-#define LOG_SECTOR_SIZE(bpb) fat_bpb->sector_size
-#else
 #define LOG_SECTOR_SIZE(bpb) SECTOR_SIZE
-#endif
 
 #define CLUSTERS_PER_FAT_SECTOR     (LOG_SECTOR_SIZE(fat_bpb) / 4)
 #define CLUSTERS_PER_FAT16_SECTOR   (LOG_SECTOR_SIZE(fat_bpb) / 2)
@@ -190,7 +186,6 @@ struct fsinfo
 
 #define FSINFO_SIGNATURE_VAL 0x41615252
 
-#ifdef HAVE_FAT16SUPPORT
 #define BPB_FN_SET16(bpb, fn)      (bpb)->fn##__ = fn##16
 #define BPB_FN_SET32(bpb, fn)      (bpb)->fn##__ = fn##32
 #define BPB_FN_DECL(fn, args...)   (*fn##__)(struct bpb *bpb , ##args)
@@ -204,12 +199,6 @@ struct fsinfo
     BPB_CALL(update_fat_entry, (bpb), (entry), (value))
 #define fat_recalc_free_internal(bpb) \
     BPB_CALL(fat_recalc_free_internal, (bpb))
-#else  /* !HAVE_FAT16SUPPORT */
-#define get_next_cluster            get_next_cluster32
-#define find_free_cluster           find_free_cluster32
-#define update_fat_entry            update_fat_entry32
-#define fat_recalc_free_internal    fat_recalc_free_internal32
-#endif /* HAVE_FAT16SUPPORT */
 struct bpb;
 static void update_fsinfo32(struct bpb *fat_bpb);
 
@@ -246,17 +235,13 @@ static struct bpb
     unsigned long fatrgnstart;
     unsigned long fatrgnend;
     struct fsinfo fsinfo;
-#ifdef HAVE_FAT16SUPPORT
     unsigned int bpb_rootentcnt;    /* Number of dir entries in the root */
     /* internals for FAT16 support */
     sector_t rootdirsectornum; /* sector offset of root dir relative to start
                                 * of first pseudo cluster */
-#endif /* HAVE_FAT16SUPPORT */
 
     /** Additional information kept for each volume **/
-#ifdef HAVE_FAT16SUPPORT
     uint8_t is_fat16; /* true if we mounted a FAT16 partition, false if FAT32 */
-#endif
 #ifdef HAVE_MULTIDRIVE
     uint8_t drive;    /* on which physical device is this located */
 #endif
@@ -264,35 +249,20 @@ static struct bpb
     uint8_t volume;   /* on which volume is this located (shortcut) */
 #endif
     uint8_t mounted;  /* true if volume is mounted, false otherwise */
-#ifdef HAVE_FAT16SUPPORT
     /* some functions are different for different FAT types */
     long BPB_FN_DECL(get_next_cluster, long);
     long BPB_FN_DECL(find_free_cluster, long);
     int  BPB_FN_DECL(update_fat_entry, unsigned long, unsigned long);
     void BPB_FN_DECL(fat_recalc_free_internal);
-#endif /* HAVE_FAT16SUPPORT */
-#if defined(MAX_VIRT_SECTOR_SIZE) || defined(MAX_VARIABLE_LOG_SECTOR)
-    uint16_t sector_size;
-#endif
 } fat_bpbs[NUM_VOLUMES]; /* mounted partition info */
 
-#ifdef STORAGE_NEEDS_BOUNCE_BUFFER
-#if defined(MAX_VIRT_SECTOR_SIZE)
-#define BOUNCE_SECTOR_SIZE MAX_VIRT_SECTOR_SIZE
-#elif defined(MAX_VARIABLE_LOG_SECTOR)
-#define BOUNCE_SECTOR_SIZE MAX_VARIABLE_LOG_SECTOR
-#elif defined(MAX_PHYS_SECTOR_SIZE)
-#define BOUNCE_SECTOR_SIZE MAX_PHYS_SECTOR_SIZE
-#else
 #define BOUNCE_SECTOR_SIZE SECTOR_SIZE
-#endif
 #ifndef FAT_BOUNCE_SECTORS
 #define FAT_BOUNCE_SECTORS 10
 #endif
 static uint8_t fat_bounce_buffers[NUM_VOLUMES][BOUNCE_SECTOR_SIZE*FAT_BOUNCE_SECTORS] STORAGE_ALIGN_ATTR;
 #define FAT_BOUNCE_BUFFER(bpb) \
     (fat_bounce_buffers[IF_MV_VOL((bpb)->volume)])
-#endif
 
 #define IS_FAT_SECTOR(bpb, sector) \
     (!((sector) >= (bpb)->fatrgnend || (sector) < (bpb)->fatrgnstart))
@@ -334,9 +304,7 @@ struct fatlong_parse_state
 static void cache_commit(struct bpb *fat_bpb)
 {
     dc_lock_cache();
-#ifdef HAVE_FAT16SUPPORT
     if (!fat_bpb->is_fat16)
-#endif
         update_fsinfo32(fat_bpb);
     dc_commit_all(IF_MV(fat_bpb->volume));
     dc_unlock_cache();
@@ -806,14 +774,12 @@ static bool fatlong_parse_finish(struct fatlong_parse_state *lnparse,
         if (ucs == 0xffff)
             return false;
 
-#ifdef UNICODE32
         /* Check for a surrogate UTF16 pair */
         if (ucs >= 0xd800 && ucs < 0xdc00 &&
             *(ucsp+1) >= 0xdc00 && *(ucsp+1) < 0xe000) {
             ucc = 0x10000 + (((ucs & 0x3ff) << 10) | (*(ucsp+1) & 0x3ff));
             ucsp++;
         } else
-#endif
             ucc = ucs;
 
         if ((p = utf8encode(ucc, p)) - name > FAT_DIRENTRY_NAME_MAX)
@@ -830,13 +796,11 @@ static unsigned long cluster2sec(struct bpb *fat_bpb, long cluster)
     long zerocluster = 2;
 
     /* negative clusters (FAT16 root dir) don't get the 2 offset */
-#ifdef HAVE_FAT16SUPPORT
     if (fat_bpb->is_fat16 && cluster < 0)
     {
         zerocluster = 0;
     }
     else
-#endif /* HAVE_FAT16SUPPORT */
     if ((unsigned long)cluster > fat_bpb->dataclusters + 1)
     {
         DEBUGF( "%s() - Bad cluster number (%ld)\n", __func__, cluster);
@@ -847,7 +811,6 @@ static unsigned long cluster2sec(struct bpb *fat_bpb, long cluster)
             + fat_bpb->firstdatasector;
 }
 
-#ifdef HAVE_FAT16SUPPORT
 static long get_next_cluster16(struct bpb *fat_bpb, long startcluster)
 {
     /* if FAT16 root dir, dont use the FAT */
@@ -995,7 +958,6 @@ static void fat_recalc_free_internal16(struct bpb *fat_bpb)
 
     fat_bpb->fsinfo.freecount = free;
 }
-#endif /* HAVE_FAT16SUPPORT */
 
 static void update_fsinfo32(struct bpb *fat_bpb)
 {
@@ -1203,7 +1165,6 @@ static int fat_mount_internal(struct bpb *fat_bpb)
         fat_bpb->totalsectors = fat_bpb->bpb_totsec32;
 
     unsigned int rootdirsectors = 0;
-#ifdef HAVE_FAT16SUPPORT
     fat_bpb->bpb_rootentcnt = BYTES2INT16(buf, BPB_ROOTENTCNT);
 
     if (!fat_bpb->bpb_bytspersec)
@@ -1211,7 +1172,6 @@ static int fat_mount_internal(struct bpb *fat_bpb)
 
     rootdirsectors = secmult * ((fat_bpb->bpb_rootentcnt * DIR_ENTRY_SIZE
                      + fat_bpb->bpb_bytspersec - 1) / fat_bpb->bpb_bytspersec);
-#endif /* HAVE_FAT16SUPPORT */
 
     fat_bpb->firstdatasector = fat_bpb->bpb_rsvdseccnt
         + fat_bpb->bpb_numfats * fat_bpb->fatsize
@@ -1235,20 +1195,14 @@ static int fat_mount_internal(struct bpb *fat_bpb)
     if (fat_bpb->dataclusters < 65525)
 #endif /* TEST_FAT */
     { /* FAT16 */
-#ifdef HAVE_FAT16SUPPORT
         fat_bpb->is_fat16 = true;
         if (fat_bpb->dataclusters < 4085)
         { /* FAT12 */
             DEBUGF("This is FAT12. Go away!\n");
             FAT_ERROR(-5);
         }
-#else /* !HAVE_FAT16SUPPORT */
-        DEBUGF("This is not FAT32. Go away!\n");
-        FAT_ERROR(-6);
-#endif /* HAVE_FAT16SUPPORT */
     }
 
-#ifdef HAVE_FAT16SUPPORT
     if (fat_bpb->is_fat16)
     {
         /* FAT16 specific part of BPB */
@@ -1263,7 +1217,6 @@ static int fat_mount_internal(struct bpb *fat_bpb)
             - rootdirsectors;
     }
     else
-#endif /* HAVE_FAT16SUPPORT */
     {
         /* FAT32 specific part of BPB */
         fat_bpb->bpb_rootclus  = BYTES2INT32(buf, BPB_ROOTCLUS);
@@ -1278,14 +1231,12 @@ static int fat_mount_internal(struct bpb *fat_bpb)
         FAT_ERROR(rc * 10 - 7);
     }
 
-#ifdef HAVE_FAT16SUPPORT
     if (fat_bpb->is_fat16)
     {
         fat_bpb->fsinfo.freecount = 0xffffffff; /* force recalc later */
         fat_bpb->fsinfo.nextfree = 0xffffffff;
     }
     else
-#endif /* HAVE_FAT16SUPPORT */
     {
         /* Read the fsinfo sector */
         rc = storage_read_sectors(IF_MD(fat_bpb->drive,)
@@ -1310,7 +1261,6 @@ static int fat_mount_internal(struct bpb *fat_bpb)
         fat_bpb->fsinfo.nextfree = BYTES2INT32(buf, FSINFO_NEXTFREE);
     }
 
-#ifdef HAVE_FAT16SUPPORT
     /* Fix up calls that change per FAT type */
     if (fat_bpb->is_fat16)
     {
@@ -1326,7 +1276,6 @@ static int fat_mount_internal(struct bpb *fat_bpb)
         BPB_FN_SET32(fat_bpb, update_fat_entry);
         BPB_FN_SET32(fat_bpb, fat_recalc_free_internal);
     }
-#endif /* HAVE_FAT16SUPPORT */
 
     rc = 0;
 fat_error:
@@ -1385,11 +1334,9 @@ static long next_write_cluster(struct bpb *fat_bpb, long oldcluster)
     if (!cluster)
     {
         /* passed end of existing entries and now need to append */
-    #ifdef HAVE_FAT16SUPPORT
         if (UNLIKELY(oldcluster < 0))
             return 0; /* negative, pseudo-cluster of the root dir */
                       /* impossible to append something to the root */
-    #endif /* HAVE_FAT16SUPPORT */
 
         dc_lock_cache();
 
@@ -1491,7 +1438,6 @@ static void fat_open_internal(IF_MV(int volume,) long startcluster,
     file->e.entries    = 0;
 }
 
-#if CONFIG_RTC
 static void fat_time(uint16_t *date, uint16_t *time, int16_t *tenth)
 {
     struct tm *tm = get_time();
@@ -1513,88 +1459,6 @@ static void fat_time(uint16_t *date, uint16_t *time, int16_t *tenth)
     if (tenth)
         *tenth = (tm->tm_sec & 1) * 100;
 }
-
-#else /* !CONFIG_RTC */
-
-static void fat_time(uint16_t *date, uint16_t *time, int16_t *tenth)
-{
-    /* non-RTC version returns an increment from the supplied time, or a
-     * fixed standard time/date if no time given as input */
-
-    /* Macros to convert a 2-digit string to a decimal constant.
-       (YEAR), MONTH and DAY are set by the date command, which outputs
-       DAY as 00..31 and MONTH as 01..12. The leading zero would lead to
-       misinterpretation as an octal constant. */
-    #define S100(x) 1 ## x
-    #define C2DIG2DEC(x) (S100(x)-100)
-    /* The actual build date, as FAT date constant */
-    #define BUILD_DATE_FAT (((YEAR - 1980) << 9) \
-                            | (C2DIG2DEC(MONTH) << 5) \
-                            | C2DIG2DEC(DAY))
-
-    bool date_forced = false;
-    bool next_day = false;
-    unsigned time2 = 0; /* double time, for CRTTIME with 1s precision */
-
-    if (date && *date < BUILD_DATE_FAT)
-    {
-        *date = BUILD_DATE_FAT;
-        date_forced = true;
-    }
-
-    if (time)
-    {
-        time2 = *time << 1;
-        if (time2 == 0 || date_forced)
-        {
-            time2 = (11 < 6) | 11; /* set to 00:11:11 */
-        }
-        else
-        {
-            unsigned mins  = (time2 >> 6) & 0x3f;
-            unsigned hours = (time2 >> 12) & 0x1f;
-
-            mins = 11 * ((mins / 11) + 1); /* advance to next multiple of 11 */
-            if (mins > 59)
-            {
-                mins = 11; /* 00 would be a bad marker */
-                if (++hours > 23)
-                {
-                    hours = 0;
-                    next_day = true;
-                }
-            }
-            time2 = (hours << 12) | (mins << 6) | mins; /* secs = mins */
-        }
-        *time = time2 >> 1;
-    }
-
-    if (tenth)
-        *tenth = (time2 & 1) * 100;
-
-    if (date && next_day)
-    {
-        static const unsigned char daysinmonth[] =
-            { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-        unsigned day   = *date & 0x1f;
-        unsigned month = (*date >> 5) & 0x0f;
-        unsigned year  = (*date >> 9) & 0x7f;
-
-        /* simplification: ignore leap years */
-        if (++day > daysinmonth[month-1])
-        {
-            day = 1;
-            if (++month > 12)
-            {
-                month = 1;
-                year++;
-            }
-        }
-
-        *date = (year << 9) | (month << 5) | day;
-    }
-}
-#endif /* CONFIG_RTC */
 
 static int write_longname(struct bpb *fat_bpb, struct fat_filestr *parentstr,
                           struct fat_file *file, const unsigned char *name,
@@ -1625,7 +1489,6 @@ static int write_longname(struct bpb *fat_bpb, struct fat_filestr *parentstr,
     for (unsigned long i = 0; i < ucspadlen; i++)
     {
         if (i < ucslen) {
-#ifdef UNICODE32
             ucschar_t tmp;
             name = utf8decode(name, &tmp);
             /* For codepoints > U+FFFF we will need to use a UTF16 surrogate
@@ -1637,9 +1500,6 @@ static int write_longname(struct bpb *fat_bpb, struct fat_filestr *parentstr,
                 ucsname[i++] = 0xd800 | ((tmp >> 10) & 0x3ff); /* High */
                 ucsname[i] = 0xdc00 | (tmp & 0x3ff); /* Low */
             }
-#else
-            name = utf8decode(name, &ucsname[i]);
-#endif
         } else if (i == ucslen) {
             ucsname[i] = 0x0000; /* name doesn't fill last block */
         } else /* i > ucslen */ {
@@ -1915,14 +1775,8 @@ static int update_short_entry(struct bpb *fat_bpb, struct fat_file *file,
 
     int rc;
 
-#if CONFIG_RTC
     uint16_t time = 0;
     uint16_t date = 0;
-#else
-    /* get old time to increment from */
-    uint16_t time = letoh16(fatent->wrttime);
-    uint16_t date = letoh16(fatent->wrtdate);
-#endif
     fat_time(&date, &time, NULL);
     date = htole16(date);
     time = htole16(time);
@@ -2032,15 +1886,6 @@ static int free_cluster_chain(struct bpb *fat_bpb, long startcluster)
 
 
 /** File entity functions **/
-
-#if defined(MAX_VARIABLE_LOG_SECTOR)
-int fat_file_sector_size(IF_MV_NONVOID(const struct fat_file *file))
-{
-    const struct bpb *fat_bpb = FAT_BPB(file->volume);
-
-    return LOG_SECTOR_SIZE(fat_bpb);
-}
-#endif
 
 int fat_create_file(struct fat_file *parent, const char *name,
                     uint8_t attr, struct fat_file *file,
@@ -2469,11 +2314,9 @@ static long transfer(struct bpb *fat_bpb, sector_t start, long count,
     if (write)
     {
         unsigned long firstallowed;
-#ifdef HAVE_FAT16SUPPORT
         if (fat_bpb->is_fat16)
             firstallowed = fat_bpb->rootdirsector;
         else
-#endif /* HAVE_FAT16SUPPORT */
             firstallowed = fat_bpb->firstdatasector;
 
         if (start < firstallowed)
@@ -2486,7 +2329,6 @@ static long transfer(struct bpb *fat_bpb, sector_t start, long count,
         }
     }
 
-#ifdef STORAGE_NEEDS_BOUNCE_BUFFER
     if(UNLIKELY(STORAGE_OVERLAP((uintptr_t)buf))) {
         void* xfer_buf = FAT_BOUNCE_BUFFER(fat_bpb);
         while(count > 0) {
@@ -2510,7 +2352,6 @@ static long transfer(struct bpb *fat_bpb, sector_t start, long count,
             count -= xfer_count;
         }
     } else {
-#endif
         if(write) {
             rc = storage_write_sectors(IF_MD(fat_bpb->drive,)
                                        start + fat_bpb->startsector, count, buf);
@@ -2518,9 +2359,7 @@ static long transfer(struct bpb *fat_bpb, sector_t start, long count,
             rc = storage_read_sectors(IF_MD(fat_bpb->drive,)
                                       start + fat_bpb->startsector, count, buf);
         }
-#ifdef STORAGE_NEEDS_BOUNCE_BUFFER
     }
-#endif
 
     if (rc < 0)
     {
@@ -2577,13 +2416,11 @@ long fat_readwrite(struct fat_filestr *filestr, unsigned long sectorcount,
             cluster = newcluster;
             sector = cluster2sec(fat_bpb, cluster) - 1;
 
-        #ifdef HAVE_FAT16SUPPORT
             if (fat_bpb->is_fat16 && file->firstcluster < 0)
             {
                 sector += fat_bpb->rootdirsectornum;
                 sectornum = fat_bpb->rootdirsectornum;
             }
-        #endif /* HAVE_FAT16SUPPORT */
         }
     }
 
@@ -2697,10 +2534,8 @@ int fat_seek(struct fat_filestr *filestr, unsigned long seeksector)
     long          clusternum = 0;
     unsigned long sectornum  = FAT_FILE_RW_VAL;
 
-#ifdef HAVE_FAT16SUPPORT
     if (fat_bpb->is_fat16 && cluster < 0) /* FAT16 root dir */
         seeksector += fat_bpb->rootdirsectornum;
-#endif /* HAVE_FAT16SUPPORT */
 
     filestr->eof = false;
     if (seeksector)
@@ -2804,10 +2639,6 @@ int fat_readdir(struct fat_filestr *dirstr, struct fat_dirscan_info *scan,
     fatlong_parse_start(&lnparse);
 
     scan->entries = 0;
-
-#if defined(MAX_VIRT_SECTOR_SIZE) || defined(MAX_VARIABLE_LOG_SECTOR)
-    struct bpb *fat_bpb = FAT_BPB(dirstr->fatfilep->volume);
-#endif
 
     while (1)
     {
@@ -2951,9 +2782,6 @@ int fat_mount(IF_MV(int volume,) IF_MD(int drive,) unsigned long startsector)
 #ifdef HAVE_MULTIDRIVE
     fat_bpb->drive       = drive;
 #endif
-#if defined(MAX_VIRT_SECTOR_SIZE) || defined(MAX_VARIABLE_LOG_SECTOR)
-    fat_bpb->sector_size = disk_get_log_sector_size(IF_MD(drive));
-#endif
 
     rc = fat_mount_internal(fat_bpb);
     if (rc < 0)
@@ -2992,22 +2820,6 @@ int fat_unmount(IF_MV_NONVOID(int volume))
 
 
 /** Debug screen stuff **/
-
-#if defined(MAX_VIRT_SECTOR_SIZE) || defined(MAX_VARIABLE_LOG_SECTOR)
-/* This isn't necessarily the same as storage's logical sector size;
-   we can have situations where the filesystem (and partition table)
-   uses a larger "virtual sector" than the underlying storage device */
-int fat_get_bytes_per_sector(IF_MV_NONVOID(int volume))
-{
-    int bytes = 0;
-
-    struct bpb * const fat_bpb = FAT_BPB(volume);
-    if (fat_bpb)
-        bytes = fat_bpb->bpb_bytspersec;
-
-    return bytes;
-}
-#endif /* MAX_VIRT_SECTOR_SIZE || MAX_VARIAGLE_LOG_SECTOR */
 
 unsigned int fat_get_cluster_size(IF_MV_NONVOID(int volume))
 {

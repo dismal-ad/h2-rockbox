@@ -57,10 +57,8 @@ enum
 #ifdef STORAGE_CLOSE
     Q_STORAGE_CLOSE,
 #endif
-#ifdef HAVE_HOTSWAP_IN_THREAD
     Q_STORAGE_MEDIUM_INSERTED,
     Q_STORAGE_MEDIUM_REMOVED,
-#endif
 };
 
 #define STG_EVENT_ASSERT_ACTIVE(type) \
@@ -111,9 +109,6 @@ struct storage_info
 {
     unsigned int sector_size;
     sector_t num_sectors;
-#ifdef MAX_PHYS_SECTOR_SIZE
-    uint16_t phys_sector_mult;
-#endif
     char *vendor;
     char *product;
     char *revision;
@@ -167,10 +162,8 @@ static inline void storage_sleep(void) {};
         #ifdef STORAGE_GET_INFO
             #error storage_get_info not implemented
         #endif
-        #ifdef HAVE_HOTSWAP
             #define storage_removable(drive) hostfs_removable(IF_MD(drive))
             #define storage_present(drive) hostfs_present(IF_MD(drive))
-        #endif
         #define storage_driver_type(drive) hostfs_driver_type(IF_MV(drive))
     #elif (CONFIG_STORAGE & STORAGE_ATA)
         #define STORAGE_FUNCTION(NAME) (ata_## NAME)
@@ -190,10 +183,8 @@ static inline void storage_sleep(void) {};
         #ifdef STORAGE_GET_INFO
             #define storage_get_info(drive, info) ata_get_info(IF_MD(drive,) info)
         #endif
-        #ifdef HAVE_HOTSWAP
             #define storage_removable(drive) ata_removable(IF_MD(drive))
             #define storage_present(drive) ata_present(IF_MD(drive))
-        #endif
         #define storage_driver_type(drive) (STORAGE_ATA_NUM)
     #elif (CONFIG_STORAGE & STORAGE_SD)
         #define STORAGE_FUNCTION(NAME) (sd_## NAME)
@@ -214,10 +205,8 @@ static inline void storage_sleep(void) {};
         #ifdef STORAGE_GET_INFO
             #define storage_get_info(drive, info) sd_get_info(IF_MD(drive,) info)
         #endif
-        #ifdef HAVE_HOTSWAP
             #define storage_removable(drive) sd_removable(IF_MD(drive))
             #define storage_present(drive) sd_present(IF_MD(drive))
-        #endif
         #define storage_driver_type(drive) (STORAGE_SD_NUM)
      #elif (CONFIG_STORAGE & STORAGE_MMC)
         #define STORAGE_FUNCTION(NAME) (mmc_## NAME)
@@ -238,10 +227,8 @@ static inline void storage_sleep(void) {};
         #ifdef STORAGE_GET_INFO
             #define storage_get_info(drive, info) mmc_get_info(IF_MD(drive,) info)
         #endif
-        #ifdef HAVE_HOTSWAP
             #define storage_removable(drive) mmc_removable(IF_MD(drive))
             #define storage_present(drive) mmc_present(IF_MD(drive))
-        #endif
         #define storage_driver_type(drive) (STORAGE_MMC_NUM)
     #elif (CONFIG_STORAGE & STORAGE_NAND)
         #define STORAGE_FUNCTION(NAME) (nand_## NAME)
@@ -262,13 +249,8 @@ static inline void storage_sleep(void) {};
         #ifdef STORAGE_GET_INFO
             #define storage_get_info(drive, info) nand_get_info(IF_MD(drive,) info)
         #endif
-        #ifdef HAVE_HOTSWAP
             #define storage_removable(drive) nand_removable(IF_MD(drive))
             #define storage_present(drive) nand_present(IF_MD(drive))
-        #endif
-        #ifdef HAVE_STORAGE_READONLY
-            #define storage_readonly(drive) nand_readonly(IF_MD(drive))
-        #endif
         #define storage_driver_type(drive) (STORAGE_NAND_NUM)
     #elif (CONFIG_STORAGE & STORAGE_RAMDISK)
         #define STORAGE_FUNCTION(NAME) (ramdisk_## NAME)
@@ -289,10 +271,8 @@ static inline void storage_sleep(void) {};
         #ifdef STORAGE_GET_INFO
             #define storage_get_info(drive, info) ramdisk_get_info(IF_MD(drive,) info)
         #endif
-        #ifdef HAVE_HOTSWAP
             #define storage_removable(drive) ramdisk_removable(IF_MD(drive))
             #define storage_present(drive) ramdisk_present(IF_MD(drive))
-        #endif
         #define storage_driver_type(drive) (STORAGE_RAMDISK_NUM)
     #elif (CONFIG_STORAGE & STORAGE_USB)
         // TODO:  Eventually fix me
@@ -317,20 +297,13 @@ int storage_num_drives(void);
 #ifdef STORAGE_GET_INFO
 void storage_get_info(int drive, struct storage_info *info);
 #endif
-#ifdef HAVE_HOTSWAP
 bool storage_removable(int drive);
 bool storage_present(int drive);
-#endif
 int storage_driver_type(int drive);
 
 #endif /* NOT CONFIG_STORAGE_MULTI and NOT SIMULATOR*/
 
 int storage_read_sectors(IF_MD(int drive,) sector_t start, int count, void* buf);
 int storage_write_sectors(IF_MD(int drive,) sector_t start, int count, const void* buf);
-
-#ifndef HAVE_HOTSWAP
-# define storage_removable(x) 0
-# define storage_present(x) 1
-#endif
 
 #endif /* __STORAGE_H__ */

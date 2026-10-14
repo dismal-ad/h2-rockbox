@@ -244,14 +244,6 @@ enum codec_status codec_run(void)
 
     error = CODEC_OK;
 done:
-#if 0 /* defined(SIMULATOR) */
-    {
-        size_t bufsize;
-        void* buf = ci->codec_get_buffer(&bufsize);
-
-        DEBUGF("Vorbis: Memory max: %zu\n", get_max_size(buf));
-    }
-#endif
     ogg_malloc_destroy();
 
     /* Clean things up for the next track */

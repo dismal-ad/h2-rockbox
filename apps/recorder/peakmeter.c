@@ -33,17 +33,11 @@
 #include "peakmeter.h"
 #include "audio.h"
 #include "screen_access.h"
-#ifdef HAVE_BACKLIGHT
 #include "backlight.h"
-#endif
 #include "action.h"
 
 #include "pcm.h"
 #include "pcm_mixer.h"
-
-#ifdef HAVE_RECORDING
-#include "pcm_record.h"
-#endif
 
 static bool pm_playback = true; /* selects between playback and recording peaks */
 
@@ -54,13 +48,6 @@ static int pm_cur_left;        /* current values (last peak_meter_peek) */
 static int pm_cur_right;
 static int pm_max_left;        /* maximum values between peak meter draws */
 static int pm_max_right;
-#if defined(HAVE_AGC) || defined(HAVE_HISTOGRAM)
-static int pm_peakhold_left;   /* max. peak values between peakhold calls */
-static int pm_peakhold_right;  /* used for AGC and histogram display */
-#endif
-#ifdef HAVE_HISTOGRAM
-static long next_histogram_update;
-#endif
 
 /* Clip hold */
 static bool pm_clip_left = false;  /* when true a clip has occurred */
@@ -92,30 +79,6 @@ static int pm_peak_release  = 8;       /* peak release in units per read */
 static int pm_clip_hold     = HZ * 60; /* clip hold timeout ticks */
 static bool pm_clip_eternal = false;   /* true if clip timeout is disabled */
 
-#ifdef HAVE_RECORDING
-static unsigned short trig_strt_threshold;
-static long trig_strt_duration;
-static long trig_strt_dropout;
-static unsigned short trig_stp_threshold;
-static long trig_stp_hold;
-static long trig_rstrt_gap;
-
-/* point in time when the threshold was exceeded */
-static long trig_hightime;
-
-/* point in time when the volume fell below the threshold*/
-static long trig_lowtime;
-
-/* The output value of the trigger. See TRIG_XXX constants for valid values */
-static int trig_status = TRIG_OFF;
-
-static void (*trigger_listener)(int) = NULL;
-
-/* clipping counter (only used for recording) */
-static unsigned int pm_clipcount = 0;       /* clipping count */
-static bool pm_clipcount_active = false;    /* counting or not */
-#endif
-
 /* debug only */
 #ifdef PM_DEBUG
 static int peek_calls = 0;
@@ -126,40 +89,6 @@ static unsigned int peeks_per_redraw[PEEKS_PER_DRAW_SIZE];
 #define TICKS_PER_DRAW_SIZE 20
 static unsigned int ticks_per_redraw[TICKS_PER_DRAW_SIZE];
 #endif
-
-#if defined(HAVE_HISTOGRAM)
-#define HIST_BUF_SIZE (LCD_WIDTH / 2)
-static int hist_l = 0;
-static int hist_r = 0;
-static unsigned char history_l[HIST_BUF_SIZE];
-static unsigned char history_r[HIST_BUF_SIZE];
-#ifdef HAVE_LCD_COLOR
-static const char hist_level_marks[6] = { 29, 26, 23, 17, 9, 2};
-#endif
-static int history_pos = 0;
-#define HIST_W (LCD_WIDTH / 2)
-#if LCD_DEPTH > 1
-#ifdef HAVE_LCD_COLOR
-#define LCD_BAL_L LCD_RGBPACK(0, 0, 255)
-#define LCD_BAL_R LCD_RGBPACK(204, 0, 0)
-#define LCD_HIST_OVER LCD_RGBPACK(204, 0, 0)
-#define LCD_HIST_HI LCD_RGBPACK(255, 204, 0)
-#define LCD_HIST_OK LCD_RGBPACK(51, 153, 0)
-#else /* HAVE_LCD_COLOR */
-#define LCD_BATT_OK LCD_BLACK
-#define LCD_BATT_LO LCD_DARKGRAY
-#define LCD_DISK_OK LCD_BLACK
-#define LCD_DISK_LO LCD_DARKGRAY
-#define LCD_HIST_OVER LCD_BLACK
-#define LCD_HIST_OK LCD_DARKGRAY
-#define LCD_BAL LCD_DARKGRAY
-#endif /* HAVE_LCD_COLOR */
-#else /* LCD_DEPTH > 1 */
-#define LCD_HIST_OVER LCD_DEFAULT_FG
-#define LCD_HIST_OK LCD_DEFAULT_FG
-#define LCD_BAL LCD_DEFAULT_FG
-#endif /* LCD_DEPTH > 1 */
-#endif /* HAVE_HISTOGRAM */
 
 static void peak_meter_draw(struct screen *display, struct meter_scales *meter_scales,
                             int x, int y, int width, int height);
@@ -500,32 +429,6 @@ void peak_meter_get_times(int *release, int *hold_ticks)
     *hold_ticks = pm_peak_hold;
 }
 
-#ifdef HAVE_RECORDING
-/**
- * Enable/disable clip counting
- */
-void pm_activate_clipcount(bool active)
-{
-    pm_clipcount_active = active;
-}
-
-/**
- * Get clipping counter value
- */
-int pm_get_clipcount(void)
-{
-    return pm_clipcount;
-}
-
-/**
- * Set clipping counter to zero (typically at start of recording or playback)
- */
-void pm_reset_clipcount(void)
-{
-    pm_clipcount = 0;
-}
-#endif
-
 /**
  * Set the source of the peak meter to playback or to
  * record.
@@ -542,19 +445,6 @@ void peak_meter_playback(bool playback)
             scales[i].db_scale_valid = false;
 }
 
-#ifdef HAVE_RECORDING
-static void set_trig_status(int new_state)
-{
-    if (trig_status != new_state) {
-        trig_status = new_state;
-        if (trigger_listener != NULL) {
-            trigger_listener(trig_status);
-        }
-    }
-}
-
-#endif
-
 /**
  * Reads peak values from the MAS, and detects clips. The
  * values are stored in pm_max_left pm_max_right for later
@@ -565,9 +455,6 @@ static void set_trig_status(int new_state)
 void peak_meter_peek(void)
 {
     int left, right;
-#ifdef HAVE_RECORDING
-    bool was_clipping = pm_clip_left || pm_clip_right;
-#endif
    /* read current values */
     if (pm_playback)
     {
@@ -577,10 +464,6 @@ void peak_meter_peek(void)
         pm_cur_left = chan_peaks.left;
         pm_cur_right = chan_peaks.right;
     }
-#ifdef HAVE_RECORDING
-    else
-        pcm_calculate_rec_peaks(&pm_cur_left, &pm_cur_right);
-#endif
     left  = pm_cur_left;
     right = pm_cur_right;
 
@@ -602,14 +485,6 @@ void peak_meter_peek(void)
         pm_clip_timeout_r = current_tick + pm_clip_hold;
     }
 
-#ifdef HAVE_RECORDING
-    if(!was_clipping && (pm_clip_left || pm_clip_right))
-    {
-        if(pm_clipcount_active)
-            pm_clipcount++;
-    }
-#endif
-
     /* peaks are searched -> we have to find the maximum. When
        many calls of peak_meter_peek the maximum value will be
        stored in pm_max_xxx. This maximum is reset by the
@@ -617,134 +492,6 @@ void peak_meter_peek(void)
     pm_max_left = MAX(pm_max_left, left);
     pm_max_right = MAX(pm_max_right, right);
 
-#ifdef HAVE_RECORDING
-    /* Ignore any unread peakmeter data */
-#define MAX_DROP_TIME HZ/7 /* this value may need tweaking. Increase if you are
-                              getting trig events when you shouldn't with
-                              trig_stp_hold = 0 */
-    if (!trig_stp_hold)
-        trig_stp_hold = MAX_DROP_TIME;
-
-    switch (trig_status) {
-        case TRIG_READY:
-            /* no more changes, if trigger was activated as release trigger */
-            /* threshold exceeded? */
-            if ((left > trig_strt_threshold)
-                || (right > trig_strt_threshold)) {
-                    /* reset trigger duration */
-                    trig_hightime = current_tick;
-
-                    /* reset dropout duration */
-                    trig_lowtime = current_tick;
-
-                if (trig_strt_duration)
-                    set_trig_status(TRIG_STEADY);
-                else
-                    /* if trig_duration is set to 0 the user wants to start
-                     recording immediately */
-                    set_trig_status(TRIG_GO);
-            }
-            break;
-
-        case TRIG_STEADY:
-        case TRIG_RETRIG:
-            /* trigger duration exceeded */
-            if (current_tick - trig_hightime > trig_strt_duration) {
-                set_trig_status(TRIG_GO);
-            } else {
-                /* threshold exceeded? */
-                if ((left > trig_strt_threshold)
-                    || (right > trig_strt_threshold)) {
-                    /* reset lowtime */
-                    trig_lowtime = current_tick;
-                }
-                /* volume is below threshold */
-                else {
-                    /* dropout occurred? */
-                    if (current_tick - trig_lowtime > trig_strt_dropout){
-                        if (trig_status == TRIG_STEADY){
-                            set_trig_status(TRIG_READY);
-                        }
-                        /* trig_status == TRIG_RETRIG */
-                        else {
-                            /* the gap has already expired */
-                            trig_lowtime = current_tick - trig_rstrt_gap - 1;
-                            set_trig_status(TRIG_POSTREC);
-                        }
-                    }
-                }
-            }
-            break;
-
-        case TRIG_GO:
-        case TRIG_CONTINUE:
-            /* threshold exceeded? */
-            if ((left > trig_stp_threshold)
-                || (right > trig_stp_threshold)) {
-                /* restart hold time countdown */
-                trig_lowtime = current_tick;
-            } else if (current_tick - trig_lowtime > MAX_DROP_TIME){
-                set_trig_status(TRIG_POSTREC);
-                trig_hightime = current_tick;
-            }
-            break;
-
-        case TRIG_POSTREC:
-            /* gap time expired? */
-            if (current_tick - trig_lowtime > trig_rstrt_gap){
-                /* start threshold exceeded? */
-                if ((left > trig_strt_threshold)
-                    || (right > trig_strt_threshold)) {
-
-                    set_trig_status(TRIG_RETRIG);
-                    trig_hightime = current_tick;
-                    trig_lowtime = current_tick;
-                }
-                else
-
-                /* stop threshold exceeded */
-                if ((left > trig_stp_threshold)
-                    || (right > trig_stp_threshold)) {
-                    if (current_tick - trig_hightime > trig_stp_hold){
-                        trig_lowtime = current_tick;
-                        set_trig_status(TRIG_CONTINUE);
-                    } else {
-                        trig_lowtime = current_tick - trig_rstrt_gap - 1;
-                    }
-                }
-
-                /* below any threshold */
-                else {
-                    if (current_tick - trig_lowtime > trig_stp_hold){
-                        set_trig_status(TRIG_READY);
-                    } else {
-                        trig_hightime = current_tick;
-                    }
-                }
-            }
-
-            /* still within the gap time */
-            else {
-                /* stop threshold exceeded */
-                if ((left > trig_stp_threshold)
-                    || (right > trig_stp_threshold)) {
-                    set_trig_status(TRIG_CONTINUE);
-                    trig_lowtime = current_tick;
-                }
-
-                /* hold time expired */
-                else if (current_tick - trig_lowtime > trig_stp_hold){
-                    trig_hightime = current_tick;
-                    trig_lowtime = current_tick;
-                    set_trig_status(TRIG_READY);
-                }
-            }
-            break;
-    }
-    /* restore stop hold value */
-    if (trig_stp_hold == MAX_DROP_TIME)
-        trig_stp_hold = 0;
-#endif
     /* check levels next time peakmeter drawn */
     level_check = true;
 #ifdef PM_DEBUG
@@ -766,10 +513,6 @@ static int peak_meter_read_l(void)
 
     retval = pm_max_left;
 
-#if defined(HAVE_HISTOGRAM) || defined(HAVE_AGC)
-    /* store max peak value for peak_meter_get_peakhold_x readout */
-    pm_peakhold_left = MAX(pm_max_left, pm_peakhold_left);
-#endif
 #ifdef PM_DEBUG
     peek_calls = 0;
 #endif
@@ -794,10 +537,6 @@ static int peak_meter_read_r(void)
 
     retval = pm_max_right;
 
-#if defined(HAVE_HISTOGRAM) || defined(HAVE_AGC)
-    /* store max peak value for peak_meter_get_peakhold_x readout */
-    pm_peakhold_right = MAX(pm_max_right, pm_peakhold_right);
-#endif
 #ifdef PM_DEBUG
     peek_calls = 0;
 #endif
@@ -807,31 +546,6 @@ static int peak_meter_read_r(void)
 
     return retval;
 }
-
-#if defined(HAVE_AGC) || defined(HAVE_HISTOGRAM)
-/**
- * Reads out the current peak-hold values since the last call.
- * This is used by the histogram feature in the recording screen.
- * Values are in the range 0 <= peak_x < MAX_PEAK. MAX_PEAK is typ 32767.
- */
-void peak_meter_get_peakhold(int *peak_left, int *peak_right)
-{
-    if (peak_left)
-        *peak_left  = pm_peakhold_left;
-    if (peak_right)
-        *peak_right = pm_peakhold_right;
-
-#ifdef HAVE_HISTOGRAM
-    if (*peak_left > hist_l)
-        hist_l = *peak_left;
-    if (*peak_right > hist_r)
-        hist_r = *peak_right;
-#endif
-
-    pm_peakhold_left  = 0;
-    pm_peakhold_right = 0;
-}
-#endif
 
 /**
  * Reset the detected clips. This method is for
@@ -922,12 +636,7 @@ static void peak_meter_draw(struct screen *display, struct meter_scales *scales,
     int left = 0, right = 0;
     int meterwidth = width - 3;
     int i, delta;
-#if defined(HAVE_REMOTE_LCD) && !defined (ROCKBOX_HAS_LOGF)
-    static long peak_release_tick[2] = {0,0};
-    int screen_nr = display->screen_type == SCREEN_MAIN ? 0 : 1;
-#else
     static long peak_release_tick = 0;
-#endif
 
 #ifdef PM_DEBUG
     static long pm_tick = 0;
@@ -977,13 +686,8 @@ static void peak_meter_draw(struct screen *display, struct meter_scales *scales,
         }
 
         /* apply release */
-#if defined(HAVE_REMOTE_LCD) && !defined (ROCKBOX_HAS_LOGF)
-        delta = current_tick - peak_release_tick[screen_nr];
-        peak_release_tick[screen_nr] = current_tick;
-#else
         delta = current_tick - peak_release_tick;
         peak_release_tick = current_tick;
-#endif
         left  = MAX(left , scales->last_left  - delta * pm_peak_release);
         right = MAX(right, scales->last_right - delta * pm_peak_release);
 
@@ -1054,49 +758,6 @@ static void peak_meter_draw(struct screen *display, struct meter_scales *scales,
                            y + height / 2 - 1);
     }
 
-#ifdef HAVE_RECORDING
-
-#ifdef HAVE_BACKLIGHT
-    /* cliplight */
-    if ((pm_clip_left || pm_clip_right) &&
-        global_settings.cliplight
-        && !pm_playback
-	    )
-    {
-        /* if clipping, cliplight setting on and in recording screen */
-        if (global_settings.cliplight <= 2)
-        {
-            /* turn on main unit light if setting set to main or both*/
-            backlight_on();
-        }
-#ifdef HAVE_REMOTE_LCD
-        if (global_settings.cliplight >= 2)
-        {
-            /* turn remote light unit on if setting set to remote or both */
-            remote_backlight_on();
-        }
-#endif /* HAVE_REMOTE_LCD */
-    }
-#endif /* HAVE_BACKLIGHT */
-
-    if (trig_status != TRIG_OFF) {
-        int start_trigx, stop_trigx, ycenter;
-
-        display->set_drawmode(DRMODE_SOLID);
-        ycenter = y + height / 2;
-        /* display threshold value */
-        start_trigx = x+peak_meter_scale_value(trig_strt_threshold,meterwidth);
-        display->vline(start_trigx, ycenter - 2, ycenter);
-        start_trigx ++;
-        if (start_trigx < display->getwidth() ) display->drawpixel(start_trigx,
-                                                                   ycenter - 1);
-
-        stop_trigx = x + peak_meter_scale_value(trig_stp_threshold,meterwidth);
-        display->vline(stop_trigx, ycenter - 2, ycenter);
-        if (stop_trigx > 0) display->drawpixel(stop_trigx - 1, ycenter - 1);
-    }
-#endif /*HAVE_RECORDING*/
-
 #ifdef PM_DEBUG
     /* display a bar to show how many calls to peak_meter_peek
        have ocurred since the last display */
@@ -1123,178 +784,6 @@ static void peak_meter_draw(struct screen *display, struct meter_scales *scales,
 
     display->set_drawmode(DRMODE_SOLID);
 }
-
-#ifdef HAVE_RECORDING
-/**
- * Defines the parameters of the trigger. After these parameters are defined
- * the trigger can be started either by peak_meter_attack_trigger or by
- * peak_meter_release_trigger. Note that you can pass either linear (%) or
- * logarithmic (db) values to the thresholds. Positive values are intepreted as
- * percent (0 is 0% .. 100 is 100%). Negative values are interpreted as db.
- * To avoid ambiguosity of the value 0 the negative values are shifted by -1.
- * Thus -75 is -74db .. -1 is 0db.
- * @param start_threshold - The threshold used for attack trigger. Negative
- *                          values are interpreted as db -1, positive as %.
- * @param start_duration - The minimum time span within which start_threshold
- *                         must be exceeded to fire the attack trigger.
- * @param start_dropout - The maximum time span the level may fall below
- *                        start_threshold without releasing the attack trigger.
- * @param stop_threshold - The threshold the volume must fall below to release
- *                         the release trigger.Negative values are
- *                         interpreted as db -1, positive as %.
- * @param stop_hold - The minimum time the volume must fall below the
- *                    stop_threshold to release the trigger.
- * @param
- */
-void peak_meter_define_trigger(
-    int start_threshold,
-    long start_duration,
-    long start_dropout,
-    int stop_threshold,
-    long stop_hold_time,
-    long restart_gap
-    )
-{
-    if (start_threshold < 0) {
-        /* db */
-        if (start_threshold < -89) {
-            trig_strt_threshold = 0;
-        } else {
-            trig_strt_threshold =peak_meter_db2sample((start_threshold+1)*100);
-        }
-    } else {
-        /* linear percent */
-        trig_strt_threshold = start_threshold * MAX_PEAK / 100;
-    }
-    trig_strt_duration = start_duration;
-    trig_strt_dropout = start_dropout;
-    if (stop_threshold < 0) {
-        /* db */
-        trig_stp_threshold = peak_meter_db2sample((stop_threshold + 1) * 100);
-    } else {
-        /* linear percent */
-        trig_stp_threshold = stop_threshold * MAX_PEAK / 100;
-    }
-    trig_stp_hold = stop_hold_time;
-    trig_rstrt_gap = restart_gap;
-}
-
-/**
- * Enables or disables the trigger.
- * @param on - If true the trigger is turned on.
- */
-void peak_meter_trigger(bool on)
-{
-    /* don't use set_trigger here as that would fire an undesired event */
-    trig_status = on ? TRIG_READY : TRIG_OFF;
-}
-
-/**
- * Registers the listener function that listenes on trig_status changes.
- * @param listener - The function that is called with each change of
- *                   trig_status. May be set to NULL if no callback is desired.
- */
-void peak_meter_set_trigger_listener(void (*listener)(int status))
-{
-    trigger_listener = listener;
-}
-
-/**
- * Fetches the status of the trigger.
- * TRIG_OFF: the trigger is inactive
- * TRIG_RELEASED:  The volume level is below the threshold
- * TRIG_ACTIVATED: The volume level has exceeded the threshold, but the trigger
- *                 hasn't been fired yet.
- * TRIG_FIRED:     The volume exceeds the threshold
- *
- * To activate the trigger call either peak_meter_attack_trigger or
- * peak_meter_release_trigger. To turn the trigger off call
- * peak_meter_trigger_off.
- */
-int peak_meter_trigger_status(void)
-{
-   return trig_status; /* & TRIG_PIT_MASK;*/
-}
-
-void peak_meter_draw_trig(int xpos[], int ypos[],
-                          int trig_width[], int nb_screens)
-{
-    int barstart[NB_SCREENS];
-    int barend[NB_SCREENS];
-    int icon;
-    int ixpos[NB_SCREENS];
-    int trigbar_width[NB_SCREENS];
-
-    FOR_NB_SCREENS(i)
-        trigbar_width[i] = (trig_width[i] - (2 * (ICON_PLAY_STATE_WIDTH + 1)));
-
-    switch (trig_status) {
-
-        case TRIG_READY:
-            FOR_NB_SCREENS(i){
-                barstart[i] = 0;
-                barend[i] = 0;
-            }
-            icon = Icon_Stop;
-            FOR_NB_SCREENS(i)
-                ixpos[i] = xpos[i];
-            break;
-
-        case TRIG_STEADY:
-        case TRIG_RETRIG:
-            FOR_NB_SCREENS(i)
-            {
-                barstart[i] = 0;
-                barend[i] = (trig_strt_duration == 0) ? trigbar_width[i] :
-                              trigbar_width[i] *
-                             (current_tick - trig_hightime) / trig_strt_duration;
-            }
-            icon = Icon_Stop;
-            FOR_NB_SCREENS(i)
-                ixpos[i] = xpos[i];
-            break;
-
-        case TRIG_GO:
-        case TRIG_CONTINUE:
-            FOR_NB_SCREENS(i)
-            {
-                barstart[i] = trigbar_width[i];
-                barend[i] = trigbar_width[i];
-            }
-            icon = Icon_Record;
-            FOR_NB_SCREENS(i)
-                ixpos[i] = xpos[i]+ trig_width[i] - ICON_PLAY_STATE_WIDTH;
-            break;
-
-        case TRIG_POSTREC:
-            FOR_NB_SCREENS(i)
-            {
-                barstart[i] = (trig_stp_hold == 0) ? 0 :
-                               trigbar_width[i] - trigbar_width[i] *
-                              (current_tick - trig_lowtime) / trig_stp_hold;
-                barend[i] = trigbar_width[i];
-            }
-            icon = Icon_Record;
-            FOR_NB_SCREENS(i)
-                ixpos[i] = xpos[i] + trig_width[i] - ICON_PLAY_STATE_WIDTH;
-            break;
-
-        default:
-            return;
-    }
-
-    for(int i = 0; i < nb_screens; i++)
-    {
-        gui_scrollbar_draw(&screens[i], xpos[i] + ICON_PLAY_STATE_WIDTH + 1,
-                               ypos[i] + 1, trigbar_width[i], TRIG_HEIGHT - 2,
-                               trigbar_width[i], barstart[i], barend[i],
-                               HORIZONTAL);
-
-        screens[i].mono_bitmap(bitmap_icons_7x8[icon], ixpos[i], ypos[i],
-                        ICON_PLAY_STATE_WIDTH, SB_ICON_HEIGHT);
-    }
-}
-#endif
 
 int peak_meter_draw_get_btn(int action_context, int x[], int y[],
                             int height[], int nb_screens,
@@ -1391,74 +880,3 @@ bool peak_meter_histogram(void)
 }
 #endif
 
-#ifdef HAVE_HISTOGRAM
-void histogram_init()
-{
-    /* get update interval, clear buffer, reset drawing position */
-    memset(history_l, 0, sizeof(unsigned char)*HIST_BUF_SIZE);
-    memset(history_r, 0, sizeof(unsigned char)*HIST_BUF_SIZE);
-    next_histogram_update = current_tick +
-                                      (global_settings.histogram_interval * HZ);
-}
-
-void histogram_draw(int x1, int x2, int y1, int y2, int width, int height)
-{
-    int i, j;
-    if (current_tick >= next_histogram_update)
-    {
-        /* fill history buffer */
-        history_l[history_pos] = hist_l * height / 32767;
-        history_r[history_pos] = hist_r * height / 32767;
-        history_pos = (history_pos + 1) % HIST_BUF_SIZE;
-        history_l[history_pos] = history_r[history_pos] = 0;
-        history_l[(history_pos + 1) % HIST_BUF_SIZE] = 0;
-        history_r[(history_pos + 1) % HIST_BUF_SIZE] = 0;
-        hist_l = 0;
-        hist_r = 0;
-        next_histogram_update = current_tick +
-                                      (global_settings.histogram_interval * HZ);
-    }
-    lcd_set_drawmode(DRMODE_SOLID);
-    lcd_drawrect(x1, y1, width, height);
-    lcd_drawrect(x2, y2, width, height);
-    lcd_set_drawmode(DRMODE_FG);
-
-    j = history_pos;
-    for (i = width-2; i >= 0; i--)
-    {
-        j--;
-        if(j<0)
-            j = HIST_BUF_SIZE-1;
-        if (history_l[j])
-        {
-            if (history_l[j] == height)
-                lcd_set_foreground(LCD_HIST_OVER);
-#ifdef HAVE_LCD_COLOR
-            else if (history_l[j] > hist_level_marks[1])
-                lcd_set_foreground(LCD_HIST_HI);
-#endif
-            else
-                lcd_set_foreground(LCD_HIST_OK);
-            lcd_vline(x1 + i, y1 + height - 2, y1 + height - history_l[j]);
-        }
-        if (history_r[j])
-        {
-            if (history_r[j] == height)
-                lcd_set_foreground(LCD_HIST_OVER);
-#ifdef HAVE_LCD_COLOR
-            else if (history_r[j] > hist_level_marks[1])
-                lcd_set_foreground(LCD_HIST_HI);
-#endif
-            else
-                lcd_set_foreground(LCD_HIST_OK);
-            lcd_vline(x2 + i, y2 + height - 2, y2 + height - history_r[j]);
-        }
-    }
-    lcd_set_foreground(
-#ifdef HAVE_LCD_COLOR
-    global_settings.fg_color);
-#else
-    LCD_DEFAULT_FG);
-#endif
-}
-#endif /* HAVE_HISTOGRAM */

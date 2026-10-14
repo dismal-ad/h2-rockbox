@@ -85,9 +85,7 @@ enum
     AFMT_MPC_SV8,      /* Musepack SV8 */
     AFMT_MP4_AAC_HE,   /* Advanced Audio Coding (AAC-HE) in M4A container */
     AFMT_AY,             /* AY (ZX Spectrum, Amstrad CPC Sound Format) */
-#ifdef HAVE_FPU
     AFMT_VTX,            /* VTX (ZX Spectrum Sound Format) */
-#endif
     AFMT_GBS,          /* GBS (Game Boy Sound Format) */
     AFMT_HES,          /* HES (Hudson Entertainment System Sound Format) */
     AFMT_SGC,          /* SGC (Sega Master System, Game Gear, Coleco Vision Sound Format) */
@@ -103,15 +101,6 @@ enum
 
     AFMT_NUM_CODECS,
 
-#if defined(HAVE_RECORDING)
-    /* masks to decompose parts */
-    CODEC_AFMT_MASK    = 0x0fff,
-    CODEC_TYPE_MASK    = 0x7000,
-
-    /* switch for specifying codec type when requesting a filename */
-    CODEC_TYPE_DECODER = (0 << 12), /* default */
-    CODEC_TYPE_ENCODER = (1 << 12),
-#endif /* defined(HAVE_RECORDING) */
 };
 
 #if (CONFIG_PLATFORM & PLATFORM_ANDROID)
@@ -122,45 +111,8 @@ enum
 #define CODEC_PREFIX ""
 #endif
 
-#ifdef HAVE_RECORDING
-enum rec_format_indexes
-{
-    __REC_FORMAT_START_INDEX = -1,
-
-    /* start formats */
-
-    REC_FORMAT_PCM_WAV,
-    REC_FORMAT_AIFF,
-    REC_FORMAT_WAVPACK,
-    REC_FORMAT_MPA_L3,
-
-    /* add new formats at any index above this line to have a sensible order -
-       specified array index inits are used
-       REC_FORMAT_CFG_NUM_BITS should allocate enough bits to hold the range
-       REC_FORMAT_CFG_VALUE_LIST should be in same order as indexes
-    */
-
-    REC_NUM_FORMATS,
-
-    REC_FORMAT_DEFAULT = REC_FORMAT_PCM_WAV,
-    REC_FORMAT_CFG_NUM_BITS = 2
-};
-
-#define REC_FORMAT_CFG_VAL_LIST "wave,aiff,wvpk,mpa3"
-
-/* get REC_FORMAT_* corresponding AFMT_* */
-extern const int rec_format_afmt[REC_NUM_FORMATS];
-/* get AFMT_* corresponding REC_FORMAT_* */
-/* unused: extern const int afmt_rec_format[AFMT_NUM_CODECS]; */
-
 #define AFMT_ENTRY(label, root_fname, enc_root_fname, func, ext_list) \
     { label, root_fname, func, ext_list }
-#define AFMT_ENTRY_ENC(label, root_fname, enc_root_fname, func, ext_list) enc_root_fname
-const char *get_codec_enc_root_fn(int type);
-#else /* !HAVE_RECORDING */
-#define AFMT_ENTRY(label, root_fname, enc_root_fname, func, ext_list) \
-    { label, root_fname, func, ext_list }
-#endif /* HAVE_RECORDING */
 
 /** Database of audio formats **/
 /* record describing the audio format */
@@ -292,7 +244,6 @@ struct mp3entry {
     int index;             /* playlist index */
     bool skip_resume_adjustments;
 
-#ifdef HAVE_TAGCACHE
     unsigned char autoresumable; /* caches result of autoresumable() */
 
     /* runtime database fields */
@@ -302,7 +253,6 @@ struct mp3entry {
     long playcount;
     long lastplayed;
     long playtime;
-#endif
 
     /* replaygain support */
     long track_level;   /* holds the level in dB * (1<<FP_BITS) */

@@ -26,11 +26,6 @@
 #include "dsp_sample_io.h"
 #include "dsp_proc_entry.h"
 
-#if 0
-#undef DEBUGF
-#define DEBUGF(...)
-#endif
-
 /* The internal format is 32-bit samples, non-interleaved, stereo. This
  * format is similar to the raw output from several codecs, so no copying is
  * needed for that case.

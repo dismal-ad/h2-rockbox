@@ -59,9 +59,7 @@ struct device_data_t
     {
         struct
         {
-#if defined(EROS_QN)
             uint8_t hw_rev;
-#endif
             uint8_t version;
         };
         uint8_t payload[DEVICE_DATA_PAYLOAD_SIZE];
@@ -71,12 +69,9 @@ struct device_data_t
 
 void fill_devicedata(struct device_data_t *data);
 bool write_devicedata(unsigned char* buf, int len);
-#ifndef BOOTLOADER
 extern struct device_data_t device_data;
 
 void verify_device_data(void) INIT_ATTR;
-
-#endif
 
 #else /* __ASSEMBLER__ */
 

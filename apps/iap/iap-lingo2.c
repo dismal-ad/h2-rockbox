@@ -30,9 +30,6 @@
 #include "audio.h"
 #include "settings.h"
 #include "tuner.h"
-#if CONFIG_TUNER
-#include "ipod_remote_tuner.h"
-#endif
 
 /*
  * This macro is meant to be used inside an IAP mode message handler.
@@ -60,9 +57,6 @@ static void cmd_ack(const unsigned char cmd, const unsigned char status)
 void iap_handlepkt_mode2(const unsigned int len, const unsigned char *buf)
 {
     static bool poweron_pressed = false;
-#if CONFIG_TUNER
-    static bool remote_mute = false;
-#endif
     unsigned int cmd = buf[1];
 
     /* We expect at least three bytes in the buffer, one for the
@@ -109,18 +103,6 @@ void iap_handlepkt_mode2(const unsigned int len, const unsigned char *buf)
                 if(buf[2] & 1)
                 {
                     btn |= BUTTON_RC_PLAY;
-#if CONFIG_TUNER
-                    if (radio_present == 1) {
-                        if (remote_mute == 0) {
-                            /* Not Muted so  radio on*/
-                            tuner_set(RADIO_MUTE,0);
-                        } else {
-                            /* Muted so  radio off*/
-                            tuner_set(RADIO_MUTE,1);
-                        }
-                        remote_mute = !remote_mute;
-                    }
-#endif
                 }
                 if(buf[2] & 2)
                     btn |= BUTTON_RC_VOL_UP;
@@ -137,21 +119,11 @@ void iap_handlepkt_mode2(const unsigned int len, const unsigned char *buf)
                 {
                     if (audio_status() != AUDIO_STATUS_PLAY)
                         btn |= BUTTON_RC_PLAY;
-#if CONFIG_TUNER
-                    if (radio_present == 1) {
-                        tuner_set(RADIO_MUTE,0);
-                    }
-#endif
                 }
                 if(buf[3] & 2) /* pause */
                 {
                     if (audio_status() == AUDIO_STATUS_PLAY)
                         btn |= BUTTON_RC_PLAY;
-#if CONFIG_TUNER
-                    if (radio_present == 1) {
-                        tuner_set(RADIO_MUTE,1);
-                    }
-#endif
                 }
                 if(buf[3] & 128) /* Shuffle */
                 {
@@ -234,20 +206,6 @@ void iap_handlepkt_mode2(const unsigned int len, const unsigned char *buf)
             if (poweron_pressed && len >= 5 && !(buf[4] & 2))
             {
                 poweron_pressed = false;
-#ifdef HAVE_LINE_REC
-                /* Belkin TuneTalk microphone sends power-on press+release
-                 * events once authentication sequence is finished,
-                 * GetDevCaps command is ignored by the device when it is
-                 * sent before power-on release event is received.
-                 * XXX: It is unknown if other microphone devices are
-                 * sending the power-on events.
-                 */
-                if (DEVICE_LINGO_SUPPORTED(0x01)) {
-                    /* GetDevCaps */
-                    IAP_TX_INIT(0x01, 0x07);
-                    iap_send_tx();
-                }
-#endif
             }
 
             break;

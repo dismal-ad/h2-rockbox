@@ -20,11 +20,9 @@
  *
  ****************************************************************************/
 #include "config.h"
-#if !defined(BOOTLOADER)
 #include "settings.h"
 #include "action.h"
 #include "../apps/gui/skin_engine/skin_engine.h"
-#endif
 #include <stdlib.h>
 #include "cpu.h"
 #include "kernel.h"
@@ -41,10 +39,6 @@
 #include "lcd.h"
 #include "screendump.h"
 
-#ifdef HAVE_REMOTE_LCD
-#include "lcd-remote.h"
-#endif
-
 #ifndef SIMULATOR
 /*
     Device specific implementation:
@@ -58,7 +52,7 @@
 #include "backlight-sim.h"
 #endif
 
-#if defined(HAVE_BACKLIGHT) && defined(BACKLIGHT_FULL_INIT)
+#if defined(BACKLIGHT_FULL_INIT)
 
 #if (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_SETTING) \
     || (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_HW_REG)
@@ -76,28 +70,10 @@ enum {
     BACKLIGHT_ON,
     BACKLIGHT_OFF,
     BACKLIGHT_TMO_CHANGED,
-#ifdef HAVE_BACKLIGHT_BRIGHTNESS
     BACKLIGHT_BRIGHTNESS_CHANGED,
-#endif
-#ifdef HAVE_REMOTE_LCD
-    REMOTE_BACKLIGHT_ON,
-    REMOTE_BACKLIGHT_OFF,
-    REMOTE_BACKLIGHT_TMO_CHANGED,
-#endif
 #if defined(_BACKLIGHT_FADE_BOOST) || defined(_BACKLIGHT_FADE_ENABLE)
     BACKLIGHT_FADE_FINISH,
 #endif
-#ifdef HAVE_LCD_SLEEP
-    LCD_SLEEP,
-#endif
-#ifdef HAVE_BUTTON_LIGHT
-    BUTTON_LIGHT_ON,
-    BUTTON_LIGHT_OFF,
-    BUTTON_LIGHT_TMO_CHANGED,
-#ifdef HAVE_BUTTONLIGHT_BRIGHTNESS
-    BUTTON_LIGHT_BRIGHTNESS_CHANGED,
-#endif
-#endif /* HAVE_BUTTON_LIGHT */
 #ifdef BACKLIGHT_DRIVER_CLOSE
     BACKLIGHT_QUIT,
 #endif
@@ -113,9 +89,7 @@ static int backlight_ignored_timer = 0;
 static unsigned int backlight_thread_id = 0;
 #endif
 
-#ifdef HAVE_BACKLIGHT_BRIGHTNESS
 int backlight_brightness = DEFAULT_BRIGHTNESS_SETTING;
-#endif
 static int backlight_timer SHAREDBSS_ATTR;
 static int backlight_timeout_normal = 5*HZ;
 #if CONFIG_CHARGING
@@ -123,113 +97,6 @@ static int backlight_timeout_plugged = 5*HZ;
 #endif
 static int backlight_on_button_hold = 0;
 static void backlight_handle_timeout(void);
-
-#ifdef HAVE_BUTTON_LIGHT
-static int buttonlight_timer;
-static int buttonlight_timeout = 5*HZ;
-static bool ignore_buttonlight_on = false;
-static int buttonlight_ignored_timer = 0;
-
-/* Update state of buttonlight according to timeout setting */
-static void buttonlight_update_state(void)
-{
-    buttonlight_timer = buttonlight_timeout;
-
-    /* Buttonlight == OFF in the setting? */
-    if (buttonlight_timer < 0)
-    {
-        buttonlight_timer = 0; /* Disable the timeout */
-        buttonlight_hw_off();
-    }
-    else
-        buttonlight_hw_on();
-}
-
-/* external interface */
-
-void buttonlight_on(void)
-{
-    if(!ignore_buttonlight_on)
-    {
-        queue_remove_from_head(&backlight_queue, BUTTON_LIGHT_ON);
-        queue_post(&backlight_queue, BUTTON_LIGHT_ON, 0);
-    }
-}
-
-void buttonlight_on_ignore(bool value, int timeout)
-{
-    ignore_buttonlight_on = value;
-    buttonlight_ignored_timer = timeout;
-}
-
-void buttonlight_off(void)
-{
-    queue_post(&backlight_queue, BUTTON_LIGHT_OFF, 0);
-}
-
-void buttonlight_set_timeout(int value)
-{
-    buttonlight_timeout = HZ * value;
-    queue_post(&backlight_queue, BUTTON_LIGHT_TMO_CHANGED, 0);
-}
-
-int buttonlight_get_current_timeout(void)
-{
-    return buttonlight_timeout;
-}
-
-#endif /* HAVE_BUTTON_LIGHT */
-
-#ifdef HAVE_REMOTE_LCD
-static int remote_backlight_timer;
-static int remote_backlight_timeout_normal = 5*HZ;
-#if CONFIG_CHARGING
-static int remote_backlight_timeout_plugged = 5*HZ;
-#endif
-#ifdef HAS_REMOTE_BUTTON_HOLD
-static int remote_backlight_on_button_hold = 0;
-#endif
-#endif /* HAVE_REMOTE_LCD */
-
-#ifdef HAVE_LCD_SLEEP
-#ifdef HAVE_LCD_SLEEP_SETTING
-static int lcd_sleep_timeout = 10*HZ;
-#else
-/* Target defines needed value */
-#define lcd_sleep_timeout LCD_SLEEP_TIMEOUT
-#endif
-
-static int lcd_sleep_timer SHAREDBSS_ATTR;
-
-static void backlight_lcd_sleep_countdown(bool start)
-{
-    if (!start)
-    {
-        /* Cancel the LCD sleep countdown */
-        lcd_sleep_timer = 0;
-        return;
-    }
-
-    /* Start LCD sleep countdown */
-    if (lcd_sleep_timeout <= 0)
-    {
-        lcd_sleep_timer = 0;
-        if (lcd_sleep_timeout == 0) /* Setting == Always */
-        {
-            /* Ensure lcd_sleep() is called from backlight_thread() */
-#if (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_PWM)
-            queue_post(&backlight_queue, LCD_SLEEP, 0);
-#else
-            lcd_sleep();
-#endif
-        }
-    }
-    else
-    {
-        lcd_sleep_timer = lcd_sleep_timeout;
-    }
-}
-#endif /* HAVE_LCD_SLEEP */
 
 #if (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_SETTING) \
     || (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_HW_REG)
@@ -307,10 +174,6 @@ static void backlight_isr(void)
         timer_unregister();
         bl_timer_active = false;
 
-#ifdef HAVE_LCD_SLEEP
-        if (bl_dim_current == 0)
-            backlight_lcd_sleep_countdown(true);
-#endif
     }
     else
         timer_set_period(timer_period);
@@ -328,9 +191,6 @@ static void backlight_switch(void)
         _backlight_off_normal();
         bl_dim_fraction = 0;
 
-#ifdef HAVE_LCD_SLEEP
-        backlight_lcd_sleep_countdown(true);
-#endif
     }
 }
 
@@ -396,9 +256,6 @@ static void backlight_setup_fade_down(void)
     {
         bl_dim_target = bl_dim_fraction = 0;
         _backlight_off_normal();
-#ifdef HAVE_LCD_SLEEP
-        backlight_lcd_sleep_countdown(true);
-#endif
     }
 }
 
@@ -473,9 +330,6 @@ static void backlight_setup_fade_down(void)
          * fading up is glitch free */
         backlight_hw_brightness(MIN_BRIGHTNESS_SETTING);
 #endif
-#ifdef HAVE_LCD_SLEEP
-        backlight_lcd_sleep_countdown(true);
-#endif
     }
 }
 #endif /* CONFIG_BACKLIGHT_FADING */
@@ -489,9 +343,6 @@ static inline void do_backlight_off(void)
     backlight_hw_off();
     /* targets that have fading need to start the countdown when done with
      * fading */
-#ifdef HAVE_LCD_SLEEP
-    backlight_lcd_sleep_countdown(true);
-#endif
 #endif
 }
 
@@ -505,10 +356,6 @@ static void backlight_update_state(void)
     if (UNLIKELY(timeout < 0))
     {
         do_backlight_off();
-#if defined(HAVE_TRANSFLECTIVE_LCD) && defined(HAVE_LCD_SLEEP)
-        /* LCD must be enabled to allow "passive" operation (backlight always off) */
-        lcd_awake();
-#endif
 #if (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_SETTING) \
     || (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_HW_REG)
         /* necessary step to issue fading down when the setting is selected */
@@ -520,10 +367,6 @@ static void backlight_update_state(void)
     {
         backlight_timer = timeout;
 
-#ifdef HAVE_LCD_SLEEP
-        backlight_lcd_sleep_countdown(false); /* wake up lcd */
-#endif
-
 #if BACKLIGHT_FADE_IN_THREAD
         backlight_setup_fade_up();
 #else
@@ -531,25 +374,6 @@ static void backlight_update_state(void)
 #endif
     }
 }
-
-#ifdef HAVE_REMOTE_LCD
-/* Update state of remote backlight according to timeout setting */
-static void remote_backlight_update_state(void)
-{
-    int timeout = remote_backlight_get_current_timeout();
-    /* Backlight == OFF in the setting? */
-    if (timeout < 0)
-    {
-        remote_backlight_timer = 0; /* Disable the timeout */
-        remote_backlight_hw_off();
-    }
-    else
-    {
-        remote_backlight_timer = timeout;
-        remote_backlight_hw_on();
-    }
-}
-#endif /* HAVE_REMOTE_LCD */
 
 static void backlight_queue_wait(struct queue_event *ev)
 {
@@ -585,25 +409,6 @@ void backlight_thread(void)
 
 #ifndef SIMULATOR
             /* Here for now or else the aggressive init messes up scrolling */
-#ifdef HAVE_REMOTE_LCD
-            case SYS_REMOTE_PLUGGED:
-                lcd_remote_on();
-                lcd_remote_update();
-                break;
-
-            case SYS_REMOTE_UNPLUGGED:
-                lcd_remote_off();
-                break;
-#elif defined HAVE_REMOTE_LCD_AS_MAIN
-            case SYS_REMOTE_PLUGGED:
-                lcd_on();
-                lcd_update();
-                break;
-
-            case SYS_REMOTE_UNPLUGGED:
-                lcd_off();
-                break;
-#endif /* HAVE_REMOTE_LCD/ HAVE_REMOTE_LCD_AS_MAIN */
 #endif /* !SIMULATOR */
             case SYS_USB_CONNECTED:
                 usb_acknowledge(SYS_USB_CONNECTED_ACK, ev.data);
@@ -620,17 +425,6 @@ void backlight_thread(void)
 
         switch(ev.id)
         {   /* These events are only processed if backlight isn't locked */
-#ifdef HAVE_REMOTE_LCD
-            case REMOTE_BACKLIGHT_TMO_CHANGED:
-            case REMOTE_BACKLIGHT_ON:
-                remote_backlight_update_state();
-                break;
-
-            case REMOTE_BACKLIGHT_OFF:
-                remote_backlight_timer = 0; /* Disable the timeout */
-                remote_backlight_hw_off();
-                break;
-#endif /* HAVE_REMOTE_LCD */
 
             case BACKLIGHT_TMO_CHANGED:
             case BACKLIGHT_ON:
@@ -640,7 +434,6 @@ void backlight_thread(void)
             case BACKLIGHT_OFF:
                 do_backlight_off();
                 break;
-#ifdef HAVE_BACKLIGHT_BRIGHTNESS
             case BACKLIGHT_BRIGHTNESS_CHANGED:
                 backlight_brightness = (int)ev.data;
                 backlight_hw_brightness((int)ev.data);
@@ -650,48 +443,18 @@ void backlight_thread(void)
                 _backlight_fade_update_state((int)ev.data);
 #endif
                 break;
-#endif /* HAVE_BACKLIGHT_BRIGHTNESS */
-#ifdef HAVE_LCD_SLEEP
-            case LCD_SLEEP:
-                lcd_sleep();
-                break;
-#endif
-#ifdef HAVE_BUTTON_LIGHT
-            case BUTTON_LIGHT_TMO_CHANGED:
-            case BUTTON_LIGHT_ON:
-                buttonlight_update_state();
-                break;
-
-            case BUTTON_LIGHT_OFF:
-                buttonlight_timer = 0;
-                buttonlight_hw_off();
-                break;
-#ifdef HAVE_BUTTONLIGHT_BRIGHTNESS
-            case BUTTON_LIGHT_BRIGHTNESS_CHANGED:
-                buttonlight_hw_brightness((int)ev.data);
-                break;
-#endif /* HAVE_BUTTONLIGHT_BRIGHTNESS */
-#endif /* HAVE_BUTTON_LIGHT */
 
             case SYS_REBOOT:
             case SYS_POWEROFF:  /* Lock backlight on poweroff so it doesn't */
                 locked = true;      /* go off before power is actually cut. */
-#if !defined(BOOTLOADER)
-#if defined(HAVE_LCD_SLEEP) /* bugfix ipod Video, 6G crashes if screen off at shutdown */
-                lcd_awake();
-#endif
                 if (!global_settings.show_shutdown_message)
                     break;
-#endif
                 /* else fall through */
 #if CONFIG_CHARGING
             case SYS_CHARGER_CONNECTED:
             case SYS_CHARGER_DISCONNECTED:
 #endif
                 backlight_update_state();
-#ifdef HAVE_REMOTE_LCD
-                remote_backlight_update_state();
-#endif
                 break;
             case SYS_TIMEOUT:
                 backlight_handle_timeout();
@@ -710,42 +473,6 @@ static void backlight_timeout_handler(void)
             do_backlight_off();
         }
     }
-#ifdef HAVE_LCD_SLEEP
-    else if(lcd_sleep_timer > 0)
-    {
-        lcd_sleep_timer -= BACKLIGHT_THREAD_TIMEOUT;
-        if(lcd_sleep_timer <= 0)
-        {
-            lcd_sleep();
-        }
-    }
-#endif /* HAVE_LCD_SLEEP */
-#ifdef HAVE_REMOTE_LCD
-    if(remote_backlight_timer > 0)
-    {
-        remote_backlight_timer -= BACKLIGHT_THREAD_TIMEOUT;
-        if(remote_backlight_timer <= 0)
-        {
-            remote_backlight_hw_off();
-        }
-    }
-#endif /* HAVE_REMOVE_LCD */
-#ifdef HAVE_BUTTON_LIGHT
-    if (buttonlight_timer > 0)
-    {
-        buttonlight_timer -= BACKLIGHT_THREAD_TIMEOUT;
-        if (buttonlight_timer <= 0)
-        {
-            buttonlight_hw_off();
-        }
-    }
-    if (buttonlight_ignored_timer > 0)
-    {
-        buttonlight_ignored_timer -= BACKLIGHT_THREAD_TIMEOUT;
-        if (buttonlight_ignored_timer <= 0)
-            ignore_buttonlight_on = false;
-    }
-#endif /* HAVE_BUTTON_LIGHT */
     if (backlight_ignored_timer > 0)
     {
         backlight_ignored_timer -= BACKLIGHT_THREAD_TIMEOUT;
@@ -762,12 +489,6 @@ static void backlight_handle_timeout(void)
     {
         if ((_backlight_fade_step(backlight_fading_state)))
         {   /* finished fading */
-#ifdef HAVE_LCD_SLEEP
-            if (backlight_fading_state == FADING_DOWN)
-            {   /* start sleep countdown */
-                 backlight_lcd_sleep_countdown(true);
-            }
-#endif
             backlight_fading_state = NOT_FADING;
         }
     }
@@ -850,13 +571,7 @@ bool is_backlight_on(bool ignore_always_off)
 int backlight_get_current_timeout(void)
 {
     if ((backlight_on_button_hold != 0)
-#if (defined(HAVE_REMOTE_LCD_AS_MAIN) && defined(HAS_REMOTE_BUTTON_HOLD))
-        && remote_button_hold()
-#elif defined(HAS_BUTTON_HOLD)
-        && button_hold()
-#else
         && is_keys_locked()
-#endif
         )
         return (backlight_on_button_hold == 2) ? 0 : -1;
         /* always on or always off */
@@ -883,24 +598,6 @@ void backlight_set_timeout_plugged(int value)
 }
 #endif /* CONFIG_CHARGING */
 
-#ifdef HAS_BUTTON_HOLD
-/* Hold button change event handler. */
-void backlight_hold_changed(bool hold_button)
-{
-#ifndef BOOTLOADER
-    skin_request_update_locked(hold_button);
-#endif
-    if (!hold_button || (backlight_on_button_hold > 0))
-    {
-        /* if unlocked or override in effect */
-
-        /*backlight_on(); REMOVED*/
-        queue_remove_from_head(&backlight_queue, BACKLIGHT_ON);
-        queue_post(&backlight_queue, BACKLIGHT_ON, 0);
-    }
-}
-#endif /* HAS_BUTTON_HOLD */
-
 void backlight_set_on_button_hold(int index)
 {
     if ((unsigned)index >= 3)
@@ -911,100 +608,6 @@ void backlight_set_on_button_hold(int index)
     queue_post(&backlight_queue, BACKLIGHT_TMO_CHANGED, 0);
 }
 
-#ifdef HAVE_LCD_SLEEP_SETTING
-void lcd_set_sleep_after_backlight_off(int timeout_seconds)
-{
-    lcd_sleep_timeout = HZ * timeout_seconds;
-
-    if (is_backlight_on(true))
-    /* Timer will be set when bl turns off or bl set to on. */
-        return;
-
-    /* Backlight is Off */
-    if (lcd_sleep_timeout < 0)
-        lcd_sleep_timer = 0; /* Never */
-    else if (lcd_sleep_timeout == 0)
-        lcd_sleep_timer = 1; /* Always - sleep next tick */
-    else
-        lcd_sleep_timer = lcd_sleep_timeout; /* other */
-}
-#endif /* HAVE_LCD_SLEEP_SETTING */
-
-#ifdef HAVE_REMOTE_LCD
-void remote_backlight_on(void)
-{
-    queue_post(&backlight_queue, REMOTE_BACKLIGHT_ON, 0);
-}
-
-void remote_backlight_off(void)
-{
-    queue_post(&backlight_queue, REMOTE_BACKLIGHT_OFF, 0);
-}
-
-void remote_backlight_set_timeout(int value)
-{
-    remote_backlight_timeout_normal = HZ * value;
-    queue_post(&backlight_queue, REMOTE_BACKLIGHT_TMO_CHANGED, 0);
-}
-
-#if CONFIG_CHARGING
-void remote_backlight_set_timeout_plugged(int value)
-{
-    remote_backlight_timeout_plugged = HZ * value;
-    queue_post(&backlight_queue, REMOTE_BACKLIGHT_TMO_CHANGED, 0);
-}
-#endif /* CONFIG_CHARGING */
-
-#ifdef HAS_REMOTE_BUTTON_HOLD
-/* Remote hold button change event handler. */
-void remote_backlight_hold_changed(bool rc_hold_button)
-{
-    if (!rc_hold_button || (remote_backlight_on_button_hold > 0))
-        /* if unlocked or override */
-        remote_backlight_on();
-}
-
-void remote_backlight_set_on_button_hold(int index)
-{
-    if ((unsigned)index >= 3)
-        /* if given a weird value, use default */
-        index = 0;
-
-    remote_backlight_on_button_hold = index;
-    queue_post(&backlight_queue, REMOTE_BACKLIGHT_TMO_CHANGED, 0);
-}
-#endif /* HAS_REMOTE_BUTTON_HOLD */
-
-/* return value in ticks; 0 means always on, <0 means always off */
-int remote_backlight_get_current_timeout(void)
-{
-#ifdef HAS_REMOTE_BUTTON_HOLD
-    if (remote_button_hold() && (remote_backlight_on_button_hold != 0))
-        return (remote_backlight_on_button_hold == 2)
-                                 ? 0 : -1;  /* always on or always off */
-    else
-#endif
-#if CONFIG_CHARGING
-        if (power_input_present())
-            return remote_backlight_timeout_plugged;
-        else
-#endif
-            return remote_backlight_timeout_normal;
-}
-
-/* returns true when the backlight is on, and
- * optionally  when it's set to always off */
-bool is_remote_backlight_on(bool ignore_always_off)
-{
-    int timeout = remote_backlight_get_current_timeout();
-    return (remote_backlight_timer > 0)   /* countdown */
-        || (timeout == 0) /* always on */
-        || ((timeout < 0) && !ignore_always_off);
-}
-
-#endif /* HAVE_REMOTE_LCD */
-
-#ifdef HAVE_BACKLIGHT_BRIGHTNESS
 void backlight_set_brightness(int val)
 {
     if (val < MIN_BRIGHTNESS_SETTING)
@@ -1014,24 +617,11 @@ void backlight_set_brightness(int val)
 
     queue_post(&backlight_queue, BACKLIGHT_BRIGHTNESS_CHANGED, val);
 }
-#endif /* HAVE_BACKLIGHT_BRIGHTNESS */
-
-#ifdef HAVE_BUTTONLIGHT_BRIGHTNESS
-void buttonlight_set_brightness(int val)
-{
-    if (val < MIN_BRIGHTNESS_SETTING)
-        val = MIN_BRIGHTNESS_SETTING;
-    else if (val > MAX_BRIGHTNESS_SETTING)
-        val = MAX_BRIGHTNESS_SETTING;
-
-     queue_post(&backlight_queue, BUTTON_LIGHT_BRIGHTNESS_CHANGED, val);
-}
-#endif /* HAVE_BUTTONLIGHT_BRIGHTNESS */
 
 #else /* !defined(HAVE_BACKLIGHT) || !defined(BACKLIGHT_FULL_INIT)
     -- no backlight, empty dummy functions */
 
-#if defined(HAVE_BACKLIGHT) && !defined(BACKLIGHT_FULL_INIT)
+#if !defined(BACKLIGHT_FULL_INIT)
 void backlight_init(void)
 {
     (void)backlight_hw_init();
@@ -1048,37 +638,13 @@ bool is_backlight_on(bool ignore_always_off)
     (void)ignore_always_off;
     return true;
 }
-#ifdef HAVE_REMOTE_LCD
-void remote_backlight_on(void) {}
-void remote_backlight_off(void) {}
-void remote_backlight_set_timeout(int value) {(void)value;}
-
-bool is_remote_backlight_on(bool ignore_always_off)
-{
-    (void)ignore_always_off;
-    return true;
-}
-#endif /* HAVE_REMOTE_LCD */
-#ifdef HAVE_BACKLIGHT_BRIGHTNESS
 void backlight_set_brightness(int val) { (void)val; }
-#endif
-
-#ifdef HAVE_BUTTON_LIGHT
-void buttonlight_on(void) {}
-#ifdef HAVE_BUTTONLIGHT_BRIGHTNESS
-void buttonlight_set_brightness(int val) { (void)val; }
-#endif
-#endif /* HAVE_BUTTON_LIGHT */
 
 #endif /* defined(HAVE_BACKLIGHT) && defined(BACKLIGHT_FULL_INIT) */
 
-#ifndef HAVE_BUTTON_LIGHT /* Dummy Functions */
 void buttonlight_on(void) {}
 void buttonlight_on_ignore(bool value, int timeout){(void)value;(void)timeout;}
 void buttonlight_off(void) {}
 void buttonlight_set_timeout(int value) {(void)value;}
-#endif /* ndef HAVE_BUTTON_LIGHT */
 
-#ifndef HAVE_BUTTONLIGHT_BRIGHTNESS  /* Dummy Functions */
 void buttonlight_set_brightness(int val) { (void)val; }
-#endif /* ndef HAVE_BUTTONLIGHT_BRIGHTNESS */

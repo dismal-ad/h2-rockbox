@@ -28,7 +28,6 @@
 #include "pcm_sink.h"
 #include "gcc_extensions.h" /* for FORCE_INLINE */
 
-#ifdef HAVE_SW_VOLUME_CONTROL
 /* Default settings - architecture may have other optimal values */
 
 #ifndef PCM_SW_VOLUME_FRACBITS
@@ -46,13 +45,7 @@
 #endif /* PCM_SW_VOLUME_FRACBITS */
 
 #ifdef HAVE_SDL_AUDIO
-#ifdef PCM_SW_VOLUME_UNBUFFERED
-/* Copies buffer with volume scaling applied */
-void pcm_sw_volume_copy_buffer(void *dst, const void *src, size_t size);
-#define pcm_copy_buffer pcm_sw_volume_copy_buffer
-#else /* PCM_SW_VOLUME_UNBUFFERED */
 #define pcm_copy_buffer memcpy
-#endif /* PCM_SW_VOLUME_UNBUFFERED */
 #endif /* HAVE_SDL_AUDIO */
 
 #ifndef PCM_PLAY_DBL_BUF_SAMPLES
@@ -63,7 +56,6 @@ void pcm_sw_volume_copy_buffer(void *dst, const void *src, size_t size);
 #endif
 
 void pcm_sync_pcm_factors(void);
-#endif /* HAVE_SW_VOLUME_CONTROL */
 
 #define PCM_SAMPLE_SIZE     (2 * sizeof (int16_t))
 /* Cheapo buffer align macro to align to the 16-16 PCM size */
@@ -127,12 +119,10 @@ static FORCE_INLINE enum pcm_dma_status pcm_play_call_status_cb(
 static FORCE_INLINE enum pcm_dma_status
 pcm_play_dma_status_callback(enum pcm_dma_status status)
 {
-#ifdef WANT_SWVOL
     extern enum pcm_dma_status
         pcm_play_dma_status_callback_int_swvol(enum pcm_dma_status status);
     if (pcm_current_sink_caps()->volume_type == PCM_SINK_SWVOL)
         return pcm_play_dma_status_callback_int_swvol(status);
-#endif /* WANT_SWVOL */
     return pcm_play_call_status_cb(status);
 }
 
@@ -147,39 +137,5 @@ void * pcm_dma_addr(void *addr);
 
 extern volatile bool pcm_playing;
 struct pcm_sink* pcm_get_current_sink(void);
-
-#ifdef HAVE_RECORDING
-
-/* DMA transfer in is currently active */
-extern volatile bool pcm_recording;
-
-/* APIs implemented in the target-specific portion */
-void pcm_rec_dma_init(void);
-void pcm_rec_dma_close(void);
-void pcm_rec_dma_start(void *addr, size_t size);
-void pcm_rec_dma_stop(void);
-const void * pcm_rec_dma_get_peak_buffer(void);
-
-static FORCE_INLINE enum pcm_dma_status
-pcm_rec_dma_status_callback(enum pcm_dma_status status)
-{
-    extern enum pcm_dma_status
-        (* volatile pcm_rec_status_callback)(enum pcm_dma_status);
-    return pcm_call_status_cb(pcm_rec_status_callback, status);
-}
-
-
-/* Called by the bottom layer ISR when more data is needed. Returns true
- * if a new buffer is available, false otherwise. */
-bool pcm_rec_dma_complete_callback(enum pcm_dma_status status,
-                                   void **addr, size_t *size);
-
-#ifdef HAVE_PCM_REC_DMA_ADDRESS
-#define pcm_rec_dma_addr(addr) pcm_dma_addr(addr)
-#else
-#define pcm_rec_dma_addr(addr) addr
-#endif
-
-#endif /* HAVE_RECORDING */
 
 #endif /* PCM_INTERNAL_H */

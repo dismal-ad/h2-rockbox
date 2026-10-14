@@ -22,9 +22,6 @@
 #include "config.h"
 #include "status.h"
 #include "audio.h"
-#if CONFIG_TUNER
-#include "radio.h"
-#endif
 
 static enum playmode ff_mode = 0;
 
@@ -57,24 +54,5 @@ int current_playmode(void)
             return STATUS_PLAY;
     }
 
-#ifdef HAVE_RECORDING
-    if(audio_stat & AUDIO_STATUS_RECORD)
-    {
-        if(audio_stat & AUDIO_STATUS_PAUSE)
-            return STATUS_RECORD_PAUSE;
-        else
-            return STATUS_RECORD;
-    }
-#endif
-
-#if CONFIG_TUNER
-    audio_stat = get_radio_status();
-    if(audio_stat & FMRADIO_PLAYING)
-       return STATUS_RADIO;
-
-    if(audio_stat & FMRADIO_PAUSED)
-       return STATUS_RADIO_PAUSE;
-#endif
-    
     return STATUS_STOP;
 }

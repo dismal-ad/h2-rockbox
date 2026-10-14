@@ -180,9 +180,6 @@ static int build_table(VLC *vlc, int table_nb_bits, int nb_codes,
         n = codes[i].bits;
         code = codes[i].code;
         symbol = codes[i].symbol;
-#if defined(DEBUG_VLC) && 0
-        av_log(NULL,AV_LOG_DEBUG,"i=%d n=%d code=0x%x\n", i, n, code);
-#endif
         if (n <= table_nb_bits) {
             /* no need to add another table */
             j = code >> (32 - table_nb_bits);

@@ -62,7 +62,6 @@ int ec_ilog(opus_uint32 _v){
 }
 #endif
 
-#if 1
 /* This is a faster version of ec_tell_frac() that takes advantage
    of the low (1/8 bit) resolution to use just a linear function
    followed by a lookup to determine the exact transition thresholds. */
@@ -82,37 +81,6 @@ ICODE_ATTR_OPUS opus_uint32 ec_tell_frac(ec_ctx *_this){
   l = (l<<3)+b;
   return nbits-l;
 }
-#else
-opus_uint32 ec_tell_frac(ec_ctx *_this){
-  opus_uint32 nbits;
-  opus_uint32 r;
-  int         l;
-  int         i;
-  /*To handle the non-integral number of bits still left in the encoder/decoder
-     state, we compute the worst-case number of bits of val that must be
-     encoded to ensure that the value is inside the range for any possible
-     subsequent bits.
-    The computation here is independent of val itself (the decoder does not
-     even track that value), even though the real number of bits used after
-     ec_enc_done() may be 1 smaller if rng is a power of two and the
-     corresponding trailing bits of val are all zeros.
-    If we did try to track that special case, then coding a value with a
-     probability of 1/(1<<n) might sometimes appear to use more than n bits.
-    This may help explain the surprising result that a newly initialized
-     encoder or decoder claims to have used 1 bit.*/
-  nbits=_this->nbits_total<<BITRES;
-  l=EC_ILOG(_this->rng);
-  r=_this->rng>>(l-16);
-  for(i=BITRES;i-->0;){
-    int b;
-    r=r*r>>15;
-    b=(int)(r>>16);
-    l=l<<1|b;
-    r>>=b;
-  }
-  return nbits-l;
-}
-#endif
 
 #ifdef USE_SMALL_DIV_TABLE
 /* Result of 2^32/(2*i+1), except for i=0. */

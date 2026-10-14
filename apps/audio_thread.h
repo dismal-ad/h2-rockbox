@@ -23,9 +23,6 @@
 #define AUDIO_THREAD_H
 
 /* Define one constant that includes recording related functionality */
-#if defined(HAVE_RECORDING) && !defined(SIMULATOR)
-#define AUDIO_HAVE_RECORDING
-#endif
 
 enum
 {
@@ -68,23 +65,9 @@ enum
     Q_CODEC_DO_CALLBACK,
 
     /* -> recording */
-#ifdef HAVE_RECORDING
-    Q_AUDIO_INIT_RECORDING,
-    Q_AUDIO_CLOSE_RECORDING,
-    Q_AUDIO_RECORDING_OPTIONS,
-    Q_AUDIO_RECORD,
-    Q_AUDIO_RECORD_STOP,
-    Q_AUDIO_RECORD_PAUSE,
-    Q_AUDIO_RECORD_RESUME,
-    Q_AUDIO_RECORD_FLUSH,
-#endif
 
     /*- settings -*/
 
-#ifdef HAVE_DISK_STORAGE
-    /* -> audio */
-    Q_AUDIO_UPDATE_WATERMARK,   /* buffering watermark needs updating */
-#endif
     /* -> audio */
     Q_AUDIO_REMAKE_AUDIO_BUFFER, /* buffer needs to be reinitialized */
 };

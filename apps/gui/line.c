@@ -33,11 +33,7 @@
 #include "viewport.h"
 #include "debug.h"
 
-#ifdef HAVE_REMOTE_LCD
-#define MAX_LINES (LCD_SCROLLABLE_LINES + LCD_REMOTE_SCROLLABLE_LINES)
-#else
 #define MAX_LINES  LCD_SCROLLABLE_LINES
-#endif
 
 
 static void style_line(struct screen *display, int x, int y, struct line_desc *line);
@@ -98,18 +94,8 @@ static void scroller_main(struct scrollinfo *s)
     scroller(s, &screens[SCREEN_MAIN]);
 }
 
-#ifdef HAVE_REMOTE_LCD
-static void scroller_remote(struct scrollinfo *s)
-{
-    scroller(s, &screens[SCREEN_REMOTE]);
-}
-#endif
-
 static void (*scrollers[NB_SCREENS])(struct scrollinfo *s) = {
     scroller_main,
-#ifdef HAVE_REMOTE_LCD
-    scroller_remote,
-#endif
 };
 
 static void put_icon(struct screen *display, int x, int y,
@@ -311,14 +297,10 @@ static void style_line(struct screen *display,
     {
         int sep_height = MIN(line->separator_height, height);
         display->set_drawmode(DRMODE_FG);
-#ifdef HAVE_LCD_COLOR
         display->set_foreground(global_settings.list_separator_color);
-#endif
         display->fillrect(x, y + height - sep_height, width, sep_height);
         bar_height -= sep_height;
-#ifdef HAVE_LCD_COLOR
         display->set_foreground(global_settings.fg_color);
-#endif
     }
 
     /* mask out gradient and colorbar styles for non-color displays */
@@ -334,7 +316,6 @@ static void style_line(struct screen *display,
 
     switch (style & _STYLE_DECO_MASK)
     {
-#ifdef HAVE_LCD_COLOR
         case STYLE_GRADIENT:
             display->set_drawmode(DRMODE_FG);
             display->gradient_fillrect_part(x, y, width, bar_height,
@@ -348,7 +329,6 @@ static void style_line(struct screen *display,
             display->set_foreground(line->line_color);
             /*display->fillrect(x, y, width - x, bar_height);*/
             /* Fall through */
-#endif
         case STYLE_INVERT:
             display->set_drawmode(DRMODE_FG);
             display->fillrect(x, y, width - x, bar_height);
@@ -360,7 +340,6 @@ static void style_line(struct screen *display,
         case STYLE_NONE:
             break;
     }
-#if (LCD_DEPTH > 1 || (defined(LCD_REMOTE_DEPTH) && LCD_REMOTE_DEPTH > 1))
     /* prepare fg and bg colors for text drawing, be careful to not
      * override any previously set colors unless mandated by the style */
     if (display->depth > 1)
@@ -375,14 +354,12 @@ static void style_line(struct screen *display,
         else if (style & (STYLE_GRADIENT|STYLE_COLORBAR))
             display->set_foreground(line->text_color);
     }
-#endif
 }
 
 void vput_line(struct screen *display,
               int x, int y, struct line_desc *line,
               const char *fmt, va_list ap)
 {
-#if (LCD_DEPTH > 1 || (defined(LCD_REMOTE_DEPTH) && LCD_REMOTE_DEPTH > 1))
     /* push and pop fg and bg colors as to not compromise unrelated lines */
     unsigned fg = 0, bg = 0; /* shut up gcc */
     if (display->depth > 1 && line->style > STYLE_INVERT)
@@ -390,16 +367,13 @@ void vput_line(struct screen *display,
         fg = display->get_foreground();
         bg = display->get_background();
     }
-#endif
     style_line(display, x, y, line);
     print_line(display, x, y, line, fmt, ap);
-#if (LCD_DEPTH > 1 || (defined(LCD_REMOTE_DEPTH) && LCD_REMOTE_DEPTH > 1))
     if (display->depth > 1 && line->style > STYLE_INVERT)
     {
          display->set_drawinfo(DRMODE_SOLID, fg, bg);
     }
     else
-#endif
     display->set_drawmode(DRMODE_SOLID);
 }
 

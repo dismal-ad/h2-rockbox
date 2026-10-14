@@ -46,11 +46,6 @@ const char* sb_get_title(enum screen_type screen);
 const char* sb_get_persistent_title(enum screen_type screen);
 enum themable_icons sb_get_icon(enum screen_type screen);
 
-#ifdef HAVE_TOUCHSCREEN
-void sb_bypass_touchregions(bool enable);
-int sb_touch_to_button(int context);
-#endif
-
 int sb_get_backdrop(enum screen_type screen);
 void sb_process(enum screen_type screen, struct wps_data *data, bool preprocess);
 

@@ -37,7 +37,7 @@
 #include "logf.h"
 
 /* PIVOT_ROOT adds a fixed prefix to all paths */
-#if defined(BOOTLOADER) || defined(CHECKWPS) || defined(SIMULATOR) || defined(__PCTOOL__)
+#if defined(CHECKWPS) || defined(SIMULATOR) || defined(__PCTOOL__)
 /* We don't want to use pivot root on these! */
 #undef PIVOT_ROOT
 #endif
@@ -225,10 +225,6 @@ const char * handle_special_dirs(const char *dir, unsigned flags,
 #define PIVOT_ROOT_LEN (sizeof(PIVOT_ROOT)-1)
     /* Prepend root prefix to find actual path */
     if (strncmp(PIVOT_ROOT, dir, PIVOT_ROOT_LEN)
-#if defined(MULTIDRIVE_DIR) && defined(MULTIDRIVE_DIR_LEN)
-	/* Unless it's a MULTIDRIVE dir, in which case use as-is */
-	&& strncmp(MULTIDRIVE_DIR, dir, MULTIDRIVE_DIR_LEN)
-#endif
        )
     {
         while (*dir == PATH_SEPCH) dir++; /* strip leading slashes */

@@ -576,12 +576,7 @@ int nb_encode(void *state, void *vin, SpeexBits *bits)
 
 
    /*Quantize LSPs*/
-#if 1 /*0 for unquantized*/
    SUBMODE(lsp_quant)(lsp, qlsp, st->lpcSize, bits);
-#else
-   for (i=0;i<st->lpcSize;i++)
-     qlsp[i]=lsp[i];
-#endif
 
    /*If we use low bit-rate pitch mode, transmit open-loop pitch*/
    if (SUBMODE(lbr_pitch)!=-1)
@@ -993,9 +988,6 @@ void *nb_decoder_init(const SpeexMode *m)
    st->isWideband = 0;
    st->highpass_enabled = 1;
 
-#ifdef CPU_COLDFIRE
-   coldfire_set_macsr(0); // Integer mode
-#endif
 #ifdef ENABLE_VALGRIND
    VALGRIND_MAKE_READABLE(st, NB_DEC_STACK);
 #endif

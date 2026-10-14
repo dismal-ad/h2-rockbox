@@ -110,47 +110,23 @@ unsigned short percent_to_volt_discharge[11] =
 unsigned short percent_to_volt_charge[11] =
 { 3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300  };
 
-#if CONFIG_BATTERY_MEASURE & VOLTAGE_MEASURE
 int _battery_voltage(void)
 {
     battery_status_update();
     return batt_millivolts;
 }
-#endif
 
-#if CONFIG_BATTERY_MEASURE & PERCENTAGE_MEASURE
 int _battery_level(void)
 {
     battery_status_update();
     return batt_percent;
 }
-#endif
-
-#if (CONFIG_BATTERY_MEASURE & TIME_MEASURE)
-int _battery_time(void)
-{
-    battery_status_update();
-    return batt_runtime;
-}
-#endif
-
-#if (CONFIG_BATTERY_MEASURE & CURRENT_MEASURE)
-int _battery_current(void)
-{
-    battery_status_update();
-    return batt_current;
-}
-#endif
 
 #if CONFIG_CHARGING
 unsigned int power_input_status(void)
 {
     unsigned int status = charger_input_state >= CHARGER_PLUGGED
             ? POWER_INPUT_CHARGER : POWER_INPUT_NONE;
-
-#ifdef HAVE_BATTERY_SWITCH
-    status |= POWER_INPUT_BATTERY;
-#endif
 
     return status;
 }
@@ -161,35 +137,3 @@ bool charging_state(void)
 }
 #endif
 
-#ifdef HAVE_ACCESSORY_SUPPLY
-void accessory_supply_set(bool enable)
-{
-    (void)enable;
-}
-#endif
-
-#ifdef HAVE_LINEOUT_POWEROFF
-void lineout_set(bool enable)
-{
-    (void)enable;
-}
-#endif
-
-#ifdef HAVE_REMOTE_LCD
-bool remote_detect(void)
-{
-    return true;
-}
-#endif
-
-#ifdef HAVE_BATTERY_SWITCH
-unsigned int input_millivolts(void)
-{
-    if ((power_input_status() & POWER_INPUT_BATTERY) == 0) {
-        /* Just return a safe value if battery isn't connected */
-        return 4050;
-    }
-
-    return battery_voltage();
-}
-#endif

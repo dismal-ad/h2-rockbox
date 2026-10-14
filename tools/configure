@@ -979,12 +979,6 @@ whichadvanced () {
 (D)EBUG, (L)ogf, Boot(c)hart, (S)imulator, (P)rofiling, (V)oice, (U)SB Serial,\n\
 (W)in32 crosscompile, Win(6)4 crosscompile, (T)est plugins, (O)mit plugins, \n\
 S(m)all C lib, Logf to Ser(i)al port, LTO Build(X), (E)rror on warnings"
-    if [ "$modelname" = "iaudiom5" ]; then
-      printf ", (F)M radio MOD"
-    fi
-    if [ "$modelname" = "iriverh120" ]; then
-      printf ", (R)TC MOD"
-    fi
     printf ":"
     echo ""
   fi
@@ -1048,19 +1042,6 @@ S(m)all C lib, Logf to Ser(i)al port, LTO Build(X), (E)rror on warnings"
       [Vv])
         echo "Voice build selected"
         voice="yes"
-        ;;
-      [Ff])
-        if [ "$modelname" = "iaudiom5" ]; then
-          have_fmradio_in="#define HAVE_FMRADIO_IN"
-          echo "FM radio functions enabled"
-        fi
-        ;;
-      [Rr])
-        if [ "$modelname" = "iriverh120" ]; then
-          config_rtc="#define CONFIG_RTC RTC_DS1339_DS3231"
-          have_rtc_alarm="#define HAVE_RTC_ALARM"
-          echo "RTC functions enabled (DS1339/DS3231)"
-        fi
         ;;
       [Uu])
         echo "USB Serial support enabled"
@@ -2249,15 +2230,8 @@ ${use_logf_serial}
 /* Define this to record a chart with timings for the stages of boot */
 ${use_bootchart}
 
-/* optional define for FM radio mod for iAudio M5 */
-${have_fmradio_in}
-
 /* optional define for USB Serial */
 ${use_usb_serial}
-
-/* optional defines for RTC mod for h1x0 */
-${config_rtc}
-${have_rtc_alarm}
 
 /* the threading backend we use */
 #define ${thread_support}

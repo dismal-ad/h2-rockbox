@@ -50,19 +50,6 @@ struct asf_object_s {
 };
 typedef struct asf_object_s asf_object_t;
 
-#if 0
-static const guid_t asf_guid_null =
-{0x00000000, 0x0000, 0x0000, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
-
-/* top level object guids */
-
-static const guid_t asf_guid_header =
-{0x75B22630, 0x668E, 0x11CF, {0xA6, 0xD9, 0x00, 0xAA, 0x00, 0x62, 0xCE, 0x6C}};
-
-static const guid_t asf_guid_index =
-{0x33000890, 0xE5B1, 0x11CF, {0x89, 0xF4, 0x00, 0xA0, 0xC9, 0x03, 0x49, 0xCB}};
-#endif
-
 static const guid_t asf_guid_data =
 {0x75B22636, 0x668E, 0x11CF, {0xA6, 0xD9, 0x00, 0xAA, 0x00, 0x62, 0xCE, 0x6C}};
 
@@ -306,12 +293,6 @@ static int asf_parse_header(int fd, struct mp3entry* id3,
                     if (current.size < 78)
                         return ASF_ERROR_OBJECT_SIZE;
 
-#if 0
-                    asf_byteio_getGUID(&guid, current->data);
-                    datalen = asf_byteio_getDWLE(current->data + 40);
-                    flags = asf_byteio_getWLE(current->data + 48);
-#endif
-
                     asf_readGUID(fd, &guid);
 
                     lseek(fd, 24, SEEK_CUR);
@@ -330,11 +311,6 @@ static int asf_parse_header(int fd, struct mp3entry* id3,
                             return ASF_ERROR_INVALID_LENGTH;
                         }
 
-#if 0
-                        if (asf_byteio_getWLE(data + 16) > datalen - 16) {
-                            return ASF_ERROR_INVALID_LENGTH;
-                        }
-#endif
                         read_uint16le(fd, &wfx->codec_id);
                         read_uint16le(fd, &wfx->channels);
                         read_uint32le(fd, &wfx->rate);
@@ -601,14 +577,6 @@ static int asf_parse_header(int fd, struct mp3entry* id3,
 
         //DEBUGF("%d subobjects read successfully\n", i);
     }
-
-#if 0
-    tmp = asf_parse_header_validate(file, &header);
-    if (tmp < 0) {
-        /* header read ok but doesn't validate correctly */
-        return tmp;
-    }
-#endif
 
     //DEBUGF("header validated correctly\n");
 

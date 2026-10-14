@@ -48,10 +48,8 @@ int  sd_spinup_time(void); /* ticks */
 #ifdef STORAGE_GET_INFO
 void sd_get_info(IF_MD(int drive,) struct storage_info *info);
 #endif
-#ifdef HAVE_HOTSWAP
 bool sd_removable(IF_MD_NONVOID(int drive));
 bool sd_present(IF_MD_NONVOID(int drive));
-#endif
 
 long sd_last_disk_activity(void);
 

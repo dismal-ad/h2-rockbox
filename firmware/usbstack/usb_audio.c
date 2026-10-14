@@ -720,10 +720,6 @@ static void usb_audio_start_playback(void)
     samples_received_last = 0;
 
     // TODO: implement recording from the USB stream
-#if (INPUT_SRC_CAPS != 0)
-    audio_set_input_source(AUDIO_SRC_PLAYBACK, SRCF_PLAYBACK);
-    audio_set_output_source(AUDIO_SRC_PLAYBACK);
-#endif
     logf("usbaudio: start playback at %lu Hz", hw_freq_sampr[as_playback_freq_idx]);
     mixer_set_frequency(hw_freq_sampr[as_playback_freq_idx]);
     mixer_channel_set_amplitude(PCM_MIXER_CHAN_USBAUDIO, MIX_AMP_UNITY);

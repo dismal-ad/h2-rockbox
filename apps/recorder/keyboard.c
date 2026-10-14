@@ -51,45 +51,6 @@
  * KBD_SPACE inserts a space. */
 #define KBD_SPACE 0x2423
 
-#ifdef HAVE_TOUCHSCREEN
-/* Increase grid size so it responds better to taps */
-#ifdef HAVE_KBD_POINT_MODE
-#ifndef MIN_GRID_SIZE
-#if defined(LCD_DPI) && (LCD_DPI > 0)
-#define MIN_GRID_SIZE   ((LCD_DPI * 50 + 127) / 254)
-#else
-#define MIN_GRID_SIZE   44
-#endif
-#endif
-#else
-#define MIN_GRID_SIZE   16
-#endif
-#define GRID_SIZE(s, x)   \
-        ((s) == SCREEN_MAIN && MIN_GRID_SIZE > (x) ? MIN_GRID_SIZE: (x))
-#endif
-
-#if (CONFIG_KEYPAD == IRIVER_H100_PAD) \
-    || (CONFIG_KEYPAD == IRIVER_H300_PAD) \
-    || (CONFIG_KEYPAD == IPOD_1G2G_PAD) \
-    || (CONFIG_KEYPAD == IPOD_3G_PAD) \
-    || (CONFIG_KEYPAD == IPOD_4G_PAD) \
-    || (CONFIG_KEYPAD == IRIVER_H10_PAD) \
-    || (CONFIG_KEYPAD == GIGABEAT_PAD) \
-    || (CONFIG_KEYPAD == GIGABEAT_S_PAD) \
-    || (CONFIG_KEYPAD == MROBE100_PAD) \
-    || (CONFIG_KEYPAD == SANSA_E200_PAD) \
-    || (CONFIG_KEYPAD == PHILIPS_HDD1630_PAD) \
-    || (CONFIG_KEYPAD == PHILIPS_HDD6330_PAD) \
-    || (CONFIG_KEYPAD == PHILIPS_SA9200_PAD) \
-    || (CONFIG_KEYPAD == PBELL_VIBE500_PAD) \
-    || (CONFIG_KEYPAD == SANSA_CONNECT_PAD) \
-    || (CONFIG_KEYPAD == SAMSUNG_YH820_PAD) \
-    || (CONFIG_KEYPAD == SAMSUNG_YH92X_PAD)
-
-/* certain key combos toggle input mode between keyboard input and Morse input */
-#define KBD_TOGGLE_INPUT
-#endif
-
 #define CHANGED_PICKER 1
 #define CHANGED_CURSOR 2
 #define CHANGED_TEXT   3
@@ -116,9 +77,6 @@ struct keyboard_parameters
     unsigned int text_w;
     int curfont;
     int main_y;
-#ifdef HAVE_MORSE_INPUT
-    int old_main_y;
-#endif
     int max_chars;
     int max_chars_text;
     int lines;
@@ -130,9 +88,6 @@ struct keyboard_parameters
     int x;
     int y;
     bool line_edit;
-#ifdef HAVE_TOUCHSCREEN
-    bool show_buttons;
-#endif
 };
 
 struct edit_state
@@ -144,28 +99,11 @@ struct edit_state
     bool cur_blink;     /* Cursor on/off flag */
     bool hangul;
     ucschar_t hlead, hvowel, htail;
-#ifdef HAVE_MORSE_INPUT
-    bool morse_mode;
-    bool morse_reading;
-    unsigned char morse_code;
-    int morse_tick;
-#endif
     int changed;
 };
 
 static struct keyboard_parameters kbd_param[NB_SCREENS];
 static bool kbd_loaded = false;
-
-#ifdef HAVE_MORSE_INPUT
-/* FIXME: We should put this to a configuration file. */
-static const char * const morse_alphabets =
-    "abcdefghijklmnopqrstuvwxyz1234567890,.?-@ ";
-static const unsigned char morse_codes[] = {
-    0x05,0x18,0x1a,0x0c,0x02,0x12,0x0e,0x10,0x04,0x17,0x0d,0x14,0x07,
-    0x06,0x0f,0x16,0x1d,0x0a,0x08,0x03,0x09,0x11,0x0b,0x19,0x1b,0x1c,
-    0x2f,0x27,0x23,0x21,0x20,0x30,0x38,0x3c,0x3e,0x3f,
-    0x73,0x55,0x4c,0x61,0x5a,0x80 };
-#endif
 
 static void keyboard_layout(struct viewport *kbd_vp,
                         struct keyboard_parameters *pm,
@@ -191,11 +129,7 @@ static void keyboard_layout(struct viewport *kbd_vp,
     vp = &kbd_vp[eKBD_VP_MENU];
     int menu_w = 0;//pm->font_w * MENU_CHARS; /* NOT IMPLEMENTED */
     vp->x = 0; /* LEFT */
-#ifdef HAVE_LCD_SPLIT
-    vp->y = MAX(LCD_SPLIT_POS, text_height); /* Sansa Clip/Clip+ */
-#else
     vp->y = text_height; /* TOP */
-#endif
     vp->width = menu_w;
     vp->height = 0;
     vp->font = pm->curfont;
@@ -204,11 +138,7 @@ static void keyboard_layout(struct viewport *kbd_vp,
     /* PICKER */
     vp = &kbd_vp[eKBD_VP_PICKER];
     vp->x = menu_w; /* LEFT */
-#ifdef HAVE_LCD_SPLIT
-    vp->y = MAX(LCD_SPLIT_POS, text_height - 2); /* Sansa Clip/Clip+ */
-#else
     vp->y = text_height - 2; /* TOP */
-#endif
     vp->width = sc_w - menu_w;
     vp->height = sc_h - vp->y; /* (MAX SIZE) - OVERWRITTEN */
     vp->font = pm->curfont;
@@ -405,28 +335,6 @@ static ucschar_t get_kbd_ch(struct keyboard_parameters *pm, int x, int y)
     return (*pbuf != 0xFEFF && k < *pbuf)? pbuf[k+1]: ' ';
 }
 
-#ifdef HAVE_TOUCHSCREEN
-/* Number of real characters in the grid row drawn at picker row y. */
-static int get_kbd_row_len(struct keyboard_parameters *pm, int y)
-{
-    unsigned int n, i, k = pm->page*pm->lines + y;
-    ucschar_t *pbuf;
-    for (pbuf = pm->kbd_buf_ptr; (i = *pbuf) != 0xFEFF; pbuf += i + 1)
-    {
-        n = i ? (i + pm->max_chars - 1) / pm->max_chars : 1;
-        if (k < n)
-        {
-            int len = (int)i - (int)(k * pm->max_chars);
-            if (len > (int)pm->max_chars)
-                len = pm->max_chars;
-            return len < 0 ? 0 : len;
-        }
-        k -= n;
-    }
-    return 0;
-}
-#endif /* HAVE_TOUCHSCREEN */
-
 static void kbd_calc_pm_params(struct keyboard_parameters *pm,
                             struct screen *sc, struct edit_state *state);
 static void kbd_calc_vp_params(struct keyboard_parameters *pm,
@@ -435,11 +343,6 @@ static void kbd_draw_picker(struct keyboard_parameters *pm,
                             struct screen *sc, struct edit_state *state);
 static void kbd_draw_edit_line(struct keyboard_parameters *pm,
                                struct screen *sc, struct edit_state *state);
-#ifdef HAVE_TOUCHSCREEN
-static void kbd_draw_buttons(struct keyboard_parameters *pm, struct screen *sc);
-static int keyboard_touchscreen(struct keyboard_parameters *pm,
-                                struct screen *sc, struct edit_state *state);
-#endif
 static void kbd_insert_selected(struct keyboard_parameters *pm,
                                 struct edit_state *state);
 static void kbd_backspace(struct edit_state *state);
@@ -467,26 +370,12 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
         goto cleanup;
     }
 
-#ifdef HAVE_TOUCHSCREEN
-    enum touchscreen_mode old_mode = touchscreen_get_mode();
-#ifdef HAVE_KBD_POINT_MODE
-    touchscreen_set_mode(TOUCHSCREEN_POINT);
-#else
-    /* keyboard is unusuable in pointing mode so force 3x3 for now.
-     * TODO - fix properly by using a bigger font and changing the layout */
-    touchscreen_set_mode(TOUCHSCREEN_BUTTON);
-#endif
-#endif
     /* initialize state */
     state.text = text;
     state.buflen = buflen;
     /* Initial edit position is after last character */
     state.editpos = utf8length(state.text);
     state.cur_blink = true;
-#ifdef HAVE_MORSE_INPUT
-    state.morse_mode = global_settings.morse_input;
-    state.morse_reading = false;
-#endif
     state.hangul = false;
     state.changed = 0;
 
@@ -500,49 +389,7 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
             const unsigned char *p;
             int len = 0;
 
-#ifdef HAVE_KBD_POINT_MODE
-            if (touchscreen_get_mode() == TOUCHSCREEN_POINT)
             {
-#if (LCD_WIDTH >= 480) && (LCD_HEIGHT >= 640)
-            /* Three pages of eight lines. Page two is page one shifted, cell
-             * for cell; page three completes Latin-1 and adds the accented
-             * letters common to the other European locales. The space bar
-             * occupies the same cells on every page. Ten columns need the
-             * width, and all eight lines have to be visible at once. */
-                p = "1234567890\n"
-                    "qwertyuiop\n"
-                    "asdfghjkl;\n"
-                    "zxcvbnm,./\n"
-                    "àáâäåçèéêë\n"
-                    "ìíîïñòóôöù\n"
-                    "úûüÿ'æøðþý\n"
-                    "`-=␣␣␣␣[]\\\n"
-                    "!@#$%^&*()\n"
-                    "QWERTYUIOP\n"
-                    "ASDFGHJKL:\n"
-                    "ZXCVBNM<>?\n"
-                    "ÀÁÂÄÅÇÈÉÊË\n"
-                    "ÌÍÎÏÑÒÓÔÖÙ\n"
-                    "ÚÛÜŸ\"ÆØÐÞÝ\n"
-                    "~_+␣␣␣␣{}|\n"
-                    "¡¢£¤¥¦§¨©ª\n"
-                    "«¬®¯°±²³´µ\n"
-                    "¶·¸¹º»¼½¾¿\n"
-                    "×÷ßÃãÕõ€Œœ\n"
-                    "ĐđČčĎďĚěŇň\n"
-                    "ŘřŠšŤťŮůŽž\n"
-                    "ĄąĆćĘęŁłŃń\n"
-                    "ŚśŹ␣␣␣␣źŻż";
-                pm->default_lines = 8;
-                pm->max_line_len = 10;
-#else
-# error "HAVE_KBD_POINT_MODE: no point-mode layout for this screen size"
-#endif
-            }
-            else
-#endif
-            {
-#if LCD_WIDTH >= 160 && LCD_HEIGHT >= 96
             struct screen *sc = &screens[l];
 
             if (sc->getwidth() >= 160 && sc->getheight() >= 96)
@@ -560,38 +407,6 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
                 pm->max_line_len = 26;
             }
             else
-#endif /* LCD_WIDTH >= 160 && LCD_HEIGHT >= 96 */
-#if (LCD_WIDTH == 128 && LCD_HEIGHT == 64) || (LCD_WIDTH == 96 && LCD_HEIGHT == 96)
-/*    CLIP PLUS & XDUOO X3                  ||  CLIP ZIP*/
-            {
-                p = "ABCDEFG !?\" $%+'\n"
-                    "HIJKLMN 789 &_-`\n"
-                    "OPQRSTU 456 §|/\n"
-                    "VWXYZ.,0123 ~=*#\n"
-
-                    "abcdefg ¢£¤¥¦§©®\n"
-                    "hijklmn «»ºª¹²³\n"
-                    "opqrstu ¯±×÷¡¿µ·\n"
-                    "vwxyz.,¨:;¼½¾¬¶°\n"
-
-                    "< ({[-*?\"!'@#$%\n"
-                    "> )}]+/\\=& 789_`\n"
-                    "¢£¤¥¦§©®¬§ 456x|\n"
-                    "«»°ºª¹²³¶.,0123~\n"
-
-                    "ÀÁÂÃÄÅÆ ÌÍÎÏÈÉÊË\n"
-                    "àáâãäåæ ìíîïèéêë\n"
-                    "ÓÒÔÕÖØ ÇÐÞÝßÙÚÛÜ\n"
-                    "òóôõöø çðþýÿùúûü";
-
-#if ((LCD_WIDTH == 128 && LCD_HEIGHT == 64))
-                pm->default_lines = 4;
-#else
-                pm->default_lines = 8;
-#endif
-                pm->max_line_len = 16;
-            }
-#else
             {
                 p = "ABCDEFG !?\" @#$%+'\n"
                     "HIJKLMN 789 &_()-`\n"
@@ -611,7 +426,6 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
                 pm->default_lines = 4;
                 pm->max_line_len = 18;
             }
-#endif
             }
             pbuf = pm->kbd_buf;
             while (*p)
@@ -683,10 +497,6 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
             sc->clear_display();
             kbd_draw_picker(pm, sc, &state);
             kbd_draw_edit_line(pm, sc, &state);
-#ifdef HAVE_TOUCHSCREEN
-            if (pm->show_buttons)
-                kbd_draw_buttons(pm, sc);
-#endif
         }
 
         FOR_NB_SCREENS(l)
@@ -695,28 +505,15 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
         state.cur_blink = !state.cur_blink;
 
         button = get_action(
-#ifdef HAVE_MORSE_INPUT
-                state.morse_mode? CONTEXT_MORSE_INPUT:
-#endif
                             CONTEXT_KEYBOARD, HZ/2);
 #if NB_SCREENS > 1
         button_screen = (get_action_statuscode(NULL) & ACTION_REMOTE) ? 1 : 0;
 #endif
         pm = &param[button_screen];
-#ifdef HAVE_TOUCHSCREEN
-        if (button == ACTION_TOUCHSCREEN)
-        {
-            struct screen *sc = &screens[button_screen];
-            button = keyboard_touchscreen(pm, sc, &state);
-        }
-#endif
 
         /* Remap some buttons to allow to move
          * cursor in line edit mode and morse mode. */
         if (pm->line_edit
-#ifdef HAVE_MORSE_INPUT
-            || state.morse_mode
-#endif /* HAVE_MORSE_INPUT */
             )
         {
             if (button == ACTION_KBD_LEFT)
@@ -739,10 +536,6 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
                 break;
 
             case ACTION_KBD_PAGE_FLIP:
-#ifdef HAVE_MORSE_INPUT
-                if (state.morse_mode)
-                    break;
-#endif
                 if (++pm->page >= pm->pages)
                     pm->page = 0;
 
@@ -765,50 +558,11 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
                 kbd_move_picker_vertical(pm, &state, -1);
                 break;
 
-#ifdef HAVE_MORSE_INPUT
-#ifdef KBD_TOGGLE_INPUT
-            case ACTION_KBD_MORSE_INPUT:
-                state.morse_mode = !state.morse_mode;
-                state.changed = CHANGED_PICKER;
-
-                FOR_NB_SCREENS(l)
-                {
-                    struct keyboard_parameters *pm = &param[l];
-                    int y = pm->main_y;
-                    pm->main_y = pm->old_main_y;
-                    pm->old_main_y = y;
-                }
-                break;
-#endif /* KBD_TOGGLE_INPUT */
-
-            case ACTION_KBD_MORSE_SELECT:
-                if (state.morse_mode && state.morse_reading)
-                {
-                    state.morse_code <<= 1;
-                    if ((current_tick - state.morse_tick) > HZ/5)
-                        state.morse_code |= 0x01;
-                }
-                break;
-#endif /* HAVE_MORSE_INPUT */
-
             case ACTION_KBD_SELECT:
                 /* select doubles as backspace in line_edit */
                 if (pm->line_edit)
                     kbd_backspace(&state);
                 else
-#ifdef HAVE_MORSE_INPUT
-                if (state.morse_mode)
-                {
-                    state.morse_tick = current_tick;
-
-                    if (!state.morse_reading)
-                    {
-                        state.morse_reading = true;
-                        state.morse_code = 1;
-                    }
-                }
-                else
-#endif /* HAVE_MORSE_INPUT */
                     kbd_insert_selected(pm, &state);
                 break;
 
@@ -829,30 +583,6 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
                 break;
 
             case ACTION_NONE:
-#ifdef HAVE_MORSE_INPUT
-                if (state.morse_reading)
-                {
-                    int j;
-                    logf("Morse: 0x%02x", state.morse_code);
-                    state.morse_reading = false;
-
-                    for (j = 0; morse_alphabets[j] != '\0'; j++)
-                    {
-                        if (morse_codes[j] == state.morse_code)
-                            break ;
-                    }
-
-                    if (morse_alphabets[j] == '\0')
-                    {
-                        logf("Morse code not found");
-                        break ;
-                    }
-
-                    /* turn off hangul input */
-                    state.hangul = false;
-                    kbd_inschar(&state, morse_alphabets[j]);
-                }
-#endif /* HAVE_MORSE_INPUT */
                 break;
 
             default:
@@ -878,10 +608,6 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
                     talk_id(VOICE_EDIT, false);
                 }
                 else
-#ifdef HAVE_MORSE_INPUT
-                /* FIXME: We should talk something like Morse mode.. */
-                if (!state.morse_mode)
-#endif
                 {
                     ch = get_kbd_ch(pm, pm->x, pm->y);
                     kbd_spellchar(ch);
@@ -903,17 +629,6 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
     if (ret < 0)
         splash(HZ/2, ID2P(LANG_CANCEL));
 
-#ifdef HAVE_TOUCHSCREEN
-    touchscreen_set_mode(old_mode);
-#endif
-
-#if defined(HAVE_MORSE_INPUT) && defined(KBD_TOGGLE_INPUT)
-    if (global_settings.morse_input != state.morse_mode)
-    {
-        global_settings.morse_input = state.morse_mode;
-        settings_save();
-    }
-#endif /* HAVE_MORSE_INPUT && KBD_TOGGLE_INPUT */
 cleanup:
     FOR_NB_SCREENS(l)
     {
@@ -929,16 +644,7 @@ static void kbd_calc_pm_params(struct keyboard_parameters *pm,
     const unsigned char *p;
     ucschar_t ch, *pbuf;
     unsigned int i, w;
-#ifdef HAVE_TOUCHSCREEN
-    pm->show_buttons = (sc->screen_type == SCREEN_MAIN &&
-                                (touchscreen_get_mode() == TOUCHSCREEN_POINT));
-#endif
 
-#ifdef HAVE_TOUCHSCREEN
-    if (touchscreen_get_mode() == TOUCHSCREEN_POINT)
-        pm->curfont = sc->getuifont();
-    else
-#endif
     pm->curfont = pm->default_lines ? FONT_SYSFIXED : sc->getuifont();
     font = font_get(pm->curfont);
     pm->font_h = font->height;
@@ -950,9 +656,6 @@ static void kbd_calc_pm_params(struct keyboard_parameters *pm,
         font = font_get(FONT_SYSFIXED);
         pm->font_h = font->height;
     }
-#ifdef HAVE_TOUCHSCREEN
-    pm->font_h = GRID_SIZE(sc->screen_type, pm->font_h);
-#endif
 
     /* find max width of keyboard glyphs.
      * since we're going to be adding spaces,
@@ -979,10 +682,6 @@ static void kbd_calc_pm_params(struct keyboard_parameters *pm,
             pm->text_w = w;
     }
 
-#ifdef HAVE_TOUCHSCREEN
-    pm->font_w = GRID_SIZE(sc->screen_type, pm->font_w);
-#endif
-
 }
 
 static void kbd_calc_vp_params(struct keyboard_parameters *pm,
@@ -997,11 +696,6 @@ static void kbd_calc_vp_params(struct keyboard_parameters *pm,
     icon_w = get_icon_width(sc->screen_type);
 
     sc_w = vp->width; /**sc->getwidth();**/
-#ifdef HAVE_TOUCHSCREEN
-    if (touchscreen_get_mode() == TOUCHSCREEN_POINT)
-        pm->font_w = sc_w / pm->max_line_len;   /* fill width, allow >10 cols */
-    else
-#endif
     if (pm->font_w < sc_w / pm->max_line_len)
         pm->font_w = sc_w / pm->max_line_len;
     pm->max_chars = sc_w / pm->font_w;
@@ -1011,18 +705,6 @@ static void kbd_calc_vp_params(struct keyboard_parameters *pm,
 
     /* calculate pm->pages and pm->lines */
     sc_h = vp->height;/**sc->getheight()**/;
-#ifdef HAVE_TOUCHSCREEN
-    int button_h = 0;
-    bool flippage_button = false;
-    /* add space for buttons */
-    if (pm->show_buttons)
-    {
-        /* reserve place for OK/Del/Cancel buttons, use ui font for them */
-        button_h = GRID_SIZE(sc->screen_type, sc->getcharheight());
-        sc_h -= MAX(MIN_GRID_SIZE*2, button_h);
-    }
-recalc_param:
-#endif
     pm->lines = sc_h / pm->font_h - 1;
 
     if (pm->default_lines && pm->lines > pm->default_lines)
@@ -1045,35 +727,12 @@ recalc_param:
 
     pm->pages = (total_lines + pm->lines - 1) / pm->lines;
     pm->lines = (total_lines + pm->pages - 1) / pm->pages;
-#ifdef HAVE_TOUCHSCREEN
-    if (pm->pages > 1 && pm->show_buttons && !flippage_button)
-    {
-        /* add space for flip page button */
-        sc_h -= button_h;
-        flippage_button = true;
-        goto recalc_param;
-    }
-#endif
     if (pm->page >= pm->pages)
         pm->x = pm->y = pm->page = 0;
 
     pm->main_y = pm->font_h*pm->lines + pm->keyboard_margin;
     pm->keyboard_margin -= pm->keyboard_margin/2;
-#ifdef HAVE_TOUCHSCREEN
-    /* flip page button is put between picker and edit line */
-    if (flippage_button)
-        pm->main_y += button_h;
-#endif
 
-#ifdef HAVE_MORSE_INPUT
-    pm->old_main_y = sc_h - pm->font_h;
-    if (state->morse_mode)
-    {
-        int y = pm->main_y;
-        pm->main_y = pm->old_main_y;
-        pm->old_main_y = y;
-    }
-#endif
 }
 
 static void kbd_draw_picker(struct keyboard_parameters *pm,
@@ -1085,78 +744,7 @@ static void kbd_draw_picker(struct keyboard_parameters *pm,
     sc->clear_viewport();
 
     char outline[8];
-#ifdef HAVE_MORSE_INPUT
-    if (state->morse_mode)
-    {
-        const int w = SYSFONT_WIDTH, h = SYSFONT_HEIGHT; /* sysfixed font width, height */
-        const int rect_morse_long_width = 1;
-        const int rect_morse_short_width = 1;
-        const int rect_morse_long_height = (h * 75 / 100);
-        const int rect_morse_short_height = rect_morse_long_height / 2;
-        const int spacing_between_morse_codes = 4;
-        const int morse_code_long_height_offset_percentage = (100 - (100 * rect_morse_long_height / h)) / 2;
-        const int morse_code_long_height_offset = (h * morse_code_long_height_offset_percentage / 100);
-        const int morse_code_short_height_offset_percentage = (100 - (100 * rect_morse_short_height / rect_morse_long_height)) / 2;
-        const int morse_code_short_height_offset = (rect_morse_long_height * morse_code_short_height_offset_percentage / 100);
-        const int letters_block_spacing = w / 2;
-        int i, iNext, j, x, y;
-        int sc_w = vp->width, sc_h = vp->height;//pm->main_y - pm->keyboard_margin - 1;
-
-        /* Draw morse code screen with sysfont */
-        sc->setfont(FONT_SYSFIXED);
-        x = 0;
-        y = 0;
-        outline[1] = '\0';
-
-        /* Draw morse code table with code descriptions. */
-        for (i = 0; morse_alphabets[i] != '\0'; i++) {
-            int morse_code;
-            outline[0] = morse_alphabets[i];
-            sc->putsxy(x, y, outline);
-            morse_code = morse_codes[i];
-            for (j = 0; morse_code > 0x01; morse_code >>= 1) {
-                j++;
-            }
-            x += w + 3 + j * (rect_morse_long_width + spacing_between_morse_codes);
-            morse_code = morse_codes[i];
-            for (; morse_code > 0x01; morse_code >>= 1) {
-                x -= (rect_morse_long_width + spacing_between_morse_codes);
-                if (morse_code & 0x01) {
-                    sc->fillrect(x, y + morse_code_long_height_offset,
-                        rect_morse_long_width, rect_morse_long_height);
-                } else {
-                    sc->fillrect(x, y + morse_code_long_height_offset + morse_code_short_height_offset,
-                        rect_morse_short_width, rect_morse_short_height);
-                }
-            }
-            x += j * (rect_morse_long_width + spacing_between_morse_codes);
-            iNext = i + 1;
-            if (morse_alphabets[iNext] == '\0') {
-                break;
-            }
-            morse_code = morse_codes[iNext];
-            for (j = 0; morse_code > 0x01; morse_code >>= 1) {
-                j++;
-            }
-            // If the next one will go out of line
-            bool needNewLine = x + w + 3 + j * (rect_morse_long_width + spacing_between_morse_codes) + letters_block_spacing >= sc_w;
-            if (needNewLine) {
-                if (y + h >= sc_h) {
-                    // No more height space
-                    break;
-                }
-                x = 0;
-                y += h;
-            } else {
-                // Some pixels for spacing in the same line
-                x += letters_block_spacing;
-            }
-        }
-    }
-    else
-#else
     (void) state;
-#endif /* HAVE_MORSE_INPUT */
     {
         /* draw page */
         int i, j;
@@ -1438,123 +1026,6 @@ static void kbd_draw_edit_line(struct keyboard_parameters *pm,
     sc->set_viewport(last);
 }
 
-#ifdef HAVE_TOUCHSCREEN
-static void kbd_draw_buttons(struct keyboard_parameters *pm, struct screen *sc)
-{
-    struct viewport vp;
-    int button_h, text_h, text_y;
-    int sc_w = sc->getwidth(), sc_h = sc->getheight();
-    viewport_set_defaults(&vp, sc->screen_type);
-    vp.flags |= VP_FLAG_ALIGN_CENTER;
-    struct viewport *last_vp = sc->set_viewport(&vp);
-    text_h = sc->getcharheight();
-    button_h = GRID_SIZE(sc->screen_type, text_h);
-    text_y = (button_h - text_h) / 2 + 1;
-    vp.x = 0;
-    vp.y = 0;
-    vp.width = sc_w;
-    vp.height = button_h;
-    /* draw buttons */
-    if (pm->pages > 1)
-    {
-        /* button to flip page */
-        vp.y = pm->kbd_viewports[eKBD_VP_PICKER].y + pm->lines*pm->font_h;
-        sc->hline(0, sc_w - 1, 0);
-        sc->putsxy(0, text_y, ">");
-    }
-    /* OK/Del/Cancel buttons */
-    button_h = MAX(MIN_GRID_SIZE*2, button_h);
-    text_y = (button_h - text_h) / 2 + 1;
-    vp.y = sc_h - button_h - 1;
-    vp.height = button_h;
-    sc->hline(0, sc_w - 1, 0);
-    vp.width = sc_w/3;
-    sc->putsxy(0, text_y, str(LANG_KBD_OK));
-    vp.x += vp.width;
-    sc->vline(0, 0, button_h);
-    sc->putsxy(0, text_y, str(LANG_KBD_DELETE));
-    vp.x += vp.width;
-    sc->vline(0, 0, button_h);
-    sc->putsxy(0, text_y, str(LANG_KBD_CANCEL));
-    sc->set_viewport(last_vp);
-}
-
-static int keyboard_touchscreen(struct keyboard_parameters *pm,
-                                struct screen *sc, struct edit_state *state)
-{
-    short x, y;
-    const int button = action_get_touchscreen_press(&x, &y);
-    const int sc_w = sc->getwidth(), sc_h = sc->getheight();
-    int button_h = MAX(MIN_GRID_SIZE*2, sc->getcharheight());
-#ifdef HAVE_MORSE_INPUT
-    if (state->morse_mode && y < pm->main_y - pm->keyboard_margin)
-    {
-        /* don't return ACTION_NONE since it has effect in morse mode. */
-        return button == BUTTON_TOUCHSCREEN? ACTION_KBD_SELECT:
-               button & BUTTON_REL? ACTION_KBD_MORSE_SELECT: ACTION_STD_OK;
-    }
-#else
-    (void) state;
-#endif
-    if (x < 0 || y < 0)
-        return ACTION_NONE;
-    /* The picker grid is drawn in its own viewport, below the edit line, so
-     * translate the absolute touch into that viewport (see kbd_draw_picker). */
-    struct viewport *picker_vp = &pm->kbd_viewports[eKBD_VP_PICKER];
-    int picker_x = x - picker_vp->x;
-    int picker_y = y - picker_vp->y;
-    if (picker_y >= 0 && picker_y < pm->lines*pm->font_h)
-    {
-        int row = picker_y/pm->font_h;
-        /* ignore taps past the end of a short row */
-        if (picker_x >= 0 && picker_x/pm->font_w < get_kbd_row_len(pm, row))
-        {
-            /* picker area */
-            state->changed = CHANGED_PICKER;
-            pm->x = picker_x/pm->font_w;
-            pm->y = row;
-            pm->line_edit = false;
-            if (button == BUTTON_REL)
-                return ACTION_KBD_SELECT;
-        }
-    }
-    else if (pm->pages > 1 && picker_y >= pm->lines*pm->font_h &&
-             picker_y < pm->lines*pm->font_h +
-                        GRID_SIZE(sc->screen_type, sc->getcharheight()))
-    {
-        /* flip-page button, drawn just below the grid; test the same band in
-         * picker-relative coords so ">" is tappable. */
-        if (button == BUTTON_REL)
-            return ACTION_KBD_PAGE_FLIP;
-    }
-    else if (y < sc_h - button_h)
-    {
-        /* edit line */
-        if (button & (BUTTON_REPEAT|BUTTON_REL))
-        {
-            if (x < sc_w/2)
-                return ACTION_KBD_CURSOR_LEFT;
-            else
-                return ACTION_KBD_CURSOR_RIGHT;
-        }
-    }
-    else
-    {
-        /* OK/Del/Cancel button */
-        if (button == BUTTON_REL)
-        {
-            if (x < sc_w/3)
-                return ACTION_KBD_DONE;
-            else if (x < (sc_w/3) * 2)
-                return ACTION_KBD_BACKSPACE;
-            else
-                return ACTION_KBD_ABORT;
-        }
-    }
-    return ACTION_NONE;
-}
-#endif
-
 /* inserts the selected char */
 static void kbd_insert_selected(struct keyboard_parameters *pm,
                                 struct edit_state *state)
@@ -1726,29 +1197,10 @@ static void kbd_move_picker_vertical(struct keyboard_parameters *pm,
 {
     state->changed = CHANGED_PICKER;
 
-#ifdef HAVE_MORSE_INPUT
-    if (state->morse_mode)
-    {
-        pm->line_edit = !pm->line_edit;
-        return;
-    }
-#endif /* HAVE_MORSE_INPUT */
-
     pm->y += dir;
 
     if (!global_settings.list_wraparound)
     {
-#if 0  /* edit line below picker */
-        if (pm->y >= pm->lines)
-        {
-            pm->y = pm->lines;
-            pm->line_edit = true;
-        }
-        else if (pm->y < 0)
-            pm->y = 0;
-        else if (pm->line_edit)
-            pm->line_edit = false;
-#else /* edit line above picker */
         if (pm->y >= pm->lines)
         {
             pm->y = pm->lines;
@@ -1763,7 +1215,6 @@ static void kbd_move_picker_vertical(struct keyboard_parameters *pm,
             pm->line_edit = false;
             pm->y = 0;
         }
-#endif
         return;
     }
 

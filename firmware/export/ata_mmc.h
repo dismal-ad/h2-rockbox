@@ -27,8 +27,6 @@ bool mmc_detect(void);
 bool mmc_touched(void);
 bool mmc_usb_active(int delayticks);
 
-#ifdef HAVE_HOTSWAP
 void mmc_enable_monitoring(bool on);
-#endif
 
 #endif

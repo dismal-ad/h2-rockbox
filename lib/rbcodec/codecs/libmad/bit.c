@@ -154,22 +154,6 @@ uint32_t mad_bit_read(struct mad_bitptr *bitptr, unsigned int len)
   return 0;
 }
 
-# if 0 /* rockbox: not used */
-/*
- * NAME:        bit->write()
- * DESCRIPTION: write an arbitrary number of bits
- */
-void mad_bit_write(struct mad_bitptr *bitptr, unsigned int len,
-                   uint32_t value)
-{
-  unsigned char *ptr;
-
-  ptr = (unsigned char *) bitptr->byte;
-
-  /* ... */
-}
-# endif
-
 /*
  * NAME:        bit->crc()
  * DESCRIPTION: compute CRC-check word

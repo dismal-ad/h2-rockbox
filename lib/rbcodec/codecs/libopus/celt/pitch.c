@@ -217,30 +217,6 @@ celt_pitch_xcorr_c(const opus_val16 *_x, const opus_val16 *_y,
       opus_val32 *xcorr, int len, int max_pitch, int arch)
 {
 
-#if 0 /* This is a simple version of the pitch correlation that should work
-         well on DSPs like Blackfin and TI C5x/C6x */
-   int i, j;
-#ifdef FIXED_POINT
-   opus_val32 maxcorr=1;
-#endif
-#if !defined(OVERRIDE_PITCH_XCORR)
-   (void)arch;
-#endif
-   for (i=0;i<max_pitch;i++)
-   {
-      opus_val32 sum = 0;
-      for (j=0;j<len;j++)
-         sum = MAC16_16(sum, _x[j], _y[i+j]);
-      xcorr[i] = sum;
-#ifdef FIXED_POINT
-      maxcorr = MAX32(maxcorr, sum);
-#endif
-   }
-#ifdef FIXED_POINT
-   return maxcorr;
-#endif
-
-#else /* Unrolled version of the pitch correlation -- runs faster on x86 and ARM */
    int i;
    /*The EDSP version requires that max_pitch is at least 1, and that _x is
       32-bit aligned.
@@ -277,7 +253,6 @@ celt_pitch_xcorr_c(const opus_val16 *_x, const opus_val16 *_y,
    }
 #ifdef FIXED_POINT
    return maxcorr;
-#endif
 #endif
 }
 

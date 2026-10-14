@@ -76,38 +76,6 @@
 #undef MAX
 #endif
 
-#if defined(CPU_ARM)
-#define OPUS_ARM_ASM
-/* Upstream's OPUS_ARM_INLINE_ASM and OPUS_ARM_INLINE_EDSP, renamed: upstream
-   layers EDSP on top of ASM, but here exactly one is defined per core. */
-#if ARM_ARCH == 4
-#define OPUS_ARM_ASM_ARMV4_ONLY
-#elif ARM_ARCH > 4
-#define OPUS_ARM_ASM_ARMV5E_AND_LATER
-#if (ARCH_PROFILE == ARM_PROFILE_MICRO)
-#define OPUS_ARM_NO_FFT_ASM
-#define OPUS_ARM_NO_MDCT_ASM
-#define OPUS_ARM_NO_PITCH_ASM
-#define OPUS_NO_PFA
-#define OPUS_ARM_NO_COMB_ASM
-#define OPUS_ARM_NO_BANDS_ASM
-#define OPUS_ARM_NO_SILK_ASM
-#endif
-#endif /* ARM_ARCH */
-
-/*optimization no hardware division support*/
-#if !defined(ARM_HAVE_HW_DIV)
-#define OPUS_EC_DECODE_DIV
-#endif
-
-/* Exact lookup table for bitexact_log2tan.  Saves about 0.25 MHz if the
-   tables can live in IRAM, which only the ARMv4 PP5022/PP5024 have room for,
-   and nothing otherwise, so it is only built there. */
-#if CONFIG_CPU == PP5022 || CONFIG_CPU == PP5024
-#define OPUS_LOG2TAN_TABLE
-#endif
-#endif
-
 /* Good-Thomas FFT for the backward MDCT.  Every 48 kHz CELT transform length
    is 15 times a power of two, so the prime factor algorithm applies and the
    inter-stage twiddles -- 73% of the FFT multiplies -- disappear.  Define
@@ -124,10 +92,6 @@
 #else
 #define ICODE_ATTR_OPUS_MR  ICODE_ATTR_OPUS
 #define ICONST_ATTR_OPUS_MR ICONST_ATTR
-#endif
-
-#if defined(CPU_COLDFIRE)
-#define OPUS_CF_INLINE_ASM
 #endif
 
 #endif /* CONFIG_H */

@@ -26,13 +26,9 @@
 #include "loader_strerror.h"
 #include "checksum.h"
 
-#if defined(HAVE_BOOTDATA) || defined(HAVE_MULTIBOOT)
 #include "multiboot.h"
-#endif
 
-#ifdef HAVE_DEVICEDATA
 #include "devicedata.h"
-#endif
 /* loads a firmware file from supplied filename
  * file opened, checks firmware size and checksum
  * if no error, firmware loaded to supplied buffer
@@ -134,18 +130,14 @@ int load_firmware(unsigned char* buf, const char* firmware, int buffer_size)
                 snprintf(filename, sizeof(filename),"/%s",firmware);
                 ret = load_firmware_filename(buf, filename, buffer_size);
             }
-#ifdef HAVE_BOOTDATA
                 /* 0 is the default boot volume */
                 write_bootdata(buf, ret, 0);
-#endif
         }
     }
     else /* full path passed ROLO etc.*/
         ret = load_firmware_filename(buf, firmware, buffer_size);
 
-#ifdef HAVE_DEVICEDATA
-        write_devicedata(buf, ret);
-#endif
+    write_devicedata(buf, ret);
 
     return ret;
 }

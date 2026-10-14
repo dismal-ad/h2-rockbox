@@ -1,12 +1,4 @@
 predictor.c
-#if defined(CPU_ARM)
-predictor-arm.S
-#if !defined(ARM_HAVE_HW_DIV)
-udiv32_arm.S
-#endif
-#elif defined(CPU_COLDFIRE)
-predictor-cf.S
-#endif
 entropy.c
 decoder.c
 parser.c

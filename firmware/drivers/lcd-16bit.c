@@ -46,13 +46,11 @@
 extern lcd_fastpixelfunc_type* const lcd_fastpixelfuncs_backdrop[];
 extern lcd_fastpixelfunc_type* const lcd_fastpixelfuncs_bgcolor[];
 
-#ifndef DISABLE_ALPHA_BITMAP
 static void ICODE_ATTR lcd_alpha_bitmap_part_mix(const fb_data* image,
                                       const unsigned char *src, int src_x,
                                       int src_y, int x, int y,
                                       int width, int height,
                                       int stride_image, int stride_src);
-#endif /* !DISABLE_ALPHA_BITMAP */
 #include "lcd-color-common.c"
 #include "lcd-bitmap-common.c"
 #include "lcd-16bit-common.c"
@@ -184,39 +182,6 @@ void ICODE_ATTR lcd_bitmap_transparent_part(const fb_data *src, int src_x,
     src += stride * src_y + src_x; /* move starting point */
     dst = FBADDR(x, y);
 
-#ifdef CPU_ARM
-    {
-        int w, px;
-        asm volatile (
-            BEGIN_ARM_ASM_SYNTAX_UNIFIED
-        ".rowstart:                              \n"
-            "mov     %[w], %[width]              \n" /* Load width for inner loop */
-        ".nextpixel:                             \n"
-            "ldrh    %[px], [%[s]], #2           \n" /* Load src pixel */
-            "add     %[d], %[d], #2              \n" /* Uncoditionally increment dst */
-                                                 /* done here for better pipelining */
-            "cmp     %[px], %[fgcolor]           \n" /* Compare to foreground color */
-            "strheq  %[fgpat], [%[d], #-2]       \n" /* Store foregroud if match */
-            "cmpne   %[px], %[transcolor]        \n" /* Compare to transparent color */
-            "strhne  %[px], [%[d], #-2]          \n" /* Store dst if not transparent */
-            "subs    %[w], %[w], #1              \n" /* Width counter has run down? */
-            "bgt     .nextpixel                  \n" /* More in this row? */
-            "add     %[s], %[s], %[sstp], lsl #1 \n" /* Skip over to start of next line */
-            "add     %[d], %[d], %[dstp], lsl #1 \n"
-            "subs    %[h], %[h], #1              \n" /* Height counter has run down? */
-            "bgt     .rowstart                   \n" /* More rows? */
-            END_ARM_ASM_SYNTAX_UNIFIED
-            : [w]"=&r"(w), [h]"+&r"(height), [px]"=&r"(px),
-              [s]"+&r"(src), [d]"+&r"(dst)
-            : [width]"r"(width),
-              [sstp]"r"(stride - width),
-              [dstp]"r"(stride_dst - width),
-              [transcolor]"r"(TRANSPARENT_COLOR),
-              [fgcolor]"r"(REPLACEWITHFG_COLOR),
-              [fgpat]"r"(fg)
-        );
-    }
-#else  /* optimized C version */
     do
     {
         const fb_data *src_row = src;
@@ -237,5 +202,4 @@ void ICODE_ATTR lcd_bitmap_transparent_part(const fb_data *src, int src_x,
         dst += stride_dst;
     }
     while (--height > 0);
-#endif
 }

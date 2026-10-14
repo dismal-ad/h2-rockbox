@@ -48,9 +48,6 @@
 #include "lcd.h"
 #include "file.h"
 #include "bmp.h"
-#ifdef HAVE_REMOTE_LCD
-#include "lcd-remote.h"
-#endif
 #ifdef ROCKBOX_DEBUG_BMP_LOADER
 #define BDEBUGF DEBUGF
 #else
@@ -123,20 +120,10 @@ static const struct uint8_rgb bitfields[][4] = {
     },
 };
 
-#if (LCD_DEPTH > 1) || defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1)
 /* the full 16x16 Bayer dither matrix may be calculated quickly with this table
 */
 const unsigned char dither_table[16] =
     {   0,192, 48,240, 12,204, 60,252,  3,195, 51,243, 15,207, 63,255 };
-#endif
-
-#if ((LCD_DEPTH == 2) && (LCD_PIXELFORMAT == VERTICAL_INTERLEAVED)) \
- || (defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH == 2) \
-     && (LCD_REMOTE_PIXELFORMAT == VERTICAL_INTERLEAVED))
-const unsigned short vi_pattern[4] = {
-    0x0101, 0x0100, 0x0001, 0x0000
-};
-#endif
 
 /******************************************************************************
  * read_bmp_file()
@@ -184,12 +171,9 @@ struct bmp_args {
     short depth;
     enum color_order order;
     struct uint8_rgb *palette;
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
     int cur_row;
     int cur_col;
     struct img_part part;
-#endif
     /* as read_part_line() goes through the rows it'll set this to true
      * if it finds transparency. Initialize to 0 before calling */
     int alpha_detected;
@@ -204,11 +188,8 @@ static unsigned int read_part_line(struct bmp_args *ba)
     const int read_width = ba->read_width;
     const int width = ba->width;
     int depth = ba->depth;
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
     int cur_row = ba->cur_row;
     int cur_col = ba->cur_col;
-#endif
     const int fd = ba->fd;
     uint8_t *ibuf;
     struct uint8_rgb *buf = (struct uint8_rgb *)(ba->buf);
@@ -217,15 +198,9 @@ static unsigned int read_part_line(struct bmp_args *ba)
     int ret;
     int i, cols, len;
 
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
     cols = MIN(width - cur_col,(int)BM_MAX_WIDTH);
     BDEBUGF("reading %d cols (width: %d, max: %d)\n",cols,width,BM_MAX_WIDTH);
     len = (cols * (depth == 15 ? 16 : depth) + 7) >> 3;
-#else
-    cols = width;
-    len = read_width;
-#endif
     ibuf = ((unsigned char *)buf) + (BM_MAX_WIDTH << 2) - len;
     BDEBUGF("read_part_line: cols=%d len=%d\n",cols,len);
     ret = read(fd, ibuf, len);
@@ -233,11 +208,8 @@ static unsigned int read_part_line(struct bmp_args *ba)
     {
         DEBUGF("read_part_line: error reading image, read returned %d "
                "expected %d\n", ret, len);
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
         BDEBUGF("cur_row: %d cur_col: %d cols: %d len: %d\n", cur_row, cur_col,
                 cols, len);
-#endif
         return 0;
     }
 
@@ -325,29 +297,16 @@ static unsigned int read_part_line(struct bmp_args *ba)
             break;
         }
     }
-#if !defined(HAVE_LCD_COLOR) && \
-    ((LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) || \
-    defined(PLUGIN))
-    ibuf = ba->buf;
-    buf = (struct uint8_rgb*)ba->buf;
-    while (ibuf < ba->buf + cols)
-        *ibuf++ = brightness(*buf++);
-#endif
 
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
     cur_col += cols;
     if (cur_col == width)
     {
-#endif
         int pad = padded_width - read_width;
         if (pad > 0)
         {
             BDEBUGF("seeking %d bytes to next line\n",pad);
             lseek(fd, pad, SEEK_CUR);
         }
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
         cur_col = 0;
         BDEBUGF("read_part_line: completed row %d\n", cur_row);
         cur_row += 1;
@@ -355,106 +314,34 @@ static unsigned int read_part_line(struct bmp_args *ba)
 
     ba->cur_row = cur_row;
     ba->cur_col = cur_col;
-#endif
     return cols;
 }
 
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
 static struct img_part *store_part_bmp(void *args)
 {
     struct bmp_args *ba = (struct bmp_args *)args;
 
     ba->part.len = read_part_line(ba);
-#ifdef HAVE_LCD_COLOR
     ba->part.buf = (struct uint8_rgb *)ba->buf;
-#else
-    ba->part.buf = (uint8_t *)ba->buf;
-#endif
     if (ba->part.len)
         return &(ba->part);
     else
         return NULL;
 }
-#endif
 
 static inline int rgbcmp(const struct uint8_rgb *rgb1, const struct uint8_rgb *rgb2)
 {
     return memcmp(rgb1, rgb2, sizeof(struct uint8_rgb));
 }
 
-#if LCD_DEPTH > 1
-#if !defined(PLUGIN) && !defined(HAVE_JPEG) && !defined(HAVE_BMP_SCALING)
-static inline
-#endif
 void output_row_8_native(uint32_t row, void * row_in,
                               struct scaler_context *ctx)
 {
     int col;
     int fb_width = BM_WIDTH(ctx->bm->width,FORMAT_NATIVE,0);
     uint8_t dy = DITHERY(row);
-#ifdef HAVE_LCD_COLOR
     struct uint8_rgb *qp = (struct uint8_rgb*)row_in;
-#else
-    uint8_t *qp = (uint8_t*)row_in;
-#endif
     BDEBUGF("output_row: y: %lu in: %p\n",row, row_in);
-#if LCD_DEPTH == 2
-#if LCD_PIXELFORMAT == HORIZONTAL_PACKING
-                /* greyscale iPods */
-                fb_data *dest = (fb_data *)ctx->bm->data + fb_width * row;
-                int shift = 6;
-                int delta = 127;
-                unsigned bright;
-                unsigned data = 0;
-
-                for (col = 0; col < ctx->bm->width; col++) {
-                    if (ctx->dither)
-                        delta = DITHERXDY(col,dy);
-                    bright = *qp++;
-                    bright = (3 * bright + (bright >> 6) + delta) >> 8;
-                    data |= (~bright & 3) << shift;
-                    shift -= 2;
-                    if (shift < 0) {
-                        *dest++ = data;
-                        data = 0;
-                        shift = 6;
-                    }
-                }
-                if (shift < 6)
-                    *dest++ = data;
-#elif LCD_PIXELFORMAT == VERTICAL_PACKING
-                /* iriver H1x0 */
-                fb_data *dest = (fb_data *)ctx->bm->data + fb_width *
-                                (row >> 2);
-                int shift = 2 * (row & 3);
-                int delta = 127;
-                unsigned bright;
-
-                for (col = 0; col < ctx->bm->width; col++) {
-                    if (ctx->dither)
-                        delta = DITHERXDY(col,dy);
-                    bright = *qp++;
-                    bright = (3 * bright + (bright >> 6) + delta) >> 8;
-                    *dest++ |= (~bright & 3) << shift;
-                }
-#elif LCD_PIXELFORMAT == VERTICAL_INTERLEAVED
-                /* iAudio M3 */
-                fb_data *dest = (fb_data *)ctx->bm->data + fb_width *
-                                (row >> 3);
-                int shift = row & 7;
-                int delta = 127;
-                unsigned bright;
-
-                for (col = 0; col < ctx->bm->width; col++) {
-                    if (ctx->dither)
-                        delta = DITHERXDY(col,dy);
-                    bright = *qp++;
-                    bright = (3 * bright + (bright >> 6) + delta) >> 8;
-                    *dest++ |= vi_pattern[bright] << shift;
-                }
-#endif /* LCD_PIXELFORMAT */
-#elif LCD_DEPTH >= 16
                 /* iriver h300, colour iPods, X5 */
                 (void)fb_width;
                 fb_data *dest = STRIDE_MAIN((fb_data *)ctx->bm->data + fb_width * row,
@@ -475,11 +362,9 @@ void output_row_8_native(uint32_t row, void * row_in,
                     r = qp->red;
                     g = qp->green;
                     b = qp->blue;
-#if LCD_DEPTH < 24
                     r = (31 * r + (r >> 3) + delta) >> 8;
                     g = (63 * g + (g >> 2) + delta) >> 8;
                     b = (31 * b + (b >> 3) + delta) >> 8;
-#endif
                     *dest = FB_RGBPACK_LCD(r, g, b);
                     dest += STRIDE_MAIN(1, ctx->bm->height);
                     if (bm_alpha) {
@@ -493,9 +378,7 @@ void output_row_8_native(uint32_t row, void * row_in,
                     }
                     qp++;
                 }
-#endif /* LCD_DEPTH */
 }
-#endif
 
 /******************************************************************************
  * read_bmp_fd()
@@ -523,39 +406,19 @@ int read_bmp_fd(int fd,
     struct uint8_rgb palette[256];
     struct rowset rset;
     struct dim src_dim;
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) || \
-    defined(PLUGIN)
     bool dither = false;
-#endif
 
     bool remote = false;
-#ifdef HAVE_REMOTE_LCD
-    if (format & FORMAT_REMOTE) {
-        remote = true;
-#if LCD_REMOTE_DEPTH == 1
-        format = FORMAT_MONO;
-#endif
-    }
-#endif /* HAVE_REMOTE_LCD */
 
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
     unsigned int resize = IMG_NORESIZE;
 
     if (format & FORMAT_RESIZE) {
         resize = IMG_RESIZE;
     }
 
-#else
-
-    (void)format;
-#endif /*(LCD_DEPTH > 1) || defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1)*/
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) || \
-    defined(PLUGIN)
     if (format & FORMAT_DITHER) {
         dither = true;
     }
-#endif
     /* read fileheader */
     ret = read(fd, &bmph, sizeof(struct bmp_header));
     if (ret < 0) {
@@ -584,7 +447,6 @@ int read_bmp_fd(int fd,
     BDEBUGF("width: %d height: %d depth: %d padded_width: %d\n", src_dim.width,
             src_dim.height, depth, padded_width);
 
-#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)
     if ((format & 3) == FORMAT_ANY) {
         if (depth == 1)
             format = (format & ~3);
@@ -594,20 +456,11 @@ int read_bmp_fd(int fd,
     bm->format = format & 1;
     if ((format & 1) == FORMAT_MONO)
     {
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
         resize &= ~IMG_RESIZE;
         resize |= IMG_NORESIZE;
-#endif
         remote = false;
     }
-#elif !defined(PLUGIN)
-    if (src_dim.width > BM_MAX_WIDTH)
-            return -6;
-#endif /*(LCD_DEPTH > 1) || defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1)*/
 
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
     if (resize & IMG_RESIZE) {
         if(format & FORMAT_KEEP_ASPECT) {
             /* keep aspect ratio.. */
@@ -623,18 +476,12 @@ int read_bmp_fd(int fd,
     }
 
     if (!(resize & IMG_RESIZE)) {
-#endif
         /* returning image size */
         bm->width = src_dim.width;
         bm->height = src_dim.height;
 
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
     }
-#endif
-#if LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)
     format &= 1;
-#endif
     if (rset.rowstep > 0) {     /* Top-down BMP file */
         rset.rowstart = 0;
         rset.rowstop = bm->height;
@@ -656,13 +503,10 @@ int read_bmp_fd(int fd,
 
     if(return_size)
     {
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
         if(resize)
             totalsize += BM_SCALED_SIZE(bm->width, 0, 0, 0);
         else if (bm->width > BM_MAX_WIDTH)
             totalsize += bm->width*4;
-#endif
         return totalsize;
     }
 
@@ -706,11 +550,9 @@ int read_bmp_fd(int fd,
 
     switch (depth) {
       case 16:
-#if LCD_DEPTH >= 16
         /* don't dither 16 bit BMP to LCD with same or larger depth */
         if (!remote)
             dither = false;
-#endif
         if (compression == 0) { /* BI_RGB, i.e. 15 bit */
             depth = 15;
             break;
@@ -751,37 +593,24 @@ int read_bmp_fd(int fd,
         break;
     }
 
-#if LCD_DEPTH >= 24
-    /* Never dither 24/32 bit BMP to 24 bit LCDs */
-    if (depth >= 24 && !remote)
-        dither = false;
-#endif
-
     /* Search to the beginning of the image data */
     lseek(fd, (off_t)letoh32(bmph.off_bits), SEEK_SET);
 
     memset(bitmap, 0, totalsize);
 
-#ifdef HAVE_LCD_COLOR
     if (read_alpha && depth == 32)
         bm->alpha_offset = totalsize - alphasize;
     else
         bm->alpha_offset = 0;
-#endif
 
     struct bmp_args ba = {
         .fd = fd, .padded_width = padded_width, .read_width = read_width,
         .width = src_dim.width, .depth = depth, .palette = palette,
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
         .cur_row = 0, .cur_col = 0, .part = {0,0},
-#endif
         .alpha_detected = false, .first_alpha_byte = 0x80,
         .order = order,
     };
 
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
     if (resize)
     {
         if (resize_on_load(bm, dither, &src_dim, &rset,
@@ -791,53 +620,31 @@ int read_bmp_fd(int fd,
         else
             return 0;
     }
-#endif /* LCD_DEPTH */
 
-#if LCD_DEPTH > 1 || defined(PLUGIN)
     struct scaler_context ctx = {
         .bm = bm,
         .dither = dither,
     };
-#endif
-#if defined(PLUGIN) || defined(HAVE_JPEG) || defined(HAVE_BMP_SCALING)
-#if LCD_DEPTH > 1
     void (*output_row_8)(uint32_t, void*, struct scaler_context*) =
         output_row_8_native;
-#elif defined(PLUGIN)
-    void (*output_row_8)(uint32_t, void*, struct scaler_context*) = NULL;
-#endif
-#if LCD_DEPTH > 1 || defined(PLUGIN)
     if (cformat)
         output_row_8 = cformat->output_row_8;
-#endif
-#endif
 
     unsigned char *buf = ba.buf;
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) || \
-    defined(PLUGIN)
     if (bm->width > BM_MAX_WIDTH)
     {
-#if defined(HAVE_BMP_SCALING) || defined(PLUGIN)
         unsigned int len = maxsize - totalsize;
         buf = bitmap + totalsize;
         ALIGN_BUFFER(buf, len, sizeof(uint32_t));
         if (bm->width*4 > (int)len)
-#endif
             return -6;
     }
-#endif
     int row;
     /* loop to read rows and put them to buffer */
     for (row = rset.rowstart; row != rset.rowstop; row += rset.rowstep) {
-#if (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)) && \
-    defined(HAVE_BMP_SCALING) || defined(PLUGIN)
         if (bm->width > BM_MAX_WIDTH)
         {
-#if defined(HAVE_LCD_COLOR)
             struct uint8_rgb *p = (struct uint8_rgb *)buf;
-#else
-            uint8_t* p = buf;
-#endif
             do {
                 int len = read_part_line(&ba);
                 if (!len)
@@ -847,61 +654,20 @@ int read_bmp_fd(int fd,
             } while (ba.cur_col);
         }
         else
-#endif
         if (!read_part_line(&ba))
             return -9;
 #ifndef PLUGIN
-#if !defined(HAVE_LCD_COLOR) && \
-        (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1))
-        uint8_t* qp = buf;
-#else
         struct uint8_rgb *qp = (struct uint8_rgb *)buf;
 #endif
-#endif
         /* Convert to destination format */
-#if ((LCD_DEPTH > 1) || defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1)) && \
-    !defined(PLUGIN)
+#if !defined(PLUGIN)
         if (format == FORMAT_NATIVE) {
-#if defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1
-            if (remote) {
-                unsigned char dy = DITHERY(row);
-#if (LCD_REMOTE_DEPTH == 2) && (LCD_REMOTE_PIXELFORMAT == VERTICAL_INTERLEAVED)
-                /* iAudio X5/M5 remote */
-                fb_remote_data *dest = (fb_remote_data *)bitmap
-                                     + bm->width * (row >> 3);
-                int shift = row & 7;
-                int delta = 127;
-                unsigned bright;
-
-                int col;
-                for (col = 0; col < bm->width; col++) {
-                    if (dither)
-                        delta = DITHERXDY(col,dy);
-#if !defined(HAVE_LCD_COLOR) && \
-        (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1))
-                    bright = *qp++;
-#else
-                    bright = brightness(*qp++);
-#endif
-                    bright = (3 * bright + (bright >> 6) + delta) >> 8;
-                    *dest++ |= vi_pattern[bright] << shift;
-                }
-#endif /* LCD_REMOTE_DEPTH / LCD_REMOTE_PIXELFORMAT */
-            } else
-#endif /* defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1 */
 #endif /* (LCD_DEPTH > 1) || defined(HAVE_REMOTE_LCD) &&
     (LCD_REMOTE_DEPTH > 1) */
-#if LCD_DEPTH > 1 || defined(PLUGIN)
             {
-#if !defined(PLUGIN) && !defined(HAVE_JPEG) && !defined(HAVE_BMP_SCALING)
-                output_row_8_native(row, buf, &ctx);
-#else
                 output_row_8(row, buf, &ctx);
-#endif
             }
-#endif
-#if ((LCD_DEPTH > 1) || defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1)) && \
-    !defined(PLUGIN)
+#if !defined(PLUGIN)
         }
 #ifndef PLUGIN
         else
@@ -913,18 +679,11 @@ int read_bmp_fd(int fd,
             unsigned char mask = BIT_N(row & 7);
             int col;
             for (col = 0; col < bm->width; col++, p++)
-#if !defined(HAVE_LCD_COLOR) && \
-        (LCD_DEPTH > 1 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1))
-                if (*qp++ < 128)
-                    *p |= mask;
-#else
                 if (brightness(*qp++) < 128)
                     *p |= mask;
-#endif
         }
 #endif
     }
-#ifdef HAVE_LCD_COLOR
     if (!ba.alpha_detected)
     {   /* if this has an alpha channel, totalsize accounts for it as well
          * subtract if no actual alpha information was found */
@@ -932,6 +691,5 @@ int read_bmp_fd(int fd,
             totalsize -= alphasize;
         bm->alpha_offset = 0;
     }
-#endif
     return totalsize; /* return the used buffer size. */
 }

@@ -75,9 +75,6 @@ static FORCE_INLINE void write_samples(void *out,
     if (LIKELY(amp == MIX_AMP_UNITY))
     {
         /* Channel is unity amplitude */
-#if defined(CPU_ARM_MICRO) && ARCH_VERSION >= 7
-        memcpy(out, src, size);
-#else
         asm volatile (
             "ands       r1, %2, #0x1f  \n"
             "beq        2f             \n"
@@ -97,7 +94,6 @@ static FORCE_INLINE void write_samples(void *out,
             : "+r"(out), "+r"(src), "+r"(size)
             :
             : "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7");
-#endif
     }
     else
     {

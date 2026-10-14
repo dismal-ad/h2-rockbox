@@ -401,13 +401,6 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
 
     int old_audio_status = audio_status();
 
-#ifdef HAVE_TOUCHSCREEN
-    /* plugins possibly have grid mode active. force global settings in lists */
-    enum touchscreen_mode tsm = touchscreen_get_mode();
-    enum touchscreen_mode old_global_mode = global_settings.touch_mode;
-    touchscreen_set_mode(global_settings.touch_mode);
-#endif
-
     title = init_title(menu, &icon, buf, sizeof buf);
     FOR_NB_SCREENS(i)
     {
@@ -451,13 +444,6 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
         /* query audio status to see if it changed */
         redraw_lists = query_audio_status(&old_audio_status);
 
-#ifdef HAVE_TOUCHSCREEN
-        /* need to translate touch actions *first* so the menu callback has
-         * a chance to intercept before it hits the list's do_button. */
-        if (action == ACTION_TOUCHSCREEN)
-            action = gui_synclist_do_touchscreen(&lists);
-#endif
-
         int new_action = menu_callback(action, menu, &lists);
         if (new_action == ACTION_EXIT_AFTER_THIS_MENUITEM)
             ret = MENU_SELECTED_EXIT; /* exit after return from selection */
@@ -468,7 +454,6 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
 
         if (LIKELY(gui_synclist_do_button(&lists, &action)))
             continue;
-#ifdef HAVE_QUICKSCREEN
         else if (action == ACTION_STD_QUICKSCREEN)
         {
             if (global_settings.shortcuts_replaces_qs ||
@@ -490,14 +475,6 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                                 buf, sizeof buf);
             redraw_lists = true;
         }
-#endif
-#ifdef HAVE_RECORDING
-        else if (action == ACTION_STD_REC)
-        {
-            ret = GO_TO_RECSCREEN;
-            done = true;
-        }
-#endif
         else if (action == ACTION_TREE_WPS)
         {
             ret = GO_TO_PREVIOUS_MUSIC;
@@ -535,10 +512,6 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                     MENUITEM_STRINGLIST(settings_op_menu,
                                         ID2P(LANG_ONPLAY_MENU_TITLE), NULL,
                                         ID2P(LANG_RESET_SETTING),
-#ifndef HAVE_QUICKSCREEN
-                                       );
-                    context_menu = &settings_op_menu;
-#else
                                         ID2P(LANG_TOP_QS_ITEM),
                                         ID2P(LANG_LEFT_QS_ITEM),
                                         ID2P(LANG_BOTTOM_QS_ITEM),
@@ -558,7 +531,6 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                     {
                         context_menu = &non_quickscreen_op_menu;
                     }
-#endif
                     int msel = do_menu(context_menu, NULL, NULL, false);
 
                     switch (msel)
@@ -570,7 +542,6 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                             settings_save();
                             settings_apply(false);
                             break;
-#ifdef HAVE_QUICKSCREEN
                         case 1: /* set as top QS item */
                             global_settings.qs_items[QUICKSCREEN_TOP] = setting;
                             break;
@@ -592,7 +563,6 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                                   added to the shortcuts menu as the quickscreen */
                             shortcuts_add(SHORTCUT_SETTING, (void*)setting);
                             break;
-#endif
                     } /* switch(do_menu()) */
                     if (menu->flags & MENU_EXITAFTERTHISMENU)
                         done = true; /* in case onplay menu contains setting */
@@ -806,13 +776,5 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
         viewportmanager_theme_undo(i, false);
         skinlist_set_cfg(i, NULL); /* Bugfix dangling reference in skin_draw() */
     }
-#ifdef HAVE_TOUCHSCREEN
-    /* This is needed because this function runs the settings menu and we do
-     * not want to switch back to the old mode if the user intentionally went
-     * to a different one. This is a very hacky way to do this... */
-    if(!(global_settings.touch_mode != (int)old_global_mode &&
-         tsm == old_global_mode))
-        touchscreen_set_mode(tsm);
-#endif
     return ret;
 }

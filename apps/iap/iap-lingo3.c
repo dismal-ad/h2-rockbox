@@ -37,9 +37,6 @@
 #include "settings.h"
 #include "metadata.h"
 #include "playback.h"
-#if CONFIG_TUNER
-#include "ipod_remote_tuner.h"
-#endif
 
 /*
  * This macro is meant to be used inside an IAP mode message handler.

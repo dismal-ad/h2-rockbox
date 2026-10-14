@@ -74,7 +74,6 @@ void mutex_lock(struct mutex *m)
 /* Release ownership of a mutex object - only owning thread must call this */
 void mutex_unlock(struct mutex *m)
 {
-#ifndef N3DS
     /* FIXME: synchronization primitives does not behave
        correctly between different cores */
     /* unlocker not being the owner is an unlocking violation */
@@ -82,7 +81,6 @@ void mutex_unlock(struct mutex *m)
                   "mutex_unlock->wrong thread (%s != %s)\n",
                   m->blocker.thread->name,
                   __running_self_entry()->name);
-#endif
 
     if(m->recursion > 0)
     {
@@ -108,17 +106,12 @@ void mutex_unlock(struct mutex *m)
     /* Tranfer of owning thread is handled in the wakeup protocol
      * if priorities are enabled otherwise just set it from the
      * queue head. */
-#ifndef HAVE_PRIORITY_SCHEDULING
-    m->blocker.thread = thread;
-#endif
     unsigned int result = wakeup_thread(thread, WAKEUP_TRANSFER);
     restore_irq(oldlevel);
 
     corelock_unlock(&m->cl);
 
-#ifdef HAVE_PRIORITY_SCHEDULING
     if(result & THREAD_SWITCH)
         switch_thread();
-#endif
     (void)result;
 }

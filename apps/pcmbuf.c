@@ -138,7 +138,6 @@ static bool fade_out_complete = false;
 /* Voice */
 static bool soft_mode = false;
 
-#ifdef HAVE_CROSSFADE
 /* Crossfade related state */
 
 static int  crossfade_setting;
@@ -187,14 +186,9 @@ static void crossfade_start(void);
 static void write_to_crossfade(size_t size, unsigned long elapsed,
                                off_t offset);
 static void pcmbuf_finish_crossfade_enable(void);
-#else
-#define crossfade_cancel() do {} while(0)
-#endif /* HAVE_CROSSFADE */
 
 /* Thread */
-#ifdef HAVE_PRIORITY_SCHEDULING
 static int codec_thread_priority = PRIORITY_PLAYBACK;
-#endif
 
 /* Callbacks into playback.c */
 extern void audio_pcmbuf_position_callback(unsigned long elapsed,
@@ -315,14 +309,12 @@ void snip_buffer_tail(size_t index, int offset)
     pcmbuf_bytes_waiting = 0;
     index_chunkdesc(index)->pos_key = 0;
 
-#ifdef HAVE_CROSSFADE
     /* Kill crossfade if it would now be operating in the void */
     if (crossfade_status != CROSSFADE_INACTIVE &&
         !index_committed(crossfade_widx) && crossfade_widx != chunk_widx)
     {
         crossfade_cancel();
     }
-#endif /* HAVE_CROSSFADE */
 }
 
 
@@ -384,7 +376,6 @@ static void stamp_chunk(struct chunkdesc *desc, unsigned long elapsed,
 }
 
 /* Set priority of the codec thread */
-#ifdef HAVE_PRIORITY_SCHEDULING
 /*
  * expects pcm_fill_state in tenth-% units (e.g. full pcm buffer is 10) */
 static void boost_codec_thread(int pcm_fill_state)
@@ -416,9 +407,6 @@ static void boost_codec_thread(int pcm_fill_state)
         codec_thread_priority = new_prio;
     }
 }
-#else
-#define boost_codec_thread(pcm_fill_state) do{}while(0)
-#endif /* HAVE_PRIORITY_SCHEDULING */
 
 /* Get the next available buffer and size - assumes adequate space exists */
 static void * get_write_buffer(size_t *size)
@@ -450,7 +438,6 @@ void * pcmbuf_request_buffer(int *count)
 {
     size_t size = *count * PCMBUF_SAMPLE_SIZE;
 
-#ifdef HAVE_CROSSFADE
     /* We're going to crossfade to a new track, which is now on its way */
     if (crossfade_status > CROSSFADE_ACTIVE)
         crossfade_start();
@@ -460,7 +447,6 @@ void * pcmbuf_request_buffer(int *count)
     if (crossfade_status != CROSSFADE_INACTIVE && size > CROSSFADE_BUFSIZE)
         size = CROSSFADE_BUFSIZE;
     else
-#endif /* HAVE_CROSSFADE */
     if (size > PCMBUF_MAX_BUFFER)
         size = PCMBUF_MAX_BUFFER; /* constrain request */
 
@@ -507,14 +493,12 @@ void * pcmbuf_request_buffer(int *count)
 
     void *buf;
 
-#ifdef HAVE_CROSSFADE
     if (crossfade_status != CROSSFADE_INACTIVE)
     {
         crossfade_bufidx = index_chunk_offs(chunk_ridx, -1);
         buf = index_buffer(crossfade_bufidx); /* always CROSSFADE_BUFSIZE */
     }
     else
-#endif
     {
         /* Give the maximum amount available if there's more */
         if (size + PCMBUF_CHUNK_SIZE < freespace)
@@ -532,13 +516,11 @@ void pcmbuf_write_complete(int count, unsigned long elapsed, off_t offset)
 {
     size_t size = count * PCMBUF_SAMPLE_SIZE;
 
-#ifdef HAVE_CROSSFADE
     if (crossfade_status != CROSSFADE_INACTIVE)
     {
         write_to_crossfade(size, elapsed, offset);
     }
     else
-#endif
     {
         stamp_chunk(index_chunkdesc(chunk_widx), elapsed, offset);
         commit_write_buffer(size);
@@ -554,14 +536,12 @@ static unsigned int get_next_required_pcmbuf_chunks(void)
 {
     size_t size = MIN_BUFFER_SIZE;
 
-#ifdef HAVE_CROSSFADE
     if (crossfade_enable_request != CROSSFADE_ENABLE_OFF)
     {
         size_t seconds = global_settings.crossfade_fade_out_delay +
                          global_settings.crossfade_fade_out_duration;
         size += seconds * BYTERATE;
     }
-#endif
 
     logf("pcmbuf len: %lu", (unsigned long)(size / BYTERATE));
     return size / PCMBUF_CHUNK_SIZE;
@@ -608,11 +588,7 @@ size_t pcmbuf_init(void *bufend)
     pcmbuf_guardbuf = pcmbuf_buffer + pcmbuf_size;
     bufstart = pcmbuf_buffer;
 
-#ifdef HAVE_CROSSFADE
     pcmbuf_finish_crossfade_enable();
-#else 
-    pcmbuf_watermark = PCMBUF_WATERMARK;
-#endif /* HAVE_CROSSFADE */
 
     init_buffer_state();
 
@@ -698,9 +674,7 @@ void pcmbuf_start_track_change(enum pcm_track_change_type type)
         return;
     }
 
-#ifdef HAVE_CROSSFADE
     bool crossfade = false;
-#endif
     bool auto_skip = type != TRACK_CHANGE_MANUAL;
 
     /* Update position key so that:
@@ -720,7 +694,6 @@ void pcmbuf_start_track_change(enum pcm_track_change_type type)
         /* Fill might not have been above watermark */
         start_audio_playback();
     }
-#ifdef HAVE_CROSSFADE
     /* Determine whether this track change needs to crossfaded and how */
     else if (crossfade_setting != CROSSFADE_ENABLE_OFF)
     {
@@ -766,7 +739,6 @@ void pcmbuf_start_track_change(enum pcm_track_change_type type)
         trigger_cpu_boost();
     }
     else
-#endif /* HAVE_CROSSFADE */
     if (auto_skip)
     {        
         /* The codec is moving on to the next track, but the current track will
@@ -774,10 +746,8 @@ void pcmbuf_start_track_change(enum pcm_track_change_type type)
          * the track */
         logf("gapless track change");
 
-#ifdef HAVE_CROSSFADE
         if (crossfade_status == CROSSFADE_ACTIVE)
             crossfade_status = CROSSFADE_CONTINUE;
-#endif
 
         pcmbuf_monitor_track_change(true);
     }
@@ -895,8 +865,6 @@ void pcmbuf_pause(bool pause)
 
 
 /** Crossfade */
-
-#ifdef HAVE_CROSSFADE
 
 /* Initialize a fader */
 static void mixfader_init(struct mixfader *faderp, int32_t start_factor,
@@ -1290,7 +1258,6 @@ bool pcmbuf_is_same_size(void)
 
     return same_size;
 }
-#endif /* HAVE_CROSSFADE */
 
 
 /** Debug menu, other metrics */
@@ -1436,10 +1403,8 @@ bool pcmbuf_is_lowdata(void)
     if (status != CHANNEL_PLAYING)
         return false;
 
-#ifdef HAVE_CROSSFADE
     if (crossfade_status != CROSSFADE_INACTIVE)
         return false;
-#endif
 
     return pcmbuf_data_critical();
 }

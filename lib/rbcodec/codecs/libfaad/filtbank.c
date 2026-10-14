@@ -50,116 +50,6 @@ static real_t windowed_buf[2*FRAME_LEN] MEM_ALIGN_ATTR = {0};
 
 
 /*Windowing functions borrowed from libwmai*/
-#ifdef CPU_ARM
-static inline 
-void vector_fmul_add_add(real_t *dst, const real_t *src0, const real_t *src1, const real_t *src2, int len)
-{
-    /* Block sizes are always power of two */
-    asm volatile (
-        "0:"
-        "ldmia %[d]!, {r0, r1};"
-        "ldmia %[w]!, {r4, r5};"
-        /* consume the first data and window value so we can use those
-         * registers again */
-        "smull r8, r9, r0, r4;"
-        "ldmia %[src2]!, {r0, r4};"
-        "add   r0, r0, r9, lsl #1;"  /* *dst=*dst+(r9<<1)*/
-        "smull r8, r9, r1, r5;"
-        "add   r1, r4, r9, lsl #1;"
-        "stmia %[dst]!, {r0, r1};"
-        "subs  %[n], %[n], #2;"
-        "bne   0b;"
-        : [d] "+r" (src0), [w] "+r" (src1), [src2] "+r" (src2), [dst] "+r" (dst), [n] "+r" (len)
-        : 
-        : "r0", "r1", "r4", "r5", "r8", "r9", "memory", "cc");
-}
-static inline
-void vector_fmul_reverse(real_t *dst, const real_t *src0, const real_t *src1,
-                         int len)
-{
-    /* Block sizes are always power of two */
-    asm volatile (
-        "add   %[s1], %[s1], %[n], lsl #2;"
-        "0:"
-        "ldmia %[s0]!, {r0, r1};"
-        "ldmdb %[s1]!, {r4, r5};"
-        "smull r8, r9, r0, r5;"
-        "mov   r0, r9, lsl #1;"
-        "smull r8, r9, r1, r4;"
-        "mov   r1, r9, lsl #1;"
-        "stmia %[dst]!, {r0, r1};"
-        "subs  %[n], %[n], #2;"
-        "bne   0b;"
-        : [s0] "+r" (src0), [s1] "+r" (src1), [dst] "+r" (dst), [n] "+r" (len)
-        : 
-        : "r0", "r1", "r4", "r5", "r8", "r9", "memory", "cc");
-}
-
-#elif defined(CPU_COLDFIRE)
-static inline
-void vector_fmul_add_add(real_t *dst, const real_t *src0, const real_t *src1, const real_t *src2, int len)
-{
-    /* Block sizes are always power of two. Smallest block is always way bigger
-     * than four too.*/
-    asm volatile (
-        "0:"
-        "movem.l (%[src0]), %%d0-%%d3;"
-        "movem.l (%[src1]), %%d4-%%d5/%%a0-%%a1;"
-        "mac.l %%d0, %%d4, %%acc0;"
-        "mac.l %%d1, %%d5, %%acc1;"
-        "mac.l %%d2, %%a0, %%acc2;"
-        "mac.l %%d3, %%a1, %%acc3;"
-        "lea.l (16, %[src0]), %[src0];"
-        "lea.l (16, %[src1]), %[src1];"
-        "movclr.l %%acc0, %%d0;"
-        "movclr.l %%acc1, %%d1;"
-        "movclr.l %%acc2, %%d2;"
-        "movclr.l %%acc3, %%d3;"
-        "movem.l (%[src2]), %%d4-%%d5/%%a0-%%a1;"
-        "lea.l (16, %[src2]), %[src2];"
-        "add.l %%d4, %%d0;"
-        "add.l %%d5, %%d1;"
-        "add.l %%a0, %%d2;"
-        "add.l %%a1, %%d3;"
-        "movem.l %%d0-%%d3, (%[dst]);"
-        "lea.l (16, %[dst]), %[dst];"
-        "subq.l #4, %[n];"
-        "jne 0b;"
-        : [src0] "+a" (src0), [src1] "+a" (src1), [src2] "+a" (src2), [dst] "+a" (dst), [n] "+d" (len)
-        : 
-        : "d0", "d1", "d2", "d3", "d4", "d5", "a0", "a1", "memory", "cc");
-}
-
-static inline
-void vector_fmul_reverse(real_t *dst, const real_t *src0, const real_t *src1,
-                         int len)
-{
-    /* Block sizes are always power of two. Smallest block is always way bigger
-     * than four too.*/
-    asm volatile (
-        "lea.l (-16, %[s1], %[n]*4), %[s1];"
-        "0:"
-        "movem.l (%[s0]), %%d0-%%d3;"
-        "movem.l (%[s1]), %%d4-%%d5/%%a0-%%a1;"
-        "mac.l %%d0, %%a1, %%acc0;"
-        "mac.l %%d1, %%a0, %%acc1;"
-        "mac.l %%d2, %%d5, %%acc2;"
-        "mac.l %%d3, %%d4, %%acc3;"
-        "lea.l (16, %[s0]), %[s0];"
-        "lea.l (-16, %[s1]), %[s1];"
-        "movclr.l %%acc0, %%d0;"
-        "movclr.l %%acc1, %%d1;"
-        "movclr.l %%acc2, %%d2;"
-        "movclr.l %%acc3, %%d3;"
-        "movem.l %%d0-%%d3, (%[dst]);"
-        "lea.l (16, %[dst]), %[dst];"
-        "subq.l #4, %[n];"
-        "jne 0b;"
-        : [s0] "+a" (src0), [s1] "+a" (src1), [dst] "+a" (dst), [n] "+d" (len)
-        : : "d0", "d1", "d2", "d3", "d4", "d5", "a0", "a1", "memory", "cc");
-}
-
-#else
 static inline void vector_fmul_add_add(real_t *dst, const real_t *src0, const real_t *src1, const real_t *src2, int len){
     int i;
     for(i=0; i<len; i++)
@@ -172,7 +62,6 @@ static inline void vector_fmul_reverse(real_t *dst, const real_t *src0, const re
     for(i=0; i<len; i++)
         dst[i] = MUL_F(src0[i], src1[-i]);
 }
-#endif
 
 #ifdef LTP_DEC
 static INLINE void mdct(fb_info *fb, real_t *in_data, real_t *out_data, uint16_t len)
@@ -255,16 +144,6 @@ void ifilter_bank(uint8_t window_sequence, uint8_t window_shape,
     }
 #endif
 
-#if 0
-    for (i = 0; i < 1024; i++)
-    {
-        printf("%d\n", freq_in[i]);
-    }
-#endif
-
-#if 0
-    printf("%d %d\n", window_sequence, window_shape);
-#endif
     switch (window_sequence)
     {
     case ONLY_LONG_SEQUENCE:
@@ -388,14 +267,6 @@ void ifilter_bank(uint8_t window_sequence, uint8_t window_shape,
         vector_fmul_reverse(overlap, transf_buf+nlong, window_long, nlong);
         break;
     }
-
-#if 0
-    for (i = 0; i < 1024; i++)
-    {
-        printf("%d\n", time_out[i]);
-        //printf("0x%.8X\n", time_out[i]);
-    }
-#endif
 
 
 #ifdef PROFILE

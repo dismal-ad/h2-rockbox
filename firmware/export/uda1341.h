@@ -27,11 +27,6 @@
 AUDIOHW_SETTING(VOLUME,     "dB", 0,  1, -61,   0, -25)
 AUDIOHW_SETTING(BASS,       "dB", 0,  2,   0,  24,   0)
 AUDIOHW_SETTING(TREBLE,     "dB", 0,  2,   0,   6,   0)
-#ifdef HAVE_RECORDING
-AUDIOHW_SETTING(LEFT_GAIN,  "dB", 1,  1,-128,  96,   0)
-AUDIOHW_SETTING(RIGHT_GAIN, "dB", 1,  1,-128,  96,   0)
-AUDIOHW_SETTING(MIC_GAIN,   "dB", 1,  1,-128, 108,  16)
-#endif /* HAVE_RECORDING */
 
 /* These are logical register numbers for driver */ 
 enum uda_register {

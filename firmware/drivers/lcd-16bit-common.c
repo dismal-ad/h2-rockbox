@@ -352,7 +352,6 @@ void lcd_mono_bitmap(const unsigned char *src, int x, int y, int width, int heig
     lcd_mono_bitmap_part(src, 0, 0, width, x, y, width, height);
 }
 
-#ifndef DISABLE_ALPHA_BITMAP
 /* About Rockbox' internal alpha channel format (for ALPHA_BPP == 4)
  *
  * For each pixel, 4bit of alpha information is stored in a byte-stream,
@@ -381,43 +380,16 @@ void lcd_mono_bitmap(const unsigned char *src, int x, int y, int width, int heig
 #define ALPHA_WORDSIZE          sizeof(ALPHA_WORD_T)
 #define ALPHA_PIXELS_PER_WORD   (ALPHA_WORDSIZE * CHAR_BIT / ALPHA_BPP)
 
-#ifdef CPU_ARM
-#define BLEND_INIT do {} while (0)
-#define BLEND_FINISH do {} while(0)
-#define BLEND_START(acc, color, alpha) \
-    asm volatile("mul %0, %1, %2" : "=&r" (acc) : "r" (color), "r" (alpha))
-#define BLEND_CONT(acc, color, alpha) \
-    asm volatile("mla %0, %1, %2, %0" : "+&r" (acc) : "r" (color), "r" (alpha))
-#define BLEND_OUT(acc) do {} while (0)
-
-#elif defined(CPU_COLDFIRE)
-#define ALPHA_BITMAP_READ_WORDS
-#define BLEND_INIT \
-    unsigned long _macsr = coldfire_get_macsr(); \
-    coldfire_set_macsr(EMAC_UNSIGNED)
-#define BLEND_FINISH \
-    coldfire_set_macsr(_macsr)
-#define BLEND_START(acc, color, alpha) \
-    asm volatile("mac.l %0, %1, %%acc0" :: "%d" (color), "d" (alpha))
-#define BLEND_CONT BLEND_START
-#define BLEND_OUT(acc) asm volatile("movclr.l %%acc0, %0" : "=d" (acc))
-
-#else
 #define BLEND_INIT do {} while (0)
 #define BLEND_FINISH do {} while(0)
 #define BLEND_START(acc, color, alpha) ((acc) = (color) * (alpha))
 #define BLEND_CONT(acc, color, alpha) ((acc) += (color) * (alpha))
 #define BLEND_OUT(acc) do {} while (0)
-#endif
 
 /* Blend the given two colors */
 static inline unsigned blend_two_colors(unsigned c1, unsigned c2, unsigned a)
 {
     a += a >> (ALPHA_BPP - 1);
-#if (LCD_PIXELFORMAT == RGB565SWAPPED)
-    c1 = swap16(c1);
-    c2 = swap16(c2);
-#endif
     unsigned c1l = (c1 | (c1 << 16)) & 0x07e0f81f;
     unsigned c2l = (c2 | (c2 << 16)) & 0x07e0f81f;
     unsigned p;
@@ -426,11 +398,7 @@ static inline unsigned blend_two_colors(unsigned c1, unsigned c2, unsigned a)
     BLEND_OUT(p);
     p = (p >> ALPHA_BPP) & 0x07e0f81f;
     p |= (p >> 16);
-#if (LCD_PIXELFORMAT == RGB565SWAPPED)
-    return swap16(p);
-#else
     return p;
-#endif
 }
 
 static void ICODE_ATTR lcd_alpha_bitmap_part_mix(
@@ -690,4 +658,3 @@ static void ICODE_ATTR lcd_alpha_bitmap_part_mix(
 
     BLEND_FINISH;
 }
-#endif /* !DISABLE_ALPHA_BITMAP */

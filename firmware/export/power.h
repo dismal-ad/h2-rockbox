@@ -53,12 +53,6 @@ enum power_input_flags {
     /* Charging is possible from something. */
     POWER_INPUT_CHARGER = 0xf0,
 
-#ifdef HAVE_BATTERY_SWITCH
-    /* Battery is powering device or is available to power device. It
-     * could also be used if the battery is hot-swappable to indicate if
-     * it is present ("switch" as verb vs. noun). */
-    POWER_INPUT_BATTERY = 0x100,
-#endif
 };
 
 /* Returns detailed power input status information from device. */
@@ -88,16 +82,6 @@ bool charging_state(void);
 void power_init(void) INIT_ATTR;
 
 bool ide_powered(void);
-#endif
-
-#ifdef HAVE_SPDIF_POWER
-void spdif_power_enable(bool on);
-bool spdif_powered(void);
-#endif
-
-#if CONFIG_TUNER
-bool tuner_power(bool status);
-bool tuner_powered(void);
 #endif
 
 #endif /* _POWER_H_ */

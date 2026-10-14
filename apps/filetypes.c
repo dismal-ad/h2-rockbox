@@ -74,13 +74,6 @@ static const struct filetype_inbuilt inbuilt_filetypes[] = {
     { "wps",  FILE_ATTR_WPS },
     { "bmp",  FILE_ATTR_BMP },
     { "mod",  FILE_ATTR_MOD },
-#ifdef HAVE_REMOTE_LCD
-    { "rwps", FILE_ATTR_RWPS },
-#endif
-#if CONFIG_TUNER
-    { "fmr",  FILE_ATTR_FMR },
-    { "fms",  FILE_ATTR_FMS },
-#endif
     { "log",  FILE_ATTR_LOG   },
     { "lng",  FILE_ATTR_LNG   },
     { "rock", FILE_ATTR_ROCK  },
@@ -91,17 +84,8 @@ static const struct filetype_inbuilt inbuilt_filetypes[] = {
     { "bmark",FILE_ATTR_BMARK },
     { "cue",  FILE_ATTR_CUE   },
     { "sbs",  FILE_ATTR_SBS   },
-#ifdef HAVE_REMOTE_LCD
-    { "rsbs", FILE_ATTR_RSBS },
-#if CONFIG_TUNER
-    { "rfms", FILE_ATTR_RFMS },
-#endif
-#endif
 #ifdef BOOTFILE_EXT
     { BOOTFILE_EXT,  FILE_ATTR_MOD },
-#endif
-#ifdef BOOTFILE_EXT2
-    { BOOTFILE_EXT2, FILE_ATTR_MOD },
 #endif
 };
 
@@ -117,13 +101,6 @@ static const struct fileattr_icon_voice inbuilt_attr_icons_voices[] = {
     { FILE_ATTR_M3U,   Icon_Playlist,  LANG_PLAYLIST },
     { FILE_ATTR_CFG,   Icon_Config,    VOICE_EXT_CFG },
     { FILE_ATTR_WPS,   Icon_Wps,       VOICE_EXT_WPS },
-#ifdef HAVE_REMOTE_LCD
-    {FILE_ATTR_RWPS,   Icon_Wps,       VOICE_EXT_RWPS },
-#endif
-#if CONFIG_TUNER
-    { FILE_ATTR_FMR,   Icon_Preset,    LANG_FMR },
-    { FILE_ATTR_FMS,   Icon_Wps,       VOICE_EXT_FMS },
-#endif
     { FILE_ATTR_LNG,   Icon_Language,  LANG_LANGUAGE },
     { FILE_ATTR_ROCK,  Icon_Plugin,    VOICE_EXT_ROCK },
     { FILE_ATTR_LUA,   Icon_Plugin,    VOICE_EXT_ROCK },
@@ -133,13 +110,7 @@ static const struct fileattr_icon_voice inbuilt_attr_icons_voices[] = {
     { FILE_ATTR_BMARK, Icon_Bookmark,  VOICE_EXT_BMARK },
     { FILE_ATTR_CUE,   Icon_Bookmark,  VOICE_EXT_CUESHEET },
     { FILE_ATTR_SBS,   Icon_Wps,       VOICE_EXT_SBS },
-#ifdef HAVE_REMOTE_LCD
-    { FILE_ATTR_RSBS,  Icon_Wps,       VOICE_EXT_RSBS },
-#if CONFIG_TUNER
-    { FILE_ATTR_RFMS,  Icon_Wps,       VOICE_EXT_RFMS },
-#endif
-#endif
-#if defined(BOOTFILE_EXT) || defined(BOOTFILE_EXT2)
+#if defined(BOOTFILE_EXT)
     { FILE_ATTR_MOD,   Icon_Firmware,  VOICE_EXT_AJZ },
 #endif
 };
@@ -192,7 +163,6 @@ static struct file_type filetypes[MAX_FILETYPES];
 static enum themable_icons custom_filetype_icons[MAX_FILETYPES];
 static bool custom_icons_loaded = false;
 
-#ifdef HAVE_LCD_COLOR
 static int custom_colors[MAX_FILETYPES];
 struct filetype_unknown {
     enum themable_icons icon;
@@ -202,10 +172,6 @@ static struct filetype_unknown unknown_file = {
     .icon = Icon_NOICON,
     .color = -1,
 };
-#else
-struct filetype_unknown { enum themable_icons icon; };
-static struct filetype_unknown unknown_file = { .icon = Icon_NOICON };
-#endif
 
 /* index array to filetypes used in open with list. */
 static int viewers[MAX_VIEWERS];
@@ -271,7 +237,6 @@ static int find_extension(const char* extension)
     return -1;
 }
 
-#ifdef HAVE_LCD_COLOR
 /* Colors file format is similar to icons:
  * ext:hex_color
  * load a colors file from a theme with:
@@ -312,7 +277,6 @@ void read_color_theme_file(void) {
     }
     close(fd);
 }
-#endif
 
 static int parse_icon(const char *line, enum themable_icons *icon)
 {
@@ -413,9 +377,7 @@ void filetype_init(void)
     read_builtin_types_init();
     read_viewers_config_init();
     read_viewer_theme_file();
-#ifdef HAVE_LCD_COLOR
     read_color_theme_file();
-#endif
 }
 
 /* remove all white spaces from string */
@@ -554,7 +516,6 @@ static int find_attr(int attr)
     return -1;
 }
 
-#ifdef HAVE_LCD_COLOR
 int filetype_get_color(const char * name, int attr)
 {
     if ((attr & ATTR_DIRECTORY)==ATTR_DIRECTORY)
@@ -564,7 +525,6 @@ int filetype_get_color(const char * name, int attr)
         return unknown_file.color;
     return custom_colors[i];
 }
-#endif
 
 int filetype_get_icon(int attr)
 {

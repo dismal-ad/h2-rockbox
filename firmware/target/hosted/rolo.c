@@ -24,9 +24,6 @@
 
 #include "config.h"
 #include "lcd.h"
-#ifdef HAVE_REMOTE_LCD
-#include "lcd-remote.h"
-#endif
 #include "audio.h"
 #include "button.h"
 #include "scroll_engine.h"
@@ -58,12 +55,6 @@ int rolo_load(const char* filename)
     lcd_puts(0, 0, "ROLO...");
     lcd_puts(0, 1, "Loading");
     lcd_update();
-#ifdef HAVE_REMOTE_LCD
-    lcd_remote_clear_display();
-    lcd_remote_puts(0, 0, "ROLO...");
-    lcd_remote_puts(0, 1, "Loading");
-    lcd_remote_update();
-#endif
 
     audio_stop();
 
@@ -75,10 +66,6 @@ int rolo_load(const char* filename)
 
     lcd_puts(0, 3, "Executing");
     lcd_update();
-#ifdef HAVE_REMOTE_LCD
-    lcd_remote_puts(0, 1, "Executing");
-    lcd_remote_update();
-#endif
 
 #ifdef PIVOT_ROOT
 #define EXECDIR "/tmp"

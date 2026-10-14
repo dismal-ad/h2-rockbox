@@ -75,11 +75,7 @@ static struct mixer_channel * active_channels[PCM_MIXER_NUM_CHANNELS+1] IBSS_ATT
 /* Number of silence frames to play after all data has played */
 static unsigned int idle_counter = 0;
 
-#ifdef CONFIG_SAMPR_TYPES
-#define SAMPR_NUM(sampr) (sampr & ~SAMPR_TYPE_MASK)
-#else
 #define SAMPR_NUM(sampr) (sampr)
-#endif
 
 static inline unsigned int max_idle_frames(void)
 {
@@ -267,11 +263,6 @@ static void mixer_start_pcm(void)
 {
     if (pcm_is_playing())
         return;
-
-#if defined(HAVE_RECORDING)
-    if (pcm_is_recording())
-        return;
-#endif
 
     /* Prepare initial frames and set up the double buffer */
     mixer_buffer_callback(PCM_DMAST_STARTED);

@@ -26,8 +26,4 @@
 
 int rolo_load(const char* file);
 
-#ifdef CPU_PP
-void rolo_restart_cop(void);
-#endif
-
 #endif

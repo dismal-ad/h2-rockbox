@@ -292,19 +292,7 @@ bool parse_cuesheet(struct cuesheet_file *cue_file, struct cuesheet *cue)
         }
         else if (option == eCS_INDEX_01)
         {
-#if 0
-            s = strchr(s,' ');
-            s = skip_whitespace(s);
-            s = strchr(s,' ');
-            s = skip_whitespace(s);
-            cue->tracks[cue->track_count-1].offset = 60*1000 * atoi(s);
-            s = strchr(s,':') + 1;
-            cue->tracks[cue->track_count-1].offset += 1000 * atoi(s);
-            s = strchr(s,':') + 1;
-            cue->tracks[cue->track_count-1].offset += 13 * atoi(s);
-#else
             cue->tracks[cue->track_count-1].offset = parse_cue_index(s);
-#endif
         }
         else if (option != eCS_NOTFOUND)
         {

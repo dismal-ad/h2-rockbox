@@ -192,13 +192,7 @@ static void lcd_init_descriptors(const struct lcd_tgt_config* cfg)
     desc[1].osz = 0;
     desc[1].pw  = 0;
     desc[1].fsz = (LCD_WIDTH - 1) | ((LCD_HEIGHT - 1) << 12);
-#if LCD_DEPTH == 16
     desc[1].cnt = LCD_DMA_CNT_BPP_16BIT;
-#elif LCD_DEPTH == 24
-    desc[1].cnt = LCD_DMA_CNT_BPP_18BIT_OR_24BIT;
-#else
-# error "unsupported LCD bit depth"
-#endif
 
     /* Commit LCD DMA descriptors */
     commit_dcache_range(&desc[0], 2*sizeof(struct lcd_dma_desc));
@@ -358,10 +352,6 @@ static bool lcd_wait_frame(void)
 static void lcd_dma_stop(DMA_Mode mode)
 {
     if (mode == MODE_INIT) { // Run this only once when endinng
-#ifdef LCD_X1000_DMA_WAIT_FOR_FRAME
-        /* Wait for frame to finish to avoid misaligning the write pointer */
-        lcd_wait_frame();
-#endif
         /* Stop the DMA transfer */
         jz_writef(LCD_CTRL, ENABLE(0));
         jz_writef(LCD_MCTRL, DMA_TX_EN(0));
@@ -442,7 +432,6 @@ void lcd_init_device(void)
     lcd_dma_start();
 }
 
-#ifdef HAVE_LCD_SHUTDOWN
 void lcd_shutdown(void)
 {
     if(lcd_sleeping)
@@ -453,9 +442,7 @@ void lcd_shutdown(void)
     lcd_tgt_enable(false);
     jz_writef(CPM_CLKGR, LCD(1));
 }
-#endif
 
-#if defined(HAVE_LCD_ENABLE)
 bool lcd_active(void)
 {
     return lcd_on;
@@ -465,11 +452,7 @@ void lcd_enable(bool en)
 {
     bool state = lcd_active();
     if(state && !en)
-#if defined(BOOTLOADER) || defined(LCD_X1000_DMA_WAIT_FOR_FRAME)
-        lcd_dma_stop(MODE_INIT);
-#else
         lcd_dma_stop(MODE_SLEEP);
-#endif
 
     /* Deal with sleep mode */
     if(state && !en) {
@@ -487,7 +470,6 @@ void lcd_enable(bool en)
         lcd_dma_start();
     }
 }
-#endif
 
 void lcd_update(void)
 {

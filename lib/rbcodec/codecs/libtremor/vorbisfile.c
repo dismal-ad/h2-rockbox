@@ -1021,12 +1021,6 @@ int ov_clear(OggVorbis_File *vf){
 
 int ov_open_callbacks(void *f,OggVorbis_File *vf,
     const char *initial,long ibytes,ov_callbacks callbacks){
-  #if defined(CPU_COLDFIRE)
-  /* this seems to be the closest we get to an init function, let's init emac
-     here. rounding is disabled because of MULT31_SHIFT15, which will be
-     inaccurate with rounding in its current incarnation */
-  coldfire_set_macsr(EMAC_FRACTIONAL | EMAC_SATURATE);
-  #endif
   int ret=_ov_open1(f,vf,initial,ibytes,callbacks);
   if(ret)return ret;
   return _ov_open2(vf);

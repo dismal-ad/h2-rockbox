@@ -72,14 +72,6 @@ const char *option_get_valuestring(const struct settings_list *setting,
         strmemccpy(buffer, str(val? setting->bool_setting->lang_yes :
                                     setting->bool_setting->lang_no), buf_len);
     }
-#if 0 /* probably dont need this one */
-    else if (HASFLAG(setting, F_FILENAME))
-    {
-        struct filename_setting *info = setting->filename_setting;
-        snprintf(buffer, buf_len, "%s%s%s", info->prefix,
-                 (char*)temp_var, info->suffix);
-    }
-#endif
     else if ((HASFLAG(setting, F_INT_SETTING)) ||
               HASFLAG(setting, F_TABLE_SETTING))
     {
@@ -153,11 +145,6 @@ void option_talk_value(const struct settings_list *setting, int value, bool enqu
         talk_id(val? setting->bool_setting->lang_yes :
                 setting->bool_setting->lang_no, enqueue);
     }
-#if 0 /* probably dont need this one */
-    else if (HASFLAG(setting, F_FILENAME))
-    {
-}
-#endif
     else if ((HASFLAG(setting, F_INT_SETTING)) ||
               HASFLAG(setting, F_TABLE_SETTING))
     {
@@ -218,7 +205,6 @@ static int option_talk(int selected_item, void * data)
     return 0;
 }
 
-#if defined(HAVE_QUICKSCREEN) || defined(HAVE_RECORDING) || defined(HAVE_TOUCHSCREEN)
    /* only the quickscreen and recording trigger needs this */
 void option_select_next_val(const struct settings_list *setting,
                             bool previous, bool apply)
@@ -322,7 +308,6 @@ void option_select_next_val(const struct settings_list *setting,
             tbl_info->option_callback(val);
     }
 }
-#endif
 
 static int selection_to_val(const struct settings_list *setting, int selection)
 {
@@ -636,21 +621,3 @@ int get_setting_info_for_bar(const struct settings_list *setting, int offset, in
     return true;
 }
 
-#ifdef HAVE_TOUCHSCREEN
-void update_setting_value_from_touch(const struct settings_list *setting, int offset, int selection)
-{
-    int new_val = selection_to_val(setting, selection);
-    int var_type = setting->flags&F_T_MASK;
-
-    if (var_type == F_T_INT || var_type == F_T_UINT)
-    {
-        if (!(setting->flags&F_EQSETTING) || offset > 2)
-            offset = 0;
-        ((int*)setting->setting)[offset] = new_val;
-    }
-    else if (var_type == F_T_BOOL)
-    {
-        *(bool*)setting->setting = new_val ? true : false;
-    }
-}
-#endif

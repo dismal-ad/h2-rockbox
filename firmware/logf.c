@@ -32,9 +32,6 @@
 #include "system.h"
 #include "font.h"
 #include "lcd.h"
-#ifdef HAVE_REMOTE_LCD
-#include "lcd-remote.h"
-#endif
 #include "logf.h"
 #include "serial.h"
 #include "vuprintf.h"
@@ -66,112 +63,7 @@ bool logfwrap;
 bool logfenabled = true;
 #endif
 
-#ifdef HAVE_REMOTE_LCD
-static void displayremote(void)
-{
-    /* TODO: we should have a debug option that enables/disables this! */
-    int w, h, i;
-    int fontnr;
-    int cur_x, cur_y, delta_y, delta_x;
-    struct font* font;
-    int nb_lines;
-    char buf[2];
-    /* Memorize the pointer to the beginning of the last ... lines
-       I assume delta_y >= 6 to avoid wasting memory and allocating memory dynamically
-       I hope there is no font with height < 6 ! */
-    const int NB_ENTRIES=LCD_REMOTE_HEIGHT / 6;
-    int line_start_ptr[NB_ENTRIES];
-
-    fontnr = lcd_getfont();
-    font = font_get(fontnr);
-
-    /* get the horizontal size of each line */
-    font_getstringsize("A", NULL, &delta_y, fontnr);
-
-    /* font too small ? */
-    if(delta_y < 6)
-        return;
-    /* nothing to print ? */
-    if(logfindex == 0 && !logfwrap)
-        return;
-
-    w = LCD_REMOTE_WIDTH;
-    h = LCD_REMOTE_HEIGHT;
-    nb_lines = 0;
-
-    if(logfwrap)
-        i = logfindex;
-    else
-        i = 0;
-
-    cur_x = 0;
-
-    line_start_ptr[0] = i;
-
-    do
-    {
-        if(logfbuffer[i] == '\0')
-        {
-            line_start_ptr[++nb_lines % NB_ENTRIES] = i+1;
-            cur_x = 0;
-        }
-        else
-        {
-            /* does character fit on this line ? */
-            delta_x = font_get_width(font, logfbuffer[i]);
-
-            if(cur_x + delta_x > w)
-            {
-                cur_x = 0;
-                line_start_ptr[++nb_lines % NB_ENTRIES] = i;
-            }
-            /* update pointer */
-            cur_x += delta_x;
-        }
-        i++;
-        if(i >= MAX_LOGF_SIZE)
-            i = 0;
-    } while(i != logfindex);
-
-    lcd_remote_clear_display();
-
-    i = line_start_ptr[ MAX(nb_lines - h / delta_y, 0) % NB_ENTRIES];
-    cur_x = 0;
-    cur_y = 0;
-    buf[1] = '\0';
-
-    do {
-        if(logfbuffer[i] == '\0')
-        {
-            cur_y += delta_y;
-            cur_x = 0;
-        }
-        else
-        {
-            /* does character fit on this line ? */
-            delta_x = font_get_width(font, logfbuffer[i]);
-
-            if(cur_x + delta_x > w)
-            {
-                cur_y += delta_y;
-                cur_x = 0;
-            }
-
-            buf[0] = logfbuffer[i];
-            lcd_remote_putsxy(cur_x, cur_y, buf);
-            cur_x += delta_x;
-        }
-
-        i++;
-        if(i >= MAX_LOGF_SIZE)
-            i = 0;
-    } while(i != logfindex);
-
-    lcd_remote_update();
-}
-#else
 #define displayremote()
-#endif
 
 #ifdef __PCTOOL__
 void _logf(const char *format, ...)
@@ -200,16 +92,6 @@ static int logf_push(void *userp, int c)
 
     logfbuffer[logfindex++] = c;
     check_logfindex();
-
-#if defined(HAVE_SERIAL) && !defined(SIMULATOR) && defined(LOGF_SERIAL)
-    if(c != '\0')
-    {
-        char buf[2];
-        buf[0] = c;
-        buf[1] = '\0';
-        serial_tx(buf);
-    }
-#endif
 
     return 1;
 }
@@ -241,9 +123,6 @@ void _logf(const char *fmt, ...)
     /* add trailing zero */
     logf_push(NULL, '\0');
 
-#if defined(HAVE_SERIAL) && !defined(SIMULATOR) && defined(LOGF_SERIAL)
-    serial_tx("\r\n");
-#endif
 #ifdef USB_ENABLE_SERIAL
 
     if(logfindex < old_logfindex)

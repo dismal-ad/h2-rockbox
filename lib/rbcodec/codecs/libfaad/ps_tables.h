@@ -36,39 +36,6 @@ extern "C" {
 #pragma warning(disable:4244)
 #endif
 
-#if 0
-#if 0
-float f_center_20[12] = {
-    0.5/4,  1.5/4,  2.5/4,  3.5/4,
-    4.5/4*0,  5.5/4*0, -1.5/4, -0.5/4,
-    3.5/2,  2.5/2,  4.5/2,  5.5/2
-};
-#else
-float f_center_20[12] = {
-    0.5/8,  1.5/8,  2.5/8,  3.5/8,
-    4.5/8*0,  5.5/8*0, -1.5/8, -0.5/8,
-    3.5/4,  2.5/4,  4.5/4,  5.5/4
-};
-#endif
-
-float f_center_34[32] = {
-    1/12,   3/12,   5/12,   7/12,
-    9/12,  11/12,  13/12,  15/12,
-    17/12, -5/12,  -3/12,  -1/12,
-    17/8,   19/8,    5/8,    7/8,
-    9/8,    11/8,   13/8,   15/8,
-    9/4,    11/4,   13/4,    7/4,
-    17/4,   11/4,   13/4,   15/4,
-    17/4,   19/4,   21/4,   15/4
-};
-
-static const real_t frac_delay_q[] = {
-    FRAC_CONST(0.43),
-    FRAC_CONST(0.75),
-    FRAC_CONST(0.347)
-};
-#endif
-
 /* RE(ps->Phi_Fract_Qmf[j]) = (float)cos(M_PI*(j+0.5)*(0.39)); */
 /* IM(ps->Phi_Fract_Qmf[j]) = (float)sin(M_PI*(j+0.5)*(0.39)); */
 static const complex_t Phi_Fract_Qmf[] = {
@@ -314,24 +281,6 @@ static const complex_t Q_Fract_allpass_SubQmf34[][3] = {
     { { FRAC_CONST(0.8910064697), FRAC_CONST(0.4539906085) }, { FRAC_CONST(0.7071067691), FRAC_CONST(-0.7071067691) }, { FRAC_CONST(0.6730125546), FRAC_CONST(-0.7396310568) } },
     { { FRAC_CONST(-0.6129069924), FRAC_CONST(-0.7901550531) }, { FRAC_CONST(0.7071067691), FRAC_CONST(0.7071067691) }, { FRAC_CONST(-0.9917160273), FRAC_CONST(-0.1284494549) } }
 };
-
-#if 0
-static float quant_rho[8] =
-{
-    FRAC_CONST(1.0), FRAC_CONST(0.937), FRAC_CONST(0.84118), FRAC_CONST(0.60092),
-    FRAC_CONST(0.36764), FRAC_CONST(0.0), FRAC_CONST(-0.589), FRAC_CONST(-1.0)
-};
-
-static const uint8_t quant_iid_normal[7] =
-{
-    2, 4, 7, 10, 14, 18, 25
-};
-
-static const uint8_t quant_iid_fine[15] =
-{
-    2, 4, 6, 8, 10, 13, 16, 19, 22, 25, 30, 35, 40, 45, 50
-};
-#endif
 
 static const real_t cos_alphas[] = {
     COEF_CONST(1.0000000000), COEF_CONST(0.9841239700), COEF_CONST(0.9594738210),

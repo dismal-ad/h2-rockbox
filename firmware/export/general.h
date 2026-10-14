@@ -46,19 +46,11 @@ int make_list_from_caps32(unsigned long src_mask,
  * less than zero to number automatically. The final number used will also
  * be returned in *num. If *num is >= 0 then *num will be incremented by
  * one. */
-#if defined(HAVE_RECORDING) && (CONFIG_RTC == 0)
-/* this feature is needed by recording without a RTC to prevent disk access
-   when changing files */
-#define IF_CNFN_NUM_(...) __VA_ARGS__
-#define IF_CNFN_NUM
-#else
 #define IF_CNFN_NUM_(...)
-#endif
 char *create_numbered_filename(char *buffer, const char *path,
                                const char *prefix, const char *suffix,
                                int numberlen IF_CNFN_NUM_(, int *num));
 
-#if CONFIG_RTC
 /* Create a filename with a date+time part.
    It is allowed that buffer and path point to the same memory location,
    saving a strcpy(). Path must always be given without trailing slash.
@@ -67,7 +59,6 @@ char *create_numbered_filename(char *buffer, const char *path,
 char *create_datetime_filename(char *buffer, const char *path,
                                const char *prefix, const char *suffix,
                                bool unique_time);
-#endif /* CONFIG_RTC */
 
 /***
  ** Compacted pointer lists

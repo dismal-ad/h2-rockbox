@@ -32,11 +32,9 @@
 #include <stdbool.h>
 #include "devicedata.h"
 
-#ifndef BOOTLOADER
 # include "settings.h"
 # include "lcd.h"
 # include "font.h"
-#endif
 
 /* ===========================================
  * | OLD STATE | NEW STATE |  DIRECTION      |
@@ -76,16 +74,13 @@ volatile signed int enc_position = 0;
 /* Value of headphone detect register */
 static uint8_t hp_detect_reg = 0x00;
 static uint8_t hp_detect_reg_old = 0x00;
-#ifndef BOOTLOADER
 static uint8_t hp_detect_debounce1 = 0x00;
-#endif
 static uint8_t hp_detect_debounce2 = 0x00;
 static uint8_t debounce_count = 0;
 
 /* Interval to poll the register */
 #define HPD_POLL_TIME (HZ/4)
 
-#ifndef BOOTLOADER
 static int hp_detect_tmo_cb(struct timeout* tmo)
 {
     if (hp_detect_debounce1 == hp_detect_debounce2){
@@ -151,7 +146,6 @@ static void hp_detect_init(int version)
         hp_detect_reg_old = hp_detect_reg;
     }
 }
-#endif
 
 bool headphones_inserted(void)
 {
@@ -162,11 +156,8 @@ bool headphones_inserted(void)
     if ((hp_detect_reg & 0x30) != (hp_detect_reg_old & 0x30))
     {
         hp_detect_reg_old = hp_detect_reg;
-#if !defined(BOOTLOADER)
         eros_qn_set_outputs();
-#endif
     }
-#if !defined(BOOTLOADER)
     if (global_settings.hp_lo_select == 1) // force headphones
     {
         return true;
@@ -176,7 +167,6 @@ bool headphones_inserted(void)
         return false;
     }
     else // automatic
-#endif
     {
         return hp_detect_reg & 0x10 ? false : true;
     }
@@ -191,11 +181,8 @@ bool lineout_inserted(void)
     if ((hp_detect_reg & 0x30) != (hp_detect_reg_old & 0x30))
     {
         hp_detect_reg_old = hp_detect_reg;
-#if !defined(BOOTLOADER)
         eros_qn_set_outputs();
-#endif
     }
-#if !defined(BOOTLOADER)
     if (global_settings.hp_lo_select == 1) // force headphones
     {
         return false;
@@ -205,7 +192,6 @@ bool lineout_inserted(void)
         return true;
     }
     else // automatic
-#endif
     {
         return hp_detect_reg & 0x20 ? false : true;
     }
@@ -230,9 +216,7 @@ void button_init_device(void)
     gpio_enable_irq(GPIO_BTN_SCROLL_B);
 
     /* Set up headphone and line out detect polling */
-#ifndef BOOTLOADER
     hp_detect_init(device_data.hw_rev);
-#endif
 }
 
 /* wheel Quadrature line A interrupt */
@@ -283,15 +267,6 @@ int button_read_device(void)
     if((a & (1 << 16)) == 0) r  |= BUTTON_PLAY;
     if((a & (1 << 17)) == 0) r  |= BUTTON_VOL_UP;
     if((a & (1 << 19)) == 0) r  |= BUTTON_VOL_DOWN;
-#ifdef BOOTLOADER
-# if EROSQN_VER >= 4
-    if((b & (1 << 31)) == 0) r |= BUTTON_POWER;
-    if((a & (1 << 18)) == 0) r |= BUTTON_BACK;
-# else
-    if((b & (1 << 7)) == 0) r  |= BUTTON_POWER;
-    if((d & (1 << 5)) == 0) r  |= BUTTON_BACK;
-# endif
-#else
     if (device_data.hw_rev >= 4){
         if((b & (1 << 31)) == 0) r |= BUTTON_POWER;
         if((a & (1 << 18)) == 0) r |= BUTTON_BACK;
@@ -299,13 +274,11 @@ int button_read_device(void)
         if((b & (1 << 7)) == 0) r  |= BUTTON_POWER;
         if((d & (1 << 5)) == 0) r  |= BUTTON_BACK;
     }
-#endif
     if((b & (1 << 28)) == 0) r  |= BUTTON_MENU;
     
     if((d & (1 <<  4)) == 0) r  |= BUTTON_PREV;
     if((c & (1 << 24)) == 0) r  |= BUTTON_NEXT;
 
-#ifndef BOOTLOADER
     if (device_data.hw_rev >= 4){
         // get new HP/LO detect states
         // HP_detect PB14 --> hp_detect bit 4
@@ -324,7 +297,6 @@ int button_read_device(void)
             hp_detect_debounce2 = hp_detect_debounce1;
         }
     }
-#endif
 
     /* check encoder - from testing, each indent is 2 state changes or so */
     if (enc_position > 1)

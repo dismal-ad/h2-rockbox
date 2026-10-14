@@ -71,9 +71,6 @@
 void pcm_rec_error_clear(void);
 unsigned int pcm_rec_status(void);
 uint32_t pcm_rec_get_warnings(void);
-#ifdef HAVE_SPDIF_IN
-unsigned long pcm_rec_sample_rate(void);
-#endif
 
 void recording_init(void);
 

@@ -86,11 +86,7 @@
 #define USB_DW_TOUTCAL 0
 #endif
 
-#ifdef USB_DW_FORCE_DEVICE_MODE
-#define USB_DW_FORCED_MODE FDMOD
-#else
 #define USB_DW_FORCED_MODE 0
-#endif
 
 #ifndef USB_DW_DCFG_SPEED
 #define USB_DW_DCFG_SPEED 0

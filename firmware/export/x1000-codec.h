@@ -45,10 +45,6 @@
 #define X1000_ICODEC_MIC_GAIN_MAX  20
 #define X1000_ICODEC_MIC_GAIN_STEP 4
 
-#ifdef HAVE_X1000_ICODEC_REC
-AUDIOHW_SETTING(MIC_GAIN, "dB", 0, 1, 0, 63, 12)
-#endif
-
 #define JZCODEC_INDIRECT_CREG(r)  ((r) & 0xff)
 #define JZCODEC_INDIRECT_INDEX(r) (((r) >> 8) & 0x7)
 #define JZCODEC_INDIRECT_BIT      0x800

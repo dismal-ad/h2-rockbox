@@ -80,9 +80,6 @@ static unsigned int voice_thread_id = 0;
 #if defined(CPU_MIPS)
 /* MIPS is stack-hungry */
 #define VOICE_STACK_EXTRA   0x500
-#elif defined(CPU_COLDFIRE)
-/* ISR uses any available stack - need a bit more room */
-#define VOICE_STACK_EXTRA   0x400
 #elif (CONFIG_PLATFORM & PLATFORM_HOSTED)
 /* Needed at least on the Sony NWZ hosted targets, but probably a good idea on all of them */
 #define VOICE_STACK_EXTRA   0x500
@@ -601,7 +598,6 @@ void voice_thread_init(void)
                             voice_thread_id);
 }
 
-#ifdef HAVE_PRIORITY_SCHEDULING
 /* Set the voice thread priority */
 void voice_thread_set_priority(int priority)
 {
@@ -613,4 +609,3 @@ void voice_thread_set_priority(int priority)
 
     thread_set_priority(voice_thread_id, priority);
 }
-#endif

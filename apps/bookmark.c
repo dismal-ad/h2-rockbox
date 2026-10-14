@@ -436,10 +436,6 @@ static bool generate_bookmark_file_name(char *filenamebuf,
    compiled with -D_FORTIFY_SOURCE or -Wformat-truncation
    This is a false positive, so disable it here only */
 /* SHOULD NO LONGER BE NEEDED --Bilgus 11-2022 */
-#if 0 /* __GNUC__ >= 7 */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-truncation"
-#endif
 /* ----------------------------------------------------------------------- */
 /* This function takes the system resume data and formats it into a valid  */
 /* bookmark.                                                               */
@@ -523,9 +519,6 @@ static char* create_bookmark(char **name,
     else
         return NULL;
 }
-#if 0/* __GNUC__ >= 7*/
-#pragma GCC diagnostic pop /* -Wformat-truncation */
-#endif
 
 /* ----------------------------------------------------------------------- */
 /* This function gets some basic resume information for the current song   */

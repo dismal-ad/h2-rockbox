@@ -256,7 +256,6 @@ static void sbr_process_channel(sbr_info *sbr, real_t *channel_buf, qmf_t X[MAX_
 
     if (!dont_process)
     {
-#if 1
         /* insert high frequencies here */
         /* hf generation using patching */
         hf_generation(sbr, sbr->Xsbr[ch], sbr->Xsbr[ch]
@@ -264,7 +263,6 @@ static void sbr_process_channel(sbr_info *sbr, real_t *channel_buf, qmf_t X[MAX_
             ,deg
 #endif
             ,ch);
-#endif
 
 #ifdef SBR_LOW_POWER
         for (l = sbr->t_E[ch][0]; l < sbr->t_E[ch][sbr->L_E[ch]]; l++)
@@ -276,14 +274,12 @@ static void sbr_process_channel(sbr_info *sbr, real_t *channel_buf, qmf_t X[MAX_
         }
 #endif
 
-#if 1
         /* hf adjustment */
         hf_adjustment(sbr, sbr->Xsbr[ch]
 #ifdef SBR_LOW_POWER
             ,deg
 #endif
             ,ch);
-#endif
     }
 
     if ((sbr->just_seeked != 0) || dont_process)

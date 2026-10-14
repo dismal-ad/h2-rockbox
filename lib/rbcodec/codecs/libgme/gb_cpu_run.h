@@ -1,32 +1,5 @@
 // Game_Music_Emu 0.6-pre. http://www.slack.net/~ant/
 
-#if 0
-/* Define these macros in the source file before #including this file.
-- Parameters might be expressions, so they are best evaluated only once,
-though they NEVER have side-effects, so multiple evaluation is OK.
-- Output parameters might be a multiple-assignment expression like "a=x",
-so they must NOT be parenthesized.
-- Macros "returning" void may use a {} statement block. */
-
-	// 0 <= addr <= 0xFFFF + page_size
-	// time functions can be used
-	int  READ_MEM(  addr_t );
-	void WRITE_MEM( addr_t, int data );
-	
-	// Access of 0xFF00 + offset
-	// 0 <= offset <= 0xFF
-	int  READ_IO(  int offset );
-	void WRITE_IO( int offset, int data );
-
-	// Often-used instructions use this instead of READ_MEM
-	void READ_FAST( addr_t, int& out );
-
-// The following can be used within macros:
-	
-	// Current time
-	cpu_time_t TIME();
-#endif
-
 /* Copyright (C) 2003-2009 Shay Green. This module is free software; you
 can redistribute it and/or modify it under the terms of the GNU Lesser
 General Public License as published by the Free Software Foundation; either

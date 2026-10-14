@@ -38,10 +38,6 @@
 
 
 /* static function declarations */
-#if 0
-static int16_t rel_bord_lead(sbr_info *sbr, uint8_t ch, uint8_t l);
-static int16_t rel_bord_trail(sbr_info *sbr, uint8_t ch, uint8_t l);
-#endif
 static uint8_t middleBorder(sbr_info *sbr, uint8_t ch);
 
 
@@ -167,63 +163,6 @@ void noise_floor_time_border_vector(sbr_info *sbr, uint8_t ch)
         sbr->t_Q[ch][2] = sbr->t_E[ch][sbr->L_E[ch]];
     }
 }
-
-#if 0
-static int16_t rel_bord_lead(sbr_info *sbr, uint8_t ch, uint8_t l)
-{
-    uint8_t i;
-    int16_t acc = 0;
-
-    switch (sbr->bs_frame_class[ch])
-    {
-    case FIXFIX:
-        return sbr->numTimeSlots/sbr->L_E[ch];
-    case FIXVAR:
-        return 0;
-    case VARFIX:
-        for (i = 0; i < l; i++)
-        {
-            acc += sbr->bs_rel_bord[ch][i];
-        }
-        return acc;
-    case VARVAR:
-        for (i = 0; i < l; i++)
-        {
-            acc += sbr->bs_rel_bord_0[ch][i];
-        }
-        return acc;
-    }
-
-    return 0;
-}
-
-static int16_t rel_bord_trail(sbr_info *sbr, uint8_t ch, uint8_t l)
-{
-    uint8_t i;
-    int16_t acc = 0;
-
-    switch (sbr->bs_frame_class[ch])
-    {
-    case FIXFIX:
-    case VARFIX:
-        return 0;
-    case FIXVAR:
-        for (i = 0; i < l; i++)
-        {
-            acc += sbr->bs_rel_bord[ch][i];
-        }
-        return acc;
-    case VARVAR:
-        for (i = 0; i < l; i++)
-        {
-            acc += sbr->bs_rel_bord_1[ch][i];
-        }
-        return acc;
-    }
-
-    return 0;
-}
-#endif
 
 static uint8_t middleBorder(sbr_info *sbr, uint8_t ch)
 {

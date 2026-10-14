@@ -858,12 +858,9 @@ static int load_image(int fd, const char *path,
     /* FIXME: alignment may be needed for the data buffer. */
     bmp->data = ringbuf_ptr(bufidx + sizeof(struct bitmap));
 
-#if (LCD_DEPTH > 1) || defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1)
     bmp->maskdata = NULL;
-#endif
     const int format = FORMAT_NATIVE | FORMAT_DITHER |
                        FORMAT_RESIZE | FORMAT_KEEP_ASPECT;
-#ifdef HAVE_JPEG
     if (aa != NULL) {
         lseek(fd, aa->pos, SEEK_SET);
         rc = clip_jpeg_fd(fd, aa->type, aa->size, bmp, (int)max_size, format, NULL);
@@ -871,7 +868,6 @@ static int load_image(int fd, const char *path,
     else if (strcmp(path + strlen(path) - 4, ".bmp"))
         rc = read_jpeg_fd(fd, bmp, (int)max_size, format, NULL);
     else
-#endif
         rc = read_bmp_fd(fd, bmp, (int)max_size, format, NULL);
 
     return rc + (rc > 0 ? sizeof(struct bitmap) : 0);
@@ -947,11 +943,6 @@ int bufopen(const char *file, off_t offset, enum data_type type,
     }
     else if (type == TYPE_UNKNOWN)
         return ERR_UNSUPPORTED_TYPE;
-#ifdef APPLICATION
-    /* Loading code from memory is not supported in application builds */
-    else if (type == TYPE_CODEC)
-        return ERR_UNSUPPORTED_TYPE;
-#endif
     /* Other cases: there is a little more work. */
     int fd = open(file, O_RDONLY);
     if (fd < 0)
@@ -967,17 +958,11 @@ int bufopen(const char *file, off_t offset, enum data_type type,
         size = BM_SIZE(aa->dim->width, aa->dim->height, FORMAT_NATIVE, false);
         size += sizeof(struct bitmap);
 
-#ifdef HAVE_JPEG
         /* JPEG loading requires extra memory
          * TODO: don't add unncessary overhead for .bmp images! */
         size += JPEG_DECODE_OVERHEAD;
-#endif
        /* resize_on_load requires space for 1 line + 2 spare lines */
-#ifdef HAVE_LCD_COLOR
         size += sizeof(struct uint32_argb) * 3 * aa->dim->width;
-#else
-        size += sizeof(uint32_t) * 3 * aa->dim->width;
-#endif
     }
 #endif /* HAVE_ALBUMART */
 

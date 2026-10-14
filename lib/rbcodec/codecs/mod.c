@@ -350,63 +350,9 @@ static void initmodplayer(void) ICODE_ATTR;
 void initmodplayer(void)
 {
     unsigned int c;
-#if 0
-    /* As the calculation of periodtable and sintable uses float and double
-     * rockbox uses two predefined tables. This reduces the codesize by
-     * several KB. */
-
-    unsigned int i;
-    /* Calculate Amiga Period Values
-     * Start with Period 907 (= C-1 with Finetune -8) and work upwards */
-    double f = 907.0f;
-    /* Index 0 stands for no note (and therefore no period) */
-    modplayer.periodtable[0] = 0;
-    for (i=1;i<297;i++)
-    {
-        modplayer.periodtable[i] = (unsigned short) f;
-        f /= 1.0072464122237039; /* = pow(2.0f, 1.0f/(12.0f*8.0f)); */
-    }
-
-    /*
-     * This is a more accurate but also time more consuming approach
-     * to calculate the amiga period table
-     * Commented out for speed purposes
-    const int finetuning = 8;
-    const int octaves = 3;
-    for (int halftone=0;halftone<=finetuning*octaves*12+7;halftone++)
-        {
-            float e = pow(2.0f, halftone/(12.0f*8.0f));
-            float f = 906.55f/e;
-            modplayer.periodtable[halfetone+1] = (int)(f+0.5f);
-        }
-    */
-
-    /* Calculate Protracker Vibrato sine table
-     * The routine makes use of the Harmonical Oscillator Approach
-     * for calculating sine tables
-     * (see http://membres.lycos.fr/amycoders/tutorials/sintables.html)
-     * The routine presented here calculates a complete sine wave
-     * with 64 values in range [-255,255]
-     */
-    float a, b, d, dd;
-
-    d = 0.09817475f; /* = 2*PI/64 */
-    dd = d*d;
-    a = 0;
-    b = d;
-
-    for (i=0;i<0x40;i++)
-    {
-        modplayer.sintable[i] = (int)(255*a);
-
-        a = a+b;
-        b = b-dd*a;
-    }
-#else
     /* Point to the predefined tables */
     modplayer.periodtable = s_periodtable;
     modplayer.sintable    = s_sintable;
-#endif
     /* Set Default Player Values */
     modplayer.currentline = 0;
     modplayer.currenttick = 0;
@@ -1318,13 +1264,6 @@ enum codec_status codec_run(void)
     loadmod(modfile);
 
     /* The main decoder loop */
-#if 0
-    /* Needs to be a bit more elaborate or critical stuff is missed */
-    if (ci->id3->elapsed) {
-        modplayer.patterntableposition = ci->id3->elapsed/1000;
-        modplayer.currentline = 0;
-    }
-#endif
 
     ci->set_elapsed(modplayer.patterntableposition*1000);
 

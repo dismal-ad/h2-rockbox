@@ -31,7 +31,7 @@
  *
  * simulator (possibly) doesn't simulate stack usage anyway but well ... */
 
-#if defined(HAVE_SDL_THREADS) || defined(__PCTOOL__) || defined(N3DS)
+#if defined(HAVE_SDL_THREADS) || defined(__PCTOOL__)
 struct regs
 {
     void *t;             /* OS thread */
@@ -64,8 +64,6 @@ enum
     TIMEOUT_STATE_FIRST = STATE_SLEEPING,
 };
 
-#ifdef HAVE_PRIORITY_SCHEDULING
-
 /* Quick-disinherit of priority elevation. Must be a running thread. */
 void priority_disinherit(struct thread_entry *thread, struct blocker *bl);
 
@@ -74,8 +72,6 @@ struct priority_distribution
     uint8_t   hist[NUM_PRIORITIES]; /* Histogram: Frequency for each priority */
     priobit_t mask;                 /* Bitmask of hist entries that are not zero */
 };
-
-#endif /* HAVE_PRIORITY_SCHEDULING */
 
 #define __rtr_queue         lldc_head
 #define __rtr_queue_node    lldc_node
@@ -111,7 +107,6 @@ struct thread_entry
                                     misc. use */
     uint32_t id;                 /* Current slot id */
     int __errno;                 /* Thread error number (errno tls) */
-#ifdef HAVE_PRIORITY_SCHEDULING
     /* Priority summary of owned objects that support inheritance */
     struct blocker *blocker;     /* Pointer to blocker when this thread is blocked
                                     on an object that supports PIP -
@@ -125,7 +120,6 @@ struct thread_entry
                                   creation or thread_set_priority) */
     unsigned char priority;      /* Scheduled priority (higher of base or
                                     all threads blocked by this one) */
-#endif
     unsigned char state;         /* Thread slot state (STATE_*) */
 #ifdef HAVE_SCHEDULER_BOOSTCTRL
     unsigned char cpu_boost;     /* CPU frequency boost flag */
@@ -154,9 +148,7 @@ struct core_entry
     struct __rtr_queue rtr;          /* Threads that are runnable */
     struct __tmo_queue tmo;          /* Threads on a bounded wait */
     struct thread_entry *running;    /* Currently running thread */
-#ifdef HAVE_PRIORITY_SCHEDULING
     struct priority_distribution rtr_dist; /* Summary of runnables */
-#endif
     long next_tmo_check;             /* Next due timeout check */
 #if NUM_CORES > 1
     struct corelock rtr_cl;          /* Lock for rtr list */
@@ -251,19 +243,12 @@ void sleep_thread(int ticks);
 /* Blocks the current thread on a thread queue (< 0 == infinite) */
 void block_thread_(struct thread_entry *current, int timeout);
 
-#ifdef HAVE_PRIORITY_SCHEDULING
 #define block_thread(thread, timeout, __wqp, bl) \
     ({ struct thread_entry *__t = (thread);   \
        __t->wqp = (__wqp);                    \
        if (!__builtin_constant_p(bl) || (bl)) \
            __t->blocker = (bl);               \
        block_thread_(__t, (timeout)); })
-#else
-#define block_thread(thread, timeout, __wqp, bl...) \
-    ({ struct thread_entry *__t = (thread); \
-       __t->wqp = (__wqp);                  \
-       block_thread_(__t, (timeout)); })
-#endif
 
 /* Return bit flags for thread wakeup */
 #define THREAD_NONE     0x0 /* No thread woken up (exclusive) */
@@ -286,13 +271,8 @@ enum wakeup_thread_protocol
 unsigned int wakeup_thread_(struct thread_entry *thread
                             IF_PRIO(, enum wakeup_thread_protocol proto));
 
-#ifdef HAVE_PRIORITY_SCHEDULING
 #define wakeup_thread(thread, proto) \
     wakeup_thread_((thread), (proto))
-#else
-#define wakeup_thread(thread, proto...) \
-    wakeup_thread_((thread));
-#endif
 
 #ifdef RB_PROFILE
 void profile_thread(void);
@@ -404,17 +384,13 @@ static inline struct __wait_queue *
 static inline void blocker_init(struct blocker *bl)
 {
     bl->thread = NULL;
-#ifdef HAVE_PRIORITY_SCHEDULING
     bl->priority = PRIORITY_IDLE;
-#endif
 }
 
 static inline void blocker_splay_init(struct blocker_splay *blsplay)
 {
     blocker_init(&blsplay->blocker);
-#ifdef HAVE_PRIORITY_SCHEDULING
     threadbit_clear(&blsplay->mask);
-#endif
     corelock_init(&blsplay->cl);
 }
 

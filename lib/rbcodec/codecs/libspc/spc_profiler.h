@@ -45,13 +45,6 @@
 
 CREATE_TIMER(total);
 CREATE_TIMER(render);
-#if 0
-CREATE_TIMER(cpu);
-CREATE_TIMER(dsp);
-CREATE_TIMER(dsp_pregen);
-CREATE_TIMER(dsp_gen);
-CREATE_TIMER(dsp_mix);
-#endif
 
 void reset_profile_timers(void);
 void print_timers(char * path);

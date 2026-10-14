@@ -138,75 +138,12 @@ typedef int16_t quantizer_t;
 #define SAMPLE(x) (sample_t)((x) * (1 << 30))
 #define LEVEL(x) (level_t)((x) * (1 << 26))
 
-#if 0
-#define MUL(a,b) ((int)(((int64_t)(a) * (b) + (1 << 29)) >> 30))
-#define MUL_L(a,b) ((int)(((int64_t)(a) * (b) + (1 << 25)) >> 26))
-#elif defined(CPU_COLDFIRE)
-/* loses 1 bit of accuracy */
-#define MUL(a, b) \
-({ \
-    int32_t t; \
-    asm volatile ( \
-        "mac.l %[A], %[B], %%acc0\n\t" \
-        "movclr.l %%acc0, %[t]\n\t" \
-        "asl.l #1, %[t]" \
-        : [t] "=d" (t) \
-        : [A] "r" ((a)), [B] "r" ((b))); \
-    t; \
-})
-/* loses 5 bits of accuracy */
-#define MUL_L(a, b) \
-({ \
-    int32_t t; \
-    asm volatile ( \
-        "mac.l %[A], %[B], %%acc0\n\t" \
-        "movclr.l %%acc0, %[t]\n\t" \
-        "asl.l #5, %[t]" \
-        : [t] "=d" (t) \
-        : [A] "r" ((a)), [B] "r" ((b))); \
-    t; \
-})
-
-#elif defined(CPU_ARM)
-#define MUL(x, y)  \
-    ({ int32_t __hi;  \
-       uint32_t __lo;  \
-       int32_t __result;  \
-       asm ("smull   %0, %1, %3, %4\n\t"  \
-            "movs    %2, %1, lsl #2"  \
-            : "=&r" (__lo), "=&r" (__hi), "=r" (__result)  \
-            : "%r" (x), "r" (y)  \
-            : "cc");  \
-       __result;  \
-    })
-
-
-#define MUL_L(x, y)  \
-    ({ int32_t __hi;  \
-       uint32_t __lo;  \
-       int32_t __result;  \
-       asm ("smull   %0, %1, %3, %4\n\t"  \
-            "movs    %0, %0, lsr %5\n\t"  \
-            "adc    %2, %0, %1, lsl %6"  \
-            : "=&r" (__lo), "=&r" (__hi), "=r" (__result)  \
-            : "%r" (x), "r" (y),  \
-              "M" (26), "M" (32 - 26)  \
-            : "cc");  \
-       __result;  \
-    })
-    
-
-#elif 1
 #define MUL(a,b) \
 ({ int32_t _ta=(a), _tb=(b), _tc; \
    _tc=(_ta & 0xffff)*(_tb >> 16)+(_ta >> 16)*(_tb & 0xffff); (int32_t)(((_tc >> 14))+ (((_ta >> 16)*(_tb >> 16)) << 2 )); })
 #define MUL_L(a,b) \
 ({ int32_t _ta=(a), _tb=(b), _tc; \
    _tc=(_ta & 0xffff)*(_tb >> 16)+(_ta >> 16)*(_tb & 0xffff); (int32_t)((_tc >> 10) + (((_ta >> 16)*(_tb >> 16)) << 6)); })
-#else
-#define MUL(a,b) (((a) >> 15) * ((b) >> 15))
-#define MUL_L(a,b) (((a) >> 13) * ((b) >> 13))
-#endif
 
 #define MUL_C(a,b) MUL_L (a, LEVEL (b))
 #define DIV(a,b) ((((int64_t)LEVEL (a)) << 26) / (b))

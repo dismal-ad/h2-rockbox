@@ -30,11 +30,7 @@ bool round_number_string10(char *p_rdig, long len)
      * * buffer is updated in reverse
      * * an additional '1' may be added to the beginning: eg. 9.9 => 10.0
      */
-#if 1 /* nearest */
     bool round = p_rdig[0] >= '5';
-#else /* even */
-    bool round = p_rdig[0] >= '5' && (p_rdig[-1] & 1);
-#endif
 
     while (round && len-- > 0) {
         int d = *--p_rdig;

@@ -61,36 +61,8 @@ static mpc_inline mpc_uint32_t mpc_bits_read(mpc_bits_reader * r, const unsigned
     return ret & ((1 << nb_bits) - 1);
 }
 
-#if defined(CPU_COLDFIRE)
-/* rockbox: This is specific code to optimize demux performance on Coldfire
- * CPUs. Coldfire CPUs are very sensible to RAM accesses. As the bitstream
- * buffer does not fit into IRAM the read accesses to the uint8 buffer are very
- * expensive in terms of CPU cycles.
- * The following code uses two variables in IRAM. The variable last_code keeps
- * the 4-byte value of buf[0]<<16 | buf[1]<<8 | buf[2]. As long as buf[0] will 
- * read from the same address the following code will avoid re-reading of the 
- * buffers. If buf[0] did advance to the next uint8-entry since the last call
- * the following will only need to load 1 uint8-entry instead of 3. 
- */
-static mpc_inline mpc_uint16_t get_code_from_buffer(mpc_bits_reader *r)
-{
-    /* Buffer advanced by 1 entry since last call */
-    if (r->buff == r->buffered_addr + 1) {
-        r->buffered_code = (r->buffered_code<<8) | r->buff[2];
-        r->buffered_addr = r->buff;
-    }
-    /* Buffer must be fully re-read */
-    else if (r->buff != r->buffered_addr) {
-        r->buffered_code = (r->buff[0] << 16) | (r->buff[1] << 8) | r->buff[2];
-        r->buffered_addr = r->buff;
-    }
-
-    return (mpc_uint16_t)((r->buffered_code >> r->count) & 0xFFFF);
-}
-#else
 /* Use the decoder's default implementation. This is faster on non-Coldfire targets */
 #define get_code_from_buffer(r) (mpc_uint16_t)((((r->buff[0] << 16) | (r->buff[1] << 8) | r->buff[2]) >> r->count) & 0xFFFF);
-#endif
 
 // basic huffman decoding routine
 // works with maximum lengths up to 16

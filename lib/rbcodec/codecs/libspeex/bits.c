@@ -60,19 +60,6 @@ EXPORT void speex_bits_init(SpeexBits *bits)
 }
 #endif
 
-#if 0
-/* Rockbox: unused */
-EXPORT void speex_bits_init_buffer(SpeexBits *bits, void *buff, int buf_size)
-{
-   bits->chars = (char*)buff;
-   bits->buf_size = buf_size;
-
-   bits->owner=0;
-
-   speex_bits_reset(bits);
-}
-#endif
-
 EXPORT void speex_bits_set_bit_buffer(SpeexBits *bits, void *buff, int buf_size)
 {
    bits->chars = (char*)buff;
@@ -102,16 +89,6 @@ EXPORT void speex_bits_reset(SpeexBits *bits)
    /* We only need to clear the first byte now */
    bits->chars[0]=0;
    bits->nbBits=0;
-   bits->charPtr=0;
-   bits->bitPtr=0;
-   bits->overflow=0;
-}
-#endif
-
-#if 0
-/* Rockbox: unused */
-EXPORT void speex_bits_rewind(SpeexBits *bits)
-{
    bits->charPtr=0;
    bits->bitPtr=0;
    bits->overflow=0;
@@ -286,20 +263,6 @@ EXPORT void speex_bits_pack(SpeexBits *bits, int data, int nbBits)
 }
 #endif /* SPEEX_DISABLE_ENCODER */
 
-#if 0
-/* Rockbox: unused */
-EXPORT int speex_bits_unpack_signed(SpeexBits *bits, int nbBits)
-{
-   unsigned int d=speex_bits_unpack_unsigned(bits,nbBits);
-   /* If number is negative */
-   if (d>>(nbBits-1))
-   {
-      d |= (-1)<<nbBits;
-   }
-   return d;
-}
-#endif
-
 EXPORT unsigned int speex_bits_unpack_unsigned(SpeexBits *bits, int nbBits)
 {
    unsigned int d=0;
@@ -321,38 +284,6 @@ EXPORT unsigned int speex_bits_unpack_unsigned(SpeexBits *bits, int nbBits)
    }
    return d;
 }
-
-#if 0
-/* Rockbox: unused */
-EXPORT unsigned int speex_bits_peek_unsigned(SpeexBits *bits, int nbBits)
-{
-   unsigned int d=0;
-   int bitPtr, charPtr;
-   char *chars;
-
-   if ((bits->charPtr<<LOG2_BITS_PER_CHAR)+bits->bitPtr+nbBits>bits->nbBits)
-     bits->overflow=1;
-   if (bits->overflow)
-      return 0;
-
-   bitPtr=bits->bitPtr;
-   charPtr=bits->charPtr;
-   chars = bits->chars;
-   while(nbBits)
-   {
-      d<<=1;
-      d |= (chars[charPtr]>>(BITS_PER_CHAR-1 - bitPtr))&1;
-      bitPtr++;
-      if (bitPtr==BITS_PER_CHAR)
-      {
-         bitPtr=0;
-         charPtr++;
-      }
-      nbBits--;
-   }
-   return d;
-}
-#endif
 
 EXPORT int speex_bits_peek(SpeexBits *bits)
 {
@@ -380,14 +311,6 @@ EXPORT int speex_bits_remaining(SpeexBits *bits)
    else
       return bits->nbBits-((bits->charPtr<<LOG2_BITS_PER_CHAR)+bits->bitPtr);
 }
-
-#if 0
-/* Rockbox: unused */
-EXPORT int speex_bits_nbytes(SpeexBits *bits)
-{
-   return ((bits->nbBits+BITS_PER_CHAR-1)>>LOG2_BITS_PER_CHAR);
-}
-#endif
 
 #ifndef SPEEX_DISABLE_ENCODER
 EXPORT void speex_bits_insert_terminator(SpeexBits *bits)

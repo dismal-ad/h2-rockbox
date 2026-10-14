@@ -30,13 +30,7 @@
 //#define CPU_FREQ         1008000000
 
 /* Only 24 MHz and 26 MHz external oscillators are supported by the X1000 */
-#if X1000_EXCLK_FREQ == 24000000
 # define X1000_EXCLK_24MHZ
-#elif X1000_EXCLK_FREQ == 26000000
-# define X1000_EXCLK_26MHZ
-#else
-# error "Unsupported EXCLK freq"
-#endif
 
 /* On-chip TCSM (tightly coupled shared memory), aka IRAM. The SPL runs from
  * here, but the rest of Rockbox doesn't use it - it is too difficult to use

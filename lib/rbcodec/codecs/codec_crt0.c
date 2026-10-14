@@ -30,33 +30,11 @@ extern unsigned char plugin_end_addr[];
  * avoid warning with certain compilers */
 int _start(void) {return 0;}
 
-#ifdef N3DS
-/* dummy undefined symbols */
-void __aeabi_unwind_cpp_pr0(void) {}
-struct _reent * _EXFUN(__getreent, (void)) { return NULL; }
-#endif
-
 enum codec_status codec_start(enum codec_entry_call_reason reason)
 {
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
     if (reason == CODEC_LOAD)
     {
-#ifdef USE_IRAM
-        extern char iramcopy[], iramstart[], iramend[], iedata[], iend[];
-        size_t iram_size = iramend - iramstart;
-        size_t ibss_size = iend - iedata;
-        if (iram_size > 0 || ibss_size > 0)
-        {
-            ci->memcpy(iramstart, iramcopy, iram_size);
-            ci->memset(iedata, 0, ibss_size);
-            /* make the icache (if it exists) up to date with the new code */
-            ci->commit_discard_idcache();
-            /* barrier to prevent reordering iram copy and BSS clearing,
-             * because the BSS segment alias the IRAM copy.
-             */
-            asm volatile ("" ::: "memory");
-        }
-#endif /* PLUGIN_USE_IRAM */
         ci->memset(plugin_bss_start, 0, plugin_end_addr - plugin_bss_start);
         /* Some parts of bss may be used via a no-cache alias (at least
          * portalplayer has this). If we don't clear the cache, those aliases
@@ -70,13 +48,6 @@ enum codec_status codec_start(enum codec_entry_call_reason reason)
      * any other value and some strategy to avoid doing so must be conceived */
     return codec_main(reason);
 }
-
-#if defined(ARM_NEED_DIV0)
-void __attribute__((naked)) __div0(void)
-{
-    asm volatile("bx %0" : : "r"(ci->__div0));
-}
-#endif
 
 #if defined(USE_STACK_PROTECTOR)
 const uint32_t __stack_chk_guard = 0x2BADC0DE;

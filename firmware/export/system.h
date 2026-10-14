@@ -152,13 +152,7 @@ int get_cpu_boost_counter(void);
 #endif
 
 /* returns index of first set bit or 32 if no bits are set */
-#if (defined(CPU_ARM) && ARM_ARCH >= 5 && !defined(__thumb__)) || \
-    defined(CPU_ARM_MICRO)
-static inline int find_first_set_bit(uint32_t val)
-    { return LIKELY(val) ? __builtin_ctz(val) : 32; }
-#else
 int find_first_set_bit(uint32_t val);
-#endif
 
 static inline __attribute__((always_inline))
 uint32_t isolate_first_bit(uint32_t val)
@@ -248,17 +242,14 @@ static inline void cpu_boost_unlock(void)
 #endif
 
 /* Define this if target has support for generating backtraces */
-#if defined(CPU_ARM) || \
-    (defined(CPU_MIPS) && (CONFIG_PLATFORM & PLATFORM_NATIVE))
-#ifndef DISABLE_BACKTRACE
+#if (defined(CPU_MIPS) && (CONFIG_PLATFORM & PLATFORM_NATIVE))
     #define HAVE_RB_BACKTRACE
-#endif
 #endif
 
 /*
  * ARM and MIPS ABIs generally require 8-byte stack alignment.
  */
-#if defined(CPU_ARM) || defined(CPU_MIPS)
+#if defined(CPU_MIPS)
     #define MIN_STACK_ALIGN 8
 #endif
 
@@ -297,10 +288,6 @@ static inline void cpu_boost_unlock(void)
     /* Align to a cache line. */
     #define MEM_ALIGN_ATTR CACHEALIGN_ATTR
     #define MEM_ALIGN_SIZE CACHEALIGN_SIZE
-#elif defined(CPU_COLDFIRE)
-    /* Use fixed alignment of 16 bytes. Speed up only for 'movem' in DRAM. */
-    #define MEM_ALIGN_ATTR __attribute__((aligned(16)))
-    #define MEM_ALIGN_SIZE 16
 #else
     /* Align pointer size */
     #define MEM_ALIGN_ATTR __attribute__((aligned(sizeof(intptr_t))))
@@ -313,9 +300,6 @@ static inline void cpu_boost_unlock(void)
     ((typeof (x))ALIGN_DOWN((uintptr_t)(x), MEM_ALIGN_SIZE))
 
 /* Bounce buffers may have alignment requirments */
-#if defined(MAX_PHYS_SECTOR_SIZE) && !defined(STORAGE_WANTS_ALIGN)
-#define STORAGE_WANTS_ALIGN
-#endif
 
 #if defined(STORAGE_WANTS_ALIGN) && !defined(SIMULATOR)
     #define STORAGE_ALIGN_ATTR __attribute__((aligned(CACHEALIGN_SIZE)))
@@ -342,7 +326,7 @@ static inline void cpu_boost_unlock(void)
 #ifndef SIMULATOR
 bool dbg_ports(void);
 #endif
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE) || defined(SONY_NWZ_LINUX) || defined(HIBY_LINUX) || defined(FIIO_M3K_LINUX)
+#if (CONFIG_PLATFORM & PLATFORM_NATIVE) || defined(SONY_NWZ_LINUX)
 bool dbg_hw_info(void);
 #endif
 

@@ -2982,13 +2982,11 @@ void dircache_dcfile_init(struct dircache_file *dcfilep)
 
 #ifdef HAVE_EEPROM_SETTINGS
 
-#ifdef HAVE_HOTSWAP
 /* NOTE: This is hazardous to the filesystem of any sort of removable
          storage unless it may be determined that the filesystem from save
          to load is identical. If it's not possible to do so in a timely
          manner, it's not worth persisting the cache. */
   #warning "Don't do this; you'll find the consequences unpleasant."
-#endif
 
 /* dircache persistence file header magic */
 #define DIRCACHE_MAGIC  0x00d0c0a1

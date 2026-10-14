@@ -18,7 +18,6 @@
  *
  ****************************************************************************/
 
-#ifndef BOOTLOADER
 #include "system.h"
 #include "kernel.h"
 #include "button.h"
@@ -117,22 +116,13 @@ static bool dbg_gpios(void)
 }
 
 extern volatile unsigned aic_tx_underruns;
-#ifdef HAVE_RECORDING
-extern volatile unsigned aic_rx_overruns;
-#endif
-#ifdef HAVE_EROS_QN_CODEC
 extern int es9018k2m_present_flag;
-#endif
 
 static bool dbg_audio(void)
 {
     do {
         lcd_clear_display();
         lcd_putsf(0, 0, "TX underruns: %u", aic_tx_underruns);
-#ifdef HAVE_RECORDING
-        lcd_putsf(0, 1, "RX overruns:  %u", aic_rx_overruns);
-#endif
-#ifdef HAVE_EROS_QN_CODEC
         if (es9018k2m_present_flag)
         {
             lcd_putsf(0, 2, "(%d) ES9018K2M HWVOL", es9018k2m_present_flag);
@@ -141,7 +131,6 @@ static bool dbg_audio(void)
         {
             lcd_putsf(0, 2, "(%d) SWVOL", es9018k2m_present_flag);
         }
-#endif
         lcd_update();
     } while(get_action(CONTEXT_STD, HZ) != ACTION_STD_CANCEL);
 
@@ -164,12 +153,6 @@ static bool dbg_cpuidle(void)
 }
 #endif
 
-#ifdef FIIO_M3K
-extern bool dbg_fiiom3k_touchpad(void);
-#endif
-#ifdef SHANLING_Q1
-extern bool dbg_shanlingq1_touchscreen(void);
-#endif
 #ifdef HAVE_AXP_PMU
 extern bool axp_debug_menu(void);
 #endif
@@ -188,12 +171,6 @@ static const struct {
     {"CPU idle", &dbg_cpuidle},
 #endif
     {"Audio", &dbg_audio},
-#ifdef FIIO_M3K
-    {"Touchpad", &dbg_fiiom3k_touchpad},
-#endif
-#ifdef SHANLING_Q1
-    {"Touchscreen", &dbg_shanlingq1_touchscreen},
-#endif
 #ifdef HAVE_AXP_PMU
     {"Power stats", &axp_debug_menu},
 #endif
@@ -250,4 +227,3 @@ bool dbg_ports(void)
 {
     return false;
 }
-#endif

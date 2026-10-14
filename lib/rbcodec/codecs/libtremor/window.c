@@ -53,30 +53,3 @@ const void *_vorbis_window(int type, int left){
     return(0);
   }
 }
-#if 0
-void _vorbis_apply_window(ogg_int32_t *d,const void *window_p[2],
-                          long *blocksizes,
-                          int lW,int W,int nW){
-  LOOKUP_T *window[2]={window_p[0],window_p[1]};
-  long n=blocksizes[W];
-  long ln=blocksizes[lW];
-  long rn=blocksizes[nW];
-
-  long leftbegin=n/4-ln/4;
-  long leftend=leftbegin+ln/2;
-
-  long rightbegin=n/2+n/4-rn/4;
-  long rightend=rightbegin+rn/2;
-
-  /* Following memset is not required - we are careful to only overlap/add the
-     regions that geniunely overlap in the window region, and the portions
-     outside that region are not added (so don't need to be zerod). see block.c
-     memset((void *)&d[0], 0, sizeof(ogg_int32_t)*leftbegin); */
-
-  ogg_vect_mult_fw(&d[leftbegin], &window[lW][0], leftend-leftbegin);
-  ogg_vect_mult_bw(&d[rightbegin], &window[nW][rn/2-1], rightend-rightbegin);
-
-  /* Again - memset not needed
-     memset((void *)&d[rightend], 0, sizeof(ogg_int32_t)*(n-rightend)); */
-}
-#endif

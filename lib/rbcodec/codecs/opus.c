@@ -247,55 +247,6 @@ static int opus_seek_page_granule(int64_t pos, int64_t curpos,
     ogg_page og = {0,0,0,0};
     int64_t avgpagelen = -1;
     int64_t lastgranule = -1;
-#if 0
-    if(abs(pos-curpos)>10000 && headerssize>0 && curoffset-headerssize>10000) {
-        /* if seeking for more that 10sec,
-           headersize is known & more than 10kb is played,
-           try to guess a place to seek from the number of
-           bytes playe for this position, this works best when
-           the bitrate is relativly constant.
-         */
-
-        curoffset = (((*curbyteoffset-headerssize) * pos)/curpos)*98/100;
-        if (curoffset < 0)
-            curoffset=0;
-
-        //int64_t toffset=curoffset;
-
-        ci->seek_buffer(curoffset);
-
-        ogg_sync_reset(oy);
-
-        offset = get_next_page(oy,&og,-1);
-
-        if (offset < 0) { /* could not find new page,use old offset */
-            LOGF("Seek/guess/fault:%lld->-<-%d,%lld:%lld,%d,%ld,%d\n",
-                 curpos,0,pos,offset,0,
-                 ci->curpos,/*stream_length*/0);
-
-            curoffset = *curbyteoffset;
-
-            ci->seek_buffer(curoffset);
-
-            ogg_sync_reset(oy);
-        } else {
-            if (ogg_page_granulepos(&og) == 0 && pos > 5000) {
-                LOGF("SEEK/guess/fault:%lld->-<-%lld,%lld:%lld,%d,%ld,%d\n",
-                     curpos,ogg_page_granulepos(&og),pos,
-                     offset,0,ci->curpos,/*stream_length*/0);
-
-                curoffset = *curbyteoffset;
-
-                ci->seek_buffer(curoffset);
-
-                ogg_sync_reset(oy);
-            } else {
-                curoffset = offset;
-                curpos = ogg_page_granulepos(&og);
-            }
-        }
-    }
-#endif
     /* which way do we want to seek? */
     if (pos == 0) {  /* start */
         *curbyteoffset = 0;
@@ -379,12 +330,6 @@ enum codec_status codec_run(void)
     action = CODEC_ACTION_NULL;
     param = ci->id3->elapsed;
     strtoffset = ci->id3->offset;
-
-#if defined(CPU_COLDFIRE)
-    /* EMAC rounding is disabled because of MULT16_32_Q15, which will be
-       inaccurate with rounding in its current incarnation */
-    coldfire_set_macsr(EMAC_FRACTIONAL | EMAC_SATURATE);
-#endif
 
     /* Allocate some stuff off the heap */
     header = _ogg_malloc(sizeof(*header));

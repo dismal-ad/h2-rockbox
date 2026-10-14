@@ -33,9 +33,6 @@
 #include "exported_menus.h"
 #include "tree.h"
 #include "storage.h"
-#ifdef HAVE_RECORDING
-#include "recording.h"
-#endif
 #include "yesno.h"
 #include "keyboard.h"
 #include "screens.h"
@@ -142,18 +139,12 @@ enum infoscreenorder
 {
     INFO_BATTERY = 0,
     INFO_BUFFER,
-#ifdef HAVE_RECORDING
-    INFO_REC_DIR_TITLE,
-    INFO_REC_DIR,
-#endif
     INFO_ROOT_DIR_TITLE,
     INFO_ROOT_DIR,
     INFO_VERSION_TITLE,
     INFO_VERSION,
-#if CONFIG_RTC
     INFO_DATE,
     INFO_TIME,
-#endif
     INFO_DISK1, /* capacity/free on internal */
     INFO_COUNT
 };
@@ -194,7 +185,7 @@ static int refresh_data(struct info_data *info)
                 special = 1;
             }
 #endif
-#if defined(HAVE_MULTIVOLUME) && (defined(HAVE_HOTSWAP) || defined(HAVE_DIRCACHE) || defined(HAVE_BOOTDATA)) // Is this #ifdef necessary?
+#if defined(HAVE_MULTIVOLUME) // Is this #ifdef necessary?
             if (volume_partition(i) == -1)
 #endif
 	    {
@@ -221,9 +212,7 @@ static int info_speak_item(int selected_item, void * data)
 {
     struct info_data *info = (struct info_data*)data;
 
-#if CONFIG_RTC
     struct tm *tm;
-#endif
     int i;
 
     if (info->new_data)
@@ -237,7 +226,6 @@ static int info_speak_item(int selected_item, void * data)
         case INFO_VERSION_TITLE:  /*fallthrough*/
             break;
 
-#if CONFIG_RTC
         case INFO_TIME:
             talk_id(LANG_CURRENT_TIME, false);
             /* fallthrough */
@@ -255,18 +243,7 @@ static int info_speak_item(int selected_item, void * data)
                 talk_time(tm, true);
 
             break;
-#endif
 
-#ifdef HAVE_RECORDING
-        case INFO_REC_DIR:
-            talk_id(LANG_REC_DIR, false);
-            if (global_settings.rec_directory[0])
-            {
-                talk_fullpath(global_settings.rec_directory, true);
-            }
-        case INFO_REC_DIR_TITLE:  /*fallthrough*/
-            break;
-#endif
         case INFO_ROOT_DIR:
             talk_id(LANG_DISPLAY_FULL_PATH, false);
             talk_fullpath(root_realpath(), true);
@@ -335,17 +312,13 @@ static int info_action_callback(int action, struct gui_synclist *lists)
 
     char s1[32];
     char s2[32];
-#if CONFIG_RTC
     struct tm *tm;
-#endif
     if (action == ACTION_STD_CANCEL)
     {
         return action;
     }
     else if (action == ACTION_STD_OK
-#ifdef HAVE_HOTSWAP
         || action == SYS_FS_CHANGED
-#endif
         )
     {
         action = ACTION_REDRAW;
@@ -357,7 +330,6 @@ static int info_action_callback(int action, struct gui_synclist *lists)
 #endif
         gui_synclist_speak_item(lists);
     }
-#if CONFIG_RTC
     else if (action == ACTION_NONE)
     {
         static int last_redraw = 0;
@@ -368,7 +340,6 @@ static int info_action_callback(int action, struct gui_synclist *lists)
         else
             return action;
     }
-#endif
 /* Note: these need to be in the same order as enum infoscreenorder */
     simplelist_reset_lines();
 /* INFO_BATTERY */
@@ -394,13 +365,6 @@ static int info_action_callback(int action, struct gui_synclist *lists)
     output_dyn_value(s1, sizeof(s1), kib, kibyte_units, 3, true);
     simplelist_addline("%s %s", str(LANG_BUFFER_STAT), s1);
 
-#ifdef HAVE_RECORDING
-/* INFO_REC_DIR_TITLE*/
-    simplelist_setline(str(LANG_REC_DIR));
-/* INFO_REC_DIR */
-    simplelist_setline(global_settings.rec_directory);
-#endif
-
 /* INFO_ROOT_DIR_TITLE */
     simplelist_setline(str(LANG_DISPLAY_FULL_PATH));
 /* INFO_ROOT_DIR */
@@ -409,7 +373,6 @@ static int info_action_callback(int action, struct gui_synclist *lists)
     simplelist_setline(str(LANG_VERSION));
 /* INFO_VERSION */
     simplelist_setline(rbversion);
-#if CONFIG_RTC
 
     tm = get_time();
     if (valid_time(tm))
@@ -435,7 +398,6 @@ static int info_action_callback(int action, struct gui_synclist *lists)
 /* INFO_TIME */
         simplelist_setline("--:--:--");
     }
-#endif
 /* INFO_DISK, capacity/free on internal */
     for (int i = 0; i < NUM_VOLUMES ; i++) {
         if (info->size[i]) {
@@ -470,11 +432,9 @@ static int show_info(void)
 MENUITEM_FUNCTION(show_info_item, 0, ID2P(LANG_ROCKBOX_INFO),
                   show_info, NULL, Icon_NOICON);
 
-#if CONFIG_RTC
 int time_screen(void* ignored);
 MENUITEM_FUNCTION(timedate_item, MENU_FUNC_CHECK_RETVAL, ID2P(LANG_TIME_MENU),
                   time_screen,  NULL, Icon_Menu_setting );
-#endif
 
 MENUITEM_FUNCTION(show_credits_item, 0, ID2P(LANG_CREDITS),
                   show_credits, NULL, Icon_NOICON);
@@ -511,12 +471,7 @@ MAKE_MENU(main_menu_, ID2P(LANG_SETTINGS), NULL,
         &sound_settings,
         &playback_settings,
         &settings_menu_item, &theme_menu,
-#ifdef HAVE_RECORDING
-        &recording_settings,
-#endif
-#if CONFIG_RTC
         &timedate_item,
-#endif
         &main_menu_config_item,
         &manage_settings,
         );

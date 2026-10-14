@@ -38,9 +38,6 @@
 #include "pathfuncs.h"
 #include "lang.h"
 #include "dir.h"
-#ifdef HAVE_REMOTE_LCD
-#include "lcd-remote.h"
-#endif
 #include "action.h"
 #include "timefuncs.h"
 #include "screens.h"
@@ -68,10 +65,6 @@
 
 #include "debug.h"
 
-#if CONFIG_TUNER
-#include "radio.h"
-#endif
-
 #ifdef IPOD_ACCESSORY_PROTOCOL
 #include "iap.h"
 #endif
@@ -81,9 +74,6 @@
 #endif
 #include "tree.h"
 #include "eeprom_settings.h"
-#if defined(HAVE_RECORDING) && !defined(__PCTOOL__)
-#include "recording.h"
-#endif
 #if !defined(__PCTOOL__)
 #include "bmp.h"
 #include "icons.h"
@@ -94,18 +84,13 @@
 #include "voice_thread.h"
 
 #ifdef BOOTFILE
-#if !defined(USB_NONE) && !defined(USB_HANDLED_BY_OF) \
-        || defined(HAVE_HOTSWAP_STORAGE_AS_MAIN)
+#if !defined(USB_HANDLED_BY_OF) || defined(HAVE_HOTSWAP_STORAGE_AS_MAIN)
 #include "rolo.h"
 #endif
 #endif
 
 #ifndef PLUGIN
 #include "core_alloc.h" /*core_load_bmp()*/
-#endif
-
-#ifdef HAVE_HARDWARE_CLICK
-#include "piezo.h"
 #endif
 
 /* units used with output_dyn_value */
@@ -370,9 +355,6 @@ static bool clean_shutdown(enum shutdown_type sd_type,
 #endif
     {
         bool batt_safe = battery_level_safe();
-#if defined(HAVE_RECORDING)
-        int audio_stat = audio_status();
-#endif
 
         FOR_NB_SCREENS(i)
             viewportmanager_theme_enable(i, true, NULL);
@@ -386,7 +368,6 @@ static bool clean_shutdown(enum shutdown_type sd_type,
         if (batt_safe)
         {
             int level;
-#ifdef HAVE_TAGCACHE
             if (!tagcache_prepare_shutdown())
             {
                 cancel_shutdown();
@@ -395,7 +376,6 @@ static bool clean_shutdown(enum shutdown_type sd_type,
                     viewportmanager_theme_undo(i, false);
                 return false;
             }
-#endif
             level = battery_level();
             if (level > 10 || level < 0)
             {
@@ -416,19 +396,7 @@ static bool clean_shutdown(enum shutdown_type sd_type,
                                 str(LANG_SHUTTINGDOWN));
         }
 
-#ifdef HAVE_DISK_STORAGE
-        if (batt_safe) /* do not save on critical battery */
-#endif
         {
-#if defined(HAVE_RECORDING)
-            if (audio_stat & AUDIO_STATUS_RECORD)
-            {
-                rec_command(RECORDING_CMD_STOP);
-                /* wait for stop to complete */
-                while (audio_status() & AUDIO_STATUS_RECORD)
-                    sleep(1);
-            }
-#endif
             bookmark_autobookmark(false);
 
             /* audio_stop_recording == audio_stop for HWCODEC */
@@ -436,10 +404,6 @@ static bool clean_shutdown(enum shutdown_type sd_type,
 
             if (callback != NULL)
                 callback(parameter);
-
-#if defined(HAVE_RECORDING)
-            audio_close_recording();
-#endif
 
             system_flush();
 #ifdef HAVE_EEPROM_SETTINGS
@@ -451,10 +415,6 @@ static bool clean_shutdown(enum shutdown_type sd_type,
             }
 #endif
         }
-#if defined(HAVE_DIRCACHE) && defined(HAVE_DISK_STORAGE)
-        else
-            dircache_disable();
-#endif
 
         if(global_settings.talk_menu)
         {
@@ -476,10 +436,6 @@ static bool clean_shutdown(enum shutdown_type sd_type,
 bool list_stop_handler(void)
 {
     bool ret = false;
-
-#if CONFIG_TUNER
-    radio_stop();
-#endif
 
     /* Stop the music if it is playing */
     if(audio_status())
@@ -574,7 +530,6 @@ void car_adapter_mode_init(void)
 }
 #endif
 
-#ifdef HAVE_HEADPHONE_DETECTION
 static void hp_unplug_change(bool inserted)
 {
     static bool headphone_caused_pause = true;
@@ -607,14 +562,9 @@ static void hp_unplug_change(bool inserted)
     audio_enable_speaker(global_settings.speaker_mode);
 #endif
 }
-#endif /*HAVE_HEADPHONE_DETECTION*/
 
-#ifdef HAVE_LINEOUT_DETECTION
 static void lo_unplug_change(bool inserted)
 {
-#ifdef HAVE_LINEOUT_POWEROFF
-    lineout_set(inserted);
-#else
 #ifdef AUDIOHW_HAVE_LINEOUT
     audiohw_set_lineout_volume(0,0); /*hp vol re-set by this function as well*/
 #endif
@@ -640,9 +590,7 @@ static void lo_unplug_change(bool inserted)
             }
         }
     }
-#endif /*HAVE_LINEOUT_POWEROFF*/
 }
-#endif /*HAVE_LINEOUT_DETECTION*/
 
 long default_event_handler_ex(long event, void (*callback)(void *), void *parameter)
 {
@@ -669,13 +617,13 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
                 callback(parameter);
             system_flush();
 #ifdef BOOTFILE
-#if !defined(USB_NONE) && !defined(USB_HANDLED_BY_OF)
+#if !defined(USB_HANDLED_BY_OF)
             check_bootfile(false); /* gets initial size */
 #endif
 #endif
             gui_usb_screen_run(false, seqnum);
 #ifdef BOOTFILE
-#if !defined(USB_NONE) && !defined(USB_HANDLED_BY_OF)
+#if !defined(USB_HANDLED_BY_OF)
             check_bootfile(true);
 #endif
 #endif
@@ -727,7 +675,6 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
         }
             return SYS_FS_CHANGED;
 #endif
-#ifdef HAVE_HEADPHONE_DETECTION
         case SYS_PHONE_PLUGGED:
             hp_unplug_change(true);
             return SYS_PHONE_PLUGGED;
@@ -735,8 +682,6 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
         case SYS_PHONE_UNPLUGGED:
             hp_unplug_change(false);
             return SYS_PHONE_UNPLUGGED;
-#endif
-#ifdef HAVE_LINEOUT_DETECTION
         case SYS_LINEOUT_PLUGGED:
             lo_unplug_change(true);
             return SYS_LINEOUT_PLUGGED;
@@ -744,7 +689,6 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
         case SYS_LINEOUT_UNPLUGGED:
             lo_unplug_change(false);
             return SYS_LINEOUT_UNPLUGGED;
-#endif
 #if CONFIG_PLATFORM & (PLATFORM_ANDROID)
         /* stop playback if we receive a call */
         case SYS_CALL_INCOMING:
@@ -762,67 +706,6 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
             resume = false;
             return SYS_CALL_HUNG_UP;
 #endif
-#if (CONFIG_PLATFORM & PLATFORM_HOSTED) && defined(PLATFORM_HAS_VOLUME_CHANGE)
-        case SYS_VOLUME_CHANGED:
-        {
-            static bool firstvolume = true;
-            /* kludge: since this events go to the button_queue,
-             * event data is available in the last button data */
-            int volume = button_get_data();
-            DEBUGF("SYS_VOLUME_CHANGED: %d\n", volume);
-            if (global_status.volume != volume) {
-                global_status.volume = volume;
-                if (firstvolume) {
-                    setvol();
-                    firstvolume = false;
-                }
-            }
-            return 0;
-        }
-#endif
-#ifdef HAVE_MULTIMEDIA_KEYS
-        /* multimedia keys on keyboards, headsets */
-        case BUTTON_MULTIMEDIA_PLAYPAUSE:
-        {
-            int status = audio_status();
-            if (status & AUDIO_STATUS_PLAY)
-            {
-                if (status & AUDIO_STATUS_PAUSE)
-                    unpause_action(true);
-                else
-                    pause_action(true);
-            }
-            else
-                if (playlist_resume() != -1)
-                {
-                    playlist_start(global_status.resume_index,
-                                   global_status.resume_elapsed,
-                                   global_status.resume_offset);
-                }
-            return event;
-        }
-        case BUTTON_MULTIMEDIA_NEXT:
-            audio_next();
-            return event;
-        case BUTTON_MULTIMEDIA_PREV:
-            audio_prev();
-            return event;
-        case BUTTON_MULTIMEDIA_STOP:
-            list_stop_handler();
-            return event;
-        case BUTTON_MULTIMEDIA_VOLUME_UP:
-        case BUTTON_MULTIMEDIA_VOLUME_UP|BUTTON_REPEAT:
-            adjust_volume(1);
-            return event;
-        case BUTTON_MULTIMEDIA_VOLUME_DOWN:
-        case BUTTON_MULTIMEDIA_VOLUME_DOWN|BUTTON_REPEAT:
-            adjust_volume(-1);
-            return event;
-        case BUTTON_MULTIMEDIA_REW:
-        case BUTTON_MULTIMEDIA_FFWD:
-            /* not supported yet, needs to be done in the WPS */
-            return 0;
-#endif
     }
     return 0;
 }
@@ -833,7 +716,7 @@ long default_event_handler(long event)
 }
 
 #ifdef BOOTFILE
-#if !defined(USB_NONE) && !defined(USB_HANDLED_BY_OF) || defined(HAVE_HOTSWAP_STORAGE_AS_MAIN)
+#if !defined(USB_HANDLED_BY_OF) || defined(HAVE_HOTSWAP_STORAGE_AS_MAIN)
 /*
     memorize/compare details about the BOOTFILE
     we don't use dircache because it may not be up to date after
@@ -890,7 +773,6 @@ void setvol(void)
     status_save(false);
 }
 
-#ifdef HAVE_PERCEPTUAL_VOLUME
 static short norm_tab[MAX_NORM_VOLUME_STEPS+2];
 static int norm_tab_num_steps;
 static int norm_tab_size;
@@ -958,25 +840,10 @@ int get_normalized_volume(void)
 
     return a;
 }
-#else
-void set_normalized_volume(int vol)
-{
-    global_status.volume = vol * sound_steps(SOUND_VOLUME);
-}
-
-int get_normalized_volume(void)
-{
-    return global_status.volume / sound_steps(SOUND_VOLUME);
-}
-#endif
 
 void adjust_volume(int steps)
 {
-#ifdef HAVE_PERCEPTUAL_VOLUME
     adjust_volume_ex(steps, global_settings.volume_adjust_mode);
-#else
-    adjust_volume_ex(steps, VOLUME_ADJUST_DIRECT);
-#endif
 }
 
 void adjust_volume_ex(int steps, enum volume_adjust_mode mode)
@@ -984,10 +851,8 @@ void adjust_volume_ex(int steps, enum volume_adjust_mode mode)
     switch (mode)
     {
     case VOLUME_ADJUST_PERCEPTUAL:
-#ifdef HAVE_PERCEPTUAL_VOLUME
         set_normalized_volume(get_normalized_volume() + steps);
         break;
-#endif
     case VOLUME_ADJUST_DIRECT:
     default:
         global_status.volume += steps * sound_steps(SOUND_VOLUME);
@@ -1092,11 +957,7 @@ void keyclick_click(bool rawbutton, int action)
 
     /* Settings filters */
     if (
-#ifdef HAVE_HARDWARE_CLICK
-        (global_settings.keyclick || global_settings.keyclick_hardware)
-#else
         global_settings.keyclick
-#endif
         )
     {
         if (global_settings.keyclick_repeats || !(button & BUTTON_REPEAT))
@@ -1112,12 +973,10 @@ void keyclick_click(bool rawbutton, int action)
         {
             do_beep = true;
         }
-#ifdef HAVE_SCROLLWHEEL
         else if (button & (BUTTON_SCROLL_BACK | BUTTON_SCROLL_FWD))
         {
             do_beep  = true;
         }
-#endif
     }
     if (button&BUTTON_REPEAT)
         last_button = button;
@@ -1130,20 +989,7 @@ void keyclick_click(bool rawbutton, int action)
 
     if (do_beep)
     {
-#ifdef HAVE_HARDWARE_CLICK
-        if (global_settings.keyclick)
-        {
-            system_sound_play(SOUND_KEYCLICK);
-        }
-        if (global_settings.keyclick_hardware)
-        {
-#if !defined(SIMULATOR)
-            piezo_button_beep(false, false);
-#endif
-        }
-#else
         system_sound_play(SOUND_KEYCLICK);
-#endif
     }
 }
 
@@ -1368,9 +1214,6 @@ const char *format_time_auto(char *buffer, int buf_len, long value,
     bool               is_rtl      = lang_is_rtl();
     char               timebuf[25]; /* -2147483648:00:00.00\0 */
     int                len;
-#if 0 /* unused */
-    int left_offset;
-#endif
     unsigned char      base_idx, max_idx;
 
     unsigned long  units_in[UNIT_IDX_TIME_COUNT];
@@ -1402,14 +1245,6 @@ const char *format_time_auto(char *buffer, int buf_len, long value,
                         [UNIT_IDX_SEC] = UNIT_SEC,
                         [UNIT_IDX_MS]  = UNIT_MS,
                    }; /* units */
-
-#if 0 /* unused */
-    if (idx_pos != NULL)
-    {
-        (*idx_pos)[0] = MIN((*idx_pos)[0], UNIT_IDX_TIME_COUNT - 1);
-        unit_idx |= unitlock[(*idx_pos)[0]];
-    }
-#endif
 
     base_idx = time_split_units(unit_idx, labs(value), &units_in);
 
@@ -1443,10 +1278,6 @@ const char *format_time_auto(char *buffer, int buf_len, long value,
 
         timebuf[offsets[base_idx] + fwidth[base_idx]] = '\0';
 
-#if 0 /* unused */
-        left_offset  = -(offsets[max_idx]);
-        left_offset +=
-#endif
         strlcpy(buffer, sign, buf_len);
 
         /* trim leading zero on the max_idx */
@@ -1475,10 +1306,6 @@ const char *format_time_auto(char *buffer, int buf_len, long value,
 
         fwidth[UNIT_IDX_HR] = len - offsets[UNIT_IDX_HR];
 
-#if 0 /* unused */
-        left_offset = -(offsets[base_idx]);
-#endif
-
         /* trim leading zero on the max_idx */
         if ((unit_idx & UNIT_TRIM_ZERO) == UNIT_TRIM_ZERO &&
             timebuf[offsets[max_idx]] == '0' && fwidth[max_idx] > 1)
@@ -1492,9 +1319,6 @@ const char *format_time_auto(char *buffer, int buf_len, long value,
         if (!supress_unit)
         {
             strmemccpy(buffer, unit_strings_core[units[max_idx]], buf_len);
-#if 0 /* unused */
-            left_offset +=
-#endif
             strlcat(buffer, " ", buf_len);
             strlcat(buffer, &timebuf[offsets[base_idx]], buf_len);
         }
@@ -1503,13 +1327,6 @@ const char *format_time_auto(char *buffer, int buf_len, long value,
 
         strlcat(buffer, sign, buf_len);
     }
-#if 0 /* unused */
-    if (idx_pos != NULL)
-    {
-        (*idx_pos)[1]= fwidth[*(idx_pos)[0]];
-        (*idx_pos)[0]= left_offset + offsets[(*idx_pos)[0]];
-    }
-#endif
 
     return buffer;
 }
@@ -1588,7 +1405,6 @@ void talk_sleeptimer(int custom_duration)
     talk_idarray(talk_ids, true);
 }
 
-#if CONFIG_RTC
 void talk_timedate(void)
 {
     struct tm *tm = get_time();
@@ -1605,7 +1421,6 @@ void talk_timedate(void)
         talk_id(LANG_UNKNOWN, true);
     }
 }
-#endif /* CONFIG_RTC */
 #endif /* !defined(CHECKWPS) && !defined(DBTOOL)*/
 
 /**
@@ -1730,7 +1545,6 @@ int open_utf8(const char* pathname, int flags)
 }
 
 
-#ifdef HAVE_LCD_COLOR
 /*
  * Helper function to convert a string of 6 hex digits to a native colour
  */
@@ -1760,7 +1574,6 @@ int hex_to_rgb(const char* hex, int* color)
 
     return 0;
 }
-#endif /* HAVE_LCD_COLOR */
 
 /* '0'-'3' are ASCII 0x30 to 0x33 */
 #define is0123(x) (((x) & 0xfc) == 0x30)
@@ -1770,7 +1583,6 @@ bool parse_color(enum screen_type screen, char *text, int *value)
     (void)text; (void)value; /* silence warnings on mono bitmap */
     (void)screen;
 
-#ifdef HAVE_LCD_COLOR
     if (screens[screen].depth > 2)
     {
         if (hex_to_rgb(text, value) < 0)
@@ -1778,23 +1590,12 @@ bool parse_color(enum screen_type screen, char *text, int *value)
         else
             return true;
     }
-#endif
 
-#if LCD_DEPTH == 2 || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH == 2)
-    if (screens[screen].depth == 2)
-    {
-        if (text[1] != '\0' || !is0123(*text))
-            return false;
-        *value = *text - '0';
-        return true;
-    }
-#endif
     return false;
 }
 #endif /* !defined(__PCTOOL__) || defined(CHECKWPS) */
 
 /* only used in USB HID and set_time screen */
-#if defined(USB_ENABLE_HID) || (CONFIG_RTC != 0)
 int clamp_value_wrap(int value, int max, int min)
 {
     if (value > max)
@@ -1803,7 +1604,6 @@ int clamp_value_wrap(int value, int max, int min)
         return max;
     return value;
 }
-#endif
 
 
 #ifndef __PCTOOL__
@@ -1852,15 +1652,6 @@ void push_activity_without_refresh(enum current_activity screen)
 void pop_current_activity(void)
 {
     pop_current_activity_refresh(true);
-#if 0
-    current_activity_top--;
-    FOR_NB_SCREENS(i)
-    {
-        skinlist_set_cfg(i, NULL);
-        if (ACTIVITY_REFRESH_NOW == refresh)
-            skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
-    }
-#endif
 }
 
 void pop_current_activity_without_refresh(void)

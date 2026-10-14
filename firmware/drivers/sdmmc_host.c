@@ -148,7 +148,6 @@ void sdmmc_host_init(struct sdmmc_host *host,
     panicf("%s: too many controllers", __func__);
 }
 
-#ifdef HAVE_HOTSWAP
 void sdmmc_host_init_medium_present(struct sdmmc_host *host, bool present)
 {
     if (!host->config.is_removable)
@@ -166,7 +165,6 @@ void sdmmc_host_set_medium_present(struct sdmmc_host *host, bool present)
 
     storage_post_event(event, sdmmc_host_get_logical_drive(host));
 }
-#endif
 
 size_t sdmmc_host_get_bus_freq(uint32_t clock)
 {
@@ -245,7 +243,6 @@ static void sdmmc_host_set_enabled(struct sdmmc_host *host, bool enabled)
     mutex_unlock(&host->lock);
 }
 
-#ifdef HAVE_HOTSWAP
 static void sdmmc_host_hotswap_event(struct sdmmc_host *host, bool is_present)
 {
     /* Ignore spurious events */
@@ -270,15 +267,10 @@ static void sdmmc_host_hotswap_event(struct sdmmc_host *host, bool is_present)
     queue_broadcast(is_present ? SYS_HOTSWAP_INSERTED : SYS_HOTSWAP_EXTRACTED,
                     sdmmc_host_get_logical_drive(host));
 }
-#endif
 
 static bool sdmmc_host_medium_present(struct sdmmc_host *host)
 {
-#ifdef HAVE_HOTSWAP
     return host->present;
-#else
-    return true;
-#endif
 }
 
 static void *sdmmc_host_get_dc_buffer(struct sdmmc_host *host)
@@ -1010,7 +1002,6 @@ long sd_last_disk_activity(void)
 
 int sd_event(long id, intptr_t data)
 {
-#ifdef HAVE_HOTSWAP
     if (id == Q_STORAGE_MEDIUM_INSERTED ||
         id == Q_STORAGE_MEDIUM_REMOVED)
     {
@@ -1019,7 +1010,6 @@ int sd_event(long id, intptr_t data)
         sdmmc_host_hotswap_event(sdmmc_sd_hosts[IF_MD_DRV(drive)], present);
         return 0;
     }
-#endif
 
     return storage_event_default_handler(id, data,
                                          sdmmc_sd_last_activity, STORAGE_SD);
@@ -1043,7 +1033,6 @@ int sd_write_sectors(IF_MD(int drive,) sector_t start, int count, const void* bu
     return sdmmc_host_transfer(host, start, count, (void *)buf, SDMMC_DATA_WRITE);
 }
 
-#ifdef HAVE_HOTSWAP
 bool sd_removable(IF_MD_NONVOID(int drive))
 {
     struct sdmmc_host *host = sdmmc_sd_hosts[IF_MD_DRV(drive)];
@@ -1057,7 +1046,6 @@ bool sd_present(IF_MD_NONVOID(int drive))
 
     return sdmmc_host_medium_present(host);
 }
-#endif /* HAVE_HOTSWAP */
 #endif /* CONFIG_STORAGE & STORAGE_SD */
 
 /*

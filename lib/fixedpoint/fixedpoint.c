@@ -194,19 +194,6 @@ long fp_sqrt(long x, unsigned int fracbits)
         b >>= 1;
     }
 
-#if 0
-    /* round up if the next bit would be a '1' */
-    if (e) {
-        unsigned long c = e; /* detect carry */
-
-        e <<= 1;
-
-        if (e < c || e >= ((g << 1) | 1)) {
-            g++;
-        }
-    }
-#endif
-
     return g;
 }
 

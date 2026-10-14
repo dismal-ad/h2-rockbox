@@ -82,9 +82,6 @@ static void NORETURN_ATTR audio_thread(void)
 
         /* Playback has to handle these, even if not playing */
         case Q_AUDIO_REMAKE_AUDIO_BUFFER:
-#ifdef HAVE_DISK_STORAGE
-        case Q_AUDIO_UPDATE_WATERMARK:
-#endif
             audio_playback_handler(&ev);
             break;
 

@@ -348,10 +348,6 @@ static bool read_mp4_esds(int fd, struct mp3entry* id3, uint32_t* size)
                 }
             }
         }
-#ifndef CODEC_AAC_SBR_DEC
-        //SBR_DEC is disabled so disable sbr implicit signalling
-        sbr_signaled = true;
-#endif
         if (!sbr && !sbr_signaled && id3->frequency <= 24000)
         {
             /* As stated in libfaad/mp4.c AudioSpecificConfig2:
@@ -749,16 +745,6 @@ static bool read_mp4_container(int fd, struct mp3entry* id3,
                 lseek(fd, 28, SEEK_CUR);
                 read_mp4_atom(fd, &subsize, &subtype, size);
                 size -= 36;
-#if 0
-                /* We might need to parse for the alac metadata atom. */
-                while (!((subsize==28) && (subtype==MP4_alac)) && (size>0))
-                {
-                    lseek(fd, -7, SEEK_CUR);
-                    read_mp4_atom(fd, &subsize, &subtype, size);
-                    size -= 1;
-                    errno = 0; /* will most likely be set while parsing */
-                }
-#endif
                 if (subtype == MP4_alac)
                 {
                     lseek(fd, 24, SEEK_CUR);

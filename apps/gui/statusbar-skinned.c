@@ -39,10 +39,6 @@
 #include "icons.h"
 #include "option_select.h"
 #include "string-extra.h"
-#ifdef HAVE_TOUCHSCREEN
-#include "sound.h"
-#include "misc.h"
-#endif
 
 /* initial setup of wps_data  */
 static int update_delay = DEFAULT_UPDATE_DELAY;
@@ -101,9 +97,7 @@ void sb_process(enum screen_type screen, struct wps_data *data, bool preprocess)
     {
         sbs_loaded[screen] = false;
         sbs_has_title[screen] = false;
-#ifdef HAVE_QUICKSCREEN
         quickscreen_set_skinned(screen, false); /* Revert to built-in QS UI */
-#endif
         viewportmanager_theme_enable(screen, false, NULL);
         return;
     }
@@ -168,7 +162,6 @@ struct viewport *sb_skin_get_info_vp(enum screen_type screen)
     return &vp->vp;
 }
 
-#if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1)
 int sb_get_backdrop(enum screen_type screen)
 {
     struct wps_data *data = skin_get_gwps(CUSTOM_STATUSBAR, screen)->data;
@@ -177,13 +170,6 @@ int sb_get_backdrop(enum screen_type screen)
     else
         return -1;
 }
-#else
-int sb_get_backdrop(enum screen_type screen)
-{
-    (void) screen;
-    return -1;
-}
-#endif
 static bool force_waiting[NB_SCREENS];
 void sb_skin_update(enum screen_type screen, bool force)
 {
@@ -196,11 +182,9 @@ void sb_skin_update(enum screen_type screen, bool force)
         force_waiting[i])
     {
         force_waiting[i] = false;
-#if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
         /* currently, all remotes are readable without backlight
          * so still update those */
         if (lcd_active() || (i != SCREEN_MAIN))
-#endif
         {
             if (force)
                 skin_request_full_update(CUSTOM_STATUSBAR);
@@ -331,36 +315,3 @@ void sb_skin_init(void)
     }
 }
 
-#ifdef HAVE_TOUCHSCREEN
-static bool bypass_sb_touchregions = true;
-void sb_bypass_touchregions(bool enable)
-{
-    bypass_sb_touchregions = enable;
-}
-
-int sb_touch_to_button(int context)
-{
-    static int last_context = -1;
-    int button, offset;
-    if (bypass_sb_touchregions)
-        return ACTION_TOUCHSCREEN;
-
-    struct gui_wps *gwps = skin_get_gwps(CUSTOM_STATUSBAR, SCREEN_MAIN);
-    if (last_context != context)
-        skin_disarm_touchregions(gwps);
-    last_context = context;
-
-    button = skin_get_touchaction(gwps, &offset);
-    switch (button)
-    {
-#ifdef HAVE_VOLUME_IN_LIST
-        case ACTION_WPS_VOLUP:
-            return ACTION_LIST_VOLUP;
-        case ACTION_WPS_VOLDOWN:
-            return ACTION_LIST_VOLDOWN;
-#endif
-        /* TODO */
-    }
-    return button;
-}
-#endif

@@ -95,10 +95,6 @@ static size_t calc_packet_size(uint8_t cur_sampr, uint8_t packet_count) {
 
 static void batch_get_more(const void** ptr, size_t* len) {
     const size_t packet_size = calc_packet_size(cur_freq, packet_count);
-#if 0
-    const int cur_frame = usb_drv_get_frame_number();
-    LOG("ex=%d set=%d cur=%d", exhausted, set_freq, cur_freq);
-#endif
 
 start:
     if(exhausted || cur_freq != set_freq) {

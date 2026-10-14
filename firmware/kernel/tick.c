@@ -31,10 +31,7 @@
 /* List of tick tasks - final element always NULL for termination */
 void (*tick_funcs[MAX_NUM_TICK_TASKS+1])(void);
 
-#if !defined(CPU_PP) || !defined(BOOTLOADER) || \
-    defined(HAVE_BOOTLOADER_USB_MODE)
 volatile long current_tick SHAREDBSS_ATTR;
-#endif
 
 /* - Timer initialization and interrupt handler is defined at
  * the target level: tick_start() is implemented in the target tree */

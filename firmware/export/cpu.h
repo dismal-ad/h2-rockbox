@@ -40,10 +40,6 @@
 #include "dm320.h"
 #elif CONFIG_CPU == IMX31L
 #include "imx31l.h"
-#elif defined(CPU_TCC780X)
-#include "tcc780x.h"
-#elif defined(CPU_S5L87XX)
-#include "s5l87xx.h"
 #elif CONFIG_CPU == JZ4732
 #include "jz4740.h"
 #elif CONFIG_CPU == JZ4760B
@@ -62,7 +58,7 @@
 #include "stm32h743.h"
 #endif
 
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE) && (defined(CPU_ARM) || defined(CPU_MIPS))
+#if (CONFIG_PLATFORM & PLATFORM_NATIVE) && defined(CPU_MIPS)
 # define HAVE_CPU_CACHE_ALIGN
 #endif
 

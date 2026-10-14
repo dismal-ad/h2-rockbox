@@ -74,8 +74,6 @@ void usb_core_handle_notify(long id, intptr_t data);
 void usb_core_notify_set_address(uint8_t addr); /* IRQ-safe notification */
 void usb_core_notify_set_config(uint8_t config);
 
-#ifdef HAVE_HOTSWAP
 void usb_core_hotswap_event(int volume,bool inserted);
-#endif
 
 #endif

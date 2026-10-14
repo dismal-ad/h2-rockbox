@@ -28,13 +28,11 @@ enum orientation {
     INVERTFILL        = 0x0002,   /* Invert the fill direction */
     INNER_NOFILL      = 0x0004,   /* Do not fill inner part */
     BORDER_NOFILL     = 0x0008,   /* Do not fill border part */
-#ifdef HAVE_LCD_COLOR
     FOREGROUND        = 0x0020,   /* Do not clear background pixels */
     INNER_FILL        = 0x0040,   /* Fill inner part even if FOREGROUND */
     INNER_BGFILL      = 0x0080,   /* Fill inner part with background
                                      color even if FOREGROUND */
     INNER_FILL_MASK   = 0x00c0,
-#endif
     DONT_CLEAR_EXCESS = 0x0100,   /* Don't clear the entire bar area */
 };
 

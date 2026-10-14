@@ -311,14 +311,6 @@ static int const blip_reader_default_bass = 9;
 
 //// BLIP_CLAMP
 
-#if defined(CPU_ARM) && (ARM_ARCH >= 6)
-	#define BLIP_CLAMP( sample, out ) \
-		({ \
-		asm ("ssat %0, #16, %1" \
-				: "=r" ( out ) : "r"( sample ) ); \
-		out; \
-		})
-#else
 	#if defined (_M_IX86) || defined (_M_IA64) || defined (__i486__) || \
 			defined (__x86_64__) || defined (__ia64__) || defined (__i386__)
 		#define BLIP_X86 1
@@ -330,6 +322,5 @@ static int const blip_reader_default_bass = 9;
 	// Clamp sample to blip_sample_t range
 	#define BLIP_CLAMP( sample, out )\
 		{ if ( BLIP_CLAMP_( (sample) ) ) (out) = ((sample) >> 31) ^ 0x7FFF; }
-#endif
 
 #endif

@@ -22,9 +22,6 @@
 #include <stdbool.h>
 #include "action.h"
 #include "font.h"
-#ifdef HAVE_REMOTE_LCD
-#include "lcd-remote.h"
-#endif
 #include "lang.h"
 #include "usb.h"
 #if defined(HAVE_USBSTACK)
@@ -43,10 +40,6 @@
 #include "icons.h"
 
 #include "bitmaps/usblogo.h"
-
-#ifdef HAVE_REMOTE_LCD
-#include "bitmaps/remote_usblogo.h"
-#endif
 
 #if (CONFIG_STORAGE & STORAGE_MMC)
 #include "ata_mmc.h"
@@ -127,14 +120,6 @@ static void usb_screen_fix_viewports(struct screen *screen,
     struct viewport *parent = &usb_screen_vps->parent;
     struct viewport *logo = &usb_screen_vps->logo;
 
-#ifdef HAVE_REMOTE_LCD
-    if (screen->screen_type == SCREEN_REMOTE)
-    {
-        logo_width = BMPWIDTH_remote_usblogo;
-        logo_height = BMPHEIGHT_remote_usblogo;
-    }
-    else
-#endif
     {
         logo_width = BMPWIDTH_usblogo;
         logo_height = BMPHEIGHT_usblogo;
@@ -149,24 +134,7 @@ static void usb_screen_fix_viewports(struct screen *screen,
 
     *logo = *parent;
     logo->x = parent->x + parent->width - logo_width;
-#ifdef HAVE_LCD_SPLIT
-    switch (statusbar_position(screen))
-    {
-         /* start beyond split */
-         case STATUSBAR_OFF:
-             logo->y = parent->y + LCD_SPLIT_POS;
-             break;
-         case STATUSBAR_TOP:
-             logo->y = parent->y + LCD_SPLIT_POS - STATUSBAR_HEIGHT;
-             break;
-         /* start at the top for maximum space */
-         default:
-             logo->y = parent->y;
-             break;
-    }
-#else
     logo->y = parent->y + (parent->height - logo_height) / 2;
-#endif
     logo->width = logo_width;
     logo->height = logo_height;
 
@@ -200,9 +168,6 @@ static void usb_screens_draw(struct usb_screen_vps_t *usb_screen_vps_ar)
     struct viewport *last_vp;
     static const struct bitmap* logos[NB_SCREENS] = {
         &bm_usblogo,
-#ifdef HAVE_REMOTE_LCD
-        &bm_remote_usblogo,
-#endif
     };
     FOR_NB_SCREENS(i)
     {
@@ -235,13 +200,6 @@ void gui_usb_screen_run(bool early_usb, intptr_t seqnum)
 
     struct usb_screen_vps_t usb_screen_vps_ar[NB_SCREENS];
     struct viewport *title = NULL;
-#if defined HAVE_TOUCHSCREEN
-    enum touchscreen_mode old_mode = touchscreen_get_mode();
-
-    /* TODO: Paint buttons on screens OR switch to point mode and use
-     * touchscreen as a touchpad to move the host's mouse cursor */
-    touchscreen_set_mode(TOUCHSCREEN_BUTTON);
-#endif
 
     push_current_activity(ACTIVITY_USBSCREEN);
 
@@ -264,12 +222,6 @@ void gui_usb_screen_run(bool early_usb, intptr_t seqnum)
         usb_screen_fix_viewports(screen, &usb_screen_vps_ar[i]);
     }
 
-#if 0 /* handled in usb_screen_fix_viewports() */
-    /* update the UI before disabling fonts, this maximizes the propability
-     * that font cache lookups succeed during USB */
-    send_event(GUI_EVENT_ACTIONUPDATE, NULL);
-#endif
-
     if(!early_usb)
     {
         /* The font system leaves the .fnt fd's open, so we need for force close them all */
@@ -287,10 +239,6 @@ void gui_usb_screen_run(bool early_usb, intptr_t seqnum)
         global_settings.usb_keypad_mode = usb_keypad_mode;
         settings_save();
     }
-#endif
-
-#ifdef HAVE_TOUCHSCREEN
-    touchscreen_set_mode(old_mode);
 #endif
 
     if(!early_usb)

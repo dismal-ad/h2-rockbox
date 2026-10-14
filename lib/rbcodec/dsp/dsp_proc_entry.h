@@ -20,12 +20,8 @@
 #ifndef DSP_PROC_ENTRY_H
 #define DSP_PROC_ENTRY_H
 
-#if 0 /* Set to '1' to enable local debug messages */
-#include <debug.h>
-#else
 #undef DEBUGF
 #define DEBUGF(...)
-#endif
 
 /* Macros to generate the right stuff */
 #ifdef DSP_PROC_DB_CREATE

@@ -169,9 +169,7 @@ static void * pcm_scale_buffer_trans(void *dst, const void *src, size_t src_size
 }
 
 /* Called by completion routine to scale the next buffer of samples */
-#ifndef PCM_SW_VOLUME_UNBUFFERED
 static inline
-#endif
 void pcm_sw_volume_copy_buffer(void *dst, const void *src, size_t src_size)
 {
     pcm_scaling_fn(dst, src, src_size);
@@ -210,7 +208,6 @@ void pcm_sync_pcm_factors(void)
 #endif
 }
 
-#ifdef WANT_SWVOL
 /* source buffer from client */
 static const void * volatile src_buf_addr = NULL;
 static size_t volatile src_buf_rem = 0;
@@ -341,8 +338,6 @@ void pcm_play_dma_stop_int_swvol(void)
     src_buf_addr = NULL;
     src_buf_rem = 0;
 }
-
-#endif /* WANT_SWVOL */
 
 
 /** Internal **/

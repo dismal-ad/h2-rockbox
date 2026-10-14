@@ -179,12 +179,7 @@ const uint8_t bs_clz_tab[256] ICONST_ATTR = {
 void __cyg_profile_func_enter(void *this_fn, void *call_site) {
 /* This workaround is required for coldfire gcc 3.4 but is broken for 4.4
    and 4.5, but for those the other way works. */
-#if defined(CPU_COLDFIRE) && defined(__GNUC__) && __GNUC__ < 4
-    (void)call_site;
-    ci->profile_func_enter(this_fn, __builtin_return_address(1));
-#else
     ci->profile_func_enter(this_fn, call_site);
-#endif
 }
 
 void __cyg_profile_func_exit(void *this_fn, void *call_site) {

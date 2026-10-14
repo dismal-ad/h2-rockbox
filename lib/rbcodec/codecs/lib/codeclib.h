@@ -78,11 +78,9 @@ extern void ff_imdct_calc(unsigned int nbits, int32_t *output, const int32_t *in
 /*ffmpeg fft (can be used without mdct)*/
 extern void ff_fft_calc_c(int nbits, FFTComplex *z);
 
-#if !defined(CPU_ARM) || ARM_ARCH < 5
 /* From libavutil/common.h */
 extern const uint8_t bs_log2_tab[256] ICONST_ATTR;
 extern const uint8_t bs_clz_tab[256] ICONST_ATTR;
-#endif
 
 #define BS_LOG2  0 /* default personality, equivalent floor(log2(x)) */
 #define BS_CLZ   1 /* alternate personality, Count Leading Zeros */
@@ -93,19 +91,6 @@ extern const uint8_t bs_clz_tab[256] ICONST_ATTR;
    scan-and-lookup code, and to provide control over output for 0 inputs. */
 static inline unsigned int bs_generic(unsigned int v, int mode)
 {
-#if defined(CPU_ARM) && ARM_ARCH >= 5
-    unsigned int r = __builtin_clz(v);
-    if (mode & BS_CLZ)
-    {
-        if (mode & BS_0_0)
-            r &= 31;
-    } else {
-        r = 31 - r;
-    /* If mode is constant, this is a single conditional instruction */
-        if (mode & BS_0_0 && (signed)r < 0) 
-            r += 1;
-    }
-#else
     const uint8_t *bs_tab;
     unsigned int r;
     unsigned int n = v;
@@ -130,22 +115,10 @@ static inline unsigned int bs_generic(unsigned int v, int mode)
         n >>= 8;
         r += inc / 2;
     }
-#ifdef CPU_COLDFIRE
-    /* The high 24 bits of n are guaranteed empty after the above, so a
-       superfluous ext.b instruction can be saved by loading the LUT value over
-       n with asm */
-    asm volatile (
-        "move.b (%1,%0.l),%0"
-        : "+d" (n)
-        : "a" (bs_tab)
-    );
-#else
     n = bs_tab[n];
-#endif
     r += n;
     if (mode & BS_CLZ && mode & BS_0_0 && v == 0)
         r = 0;
-#endif
     return r;
 }
 

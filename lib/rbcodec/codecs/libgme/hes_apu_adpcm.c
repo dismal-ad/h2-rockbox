@@ -62,7 +62,6 @@ static int Adpcm_decode( struct Hes_Apu_Adpcm* this,int code )
 	int step = stepsize[state->ad_ref_index];
 	int delta;
 	int c = code & 7;
-#if 1
 	delta = 0;
 	if ( c & 4 ) delta += step;
 	step >>= 1;
@@ -71,9 +70,6 @@ static int Adpcm_decode( struct Hes_Apu_Adpcm* this,int code )
 	if ( c & 1 ) delta += step;
 	step >>= 1;
 	delta += step;
-#else
-	delta = ( ( c + c + 1 ) * step ) / 8; // maybe faster, but introduces rounding
-#endif
 	if ( c != code )
 	{
 		state->ad_sample -= delta;

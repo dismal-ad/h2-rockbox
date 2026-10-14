@@ -610,22 +610,6 @@ int sb_encode(void *state, void *vin, SpeexBits *bits)
          /* Gain to use if we want to use the low-band excitation for high-band */
          g=PDIV32(MULT16_16(filter_ratio,eh),EXTEND32(ADD16(1,el)));
          
-#if 0
-         {
-            char *tmp_stack=stack;
-            float *tmp_sig;
-            float g2;
-            ALLOC(tmp_sig, st->subframeSize, spx_sig_t);
-            for (i=0;i<st->lpcSize;i++)
-               mem[i]=st->mem_sp[i];
-            iir_mem2(st->low_innov+offset, st->interp_qlpc, tmp_sig, st->subframeSize, st->lpcSize, mem);
-            g2 = compute_rms(sp, st->subframeSize)/(.01+compute_rms(tmp_sig, st->subframeSize));
-            /*fprintf (stderr, "gains: %f %f\n", g, g2);*/
-            g = g2;
-            stack = tmp_stack;
-         }
-#endif
-
          /*print_vec(&g, 1, "gain factor");*/
          /* Gain quantization */
          {

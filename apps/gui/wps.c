@@ -79,36 +79,18 @@ static void wps_state_init(void);
 static void track_info_callback(unsigned short id, void *param);
 
 #define WPS_DEFAULTCFG WPS_DIR "/rockbox_default.wps"
-#ifdef HAVE_REMOTE_LCD
-#define RWPS_DEFAULTCFG WPS_DIR "/rockbox_default.rwps"
-#define DEFAULT_WPS(screen) ((screen) == SCREEN_MAIN ? \
-                            WPS_DEFAULTCFG:RWPS_DEFAULTCFG)
-#else
 #define DEFAULT_WPS(screen) (WPS_DEFAULTCFG)
-#endif
 
 char* wps_default_skin(enum screen_type screen)
 {
     static char *skin_buf[NB_SCREENS] = {
-#if LCD_DEPTH > 1
             "%X(d)\n"
-#endif
             "%s%?it<%?in<%in. |>%it|%fn>\n"
             "%s%?ia<%ia|%?d(2)<%d(2)|%(root%)>>\n"
             "%s%?id<%id|%?d(1)<%d(1)|%(root%)>> %?iy<%(%iy%)|>\n\n"
             "%al%pc/%pt%ar[%pp:%pe]\n"
             "%fbkBit %?fv<avg|> %?iv<%(id3v%iv%)|%(no id3%)>\n"
             "%pb\n%pm\n",
-#ifdef HAVE_REMOTE_LCD
-#if LCD_REMOTE_DEPTH > 1
-            "%X(d)\n"
-#endif
-            "%s%?ia<%ia|%?d(2)<%d(2)|%(root%)>>\n"
-            "%s%?it<%?in<%in. |>%it|%fn>\n"
-            "%al%pc/%pt%ar[%pp:%pe]\n"
-            "%fbkBit %?fv<avg|> %?iv<%(id3v%iv%)|%(no id3%)>\n"
-            "%pb\n",
-#endif
         };
     return skin_buf[screen];
 }
@@ -148,9 +130,6 @@ void wps_do_action(enum wps_do_action_type action, bool updatewps)
         if (action == WPS_PLAYPAUSE)
         {
             settings_save();
-    #if !defined(HAVE_SW_POWEROFF)
-            call_storage_idle_notifys(true);   /* make sure resume info is saved */
-    #endif
         }
     }
 
@@ -164,57 +143,6 @@ void wps_do_action(enum wps_do_action_type action, bool updatewps)
     if (updatewps && refresh)
         update_non_static();
 }
-
-#ifdef HAVE_TOUCHSCREEN
-static int skintouch_to_wps(void)
-{
-    int offset = 0;
-    struct gui_wps *gwps = skin_get_gwps(WPS, SCREEN_MAIN);
-
-    struct gesture_event gevent;
-    if (global_settings.touch_enable_flick_shortcuts &&
-        action_gesture_get_event(&gevent))
-    {
-        switch (gesture_flick_get(&gevent))
-        {
-        case GESTURE_FLICK_TOP:
-            return ACTION_WPS_QUICKSCREEN;
-        case GESTURE_FLICK_LEFT:
-            return ACTION_WPS_BROWSE;
-        case GESTURE_FLICK_RIGHT:
-            return ACTION_WPS_VIEW_PLAYLIST;
-        case GESTURE_FLICK_BOTTOM:
-            return ACTION_WPS_CONTEXT;
-        default:
-            break;
-        }
-    }
-
-    int button = skin_get_touchaction(gwps, &offset);
-    switch (button)
-    {
-        case ACTION_STD_PREV:
-            return ACTION_WPS_SKIPPREV;
-        case ACTION_STD_PREVREPEAT:
-            return ACTION_WPS_SEEKBACK;
-        case ACTION_STD_NEXT:
-            return ACTION_WPS_SKIPNEXT;
-        case ACTION_STD_NEXTREPEAT:
-            return ACTION_WPS_SEEKFWD;
-        case ACTION_STD_MENU:
-            return ACTION_WPS_MENU;
-        case ACTION_STD_CONTEXT:
-            return ACTION_WPS_CONTEXT;
-        case ACTION_STD_QUICKSCREEN:
-            return ACTION_WPS_QUICKSCREEN;
-#ifdef HAVE_HOTKEY
-        case ACTION_STD_HOTKEY:
-            return ACTION_WPS_HOTKEY;
-#endif
-    }
-    return button;
-}
-#endif /* HAVE_TOUCHSCREEN */
 
 static bool ffwd_rew(int button, bool seek_from_end)
 {
@@ -339,10 +267,6 @@ static bool ffwd_rew(int button, bool seek_from_end)
         if (!exit)
         {
             button = get_action(CONTEXT_WPS|ALLOW_SOFTLOCK,TIMEOUT_BLOCK);
-#ifdef HAVE_TOUCHSCREEN
-            if (button == ACTION_TOUCHSCREEN)
-                button = skintouch_to_wps();
-#endif
             if (button != ACTION_WPS_SEEKFWD
                 && button != ACTION_WPS_SEEKBACK
                 && button != 0 && !IS_SYSEVENT(button))
@@ -354,10 +278,8 @@ static bool ffwd_rew(int button, bool seek_from_end)
 
 static void gwps_caption_backlight(struct wps_state *state)
 {
-#if defined(HAVE_BACKLIGHT) || defined(HAVE_REMOTE_LCD)
     if (state->id3)
     {
-#ifdef HAVE_BACKLIGHT
         if (global_settings.caption_backlight)
         {
             /* turn on backlight n seconds before track ends, and turn it off n
@@ -372,28 +294,7 @@ static void gwps_caption_backlight(struct wps_state *state)
                 (state->paused == false))
                 backlight_on();
         }
-#endif
-#ifdef HAVE_REMOTE_LCD
-        if (global_settings.remote_caption_backlight)
-        {
-            /* turn on remote backlight n seconds before track ends, and turn it
-               off n seconds into the new track. n == remote_backlight_timeout,
-               or 5s */
-            int n = global_settings.remote_backlight_timeout * 1000;
-
-            if ( n < 1000 )
-                n = 5000; /* use 5s if backlight is always on or off */
-
-            if (((state->id3->elapsed < 1000) ||
-                 ((state->id3->length - state->id3->elapsed) < (unsigned)n)) &&
-                (state->paused == false))
-                remote_backlight_on();
-        }
-#endif
     }
-#else
-    (void) state;
-#endif /* def HAVE_BACKLIGHT || def HAVE_REMOTE_LCD */
 }
 
 static void change_dir(int direction)
@@ -521,7 +422,6 @@ static void play_hop(int direction)
     audio_ff_rewind(elapsed);
 }
 
-#if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
 /*
  * If the user is unable to see the wps, because the display is deactivated,
  * we suppress updates until the wps is activated again (the lcd driver will
@@ -535,7 +435,6 @@ static void wps_lcd_activation_hook(unsigned short id, void *param)
     /* force timeout in wps main loop, so that the update is instantly */
     button_queue_post(BUTTON_NONE, 0);
 }
-#endif
 
 static void gwps_leave_wps(bool theme_enabled)
 {
@@ -545,7 +444,6 @@ static void gwps_leave_wps(bool theme_enabled)
         gwps->display->scroll_stop();
         if (theme_enabled)
         {
-#ifdef HAVE_BACKDROP_IMAGE
             skin_backdrop_show(sb_get_backdrop(i));
 
             /* The following is supposed to erase any traces of %VB
@@ -553,20 +451,14 @@ static void gwps_leave_wps(bool theme_enabled)
             struct wps_data *sbs = skin_get_gwps(CUSTOM_STATUSBAR, i)->data;
             if (gwps->data->use_extra_framebuffer && sbs->use_extra_framebuffer)
                 skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
-#endif
             viewportmanager_theme_undo(i, skin_has_sbs(gwps));
         }
     }
 
-#if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
     /* Play safe and unregister the hook */
     remove_event(LCD_EVENT_ACTIVATION, wps_lcd_activation_hook);
-#endif
     /* unhandle statusbar update delay */
     sb_skin_set_update_delay(DEFAULT_UPDATE_DELAY);
-#ifdef HAVE_TOUCHSCREEN
-    touchscreen_set_mode(global_settings.touch_mode);
-#endif
 }
 
 static void restore_theme(void)
@@ -596,7 +488,6 @@ static void gwps_enter_wps(bool theme_enabled)
         sb_set_title_text(NULL, Icon_NOICON, i);
         /* Update the values in the first (default) viewport - in case the user
            has modified the statusbar or colour settings */
-#if LCD_DEPTH > 1
         if (display->depth > 1)
         {
             struct skin_viewport *svp = skin_find_item(VP_DEFAULT_LABEL_STRING,
@@ -608,20 +499,11 @@ static void gwps_enter_wps(bool theme_enabled)
                 vp->bg_pattern = display->get_background();
             }
         }
-#endif
         /* make the backdrop actually take effect */
-#ifdef HAVE_BACKDROP_IMAGE
         skin_backdrop_show(gwps->data->backdrop_id);
-#endif
         display->clear_display();
         skin_update(WPS, i, SKIN_REFRESH_ALL);
     }
-#ifdef HAVE_TOUCHSCREEN
-    gwps = skin_get_gwps(WPS, SCREEN_MAIN);
-    skin_disarm_touchregions(gwps);
-    if (gwps->data->touchregions < 0)
-        touchscreen_set_mode(TOUCHSCREEN_BUTTON);
-#endif
      /* Screen was cleared, so redraw SBS if enabled, and update screen */
     send_event(GUI_EVENT_ACTIONUPDATE, (void*)1);
 }
@@ -637,12 +519,7 @@ static long do_wps_exit(long action, bool bookmark)
     ab_reset_markers();
 
     gwps_leave_wps(true);
-#ifdef HAVE_RECORDING
-    if (action == ACTION_WPS_REC)
-        return GO_TO_RECSCREEN;
-#else
     (void)action;
-#endif
     if (global_settings.browse_current)
         return GO_TO_PREVIOUS_BROWSER;
     return GO_TO_PREVIOUS;
@@ -654,13 +531,6 @@ static long do_party_mode(long action)
     {
         switch (action)
         {
-#ifdef ACTION_WPSAB_SINGLE
-            case ACTION_WPSAB_SINGLE:
-                if (!ab_repeat_mode_enabled())
-                    break;
-                /* Note: currently all targets use ACTION_WPS_BROWSE
-                 * if mapped to any of below actions this will cause problems */
-#endif
             case ACTION_WPS_PLAY:
             case ACTION_WPS_SEEKFWD:
             case ACTION_WPS_SEEKBACK:
@@ -682,25 +552,6 @@ static inline int action_wpsab_single(long button)
 {
 /* The iPods/X5/M5 use a single button for the A-B mode markers,
    defined as ACTION_WPSAB_SINGLE in their config files. */
-#ifdef ACTION_WPSAB_SINGLE
-        static int wps_ab_state = 0;
-        if (button == ACTION_WPSAB_SINGLE && ab_repeat_mode_enabled())
-        {
-            switch (wps_ab_state)
-            {
-                case 0: /* set the A spot */
-                    button = ACTION_WPS_ABSETA_PREVDIR;
-                    break;
-                case 1: /* set the B spot */
-                    button = ACTION_WPS_ABSETB_NEXTDIR;
-                    break;
-                case 2:
-                    button = ACTION_WPS_ABRESET;
-                    break;
-            }
-            wps_ab_state = (wps_ab_state+1) % 3;
-        }
-#endif /* def ACTION_WPSAB_SINGLE */
     return button;
 }
 
@@ -716,7 +567,7 @@ static inline int action_wpsab_single(long button)
 long gui_wps_show(void)
 {
 /* NOTE: if USBAudio ever gets its own DSP channel, this block can go away! */
-#if defined(USB_ENABLE_AUDIO) || defined(HAVE_HOST_USB_AUDIO)
+#if defined(USB_ENABLE_AUDIO)
     if (usb_audio_get_active())
     {
         splash(HZ*2, ID2P(LANG_USB_DAC_ACTIVE));
@@ -746,18 +597,13 @@ long gui_wps_show(void)
                about to shut down. lets save the settings. */
             if (state->paused) {
                 settings_save();
-#if !defined(HAVE_SW_POWEROFF)
-                call_storage_idle_notifys(true);
-#endif
             }
         }
 
         if (restore)
         {
             restore = false;
-#if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
             add_event(LCD_EVENT_ACTIVATION, wps_lcd_activation_hook);
-#endif
         /* we remove the update delay since it's not very usable in the wps,
          * e.g. during volume changing or ffwd/rewind */
             sb_skin_set_update_delay(0);
@@ -772,11 +618,9 @@ long gui_wps_show(void)
 
             FOR_NB_SCREENS(i)
             {
-#if defined(HAVE_LCD_ENABLE) || defined(HAVE_LCD_SLEEP)
                 /* currently, all remotes are readable without backlight
                  * so still update those */
                 if (lcd_active() || (i != SCREEN_MAIN))
-#endif
                 {
                     bool full_update = skin_do_full_update(WPS, i);
                     if (update || full_update)
@@ -803,17 +647,12 @@ long gui_wps_show(void)
            playlist or if using the sleep timer. */
         if (!(audio_status() & AUDIO_STATUS_PLAY))
             exit = true;
-#ifdef HAVE_TOUCHSCREEN
-        if (button == ACTION_TOUCHSCREEN)
-            button = skintouch_to_wps();
-#endif
         button = do_party_mode(button); /* block select actions in party mode */
 
         button = action_wpsab_single(button); /* iPods/X5/M5 */
 
         switch(button)
         {
-#ifdef HAVE_HOTKEY
             case ACTION_WPS_HOTKEY:
             {
                 hotkey = true;
@@ -838,7 +677,6 @@ long gui_wps_show(void)
                 }
             }
             /* fall through */
-#endif /* def HAVE_HOTKEY */
             case ACTION_WPS_CONTEXT:
             {
                 gwps_leave_wps(true);
@@ -995,7 +833,6 @@ long gui_wps_show(void)
                 break;
 
 
-#ifdef HAVE_QUICKSCREEN
             case ACTION_WPS_QUICKSCREEN:
             {
                 gwps_leave_wps(true);
@@ -1019,7 +856,6 @@ long gui_wps_show(void)
                 }
             }
             break;
-#endif /* HAVE_QUICKSCREEN */
 
                 /* screen settings */
 
@@ -1085,11 +921,6 @@ long gui_wps_show(void)
                 update = true;
                 ffwd_rew(button, false); /* hopefully fix the ffw/rwd bug */
                 break;
-#ifdef HAVE_RECORDING
-            case ACTION_WPS_REC:
-                exit = true;
-                break;
-#endif
             case ACTION_WPS_VIEW_PLAYLIST:
                 gwps_leave_wps(true);
                 return GO_TO_PLAYLIST_VIEWER;

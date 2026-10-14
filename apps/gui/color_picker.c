@@ -311,88 +311,6 @@ static void draw_screen(struct screen *display, char *title,
     display->set_viewport(last_vp);
 }
 
-#ifdef HAVE_TOUCHSCREEN
-static int touchscreen_slider(struct screen *display,
-                                struct rgb_pick *rgb,
-                                int *selected_slider)
-{
-    short     x, y;
-    int       char_height, line_height;
-    int       max_label_width, value_width;
-    int       text_top, slider_x, slider_width;
-    bool      display_three_rows;
-    int       button;
-    int       pressed_slider;
-    struct viewport vp;
-
-    viewport_set_defaults(&vp, display->screen_type);
-    struct viewport *last_vp = display->set_viewport(&vp);
-
-    button = action_get_touchscreen_press_in_vp(&x, &y, &vp);
-    if (button == ACTION_UNKNOWN || button == BUTTON_NONE)
-        return ACTION_NONE;
-    /* Get slider positions and top starting position
-     * need vp.y here, because of the statusbar, since touchscreen
-     * coordinates are absolute */
-    max_label_width = label_get_max_width(display);
-    char_height  = display->getcharheight();
-    text_top     = MARGIN_TOP + char_height +
-                   TITLE_MARGIN_BOTTOM + SELECTOR_TB_MARGIN;
-    slider_x     = SELECTOR_WIDTH + max_label_width + SLIDER_TEXT_MARGIN;
-    slider_width = vp.width - SELECTOR_WIDTH - slider_x - SLIDER_TEXT_MARGIN;
-    if (display->depth >= 24)
-        display->getstringsize("255", &value_width, NULL);
-    else
-        display->getstringsize("63", &value_width, NULL);
-    slider_width -= value_width;
-    line_height  = char_height + 2*SELECTOR_TB_MARGIN;
-
-    /* same logic as in draw_screen */
-    /* Find out if there's enough room for three sliders or just
-       enough to display the selected slider - calculate total height
-       of display with three sliders present */
-    display_three_rows =
-        vp.height >=
-            text_top + line_height*3  + /* Title + 3 sliders     */
-            SWATCH_TOP_MARGIN         + /* at least 2 lines      */
-            char_height*2             + /*  + margins for bottom */
-            MARGIN_BOTTOM;              /* colored rectangle     */
-
-    display->set_viewport(last_vp);
-
-    if (y < text_top)
-    {
-        if (button == BUTTON_REL)
-            return ACTION_STD_CANCEL;
-        else
-            return ACTION_NONE;
-    }
-
-    if (y >= text_top + line_height * (display_three_rows ? 3:1))
-    {   /* touching the color area means accept */
-        if (button == BUTTON_REL)
-            return ACTION_STD_OK;
-        else
-            return ACTION_NONE;
-    }
-    /* y is relative to the original viewport */
-    pressed_slider = (y - text_top)/line_height;
-    if (pressed_slider != *selected_slider)
-        *selected_slider = pressed_slider;
-    /* add max_label_width to overcome integer division limits,
-     * cap value later since that may lead to an overflow */
-    if (x < slider_x + (slider_width+max_label_width) && x > slider_x)
-    {
-        char computed_val;
-        x -= slider_x;
-        computed_val = (x*rgb_max[pressed_slider]/(slider_width));
-        rgb->rgb_val[pressed_slider] =
-                        MIN(computed_val,rgb_max[pressed_slider]);
-        pack_rgb(rgb);
-    }
-    return ACTION_NONE;
-}
-#endif
 /***********
  set_color
  returns true if USB was inserted, false otherwise
@@ -424,11 +342,6 @@ bool set_color(struct screen *display, char *title,
         }
 
         button = get_action(CONTEXT_SETTINGS_COLOURCHOOSER, TIMEOUT_BLOCK);
-#ifdef HAVE_TOUCHSCREEN
-        if (button == ACTION_TOUCHSCREEN
-                && display->screen_type == SCREEN_MAIN)
-            button = touchscreen_slider(display, &rgb, &slider);
-#endif
 
         switch (button)
         {

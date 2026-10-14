@@ -16,9 +16,6 @@
 
 typedef unsigned char   uchar;
 typedef unsigned short  ushort;
-#if 0 // unused and causing compiler errrors
-typedef unsigned int    uint;
-#endif
 
 #include <stdio.h>
 
@@ -326,32 +323,16 @@ void native_to_little_endian (void *data, char *format);
 // performance. This may be easier to check when NOT using the assembly
 // language optimizations.
 
-#if 1   // PERFCOND
 #define apply_weight_i(weight, sample) ((weight * sample + 512) >> 10)
-#else
-#define apply_weight_i(weight, sample) ((((weight * sample) >> 8) + 2) >> 2)
-#endif
 
 #define apply_weight_f(weight, sample) (((((sample & 0xffff) * weight) >> 9) + \
     (((sample & ~0xffff) >> 9) * weight) + 1) >> 1)
 
-#if 1   // PERFCOND
 #define apply_weight(weight, sample) (sample != (short) sample ? \
     apply_weight_f (weight, sample) : apply_weight_i (weight, sample))
-#else
-#define apply_weight(weight, sample) ((int32_t)((weight * (int64_t) sample + 512) >> 10))
-#endif
 
-#if 0   // PERFCOND
-#define update_weight(weight, delta, source, result) \
-    if (source && result) { int32_t s = (int32_t) (source ^ result) >> 31; weight = (delta ^ s) + (weight - s); }
-#elif 1
 #define update_weight(weight, delta, source, result) \
     if (source && result) weight += (((source ^ result) >> 30) | 1) * delta
-#else
-#define update_weight(weight, delta, source, result) \
-    if (source && result) (source ^ result) < 0 ? (weight -= delta) : (weight += delta)
-#endif
 
 #define update_weight_clip(weight, delta, source, result) \
     if (source && result && ((source ^ result) < 0 ? (weight -= delta) < -1024 : (weight += delta) > 1024)) \

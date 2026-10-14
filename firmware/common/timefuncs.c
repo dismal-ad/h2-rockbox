@@ -23,9 +23,6 @@
 
 #include "kernel.h"
 #include "rtc.h"
-#ifdef HAVE_RTC_IRQ
-#include "rtc-target.h"
-#endif
 #include "timefuncs.h"
 #include "debug.h"
 
@@ -62,27 +59,6 @@ void dostime_localtime(time_t time, uint16_t* dosdate, uint16_t* dostime)
                ((tm.tm_year - 80) <<  9);
 }
 
-#if !CONFIG_RTC
-static inline bool rtc_dirty(void)
-{
-    return true;
-}
-
-static inline int rtc_read_datetime(struct tm *tm)
-{
-    tm->tm_sec = 0;
-    tm->tm_min = 0;
-    tm->tm_hour = 0;
-    tm->tm_mday = 1;
-    tm->tm_mon = 0;
-    tm->tm_year = 70;
-    tm->tm_wday = 4;
-    tm->tm_yday = 0;
-    return 1;
-}
-#endif /* !CONFIG_RTC */
-
-#if CONFIG_RTC
 bool valid_time(const struct tm *tm)
 {
     if (!tm || (tm->tm_hour < 0 || tm->tm_hour > 23 ||
@@ -101,7 +77,6 @@ bool valid_time(const struct tm *tm)
  * returns true if the rtc needs to be read
  * targets may override with their own implementation
  */
-#ifndef HAVE_RTC_IRQ
 static inline bool rtc_dirty(void)
 {
     static long timeout = 0;
@@ -116,8 +91,6 @@ static inline bool rtc_dirty(void)
 
     return false;
 }
-#endif /* HAVE_RTC_IRQ */
-#endif /* CONFIG_RTC */
 
 struct tm *get_time(void)
 {
@@ -132,7 +105,6 @@ struct tm *get_time(void)
 
 int set_time(const struct tm *tm)
 {
-#if CONFIG_RTC
     int rc;
 
     if (valid_time(tm))
@@ -148,13 +120,8 @@ int set_time(const struct tm *tm)
     {
         return -2;
     }
-#else /* No RTC */
-    (void)tm;
-    return -1;
-#endif /* RTC */
 }
 
-#if CONFIG_RTC
 void set_day_of_week(struct tm *tm)
 {
     int y=tm->tm_year+1900;
@@ -181,5 +148,4 @@ void set_day_of_year(struct tm *tm)
     }
     tm->tm_yday = d + ((m+1) /2);
 }
-#endif /* CONFIG_RTC */
 

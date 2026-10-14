@@ -228,54 +228,6 @@ static inline void channel_couple(ogg_int32_t *pcmM, ogg_int32_t *pcmA, int n)
     }
 }
 
-#elif defined CPU_COLDFIRE
-
-#define MAGANG( _mag, _ang, _off )\
-{\
-    asm volatile( "tst.l %[mag]\n\t"\
-                  "bgt.s 1f\n\t"\
-                  "neg.l %[ang]\n\t" /* neg sets cc so we might as well jump */ \
-                  "ble.s 2f\n\t"\
-                  ".word 0x51fb\n\t" /* trapf.l, shadow next 2 insns */ \
-                                     /* if we didn't jump, the next test will */ \
-                                     /* false anyway */ \
-                  "1:\n\t"\
-                  "tst.l %[ang]\n\t"\
-                  "bgt.s 2f\n\t"\
-                  "add.l %[mag], %[ang]\n\t"\
-                  "move.l %[ang], (" #_off ", %[pcmM])\n\t"\
-                  ".word 0x51fa\n\t" /* trapf.w, shadow next insn */ \
-                  "2:\n\t"\
-                  "sub.l %[ang], %[mag]\n\t"\
-                  "move.l %[mag], (%[pcmA])+\n\t"\
-                  : [mag] "+r" ( ( _mag ) ), [ang] "+d" ( ( _ang ) ),\
-                    [pcmA] "+a" (pcmA)\
-                  : [pcmM] "a" (pcmM)\
-                  : "cc", "memory" );\
-}
-static inline void channel_couple(ogg_int32_t *pcmM, ogg_int32_t *pcmA, unsigned int n)
-{
-    ogg_int32_t * const pcmMend = pcmM + n/2;
-    while(LIKELY(pcmM < pcmMend))
-    {
-      register int M0 asm("a2"),M1 asm("a3"),M2 asm("a4"),M3 asm("a5");
-      register int A0 asm("d2"),A1 asm("d3"),A2 asm("d4"),A3 asm("d5");
-      asm volatile( "movem.l (%[pcmM]), %[M0]-%[M3]\n\t"
-                    "movem.l (%[pcmA]), %[A0]-%[A3]\n\t"
-                    : [M0] "=r" (M0), [M1] "=r" (M1), [M2] "=r" (M2), [M3] "=r" (M3),
-                      [A0] "=r" (A0), [A1] "=r" (A1), [A2] "=r" (A2), [A3] "=r" (A3)
-                    : [pcmM] "a" (pcmM), [pcmA] "a" (pcmA) );
-
-      /* use offsets instead of autoinc since the store to pcmM is conditional */
-      MAGANG( M0, A0, 0 );
-      MAGANG( M1, A1, 4 );
-      MAGANG( M2, A2, 8 );
-      MAGANG( M3, A3, 12 );
-
-      asm volatile( "lea.l (4*4, %[pcmM]), %[pcmM]\n\t"
-                    : [pcmM] "+a" (pcmM));
-    }
-}
 #else
 static inline void channel_couple(ogg_int32_t *pcmM, ogg_int32_t *pcmA, int n)
 {

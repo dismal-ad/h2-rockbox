@@ -116,18 +116,6 @@ opus_int silk_Decode(                                   /* O    Returns error co
     int                             arch                /* I    Run-time architecture                           */
 );
 
-#if 0
-/**************************************/
-/* Get table of contents for a packet */
-/**************************************/
-opus_int silk_get_TOC(
-    const opus_uint8                *payload,           /* I    Payload data                                */
-    const opus_int                  nBytesIn,           /* I    Number of input bytes                       */
-    const opus_int                  nFramesPerPayload,  /* I    Number of SILK frames per payload           */
-    silk_TOC_struct                 *Silk_TOC           /* O    Type of content                             */
-);
-#endif
-
 #ifdef __cplusplus
 }
 #endif

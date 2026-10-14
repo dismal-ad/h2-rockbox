@@ -2038,21 +2038,6 @@ static av_cold void wmavoice_flush(AVCodecContext *ctx)
         memset(s->denoise_filter_cache, 0, sizeof(s->denoise_filter_cache));
     }
 }
-#if 0
-AVCodec wmavoice_decoder = {
-    "wmavoice",
-    AVMEDIA_TYPE_AUDIO,
-    CODEC_ID_WMAVOICE,
-    sizeof(WMAVoiceContext),
-    wmavoice_decode_init,
-    NULL,
-    wmavoice_decode_end,
-    wmavoice_decode_packet,
-    CODEC_CAP_SUBFRAMES,
-    .flush     = wmavoice_flush,
-    .long_name = NULL_IF_CONFIG_SMALL("Windows Media Audio Voice"),
-};
-#endif
 
 int main(void)
 {

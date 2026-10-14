@@ -68,12 +68,10 @@ struct boot_data_t
     };
 } __attribute__((packed));
 
-#if !defined(BOOTLOADER)
 extern struct boot_data_t boot_data;
 extern bool boot_data_valid;
 
 void verify_boot_data(void) INIT_ATTR;
-#endif
 #else /* __ASSEMBLER__ */
 
 /* This assembler macro implements an empty boot structure with just the magic

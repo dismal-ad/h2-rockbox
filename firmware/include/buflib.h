@@ -403,11 +403,7 @@ bool buflib_print_block_at(struct buflib_context *ctx, int block_num,
 void buflib_check_valid(struct buflib_context *ctx);
 #endif
 
-#if CONFIG_BUFLIB_BACKEND == BUFLIB_BACKEND_MEMPOOL
 #include "buflib_mempool.h"
-#elif CONFIG_BUFLIB_BACKEND == BUFLIB_BACKEND_MALLOC
-#include "buflib_malloc.h"
-#endif
 
 #ifndef BUFLIB_ALLOC_OVERHEAD
 # define BUFLIB_ALLOC_OVERHEAD 0

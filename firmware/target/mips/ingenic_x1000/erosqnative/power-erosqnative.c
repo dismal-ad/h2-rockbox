@@ -55,11 +55,7 @@ void power_init(void)
     i2c_x1000_set_freq(2, I2C_FREQ_400K);
 
     int devicever;
-#if defined(BOOTLOADER)
-    devicever = EROSQN_VER;
-#else
     devicever = device_data.hw_rev;
-#endif
     if (devicever >= 4){
         uint8_t regread;
         axp2101_init();
@@ -115,9 +111,7 @@ void power_init(void)
 
         /* delay to allow ADC to get a good sample -
          * may give bogus (high) readings otherwise. */
-#ifndef BOOTLOADER
         mdelay(150);
-#endif
     } else {
         axp_init();
         /* Set lowest sample rate */
@@ -143,24 +137,13 @@ void power_init(void)
         axp_set_charge_current(780);
     }
 
-#ifdef BOOTLOADER
-    /* Delay to give power outputs time to stabilize.
-     * With the power thread delay, this can apparently go as low as 50,
-     * Keeping a higher value here just to ensure the bootloader works
-     * correctly. */
-    mdelay(200);
-#endif
 }
 
 #ifdef HAVE_USB_CHARGING_ENABLE
 void usb_charging_maxcurrent_change(int maxcurrent)
 {
     int devicever;
-#if defined(BOOTLOADER)
-    devicever = EROSQN_VER;
-#else
     devicever = device_data.hw_rev;
-#endif
     if (devicever >= 4){
         axp2101_set_charge_current(maxcurrent);
     } else {
@@ -177,11 +160,7 @@ void adc_init(void)
 void power_off(void)
 {
     int devicever;
-#if defined(BOOTLOADER)
-    devicever = EROSQN_VER;
-#else
     devicever = device_data.hw_rev;
-#endif
     if (devicever >= 4){
         axp2101_power_off();
     } else {
@@ -193,11 +172,7 @@ void power_off(void)
 bool charging_state(void)
 {
     int devicever;
-#if defined(BOOTLOADER)
-    devicever = EROSQN_VER;
-#else
     devicever = device_data.hw_rev;
-#endif
     if (devicever >= 4){
         return axp2101_battery_status() == AXP2101_BATT_CHARGING;
     } else {
@@ -208,11 +183,7 @@ bool charging_state(void)
 int _battery_level(void)
 {
     int devicever;
-#if defined(BOOTLOADER)
-    devicever = EROSQN_VER;
-#else
     devicever = device_data.hw_rev;
-#endif
     if (devicever >= 4){
         return axp2101_egauge_read();
     } else {
@@ -223,11 +194,7 @@ int _battery_level(void)
 int _battery_voltage(void)
 {
     int devicever;
-#if defined(BOOTLOADER)
-    devicever = EROSQN_VER;
-#else
     devicever = device_data.hw_rev;
-#endif
     if (devicever >= 4){
         return axp2101_adc_read(AXP2101_ADC_VBAT_VOLTAGE);
     } else {
@@ -235,20 +202,3 @@ int _battery_voltage(void)
     }
 }
 
-#if CONFIG_BATTERY_MEASURE & CURRENT_MEASURE
-int _battery_current(void)
-{
-    int devicever;
-#if defined(BOOTLOADER)
-    devicever = EROSQN_VER;
-#else
-    devicever = device_data.hw_rev;
-#endif
-    if (devicever <= 3){
-        if(charging_state())
-            return axp_adc_read(ADC_CHARGE_CURRENT);
-        else
-            return axp_adc_read(ADC_DISCHARGE_CURRENT);
-    }
-}
-#endif

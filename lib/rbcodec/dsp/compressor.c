@@ -162,13 +162,6 @@ static bool compressor_update(struct dsp_config *dsp,
         }
         logf("   Compressor Allocated %d bytes", (int)sizeof(int32_t[MAX_CH][MAX_DLY]));
     }
-#if 0 /* don't really need this */
-    if (threshold >= 0 && labuf_handle > 0)
-    {
-        labuf_handle = core_free(labuf_handle);
-        logf("   Compressor Freed %d bytes", (int)sizeof(int32_t[MAX_CH][MAX_DLY]));
-    }
-#endif
     /* Sidechain pre-emphasis filter coefficients */
     hp1ca = fs + 0x003C1; /** The "magic" constant is 1/RC.  This filter
                            *  cut-off is approximately 237 Hz

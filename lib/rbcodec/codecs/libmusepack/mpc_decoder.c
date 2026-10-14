@@ -233,9 +233,6 @@ void mpc_decoder_reset_scf(mpc_decoder * d, int value)
 
 static void mpc_decoder_setup(mpc_decoder *d)
 {
-#if defined(CPU_COLDFIRE)
-    coldfire_set_macsr(EMAC_FRACTIONAL | EMAC_SATURATE);
-#endif
 
     memset(d, 0, sizeof *d);
 

@@ -36,15 +36,8 @@
 #include "list.h"
 #include "alarm_menu.h"
 #include "screens.h"
-#if CONFIG_TUNER
-#include "radio.h"
-#endif
 #include "font.h"
 #include "system.h"
-
-#ifdef SAMSUNG_YH820
-#include "splash.h"
-#endif
 
 static int timedate_set(void)
 {
@@ -83,65 +76,6 @@ static int timedate_set(void)
 MENUITEM_FUNCTION(time_set, 0, ID2P(LANG_SET_TIME),
                   timedate_set, NULL, Icon_NOICON);
 MENUITEM_SETTING(timeformat, &global_settings.timeformat, NULL);
-#ifdef HAVE_RTC_ALARM
-MENUITEM_FUNCTION(alarm_screen_call, 0, ID2P(LANG_ALARM_MOD_ALARM_MENU),
-                  alarm_screen, NULL, Icon_NOICON);
-#if CONFIG_TUNER || defined(HAVE_RECORDING)
-
-#if CONFIG_TUNER && !defined(HAVE_RECORDING)
-/* This need only be shown if we dont have recording, because if we do
-   then always show the setting item, because there will always be at least
-   2 items */
-static int alarm_callback(int action,
-                          const struct menu_item_ex *this_item,
-                          struct gui_synclist *this_list)
-{
-    (void)this_item;
-    (void)this_list;
-    switch (action)
-    {
-        case ACTION_REQUEST_MENUITEM:
-            if (radio_hardware_present() == 0)
-                return ACTION_EXIT_MENUITEM;
-            break;
-    }
-    return action;
-}
-#else
-#define alarm_callback NULL
-#endif /* CONFIG_TUNER && !HAVE_RECORDING */
-/* have to do this manually because the setting screen
-   doesnt handle variable item count */
-static int alarm_setting(void)
-{
-    struct opt_items items[ALARM_START_COUNT];
-    int i = 0;
-    items[i].string = str(LANG_RESUME_PLAYBACK);
-    items[i].voice_id = LANG_RESUME_PLAYBACK;
-    i++;
-#if CONFIG_TUNER
-    if (radio_hardware_present())
-    {
-        items[i].string = str(LANG_FM_RADIO);
-        items[i].voice_id = LANG_FM_RADIO;
-        i++;
-    }
-#endif
-#ifdef HAVE_RECORDING
-    items[i].string = str(LANG_RECORDING);
-    items[i].voice_id = LANG_RECORDING;
-    i++;
-#endif
-    return set_option(str(LANG_ALARM_WAKEUP_SCREEN),
-                      &global_settings.alarm_wake_up_screen, 
-                      RB_INT, items, i, NULL);
-}
-
-MENUITEM_FUNCTION(alarm_wake_up_screen, 0, ID2P(LANG_ALARM_WAKEUP_SCREEN),
-                  alarm_setting, alarm_callback, Icon_Menu_setting);
-#endif /* CONFIG_TUNER || defined(HAVE_RECORDING) */
-
-#endif /* HAVE_RTC_ALARM */
 
 static void draw_timedate(struct viewport *vp, struct screen *display)
 {
@@ -224,21 +158,8 @@ static int time_menu_callback(int action,
     return action;
 }
 
-#if defined(HAVE_RDS_CAP) && defined(CONFIG_RTC)
-MENUITEM_SETTING(sync_rds_time, &global_settings.sync_rds_time, NULL);
-#endif
-
 MAKE_MENU(time_menu, ID2P(LANG_TIME_MENU), time_menu_callback, Icon_NOICON,
           &time_set,
-#ifdef HAVE_RTC_ALARM
-          &alarm_screen_call,
-#if defined(HAVE_RECORDING) || CONFIG_TUNER
-          &alarm_wake_up_screen,
-#endif
-#endif
-#if defined(HAVE_RDS_CAP) && defined(CONFIG_RTC)
-          &sync_rds_time,
-#endif
           &timeformat);
 
 int time_screen(void* ignored)
@@ -270,22 +191,6 @@ int time_screen(void* ignored)
         menu[i].height -= clock_vps[i].height;
         draw_timedate(&clock_vps[i], &screens[i]);
     }
-
-#ifdef SAMSUNG_YH820
-    /* some hardware revisions of the yh820 have a rtc problem: if you try to set
-       the time/date it will leave the player in an absolute unresponsive state
-       which can only be reverted by removing the battery. Setting time/date
-       should be prohibited on this targets. Fortunately we can autodetect these,
-       because they always report "02:02:02" as time.
-    */
-    struct tm *tm = get_time();
-    if (tm->tm_year==102 && tm->tm_hour==2 && tm->tm_min==2 && tm->tm_sec==2)
-    {
-        splash(4*HZ, "Can't set time/date due to hardware issues!");
-        pop_current_activity();
-        return 0;
-    }
-#endif
 
     ret = do_menu(&time_menu, NULL, menu, false);
     pop_current_activity();

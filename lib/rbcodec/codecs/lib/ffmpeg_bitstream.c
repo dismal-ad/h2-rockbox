@@ -47,27 +47,6 @@ const uint8_t ff_log2_run[32]={
  8, 9,10,11,12,13,14,15
 };
 
-#if 0 // unused in rockbox
-void align_put_bits(PutBitContext *s)
-{
-#ifdef ALT_BITSTREAM_WRITER
-    put_bits(s,(  - s->index) & 7,0);
-#else
-    put_bits(s,s->bit_left & 7,0);
-#endif
-}
-
-void ff_put_string(PutBitContext *pb, const char *string, int terminate_string)
-{
-    while(*string){
-        put_bits(pb, 8, *string);
-        string++;
-    }
-    if(terminate_string)
-        put_bits(pb, 8, 0);
-}
-#endif
-
 void ff_copy_bits(PutBitContext *pb, const uint8_t *src, int length)
 {
     int words= length>>4;
@@ -196,9 +175,6 @@ static int build_table(VLC *vlc, int table_nb_bits, int nb_codes,
         n = codes[i].bits;
         code = codes[i].code;
         symbol = codes[i].symbol;
-#if defined(DEBUG_VLC) && 0
-        av_log(NULL,AV_LOG_DEBUG,"i=%d n=%d code=0x%x\n", i, n, code);
-#endif
         if (n <= table_nb_bits) {
             /* no need to add another table */
             j = code >> (32 - table_nb_bits);

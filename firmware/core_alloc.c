@@ -28,24 +28,9 @@ struct buflib_context core_ctx;
 
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE) && !defined(__PCTOOL__)
 
-#if defined(IPOD_VIDEO) && !defined(BOOTLOADER)
-/* defined in linker script */
-extern unsigned char audiobuffer[];
-extern unsigned char *audiobufend_lds[];
-/* pointer to end of audio buffer filled at runtime allocator_init */
-unsigned char *audiobufend;
-#elif defined(SANSA_E200) && defined(HAVE_BOOTLOADER_USB_MODE)
-/* defined in linker script */
-extern unsigned char freebuffer[];
-extern unsigned char freebufferend[];
-/* map linker symbol to the audiobuffer in order to use core_alloc */
-unsigned char *audiobuffer = (unsigned char *)freebuffer;
-unsigned char *audiobufend = (unsigned char *)freebufferend;
-#else /* !IPOD_VIDEO, !SANSA_E200&&BOOTLOADERUSB */
 /* defined in linker script */
 extern unsigned char audiobuffer[];
 extern unsigned char audiobufend[];
-#endif
 
 #else /* PLATFORM_HOSTED */
 static unsigned char audiobuffer[(MEMORYSIZE-1)*1024*1024];
@@ -60,14 +45,6 @@ static int test_alloc;
 void core_allocator_init(void)
 {
     unsigned char *start = ALIGN_UP(audiobuffer, sizeof(intptr_t));
-
-#if !defined(__PCTOOL__) && defined(IPOD_VIDEO) && !defined(BOOTLOADER) && !defined(SIMULATOR)
-    audiobufend=(unsigned char *)audiobufend_lds;
-    if(MEMORYSIZE==64 && probed_ramsize!=64)
-    {
-        audiobufend -= (32<<20);
-    }
-#endif
 
     buflib_init(&core_ctx, start, audiobufend - start);
 

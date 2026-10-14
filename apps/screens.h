@@ -37,9 +37,7 @@ void charging_splash(void);
 int mmc_remove_request(void);
 #endif
 
-#if CONFIG_RTC
 bool set_time_screen(const char* title, struct tm *tm, bool set_date);
-#endif
 
 #ifndef WARBLE
 bool browse_id3_ex(struct mp3entry *id3, struct playlist_info *playlist,
@@ -51,11 +49,6 @@ bool browse_id3(struct mp3entry *id3, int playlist_display_index, int playlist_a
                 struct tm *modified, int track_ct,
                 int (*view_text)(const char *title, const char *text));
 int  view_runtime(void);
-
-#ifdef HAVE_TOUCHSCREEN
-int calibrate(void);
-int reset_mapping(void);
-#endif
 
 #endif
 

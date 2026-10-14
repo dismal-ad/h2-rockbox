@@ -37,16 +37,8 @@
 #endif
 #include "button-sdl.h"
 #include "lcd-bitmap.h"
-#ifdef HAVE_REMOTE_LCD
-#include "lcd-remote-bitmap.h"
-#endif
 #include "panic.h"
 #include "debug.h"
-
-#if defined(RG_NANO) && !defined(SIMULATOR)
-#include <signal.h>
-#include "instant_play.h"
-#endif
 
 #define SIMULATOR_DEFAULT_ROOT "simdisk"
 
@@ -55,9 +47,6 @@ SDL_Surface *gui_surface;
 #endif
 
 bool            background = true;          /* use backgrounds by default */
-#ifdef HAVE_REMOTE_LCD
-bool            showremote = true;          /* include remote by default */
-#endif
 bool            mapping = false;
 const char      *audiodev = NULL;
 bool            debug_buttons = false;
@@ -93,20 +82,8 @@ static int sdl_event_thread(void * param)
 #endif
 
 #if !defined(SIMULATOR)
-#if defined(HAVE_TOUCHSCREEN)
-    /* SDL touch screen fix: Work around a SDL assumption that returns
-       relative mouse coordinates when you get to the screen edges
-       using the touchscreen and a disabled mouse cursor.
-     */
-    uint8_t hiddenCursorData = 0;
-    SDL_Cursor *hiddenCursor = SDL_CreateCursor(&hiddenCursorData, &hiddenCursorData, 8, 1, 0, 0);
-
-    SDL_ShowCursor(SDL_ENABLE);
-    SDL_SetCursor(hiddenCursor);
-#else /* !HAVE_TOUCHSCREEN */
     /* Explicitly disable the cursor on non-touch targets */
     SDL_ShowCursor(SDL_DISABLE);
-#endif /* !HAVE_TOUCHSCREEN */
 #endif /* !SIMULATOR */
 
 #if SDL_MAJOR_VERSION == 1
@@ -171,12 +148,6 @@ void power_off(void)
     /* wait for event thread to finish */
     SDL_WaitThread(evt_thread, NULL);
 
-#if defined(RG_NANO) && !defined(SIMULATOR)
-    /* Reset volume/brightness to the values before launching rockbox */
-    ip_reset_values();
-    ip_power_off();
-#endif
-
 #ifdef HAVE_SDL_THREADS
     /* lock again before entering the scheduler */
     sim_thread_lock(t);
@@ -217,16 +188,6 @@ void system_init(void)
     SDL_sem *s;
     /* fake stack, OS manages size (and growth) */
     stackbegin = stackend = (uintptr_t*)&s;
-
-#if defined(RG_NANO) && !defined(SIMULATOR)
-    /* Set system volume to max with amixer */
-    system("amixer -q sset 'Headphone' 63 unmute");
-
-    /* Instant play handling */
-    struct sigaction ip_sa;
-    ip_sa.sa_handler = ip_handle_sigusr1;
-    sigaction(SIGUSR1, &ip_sa, NULL);
-#endif
 
     if (SDL_InitSubSystem(SDL_INIT_TIMER))
         panicf("%s", SDL_GetError());
@@ -272,12 +233,6 @@ void system_init(void)
 
 void system_reboot(void)
 {
-#if defined(RG_NANO) && !defined(SIMULATOR)
-    /* Reset volume/brightness to the values before launching rockbox */
-    ip_reset_values();
-    SDL_Quit();
-    exit(EXIT_SUCCESS);
-#endif
 
 #ifdef HAVE_SDL_THREADS
     sim_thread_exception_wait();
@@ -337,14 +292,6 @@ void sys_handle_argv(int argc, char *argv[])
                 background = false;
                 printf("Disabling background image.\n");
             }
-#ifdef HAVE_REMOTE_LCD
-            else if (!strcmp("--noremote", argv[x]))
-            {
-                showremote = false;
-                background = false;
-                printf("Disabling remote image.\n");
-            }
-#endif
 #if SDL_MAJOR_VERSION > 1
             else if (!strcmp("--zoom", argv[x]))
             {
@@ -398,9 +345,6 @@ void sys_handle_argv(int argc, char *argv[])
 #endif
                 printf("  --debugwps \t Print advanced WPS debug info\n");
                 printf("  --nobackground \t Disable the background image\n");
-#ifdef HAVE_REMOTE_LCD
-                printf("  --noremote \t Disable the remote image (will disable backgrounds)\n");
-#endif
                 printf("  --zoom [VAL]\t Window zoom (will disable backgrounds)\n");
                 printf("  --alarm \t Simulate a wake-up on alarm\n");
                 printf("  --root [DIR]\t Set root directory\n");

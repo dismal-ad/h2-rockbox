@@ -29,16 +29,6 @@ extern void init_tick(void) INIT_ATTR;
 #define MAX_NUM_TICK_TASKS 8
 
 /* global tick variable */
-#if defined(CPU_PP) && defined(BOOTLOADER) && \
-    !defined(HAVE_BOOTLOADER_USB_MODE)
-/* We don't enable interrupts in the PP bootloader unless USB mode is
-   enabled for it, so we need to fake the current_tick variable */
-#define current_tick (signed)(USEC_TIMER/10000)
-
-static inline void call_tick_tasks(void)
-{
-}
-#else
 extern volatile long current_tick;
 
 /* inline helper for implementing target interrupt handler */
@@ -55,7 +45,6 @@ static inline void call_tick_tasks(void)
         fn();
     }
 }
-#endif
 
 /* implemented in target tree */
 extern void tick_start(unsigned int interval_in_ms) INIT_ATTR;

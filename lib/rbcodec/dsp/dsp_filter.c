@@ -285,7 +285,6 @@ void filter_flush(struct dsp_filter *f)
  * fewer fractional bits, up to full scale. Carried over, the error has no
  * DC component left.
  */
-#if (!defined(CPU_COLDFIRE) && !defined(CPU_ARM)) || defined(CPU_ARM_MICRO)
 void filter_process(struct dsp_filter *f, int32_t * const buf[], int count,
                     unsigned int channels)
 {
@@ -319,7 +318,6 @@ void filter_process(struct dsp_filter *f, int32_t * const buf[], int count,
         f->frac[c] = frac;
     }
 }
-#endif /* CPU */
 
 /* ring buffer */
 int32_t dequeue(int32_t* buffer, int *head, int boundary)

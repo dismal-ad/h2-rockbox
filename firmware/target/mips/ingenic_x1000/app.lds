@@ -8,17 +8,6 @@ STARTUP(target/mips/ingenic_x1000/crt0.o)
 INPUT(target/mips/exception-mips.o)
 INPUT(target/mips/system-mips.o)
 
-#ifdef BOOTLOADER
-# undef PLUGIN_BUFFER_SIZE
-# undef CODEC_SIZE
-# define PLUGIN_BUFFER_SIZE 0
-# define CODEC_SIZE 0
-# if defined(HAVE_INIT_ATTR)
-/* This needs to be fixed for the bootloader */
-#  error "bootloader does not support INIT_ATTR"
-# endif
-#endif
-
 /* End of the audio buffer, where the codec buffer starts */
 #define ENDAUDIOADDR (X1000_DRAM_END - PLUGIN_BUFFER_SIZE - CODEC_SIZE)
 

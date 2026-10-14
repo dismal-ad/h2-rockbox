@@ -2,18 +2,7 @@
 
 ENTRY(start)
 
-#ifdef CPU_COLDFIRE
-OUTPUT_FORMAT(elf32-m68k)
-STARTUP(target/coldfire/crt0.o)
-#elif defined(CPU_PP)
-OUTPUT_FORMAT(elf32-littlearm)
-STARTUP(target/arm/pp/crt0-pp.o)
-#elif defined(CPU_ARM)
-OUTPUT_FORMAT(elf32-littlearm)
-STARTUP(target/arm/crt0.o)
-#else
 #error "Unknown CPU"
-#endif
 
 
 #if MEMORYSIZE >= 32
@@ -22,27 +11,11 @@ STARTUP(target/arm/crt0.o)
 #define PLUGINSIZE 0x8000
 #endif
 
-#ifdef IRIVER_H100_SERIES
-#define CODECSIZE CODEC_SIZE
-#define DRAMORIG 0x31000000
-#define IRAMORIG 0x10000000
-#define IRAMSIZE 0xc000
-#define FLASHORIG 0x00100028
-#define FLASHSIZE 0x000eff80
-#elif defined(IRIVER_H300_SERIES)
-#define CODECSIZE CODEC_SIZE
-#define DRAMORIG 0x31000000
-#define IRAMORIG 0x10000000
-#define IRAMSIZE 0xc000
-#define FLASHORIG 0x00200028
-#define FLASHSIZE 0x001eff80
-#else
 #define DRAMORIG 0x09000000
 #define IRAMORIG 0x0f000000
 #define IRAMSIZE 0x1000
 #define FLASHORIG 0x02000000 + ROM_START
 #define FLASHSIZE 256K - ROM_START
-#endif
 
 #ifdef CODECSIZE
 #define DRAMSIZE (MEMORYSIZE * 0x100000) - PLUGINSIZE - CODECSIZE
@@ -161,11 +134,7 @@ SECTIONS
     } > DRAM
 #endif
 
-#ifdef CPU_COLDFIRE
-    .bss ADDR(.data) + SIZEOF(.data) + SIZEOF(.iram):
-#else
     .bss :
-#endif
     {
        _edata = .;
         *(.bss*)

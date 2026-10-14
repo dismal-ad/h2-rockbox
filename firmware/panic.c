@@ -46,32 +46,7 @@ static char panic_buf[128];
 
 #define LINECHARS (LCD_WIDTH/SYSFONT_WIDTH) - 2
 
-#if defined(CPU_ARM) && defined(HAVE_RB_BACKTRACE)
-void panicf_f( const char *fmt, ...) USED_ATTR;
-
-/* we wrap panicf() here with naked function to catch SP value */
-void __attribute__((naked)) panicf( const char *fmt, ...)
-{
-    (void)fmt;
-    asm volatile ("mov r4, sp \n"
-                  "b panicf_f \n"
-                 );
-    while (1);
-}
-
-/*
- * "Dude. This is pretty fucked-up, right here."
- */
-void panicf_f( const char *fmt, ...)
-{
-    int sp;
-
-    asm volatile ("mov %[SP],r4 \n"
-                  : [SP] "=r" (sp)
-                 );
-
-    int pc = (int)__builtin_return_address(0);
-#elif defined(BACKTRACE_MIPSUNWINDER)
+#if   defined(BACKTRACE_MIPSUNWINDER)
 void panicf( const char *fmt, ... )
 {
     /* NOTE: these are obtained by the backtrace lib */
@@ -85,11 +60,7 @@ void panicf( const char *fmt, ...)
 
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
     /* Disable interrupts */
-#if defined(CPU_ARM_CLASSIC)
-    disable_interrupt(IRQ_FIQ_STATUS);
-#else
     set_irq_level(DISABLE_INTERRUPTS);
-#endif
 #endif /* SIMULATOR */
 
     va_start( ap, fmt );
@@ -100,10 +71,8 @@ void panicf( const char *fmt, ...)
 
     int y = 1;
 
-#if LCD_DEPTH > 1
     lcd_set_backdrop(NULL);
     lcd_set_drawinfo(DRMODE_SOLID, LCD_BLACK, LCD_WHITE);
-#endif
 
     lcd_clear_display();
     lcd_setfont(FONT_SYSFIXED);

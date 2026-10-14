@@ -113,12 +113,10 @@ struct usb_class_driver {
        Optional function */
     bool (*control_request)(struct usb_ctrlrequest* req, uint8_t* reqdata, size_t reqdata_size);
 
-#ifdef HAVE_HOTSWAP
     /* Tells the driver that a hotswappable disk/card was inserted or
        extracted
        Optional function */
     void (*notify_hotswap)(int volume, bool inserted);
-#endif
 
     /* Tells the driver to select an alternate setting for a specific interface.
      * Returns 0 on success and -1 on error.

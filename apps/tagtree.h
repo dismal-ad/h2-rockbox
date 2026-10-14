@@ -17,7 +17,6 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
-#ifdef HAVE_TAGCACHE
 #ifndef _TAGTREE_H
 #define _TAGTREE_H
 
@@ -51,5 +50,4 @@ bool tagtree_entries_iterate(struct tagcache_search *tcs,
                              bool (*action_cb)(const char *file_name),
                              char *buf, size_t buf_sz);
 
-#endif
 #endif

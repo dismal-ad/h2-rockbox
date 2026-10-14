@@ -34,9 +34,6 @@
 #include "crc32.h"
 #include "sound.h"
 #include "settings.h"
-#ifdef HAVE_COMPOSITE_VIDEO_OUT
-#include "videoout.h"
-#endif
 #include "debug.h"
 #include "usb.h"
 #include "backlight.h"
@@ -68,18 +65,12 @@
 #include "settings_list.h"
 #include "filetypes.h"
 #include "option_select.h"
-#if CONFIG_TUNER
-#include "radio.h"
-#endif
 #include "wps.h"
 #include "skin_engine/skin_engine.h"
 #include "viewport.h"
 #include "statusbar-skinned.h"
 #include "bootchart.h"
 #include "scroll_engine.h"
-#ifdef HAVE_GENERAL_PURPOSE_LED
-#include "led-general-purpose.h"
-#endif
 
 #ifndef __PCTOOL__
 #include "open_plugin.h"
@@ -100,18 +91,7 @@ static long lasttime = 0;
 
 #include "dsp_proc_settings.h"
 #include "playback.h"
-#ifdef HAVE_RECORDING
-#include "enc_config.h"
-#endif
 #include "pcm_sampr.h"
-
-#ifdef HAVE_REMOTE_LCD
-#include "lcd-remote.h"
-#endif
-
-#if defined(DX50) || defined(DX90)
-#include "governor-ibasso.h"
-#endif
 
 #ifdef LOGF_ENABLE
 static char *debug_get_flags(uint32_t flags);
@@ -316,14 +296,12 @@ bool string_to_cfg(const char *name, char* value, bool *theme_changed)
         break;
     case F_T_INT:
     case F_T_UINT:
-#ifdef HAVE_LCD_COLOR
         if (flags & F_RGB)
         {
             hex_to_rgb(value, (int*)setting->setting);
             logf("Val: %s\r\n", value);
         }
         else
-#endif
             if (setting_get_cfgvals(setting) == NULL)
             {
                 *(int*)setting->setting = atoi(value);
@@ -498,7 +476,6 @@ void cfg_to_string(const struct settings_list *setting, char* buf, int buf_len)
             break;
         case F_T_INT:
         case F_T_UINT:
-#ifdef HAVE_LCD_COLOR
             if (setting->flags & F_RGB)
             {
                 int colour = *(int*)setting->setting;
@@ -509,7 +486,6 @@ void cfg_to_string(const struct settings_list *setting, char* buf, int buf_len)
                 break; /* we got a value */
             }
             else
-#endif
             if (setting_get_cfgvals(setting) != NULL && cfg_int_to_string(
                 setting, *(int*)setting->setting, buf, buf_len))
             {
@@ -627,12 +603,6 @@ static bool settings_write_config(const char* filename, int options)
                 if (!(setting->flags & F_THEMESETTING))
                     continue;
                 break;
-#ifdef HAVE_RECORDING
-            case SETTINGS_SAVE_RECPRESETS:
-                if (!(setting->flags & F_RECSETTING))
-                    continue;
-                break;
-#endif
             case SETTINGS_SAVE_EQPRESET:
                 if (!(setting->flags & F_EQSETTING))
                     continue;
@@ -764,12 +734,6 @@ bool settings_save_config(int options)
             folder = THEME_DIR;
             namebase = "theme";
             break;
-#ifdef HAVE_RECORDING
-        case SETTINGS_SAVE_RECPRESETS:
-            folder = RECPRESETS_DIR;
-            namebase = "recording";
-            break;
-#endif
         case SETTINGS_SAVE_EQPRESET:
             folder = EQS_DIR;
             namebase = "eq";
@@ -841,9 +805,7 @@ void sound_settings_apply(void)
     sound_set(SOUND_TREBLE, global_settings.treble);
 #endif
     sound_set(SOUND_BALANCE, global_settings.balance);
-#ifndef PLATFORM_HAS_VOLUME_CHANGE
     sound_set(SOUND_VOLUME, global_status.volume);
-#endif
     sound_set(SOUND_CHANNELS, global_settings.channel_config);
     sound_set(SOUND_STEREO_WIDTH, global_settings.stereo_width);
 #ifdef AUDIOHW_HAVE_BASS_CUTOFF
@@ -883,18 +845,6 @@ void sound_settings_apply(void)
 #endif
 }
 
-#ifdef HAVE_COMPOSITE_VIDEO_OUT
-void settings_apply_videoout(int mode)
-{
-    if (mode < VIDEOOUT_OFF || mode > VIDEOOUT_ON)
-        mode = VIDEOOUT_OFF;
-
-    global_settings.composite_video_output = mode;
-    videoout_set_mode((enum videoout_mode)mode, FBADDR(0, 0),
-                      LCD_WIDTH, LCD_HEIGHT);
-}
-#endif
-
 void settings_apply(bool read_disk)
 {
     logf("%s", __func__);
@@ -905,78 +855,20 @@ void settings_apply(bool read_disk)
 
     sound_settings_apply();
 
-#ifdef HAVE_DISK_STORAGE
-    audio_set_buffer_margin(global_settings.buffer_margin);
-#endif
-
-#ifdef HAVE_LCD_CONTRAST
-    lcd_set_contrast(global_settings.contrast);
-#endif
     lcd_scroll_speed(global_settings.scroll_speed);
-#ifdef HAVE_REMOTE_LCD
-    lcd_remote_set_contrast(global_settings.remote_contrast);
-    lcd_remote_set_invert_display(global_settings.remote_invert);
-
-#ifdef HAVE_LCD_FLIP
-    lcd_remote_set_flip(global_settings.remote_flip_display);
-#endif
-
-    lcd_remote_scroll_speed(global_settings.remote_scroll_speed);
-    lcd_remote_scroll_step(global_settings.remote_scroll_step);
-    lcd_remote_scroll_delay(global_settings.remote_scroll_delay);
-    lcd_remote_bidir_scroll(global_settings.remote_bidir_limit);
-#ifdef HAVE_REMOTE_LCD_TICKING
-    lcd_remote_emireduce(global_settings.remote_reduce_ticking);
-#endif
-    remote_backlight_set_timeout(global_settings.remote_backlight_timeout);
-#if CONFIG_CHARGING
-    remote_backlight_set_timeout_plugged(global_settings.remote_backlight_timeout_plugged);
-#endif
-#ifdef HAS_REMOTE_BUTTON_HOLD
-    remote_backlight_set_on_button_hold(global_settings.remote_backlight_on_button_hold);
-#endif
-#endif /* HAVE_REMOTE_LCD */
-#ifdef HAVE_BACKLIGHT_BRIGHTNESS
     backlight_set_brightness(global_settings.brightness);
-#endif
-#ifdef HAVE_BACKLIGHT
     backlight_set_timeout(global_settings.backlight_timeout);
 #if CONFIG_CHARGING
     backlight_set_timeout_plugged(global_settings.backlight_timeout_plugged);
 #endif
-#if    defined(HAVE_BACKLIGHT_FADING_INT_SETTING) \
-    || defined(HAVE_BACKLIGHT_FADING_BOOL_SETTING)
     backlight_set_fade_in(global_settings.backlight_fade_in);
     backlight_set_fade_out(global_settings.backlight_fade_out);
-#endif
-#endif
-#ifdef HAVE_BUTTONLIGHT_BRIGHTNESS
-    buttonlight_set_brightness(global_settings.buttonlight_brightness);
-#endif
-#ifdef HAVE_BUTTON_LIGHT
-    buttonlight_set_timeout(global_settings.buttonlight_timeout);
-#endif
-#ifdef HAVE_DISK_STORAGE
-    storage_spindown(global_settings.disk_spindown);
-#endif
     set_poweroff_timeout(global_settings.poweroff);
     if (global_settings.sleeptimer_on_startup)
         set_sleeptimer_duration(global_settings.sleeptimer_duration);
     set_keypress_restarts_sleep_timer(
         global_settings.keypress_restarts_sleeptimer);
 
-#if BATTERY_CAPACITY_INC > 0
-    /* only call if it's really exchangable */
-    set_battery_capacity(global_settings.battery_capacity);
-#endif
-
-#ifdef HAVE_LCD_INVERT
-    lcd_set_invert_display(global_settings.invert);
-#endif
-#ifdef HAVE_LCD_FLIP
-    lcd_set_flip(global_settings.flip_display);
-    button_set_flip(global_settings.flip_display);
-#endif
     lcd_update(); /* refresh after flipping the screen */
     settings_apply_pm_range();
     peak_meter_init_times(
@@ -1007,24 +899,6 @@ void settings_apply(bool read_disk)
                 screens[SCREEN_MAIN].setfont(rc);
             }
         }
-#ifdef HAVE_REMOTE_LCD
-        if ( global_settings.remote_font_file[0]
-            && global_settings.remote_font_file[0] != '-') {
-            int font_ui = screens[SCREEN_REMOTE].getuifont();
-            snprintf(buf, sizeof buf, FONT_DIR "/%s.fnt",
-                     global_settings.remote_font_file);
-            if (!font_filename_matches_loaded_id(font_ui, buf))
-            {
-                CHART2(">font_load_remoteui ", global_settings.remote_font_file);
-                if (font_ui >= 0)
-                    font_unload(font_ui);
-                rc = font_load(buf);
-                CHART2("<font_load_remoteui ", global_settings.remote_font_file);
-                screens[SCREEN_REMOTE].setuifont(rc);
-                screens[SCREEN_REMOTE].setfont(rc);
-            }
-        }
-#endif
         if ( global_settings.kbd_file[0]
              && global_settings.kbd_file[0] != '-') {
             snprintf(buf, sizeof buf, ROCKBOX_DIR "/%s.kbd",
@@ -1051,16 +925,12 @@ void settings_apply(bool read_disk)
         icons_init();
         CHART("<icons_init");
 
-#ifdef HAVE_LCD_COLOR
         CHART(">read_color_theme_file");
         read_color_theme_file();
         CHART("<read_color_theme_file");
-#endif
     }
-#ifdef HAVE_LCD_COLOR
     screens[SCREEN_MAIN].set_foreground(global_settings.fg_color);
     screens[SCREEN_MAIN].set_background(global_settings.bg_color);
-#endif
 
     lcd_scroll_step(global_settings.scroll_step);
     lcd_bidir_scroll(global_settings.bidir_limit);
@@ -1070,13 +940,9 @@ void settings_apply(bool read_disk)
     set_albumart_mode(global_settings.album_art);
 #endif
 
-#ifdef HAVE_PLAY_FREQ
     /* before crossfade */
     audio_set_playback_frequency(global_settings.play_frequency);
-#endif
-#ifdef HAVE_CROSSFADE
     audio_set_crossfade(global_settings.crossfade);
-#endif
     replaygain_update();
     dsp_set_crossfeed_type(global_settings.crossfeed);
     dsp_set_crossfeed_direct_gain(global_settings.crossfeed_direct_gain);
@@ -1104,70 +970,29 @@ void settings_apply(bool read_disk)
 #endif
     dsp_set_compressor(&global_settings.compressor_settings);
 
-#ifdef HAVE_SPDIF_POWER
-    spdif_power_enable(global_settings.spdif_enable);
-#endif
-
-#ifdef HAVE_BACKLIGHT
     set_backlight_filter_keypress(global_settings.bl_filter_first_keypress);
     set_selective_backlight_actions(global_settings.bl_selective_actions,
                                     global_settings.bl_selective_actions_mask,
                                     global_settings.bl_filter_first_keypress);
-#ifdef HAVE_REMOTE_LCD
-    set_remote_backlight_filter_keypress(global_settings.remote_bl_filter_first_keypress);
-#endif
     backlight_set_on_button_hold(global_settings.backlight_on_button_hold);
 
-#ifdef HAVE_LCD_SLEEP_SETTING
-    lcd_set_sleep_after_backlight_off(global_settings.lcd_sleep_after_backlight_off);
-#endif
-#endif /* HAVE_BACKLIGHT */
-
-#ifdef HAVE_COMPOSITE_VIDEO_OUT
-    settings_apply_videoout(global_settings.composite_video_output);
-#endif
-
-#ifndef HAS_BUTTON_HOLD
     set_selective_softlock_actions(
                             global_settings.bt_selective_softlock_actions,
                             global_settings.bt_selective_softlock_actions_mask);
     action_autosoftlock_init();
-#endif
-
-#ifdef HAVE_TOUCHPAD_SENSITIVITY_SETTING
-    touchpad_set_sensitivity(global_settings.touchpad_sensitivity);
-#endif
-
-#ifdef HAVE_TOUCHPAD_DEADZONE
-    touchpad_set_deadzone(global_settings.touchpad_deadzone);
-#endif
 
 #ifdef HAVE_USB_CHARGING_ENABLE
     usb_charging_enable(global_settings.usb_charging);
 #endif
 
-#ifdef HAVE_TOUCHSCREEN
-    touchscreen_set_mode(global_settings.touch_mode);
-    memcpy(&calibration_parameters, &global_settings.ts_calibration_data, sizeof(struct touchscreen_parameter));
-#endif
-
-#if !defined(SIMULATOR) && !defined(USB_NONE) && (defined(HAVE_USB_ADB) || defined(HAVE_USB_POWER))
+#if !defined(SIMULATOR) && defined(HAVE_USB_POWER)
     usb_set_mode(global_settings.usb_mode);
 #endif
-#if defined(USB_ENABLE_AUDIO) || defined(HAVE_HOST_USB_AUDIO)
+#if defined(USB_ENABLE_AUDIO)
     usb_set_audio(global_settings.usb_audio);
-#endif
-#if defined(HAVE_GENERAL_PURPOSE_LED)
-    led_hw_on();
-#endif
-#if defined(DX50) || defined(DX90)
-    ibasso_set_governor(global_settings.governor);
 #endif
 
     /* This should stay last */
-#if defined(HAVE_RECORDING)
-    enc_global_settings_apply();
-#endif
     /* already called with THEME_STATUSBAR in settings_apply_skins() */
     CHART(">viewportmanager_theme_changed");
     viewportmanager_theme_changed(THEME_UI_VIEWPORT|THEME_LANGUAGE|THEME_BUTTONBAR);
@@ -1208,9 +1033,6 @@ void settings_reset(void)
 {
     for(int i=0; i<nb_settings; i++)
         reset_setting(&settings[i], settings[i].setting);
-#if defined (HAVE_RECORDING)
-    enc_global_settings_reset();
-#endif
     FOR_NB_SCREENS(i)
     {
         if (screens[i].getuifont() > FONT_SYSFIXED)

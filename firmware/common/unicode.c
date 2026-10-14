@@ -64,16 +64,9 @@
 
 #include "mutex.h"
 
-#if 0 /* not needed just now (will probably end up a spinlock) */
-static struct mutex cp_mutex SHAREDBSS_ATTR;
-#define cp_lock_init()   mutex_init(&cp_mutex)
-#define cp_lock_enter()  mutex_lock(&cp_mutex)
-#define cp_lock_leave()  mutex_unlock(&cp_mutex)
-#else
 #define cp_lock_init()   do {} while (0)
 #define cp_lock_enter()  asm volatile ("")
 #define cp_lock_leave()  asm volatile ("")
-#endif
 
 enum cp_tid
 {
@@ -132,37 +125,6 @@ static int volatile cp_table_ref = 0;
 /* non-default codepage table buffer (cannot be bufalloced! playback itself
    may be making the load request) */
 static unsigned short codepage_table[MAX_CP_TABLE_SIZE+1]; // XXX convert to ucschar_t if we ever need > 16bit mappings?
-
-#if defined(APPLICATION) && defined(__linux__)
-static const char * const name_codepages_linux[NUM_CODEPAGES+1] =
-{
-    [0 ... NUM_CODEPAGES] = "unknown",
-    [ISO_8859_1]          = "iso8859-1",
-    [ISO_8859_7]          = "iso8859-7",
-    [ISO_8859_8]          = "iso8859-8",
-    [WIN_1251]            = "cp1251",
-    [ISO_8859_11]         = "iso8859-11",
-    [WIN_1256]            = "cp1256",
-    [ISO_8859_9]          = "iso8859-9",
-    [ISO_8859_2]          = "iso8859-2",
-    [WIN_1250]            = "cp1250",
-    /* iso8859-15 is closest, linux doesnt have a codepage named cp1252 */
-    [WIN_1252]            = "iso8859-15",
-    [SJIS]                = "cp932",
-    [GB_2312]             = "cp936",
-    [KSX_1001]            = "cp949",
-    [BIG_5]               = "cp950",
-    [UTF_8]               = "utf8",
-};
-
-const char *get_current_codepage_name_linux(void)
-{
-    int cp = default_cp;
-    if (cp < 0 || cp>= NUM_CODEPAGES)
-        cp = NUM_CODEPAGES;
-    return name_codepages_linux[cp];
-}
-#endif /* defined(APPLICATION) && defined(__linux__) */
 
 #ifdef DEFAULT_CP_STATIC_ALLOC
 static unsigned short default_cp_table_buf[MAX_CP_TABLE_SIZE+1];
@@ -482,27 +444,6 @@ bool utf16_has_bom(const unsigned char *utf16, bool *le)
     return false;
 }
 
-#if 0 /* currently unused */
-/* Recode any UTF-16 string to UTF-8 */
-unsigned char* utf16decode(const unsigned char *utf16, unsigned char *utf8,
-        unsigned int count)
-{
-    unsigned long ucs;
-
-    ucs = *(utf16++) << 8;
-    ucs |= *(utf16++);
-
-    if (ucs == 0xFEFF) /* Check for BOM */
-        return utf16BEdecode(utf16, utf8, count-1);
-    else if (ucs == 0xFFFE)
-        return utf16LEdecode(utf16, utf8, count-1);
-    else { /* ADDME: Should default be LE or BE? */
-        utf16 -= 2;
-        return utf16BEdecode(utf16, utf8, count);
-    }
-}
-#endif
-
 /* Return the number of UTF-8 chars in a string */
 unsigned long utf8length(const unsigned char *utf8)
 {
@@ -522,10 +463,8 @@ unsigned long utf16len_utf8(const unsigned char *utf8)
     unsigned long length = 0;
     while (*utf8) {
         utf8 = utf8decode(utf8, &cp);
-#ifdef UNICODE32
         if (cp >= 0x10000)
             length++;
-#endif
         length++;
     }
 
@@ -574,13 +513,8 @@ const unsigned char* utf8decode(const unsigned char *utf8, ucschar_t *ucs)
         code = 0xfffd;
     }
 
-#ifdef UNICODE32
     if (code > 0x10ffff)
         code = 0xfffd;
-#else
-    if (code > 0xffff)
-        code = 0xfffd;
-#endif
 
     *ucs = code;
     return utf8;

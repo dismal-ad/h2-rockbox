@@ -38,40 +38,6 @@ extern int _ilog(unsigned int v);
 #ifndef  _LOW_ACCURACY_
 /* 64 bit multiply */
 /* #include <sys/types.h> */
-#if 0
-#if BYTE_ORDER==LITTLE_ENDIAN
-union magic {
-  struct {
-    ogg_int32_t lo;
-    ogg_int32_t hi;
-  } halves;
-  ogg_int64_t whole;
-};
-#elif BYTE_ORDER==BIG_ENDIAN
-union magic {
-  struct {
-    ogg_int32_t hi;
-    ogg_int32_t lo;
-  } halves;
-  ogg_int64_t whole;
-};
-#endif
-
-static inline ogg_int32_t MULT32(ogg_int32_t x, ogg_int32_t y) {
-  union magic magic;
-  magic.whole = (ogg_int64_t)x * y;
-  return magic.halves.hi;
-}
-static inline ogg_int32_t MULT31(ogg_int32_t x, ogg_int32_t y) {
-  return MULT32(x,y)<<1;
-}
-
-static inline ogg_int32_t MULT31_SHIFT15(ogg_int32_t x, ogg_int32_t y) {
-  union magic magic;
-  magic.whole  = (ogg_int64_t)x * y;
-  return ((ogg_uint32_t)(magic.halves.lo)>>15) | ((magic.halves.hi)<<17);
-}
-#endif
 #else
 /* 32 bit multiply, more portable but less accurate */
 
@@ -155,72 +121,6 @@ static inline void XNPROD31(ogg_int32_t  a, ogg_int32_t  b,
 */
 #endif
 
-#if 0
-#ifndef _V_VECT_OPS
-#define _V_VECT_OPS
-
-/* generic misc.h has symmetrical versions of vect_add_right_left
-   and vect_add_left_right  (since symmetrical versions of
-   vect_mult_fw and vect_mult_bw  i.e.  both use MULT31) */
-static inline 
-void vect_add_right_left(ogg_int32_t *x, const ogg_int32_t *y, int n)
-{
-  while (n>0) {
-    *x++ += *y++;
-    n--;
-  }
-}
-
-static inline
-void vect_add_left_right(ogg_int32_t *x, const ogg_int32_t *y, int n)
-{
-  vect_add_right_left(x,y,n);
-}
-
-static inline 
-void ogg_vect_mult_fw(ogg_int32_t *data, LOOKUP_T *window, int n)
-{
-  while(n>0) {
-    *data = MULT31(*data, *window);
-    data++;
-    window++;
-    n--;
-  }
-}
-
-static inline
-void ogg_vect_mult_bw(ogg_int32_t *data, LOOKUP_T *window, int n)
-{
-  while(n>0) {
-    *data = MULT31(*data, *window);
-    data++;
-    window--;
-    n--;
-  }
-}
-
-/* generic memcpy is probably optimal */
-static inline void vect_copy(ogg_int32_t *x, const ogg_int32_t *y, int n)
-{
-  memcpy(x,y,n*sizeof(ogg_int32_t));
-}
-#endif
-
-static inline ogg_int32_t VFLOAT_MULT(ogg_int32_t a,ogg_int32_t ap,
-                                      ogg_int32_t b,ogg_int32_t bp,
-                                      ogg_int32_t *p){
-  if(a && b){
-#ifndef _LOW_ACCURACY_
-    *p=ap+bp+32;
-    return MULT32(a,b);
-#else
-    *p=ap+bp+31;
-    return (a>>15)*(b>>16); 
-#endif
-  }else
-    return 0;
-}
-#endif
 #endif
 static inline ogg_int32_t VFLOAT_MULTI(ogg_int32_t a,ogg_int32_t ap,
                                       ogg_int32_t i,
@@ -229,48 +129,5 @@ static inline ogg_int32_t VFLOAT_MULTI(ogg_int32_t a,ogg_int32_t ap,
   int ip=_ilog(abs(i))-31;
   return VFLOAT_MULT(a,ap,i<<-ip,ip,p);
 }
-#if 0
-static inline ogg_int32_t VFLOAT_ADD(ogg_int32_t a,ogg_int32_t ap,
-                                      ogg_int32_t b,ogg_int32_t bp,
-                                      ogg_int32_t *p){
-
-  if(!a){
-    *p=bp;
-    return b;
-  }else if(!b){
-    *p=ap;
-    return a;
-  }
-
-  /* yes, this can leak a bit. */
-  if(ap>bp){
-    int shift=ap-bp+1;
-    *p=ap+1;
-    a>>=1;
-    if(shift<32){
-      b=(b+(1<<(shift-1)))>>shift;
-    }else{
-      b=0;
-    }
-  }else{
-    int shift=bp-ap+1;
-    *p=bp+1;
-    b>>=1;
-    if(shift<32){
-      a=(a+(1<<(shift-1)))>>shift;
-    }else{
-      a=0;
-    }
-  }
-
-  a+=b;
-  if((a&0xc0000000)==0xc0000000 || 
-     (a&0xc0000000)==0){
-    a<<=1;
-    (*p)--;
-  }
-  return(a);
-}
-#endif
 #endif
 

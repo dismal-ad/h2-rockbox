@@ -72,47 +72,6 @@ static unsigned int get_uint(ShortenContext *s, int k)
     return get_ur_golomb_shorten(&s->gb, k);
 }
 
-#if defined(CPU_COLDFIRE)
-static inline void coldfire_lshift_samples(int n, int shift, int32_t *samples)
-{
-/*
-    for (i = 0; i < n; i++)
-        samples[i] =<< shift;
-*/
-    asm volatile (
-            "move.l %[n], %%d0              \n" /* d0 = loop counter */
-            "asr.l  #2, %%d0                \n"
-            "beq 1f                         \n"
-        "2:" /* main loop (unroll by 4) */
-            "movem.l (%[x]), %%d4-%%d7      \n"
-            "asl.l   %[s], %%d4             \n"
-            "asl.l   %[s], %%d5             \n"
-            "asl.l   %[s], %%d6             \n"
-            "asl.l   %[s], %%d7             \n"
-            "movem.l %%d4-%%d7, (%[x])      \n"
-            "lea.l  (16, %[x]), %[x]        \n"
-
-            "subq.l  #1, %%d0               \n"
-            "bne 2b                         \n"
-        "1:" /* any loops left? */
-            "and.l  #3, %[n]                \n"
-            "beq 4f                         \n"
-        "3:" /* remaining loops */
-            "move.l (%[x]), %%d4            \n"
-            "asl.l  %[s], %%d4              \n"
-            "move.l %%d4, (%[x])+           \n"
-
-            "subq.l #1, %[n]                \n"
-            "bne 3b                         \n"
-        "4:" /* exit */
-        : [n] "+d" (n),
-          [x] "+a" (samples)
-        : [s] "d" (shift)
-        : "%d0", "%d4", "%d5", "%d6", "%d7", "cc", "memory"
-    );
-}
-#endif
-
 static inline void fix_bitshift(ShortenContext *s, int32_t *samples)
 {
     int i;
@@ -120,12 +79,8 @@ static inline void fix_bitshift(ShortenContext *s, int32_t *samples)
     /* Wrapped samples don't get bitshifted, so we'll do them during
        the next iteration. */
     if (s->bitshift != 0) {
-#if defined(CPU_COLDFIRE)
-        coldfire_lshift_samples(s->blocksize, s->bitshift, samples - s->nwrap);
-#else
         for (i = -s->nwrap; i < (s->blocksize - s->nwrap); i++)
             samples[i] <<= s->bitshift;
-#endif
     }
 
     /* Also, when we have to remember to fix the wrapped samples when
@@ -337,15 +292,10 @@ int shorten_decode_frames(ShortenContext *s, int *nsamples,
 
         /* Scale the samples for the pcmbuf */
         int scale = SHN_OUTPUT_DEPTH - s->bits_per_sample;
-#if defined(CPU_COLDFIRE)
-        coldfire_lshift_samples(*nsamples, scale, decoded0 + s->nwrap);
-        coldfire_lshift_samples(*nsamples, scale, decoded1 + s->nwrap);
-#else
         for (i = 0; i < *nsamples; i++) {
             decoded0[i + s->nwrap] <<= scale;
             decoded1[i + s->nwrap] <<= scale;
         }
-#endif
     }
 
     return cmd;

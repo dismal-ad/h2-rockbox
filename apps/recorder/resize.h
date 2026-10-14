@@ -49,14 +49,9 @@
 
 struct img_part {
     int len;
-#if !defined(HAVE_LCD_COLOR)    
-    uint8_t *buf;
-#else
     struct uint8_rgb* buf;
-#endif
 };
 
-#ifdef HAVE_LCD_COLOR
 /* intermediate type used by the scaler for color output. greyscale version
    uses uint32_t
 */
@@ -66,7 +61,6 @@ struct uint32_argb {
     uint32_t b;
     uint32_t a;
 };
-#endif
 
 /* struct which contains various parameters shared between vertical scaler,
    horizontal scaler, and row output
@@ -87,19 +81,11 @@ struct scaler_context {
     bool (*h_scaler)(void*,struct scaler_context*, bool);
 };
 
-#if defined(HAVE_LCD_COLOR)
 #define IF_PIX_FMT(...) __VA_ARGS__
-#else
-#define IF_PIX_FMT(...)
-#endif
 
 struct custom_format {
     void (*output_row_8)(uint32_t,void*, struct scaler_context*);
-#if defined(HAVE_LCD_COLOR)
     void (*output_row_32[2])(uint32_t,void*, struct scaler_context*);
-#else
-    void (*output_row_32)(uint32_t,void*, struct scaler_context*);
-#endif
     unsigned int (*get_size)(struct bitmap *bm);
 };
 

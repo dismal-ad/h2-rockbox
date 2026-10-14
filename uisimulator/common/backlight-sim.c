@@ -23,9 +23,6 @@
 #include "backlight.h"
 #include "lcd.h"
 
-#ifdef HAVE_LCD_SLEEP
-extern void lcd_awake(void);
-#endif
 /* in uisimulator/sdl/lcd-bitmap.c */
 extern void sim_backlight(int value);
 
@@ -34,8 +31,6 @@ bool backlight_hw_init(void)
     return true;
 }
 
-
-#ifdef HAVE_BACKLIGHT_BRIGHTNESS
 
 static inline int normalize_backlight(int val)
 {
@@ -49,24 +44,14 @@ void backlight_hw_brightness(int val)
     sim_backlight(normalize_backlight(val));
 }
 
-#endif /* HAVE_BACKLIGHT_BRIGHTNESS */
-
 
 void backlight_hw_on(void)
 {
-#if defined(HAVE_LCD_ENABLE)
     lcd_enable(true);
-#elif defined(HAVE_LCD_SLEEP)
-    lcd_awake();
-#endif
 #if (CONFIG_BACKLIGHT_FADING != BACKLIGHT_FADING_SW_SETTING)
     /* if we set the brightness to the settings value, then fading up
      * is glitchy */
-#ifdef HAVE_BACKLIGHT_BRIGHTNESS
     sim_backlight(normalize_backlight(backlight_brightness));
-#else
-    sim_backlight(100);
-#endif
 
 #endif
 }
@@ -74,37 +59,7 @@ void backlight_hw_on(void)
 void backlight_hw_off(void)
 {
     sim_backlight(0);
-#ifdef HAVE_LCD_ENABLE
     lcd_enable(false);
-#endif
 }
 
 
-#ifdef HAVE_BUTTON_LIGHT
-void buttonlight_hw_on(void)
-{
-}
-
-void buttonlight_hw_off(void)
-{
-}
-
-#ifdef HAVE_BUTTONLIGHT_BRIGHTNESS
-void buttonlight_hw_brightness(int val)
-{
-    (void)val;
-}
-#endif /* HAVE_BUTTONLIGHT_BRIGHTNESS */
-#endif /* HAVE_BUTTON_LIGHT */
-
-#ifdef HAVE_REMOTE_LCD
-void remote_backlight_hw_on(void)
-{
-    sim_remote_backlight(100);
-}
-
-void remote_backlight_hw_off(void)
-{
-    sim_remote_backlight(0);
-}
-#endif /* HAVE_REMOTE_LCD */

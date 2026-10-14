@@ -58,9 +58,6 @@ a52_state_t * a52_init (uint32_t mm_accel)
     a52_state_t * state;
     int i;
 
-    #if defined(CPU_COLDFIRE)
-    coldfire_set_macsr(EMAC_FRACTIONAL | EMAC_ROUND | EMAC_SATURATE);
-    #endif
     /* 
       this needs to come back if we ever want two decoder instances
       simultenously. NOTE, you also need to remove comments in a52_free.

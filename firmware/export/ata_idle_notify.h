@@ -45,7 +45,7 @@ enum {
 /* Enable storage callbacks everywhere except for bootloaders. Both
  * hosted and native targets need this.
  */
-#if !defined(BOOTLOADER) && !defined(APPLICATION) && !defined(__PCTOOL__)
+#if !defined(__PCTOOL__)
 #define USING_STORAGE_CALLBACK
 #endif
 

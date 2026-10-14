@@ -148,24 +148,6 @@ static int _vorbis_unpack_info(vorbis_info *vi,oggpack_buffer *opb){
   return(OV_EBADHEADER);
 }
 
-#if 0
-static int _vorbis_unpack_comment(vorbis_comment *vc,oggpack_buffer *opb){
-  int vendorlen;
-  vendorlen=oggpack_read(opb,32);
-  if(vendorlen<0)goto err_out;
-  if(vendorlen>opb->storage-oggpack_bytes(opb))goto err_out;
-  vc->vendor=(char *)_ogg_calloc(vendorlen+1,1);
-  if(vc->vendor==NULL)goto err_out;
-  _v_readstring(opb,vc->vendor,vendorlen);
-  vc->comments=0;
-  /* ROCKBOX: the meat of this function was deleted as we don't need it */
-  return(0);
- err_out:
-  vorbis_comment_clear(vc);
-  return(OV_EBADHEADER);
-}
-#endif
-
 /* all of the real encoding details are here.  The modes, books,
    everything */
 static int _vorbis_unpack_books(vorbis_info *vi,oggpack_buffer *opb){

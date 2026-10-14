@@ -26,16 +26,12 @@
 static struct
 {
     struct event_queue *queues[MAX_NUM_QUEUES+1];
-#ifdef HAVE_CORELOCK_OBJECT
-    struct corelock cl;
-#endif
 } all_queues SHAREDBSS_ATTR;
 
 /****************************************************************************
  * Queue handling stuff
  ****************************************************************************/
 
-#ifdef HAVE_EXTENDED_MESSAGING_AND_NAME
 /****************************************************************************
  * Sender thread queue structure that aids implementation of priority
  * inheritance on queues because the send list structure is the same as
@@ -117,14 +113,12 @@ void queue_enable_queue_send(struct event_queue *q,
     {
         memset(send, 0, sizeof(*send));
         wait_queue_init(&send->list);
-#ifdef HAVE_PRIORITY_SCHEDULING
         blocker_init(&send->blocker);
         if(owner_id != 0)
         {
             send->blocker.thread = __thread_id_entry(owner_id);
             q->blocker_p = &send->blocker;
         }
-#endif
         q->send = send;
     }
 
@@ -171,13 +165,6 @@ static inline void queue_do_fetch_sender(struct queue_sender_list *send,
         /* else message was posted asynchronously with queue_post */
     }
 }
-#else
-/* Empty macros for when synchoronous sending is not made */
-#define queue_release_all_senders(q)
-#define queue_do_unblock_sender(send, i)
-#define queue_do_auto_reply(send)
-#define queue_do_fetch_sender(send, rd)
-#endif /* HAVE_EXTENDED_MESSAGING_AND_NAME */
 
 static void queue_wake_waiter_inner(struct thread_entry *thread)
 {
@@ -206,10 +193,8 @@ void queue_init(struct event_queue *q, bool register_queue)
      * queue_count and queue_empty return sane values in the case of a
      * concurrent change without locking inside them. */
     q->read = q->write;
-#ifdef HAVE_EXTENDED_MESSAGING_AND_NAME
     q->send = NULL; /* No message sending by default */
     IF_PRIO( q->blocker_p = NULL; )
-#endif
 
     if(register_queue)
     {
@@ -247,7 +232,6 @@ void queue_delete(struct event_queue *q)
     /* Release thread(s) waiting on queue head */
     wait_queue_wake(&q->queue);
 
-#ifdef HAVE_EXTENDED_MESSAGING_AND_NAME
     if(q->send)
     {
         /* Release threads waiting for replies */
@@ -259,7 +243,6 @@ void queue_delete(struct event_queue *q)
         q->send = NULL;
         IF_PRIO( q->blocker_p = NULL; )
     }
-#endif
 
     q->read = q->write;
 
@@ -275,11 +258,9 @@ void queue_wait(struct event_queue *q, struct queue_event *ev)
     int oldlevel;
     unsigned int rd;
 
-#ifdef HAVE_PRIORITY_SCHEDULING
     KERNEL_ASSERT(QUEUE_GET_THREAD(q) == NULL ||
                   QUEUE_GET_THREAD(q) == __running_self_entry(),
                   "queue_wait->wrong thread\n");
-#endif
 
     oldlevel = disable_irq_save();
 
@@ -287,10 +268,8 @@ void queue_wait(struct event_queue *q, struct queue_event *ev)
 
     corelock_lock(&q->cl);
 
-#ifdef HAVE_EXTENDED_MESSAGING_AND_NAME
     /* Auto-reply (even if ev is NULL to avoid stalling a waiting thread) */
     queue_do_auto_reply(q->send);
-#endif
 
     while(1)
     {
@@ -308,9 +287,7 @@ void queue_wait(struct event_queue *q, struct queue_event *ev)
         corelock_lock(&q->cl);
     } 
 
-#ifdef HAVE_EXTENDED_MESSAGING_AND_NAME
     if(ev)
-#endif
     {
         q->read = rd + 1;
         rd &= QUEUE_LENGTH_MASK;
@@ -330,20 +307,16 @@ void queue_wait_w_tmo(struct event_queue *q, struct queue_event *ev, int ticks)
     int oldlevel;
     unsigned int rd, wr;
 
-#ifdef HAVE_EXTENDED_MESSAGING_AND_NAME
     KERNEL_ASSERT(QUEUE_GET_THREAD(q) == NULL ||
                   QUEUE_GET_THREAD(q) == __running_self_entry(),
                   "queue_wait_w_tmo->wrong thread\n");
-#endif
 
     oldlevel = disable_irq_save();
 
     corelock_lock(&q->cl);
 
-#ifdef HAVE_EXTENDED_MESSAGING_AND_NAME
     /* Auto-reply (even if ev is NULL to avoid stalling a waiting thread) */
     queue_do_auto_reply(q->send);
-#endif
 
     rd = q->read;
     wr = q->write;
@@ -382,11 +355,9 @@ void queue_wait_w_tmo(struct event_queue *q, struct queue_event *ev, int ticks)
             break;
     }
 
-#ifdef HAVE_EXTENDED_MESSAGING_AND_NAME
     if(UNLIKELY(!ev))
         ; /* just waiting for something */
     else
-#endif
     if(rd != wr)
     {
         q->read = rd + 1;
@@ -432,7 +403,6 @@ void queue_post(struct event_queue *q, long id, intptr_t data)
     restore_irq(oldlevel);
 }
 
-#ifdef HAVE_EXTENDED_MESSAGING_AND_NAME
 /* IRQ handlers are not allowed use of this function - we only aim to
    protect the queue integrity by turning them off. */
 intptr_t queue_send(struct event_queue *q, long id, intptr_t data)
@@ -485,28 +455,6 @@ intptr_t queue_send(struct event_queue *q, long id, intptr_t data)
     return 0;
 }
 
-#if 0 /* not used now but probably will be later */
-/* Query if the last message dequeued was added by queue_send or not */
-bool queue_in_queue_send(struct event_queue *q)
-{
-    bool in_send;
-
-#if NUM_CORES > 1
-    int oldlevel = disable_irq_save();
-    corelock_lock(&q->cl);
-#endif
-
-    in_send = q->send && q->send->curr_sender;
-
-#if NUM_CORES > 1
-    corelock_unlock(&q->cl);
-    restore_irq(oldlevel);
-#endif
-
-    return in_send;
-}
-#endif
-
 /* Replies with retval to the last dequeued message sent with queue_send */
 void queue_reply(struct event_queue *q, intptr_t retval)
 {
@@ -523,9 +471,7 @@ void queue_reply(struct event_queue *q, intptr_t retval)
         restore_irq(oldlevel);
     }
 }
-#endif /* HAVE_EXTENDED_MESSAGING_AND_NAME */
 
-#ifdef HAVE_EXTENDED_MESSAGING_AND_NAME
 /* Scan the even queue from head to tail, returning any event from the
    filter list that was found, optionally removing the event. If an
    event is returned, synchronous events are handled in the same manner as
@@ -637,59 +583,6 @@ void queue_remove_from_head(struct event_queue *q, long id)
     while (queue_peek_ex(q, NULL,
             QPEEK_FILTER_HEAD_ONLY | QPEEK_REMOVE_EVENTS, &f));
 }
-#else /* !HAVE_EXTENDED_MESSAGING_AND_NAME */
-/* The more powerful routines aren't required */
-bool queue_peek(struct event_queue *q, struct queue_event *ev)
-{
-    unsigned int rd;
-
-    if(q->read == q->write)
-         return false;
-
-    bool have_msg = false;
-
-    int oldlevel = disable_irq_save();
-    corelock_lock(&q->cl);
-
-    rd = q->read;
-    if(rd != q->write)
-    {
-        *ev = q->events[rd & QUEUE_LENGTH_MASK];
-        have_msg = true;
-    }
-
-    corelock_unlock(&q->cl);
-    restore_irq(oldlevel);
-
-    return have_msg;
-}
-
-void queue_remove_from_head(struct event_queue *q, long id)
-{
-    int oldlevel;
-
-    oldlevel = disable_irq_save();
-    corelock_lock(&q->cl);
-
-    while(q->read != q->write)
-    {
-        unsigned int rd = q->read & QUEUE_LENGTH_MASK;
-
-        if(q->events[rd].id != id)
-        {
-            break;
-        }
-
-        /* Release any thread waiting on this message */
-        queue_do_unblock_sender(q->send, rd);
-
-        q->read++;
-    }
-
-    corelock_unlock(&q->cl);
-    restore_irq(oldlevel);
-}
-#endif /* HAVE_EXTENDED_MESSAGING_AND_NAME */
 
 /* Poll queue to see if a message exists - careful in using the result if
  * queue_remove_from_head is called when messages are posted - possibly use

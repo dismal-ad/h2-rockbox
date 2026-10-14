@@ -26,7 +26,6 @@
  ** the library or a hardware necessity. Normally, it shouldn't be used and
  ** only the port developer can properly decide.
  **/
-#ifdef WANT_SWVOL
 
 #include <audiohw.h>
 #include <limits.h>
@@ -47,6 +46,5 @@ void pcm_play_dma_stop_int_swvol(void);
 enum pcm_dma_status pcm_play_dma_status_callback_int_swvol(enum pcm_dma_status status);
 bool pcm_play_dma_complete_callback_swvol(enum pcm_dma_status status,
                                           const void **addr, size_t *size);
-#endif /* WANT_SWVOL */
 
 #endif /* PCM_SW_VOLUME_H */

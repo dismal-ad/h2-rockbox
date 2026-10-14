@@ -50,10 +50,8 @@ void font_cache_create(
     int cache_size = buf_size /
         (font_cache_entry_size + LRU_SLOT_OVERHEAD + sizeof(short));
 
-#ifdef UNICODE32
     /* Ensure LRU index size is a multiple of 32 bits */
     cache_size &= ~1;
-#endif
 
     fcache->_size = 1;
     fcache->_capacity = cache_size;

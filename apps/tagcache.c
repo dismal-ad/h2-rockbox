@@ -62,10 +62,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#ifdef APPLICATION
-#include <unistd.h> /* readlink() */
-#include <limits.h> /* PATH_MAX */
-#endif
 #include "config.h"
 #include "ata_idle_notify.h"
 #include "thread.h"
@@ -882,12 +878,6 @@ static long find_entry_disk(const char *filename_raw, bool localfd)
     bool found = false;
 
     const char *filename = filename_raw;
-
-#ifdef APPLICATION
-    char pathbuf[PATH_MAX]; /* Note: Don't use MAX_PATH here, it's too small */
-    if (realpath(filename, pathbuf) == pathbuf)
-        filename = pathbuf;
-#endif /* APPLICATION */
 
     if (!tc_stat.ready)
         return -2;
@@ -3609,22 +3599,6 @@ static bool modify_numeric_entry(int masterfd, int idx_id, int tag, long data)
     return write_index(masterfd, idx_id, &idx);
 }
 
-#if 0
-bool tagcache_modify_numeric_entry(struct tagcache_search *tcs,
-                                   int tag, long data)
-{
-    struct master_header myhdr;
-
-    if (tcs->masterfd < 0)
-    {
-        if ( (tcs->masterfd = open_master_fd(&myhdr, true)) < 0)
-            return false;
-    }
-
-    return modify_numeric_entry(tcs->masterfd, tcs->idx_id, tag, data);
-}
-#endif
-
 static bool command_queue_is_full(void)
 {
     int next;
@@ -4832,97 +4806,8 @@ static bool search_root_exists(const char *path)
     return false;
 }
 
-#ifdef APPLICATION
-/*
- * This adds a path to the search roots, possibly during traveling through
- * the filesystem. It only adds if the path is not inside an already existing
- * search root.
- *
- * Returns true if it added the path to the search roots
- *
- * Windows 2000 and greater supports symlinks, but they don't provide
- * realpath() or readlink(), and symlinks are rarely used on them so
- * ignore this for windows for now
- **/
-static bool add_search_root(const char *name)
-{
-    (void)name;
-#ifndef WIN32
-    struct search_roots_ll *this, *prev = NULL;
-    char target[MAX_PATH];
-    const int target_bufsz = sizeof(target);
-    /* Okay, realpath() is almost completely broken on android
-     *
-     * It doesn't accept NULL for resolved_name to dynamically allocate
-     * the resulting path; and it assumes resolved_name to be PATH_MAX
-     * (actually MAXPATHLEN, but it's the same [as of 2.3]) long
-     * and blindly writes to the end if it
-     *
-     * therefore use sufficiently large static storage here
-     * Note that PATH_MAX != MAX_PATH
-     **/
-    static char abs_target[PATH_MAX];
-    ssize_t len;
-
-    len = readlink(name, target, target_bufsz-1);
-    if (len < 0)
-        return false;
-
-    str_setlen(target, len);
-    if (realpath(target, abs_target) == NULL)
-        return false;
-
-    if (search_root_exists(abs_target))
-        return false;
-
-    /* get the end of the list */
-    for(this = &roots_ll[0]; this; prev = this, this = this->next);
-
-    if (prev)
-    {
-        size_t len = strlen(abs_target) + 1; /* count \0 */
-        this = malloc(sizeof(struct search_roots_ll) + len );
-        if (!this || len > MIN(PATH_MAX, MAX_PATH))
-        {
-            logf("Error at adding a search root: %s", this ? "path too long":"OOM");
-            free(this);
-            prev->next = NULL;
-            return false;
-        }
-        this->path = ((char*)this) + sizeof(struct search_roots_ll);
-        strcpy((char*)this->path, abs_target); /* ok to cast const away here */
-        this->next = NULL;
-        prev->next = this;
-        logf("Added %s to the search roots\n", abs_target);
-        return true;
-    }
-#endif
-    return false;
-}
-
-static int free_search_root_single(struct search_roots_ll * start)
-{
-    if (start < &roots_ll[0] && start >= &roots_ll[MAX_STATIC_ROOTS])
-    {
-        free(start->next);
-        return sizeof(struct search_roots_ll);
-    }
-    return 0;
-}
-
-static int free_search_roots(struct search_roots_ll * start)
-{
-    int ret = 0;
-    if (start->next)
-    {
-        ret += free_search_root_single(start->next);
-    }
-    return ret;
-}
-#else /* native, simulator */
 #define add_search_root(a) do {} while(0)
 #define free_search_roots(a) do {} while(0)
-#endif
 
 static bool check_dir(const char *dirname, int add_files)
 {
@@ -5060,7 +4945,7 @@ void do_tagcache_build(const char *path[])
     roots_ll[0].path = path[0];
     roots_ll[0].next = NULL;
 
-#if defined(HAVE_MULTIVOLUME) && !defined(SIMULATOR) && !defined(__PCTOOL__) && !defined(APPLICATION)
+#if defined(HAVE_MULTIVOLUME) && !defined(SIMULATOR) && !defined(__PCTOOL__)
     extern bool ns_volume_is_visible(int volume); /*rb_namespace.c*/
     /* i is for the path vector, j for the roots_ll array */
     int i = 1, j = 1;

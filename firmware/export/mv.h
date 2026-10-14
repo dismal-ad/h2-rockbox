@@ -41,10 +41,7 @@
 #endif /* HAVE_MULTIDRIVE */
 
 /* Storage size */
-#if (CONFIG_STORAGE & STORAGE_ATA) && defined(HAVE_LBA48)
-typedef uint64_t sector_t;
-#define STORAGE_64BIT_SECTOR
-#elif (CONFIG_STORAGE & STORAGE_SD) && defined(HAVE_SDUC)
+#if   (CONFIG_STORAGE & STORAGE_SD) && defined(HAVE_SDUC)
 typedef uint64_t sector_t;
 #define STORAGE_64BIT_SECTOR
 #else
@@ -130,13 +127,8 @@ void volume_size(IF_MV(int volume,) sector_t *size, sector_t *free);
 #ifdef HAVE_DIRCACHE
 bool volume_ismounted(IF_MV_NONVOID(int volume));
 #endif
-#ifdef HAVE_HOTSWAP
 bool volume_removable(int volume);
 bool volume_present(int volume);
-#else
-#define volume_present(x) 1
-#define volueme_removeable(x) 0
-#endif /* HAVE_HOTSWAP */
 
 #ifdef HAVE_MULTIDRIVE
 int volume_drive(int volume);

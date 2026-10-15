@@ -190,6 +190,15 @@ static enum themable_icons tree_get_fileicon(int selected_item, void * data)
     }
 }
 
+static bool tree_item_drills(int selected_item, void * data)
+{
+    struct tree_context * local_tc=(struct tree_context *)data;
+    if (*(local_tc->dirfilter) == SHOW_ID3DB)
+        return tagtree_get_attr(local_tc) == ATTR_DIRECTORY;
+    struct entry *entry = get_valid_entry(__func__, local_tc, selected_item);
+    return (entry->attr & ATTR_DIRECTORY) != 0;
+}
+
 static int tree_voice_cb(int selected_item, void * data)
 {
     struct tree_context * local_tc=(struct tree_context *)data;
@@ -488,6 +497,7 @@ static int update_dir(void)
     gui_synclist_set_nb_items(list, tc.filesindir);
     gui_synclist_set_icon_callback(list,
                             global_settings.show_icons?tree_get_fileicon:NULL);
+    gui_synclist_set_drills_callback(list, tree_item_drills);
     if(!id3db || global_settings.talk_menu)
     {
         gui_synclist_set_voice_callback(list, &tree_voice_cb);

@@ -197,6 +197,36 @@ static enum themable_icons  menu_get_icon(int selected_item, void * data)
     return menu_icon;
 }
 
+static bool menu_item_drills(int selected_item, void * data)
+{
+    const struct menu_item_ex *menu = (const struct menu_item_ex *)data;
+    if ((menu->flags&MENU_TYPE_MASK) != MT_MENU)
+        return false;
+    selected_item = get_menu_selection(selected_item, menu);
+    return (menu->submenus[selected_item]->flags&MENU_TYPE_MASK) == MT_MENU;
+}
+
+/* The current value of a setting item, shown on the right of its row */
+static const char *menu_item_value(int selected_item, void * data,
+                                   char *buffer, size_t buffer_len)
+{
+    const struct menu_item_ex *menu = (const struct menu_item_ex *)data;
+    if ((menu->flags&MENU_TYPE_MASK) != MT_MENU)
+        return NULL;
+    selected_item = get_menu_selection(selected_item, menu);
+    const struct menu_item_ex *item = menu->submenus[selected_item];
+    int type = item->flags&MENU_TYPE_MASK;
+    if (type != MT_SETTING && type != MT_SETTING_W_TEXT)
+        return NULL;
+    const struct settings_list *setting = find_setting(item->variable);
+    if (!setting || !(setting->flags & (F_BOOL_SETTING|F_INT_SETTING|
+                                        F_CHOICE_SETTING|F_TABLE_SETTING|
+                                        F_T_SOUND)))
+        return NULL;
+    return option_get_valuestring(setting, buffer, buffer_len,
+                                  option_value_as_int(setting));
+}
+
 static char* init_title(const struct menu_item_ex *menu, int *icon,
                         char* buf, size_t buf_sz)
 {
@@ -268,6 +298,8 @@ static int init_menu_lists(const struct menu_item_ex *menu,
     title = init_title(menu, &icon, buf, buf_sz);
     gui_synclist_set_title(lists, title, icon);
     gui_synclist_set_icon_callback(lists, global_settings.show_icons?menu_get_icon:NULL);
+    gui_synclist_set_drills_callback(lists, menu_item_drills);
+    gui_synclist_set_value_callback(lists, menu_item_value);
     if(global_settings.talk_menu)
         gui_synclist_set_voice_callback(lists, talk_menu_item);
     gui_synclist_set_nb_items(lists,current_subitems_count);

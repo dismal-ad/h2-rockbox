@@ -310,6 +310,9 @@ static const char graphic_numeric[] = "graphic,numeric";
 #define MAX_GLYPHS 65540
 
 #ifndef DEFAULT_FONTNAME
+#define DEFAULT_FONTNAME "newui-15" /* Source Sans 3, fonts/newui */
+#endif
+#ifndef DEFAULT_FONTNAME
 /* ugly expansion needed */
 #define _EXPAND2(x) #x
 #define _EXPAND(x) _EXPAND2(x)
@@ -333,14 +336,15 @@ static const char graphic_numeric[] = "graphic,numeric";
     #define DEFAULT_VIEWERS_ICONSET "tango_icons_viewers.8x8"
   #endif
 
-#define DEFAULT_THEME_FOREGROUND LCD_RGBPACK(0xce, 0xcf, 0xce)
+/* the new UI's Classic theme (apps/newui/ui.h) */
+#define DEFAULT_THEME_FOREGROUND LCD_RGBPACK(0xff, 0xff, 0xff)
 #define DEFAULT_THEME_BACKGROUND LCD_RGBPACK(0x00, 0x00, 0x00)
-#define DEFAULT_THEME_SELECTOR_START LCD_RGBPACK(0xff, 0xeb, 0x9c)
-#define DEFAULT_THEME_SELECTOR_END LCD_RGBPACK(0xb5, 0x8e, 0x00)
-#define DEFAULT_THEME_SELECTOR_TEXT LCD_RGBPACK(0x00, 0x00, 0x00)
+#define DEFAULT_THEME_SELECTOR_START LCD_RGBPACK(0x6e, 0x6e, 0x6e)
+#define DEFAULT_THEME_SELECTOR_END LCD_RGBPACK(0x6e, 0x6e, 0x6e)
+#define DEFAULT_THEME_SELECTOR_TEXT LCD_RGBPACK(0xff, 0xff, 0xff)
 #define DEFAULT_THEME_SEPARATOR  LCD_RGBPACK(0x80, 0x80, 0x80)
 
-#define DEFAULT_BACKDROP    BACKDROP_DIR "/cabbiev2.bmp"
+#define DEFAULT_BACKDROP    "-" /* the new UI draws on black */
 
 #define DEFAULT_TAGCACHE_SCAN_PATHS "/"
 

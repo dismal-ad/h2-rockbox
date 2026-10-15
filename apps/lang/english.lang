@@ -17542,3 +17542,17 @@
     *: "Eject before disconnecting"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_NEWUI_UNLOCK_HINT
+  desc: new UI: lock screen, how to unlock
+  user: core
+  <source>
+    *: "Press Power or double-press Centre to unlock"
+  </source>
+  <dest>
+    *: "Press Power or double-press Centre to unlock"
+  </dest>
+  <voice>
+    *: "Press Power or double-press Centre to unlock"
+  </voice>
+</phrase>

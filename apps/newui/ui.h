@@ -143,6 +143,11 @@ int ui_home(int *selected);
  * started, MENU_ATTACHED_USB, or GO_TO_ROOT for Back. */
 int ui_coverflow(void);
 
+/* The lock screen (scr_lock.c), shown by action.c while the keys are
+ * locked. Returns 0 once unlocked, or a system event (SYS_*) that ended it
+ * with the keys still locked. */
+int ui_lock_screen(void);
+
 /* Now Playing's drawing (scr_np.c), called by apps/gui/wps.c: full redraw,
  * or just the progress bar and times */
 void ui_np_draw(bool full);

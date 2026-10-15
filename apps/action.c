@@ -31,6 +31,7 @@
 #include "appevents.h"
 #include "button.h"
 #include "action.h"
+#include "newui/ui.h"
 #include "kernel.h"
 #include "core_alloc.h"
 
@@ -772,11 +773,17 @@ static inline void do_softlock(action_last_t *last, action_cur_t *cur)
                 sleep(HZ/2);
             if (last->keys_locked)
             {
-                splash(HZ/2, ID2P(LANG_KEYLOCK_ON));
-            }
-            else
-            {
-                splash(HZ/2, ID2P(LANG_KEYLOCK_OFF));
+                /* new UI: the lock screen until unlocked; a system event
+                   (USB...) leaves it locked and goes to the screen */
+                int event = ui_lock_screen();
+                if (event)
+                {
+                    last->button = BUTTON_NONE;
+                    cur->action = event;
+                    return;
+                }
+                do_key_lock(false);
+                skin_request_update_locked(false);
             }
         }
 

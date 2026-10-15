@@ -796,17 +796,9 @@ void skin_render(struct gui_wps *gwps, unsigned refresh_mode)
     int old_refresh_mode = refresh_mode;
     skin_buffer = get_skin_buffer(gwps->data);
 
-    /* Framebuffer is likely dirty */
-    if ((refresh_mode&SKIN_REFRESH_ALL) == SKIN_REFRESH_ALL)
-    {
-        /* should already be the default buffer */
-        struct viewport * first_vp = display->set_viewport_ex(NULL, 0);
-        if ((first_vp->flags & VP_FLAG_VP_SET_CLEAN) == VP_FLAG_VP_DIRTY &&
-            get_current_activity() == ACTIVITY_WPS) /* only clear if in WPS */
-        {
-            display->clear_viewport();
-        }
-    }
+    /* Now Playing is drawn by the new UI (apps/newui/scr_np.c), not a
+     * skin, so the screen is never cleared here: only the status bar is
+     * rendered by the skin engine. */
 
     viewport = SKINOFFSETTOPTR(skin_buffer, data->tree);
     if (!viewport) return;

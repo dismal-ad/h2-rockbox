@@ -101,6 +101,12 @@ void ui_art_placeholder(int x, int y, int size, int radius);
  * or MENU_ATTACHED_USB. *selected keeps the row between visits. */
 int ui_home(int *selected);
 
+/* Now Playing's drawing (scr_np.c), called by apps/gui/wps.c: full redraw,
+ * or just the progress bar and times */
+void ui_np_draw(bool full);
+/* Shows the volume overlay for a moment */
+void ui_np_volume_changed(void);
+
 /* --- status bar (ui_status.c) --- */
 
 struct tm;

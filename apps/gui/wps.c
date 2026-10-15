@@ -63,6 +63,7 @@
 #include "statusbar-skinned.h"
 #include "skin_engine/wps_internals.h"
 #include "open_plugin.h"
+#include "newui/ui.h"
 
 #ifdef USB_ENABLE_AUDIO
 #include "usbstack/usb_audio.h"
@@ -73,6 +74,8 @@
 #define MIN_FF_REWIND_STEP 500
 
 static struct wps_state wps_state;
+/* the new UI's Now Playing (apps/newui/scr_np.c) must redraw everything */
+static volatile bool np_full_update = true;
 
 /* initial setup of wps_data  */
 static void wps_state_init(void);
@@ -97,8 +100,7 @@ char* wps_default_skin(enum screen_type screen)
 
 static void update_non_static(void)
 {
-    FOR_NB_SCREENS(i)
-        skin_update(WPS, i, SKIN_REFRESH_NON_STATIC);
+    ui_np_draw(false);
 }
 
 void wps_do_action(enum wps_do_action_type action, bool updatewps)
@@ -238,12 +240,7 @@ static bool ffwd_rew(int button, bool seek_from_end)
                    displays corectly */
                 gstate->ff_rewind_count = ff_rewind_count;
 
-                FOR_NB_SCREENS(i)
-                {
-                    skin_update(WPS, i,
-                                SKIN_REFRESH_PLAYER_PROGRESS |
-                                SKIN_REFRESH_DYNAMIC);
-                }
+                ui_np_draw(false);
 
                 break;
 
@@ -431,80 +428,34 @@ static void wps_lcd_activation_hook(unsigned short id, void *param)
 {
     (void)id;
     (void)param;
-    skin_request_full_update(WPS);
+    np_full_update = true;
     /* force timeout in wps main loop, so that the update is instantly */
     button_queue_post(BUTTON_NONE, 0);
 }
 
 static void gwps_leave_wps(bool theme_enabled)
 {
-    FOR_NB_SCREENS(i)
-    {
-        struct gui_wps *gwps = skin_get_gwps(WPS, i);
-        gwps->display->scroll_stop();
-        if (theme_enabled)
-        {
-            skin_backdrop_show(sb_get_backdrop(i));
-
-            /* The following is supposed to erase any traces of %VB
-               viewports drawn by the WPS. May need further thought... */
-            struct wps_data *sbs = skin_get_gwps(CUSTOM_STATUSBAR, i)->data;
-            if (gwps->data->use_extra_framebuffer && sbs->use_extra_framebuffer)
-                skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
-            viewportmanager_theme_undo(i, skin_has_sbs(gwps));
-        }
-    }
-
+    (void)theme_enabled;
+    lcd_scroll_stop();
     /* Play safe and unregister the hook */
     remove_event(LCD_EVENT_ACTIVATION, wps_lcd_activation_hook);
-    /* unhandle statusbar update delay */
-    sb_skin_set_update_delay(DEFAULT_UPDATE_DELAY);
 }
 
+/* The status bar stays on while Now Playing shows, as on every other
+ * screen, so there is no theme to switch */
 static void restore_theme(void)
 {
-    FOR_NB_SCREENS(i)
-    {
-        struct gui_wps *gwps = skin_get_gwps(WPS, i);
-        struct screen *display = gwps->display;
-        display->scroll_stop();
-        viewportmanager_theme_enable(i, skin_has_sbs(gwps), NULL);
-    }
 }
 
 /*
  * display the wps on entering or restoring */
 static void gwps_enter_wps(bool theme_enabled)
 {
-    struct gui_wps *gwps;
-    struct screen *display;
-    if (theme_enabled)
-        restore_theme();
-    FOR_NB_SCREENS(i)
-    {
-        gwps = skin_get_gwps(WPS, i);
-        display = gwps->display;
-        display->scroll_stop();
-        sb_set_title_text(NULL, Icon_NOICON, i);
-        /* Update the values in the first (default) viewport - in case the user
-           has modified the statusbar or colour settings */
-        if (display->depth > 1)
-        {
-            struct skin_viewport *svp = skin_find_item(VP_DEFAULT_LABEL_STRING,
-                                                       SKIN_FIND_VP, gwps->data);
-            if (svp)
-            {
-                struct viewport *vp = &svp->vp;
-                vp->fg_pattern = display->get_foreground();
-                vp->bg_pattern = display->get_background();
-            }
-        }
-        /* make the backdrop actually take effect */
-        skin_backdrop_show(gwps->data->backdrop_id);
-        display->clear_display();
-        skin_update(WPS, i, SKIN_REFRESH_ALL);
-    }
-     /* Screen was cleared, so redraw SBS if enabled, and update screen */
+    (void)theme_enabled;
+    lcd_scroll_stop();
+    ui_np_draw(true);
+    np_full_update = false;
+     /* redraw the status bar too */
     send_event(GUI_EVENT_ACTIONUPDATE, (void*)1);
 }
 
@@ -604,10 +555,7 @@ long gui_wps_show(void)
         {
             restore = false;
             add_event(LCD_EVENT_ACTIVATION, wps_lcd_activation_hook);
-        /* we remove the update delay since it's not very usable in the wps,
-         * e.g. during volume changing or ffwd/rewind */
-            sb_skin_set_update_delay(0);
-            skin_request_full_update(WPS);
+            np_full_update = true;
             update = true;
             gwps_enter_wps(theme_enabled);
             theme_enabled = true;
@@ -616,19 +564,11 @@ long gui_wps_show(void)
         {
             gwps_caption_backlight(state);
 
-            FOR_NB_SCREENS(i)
+            if (lcd_active() && (update || np_full_update))
             {
-                /* currently, all remotes are readable without backlight
-                 * so still update those */
-                if (lcd_active() || (i != SCREEN_MAIN))
-                {
-                    bool full_update = skin_do_full_update(WPS, i);
-                    if (update || full_update)
-                    {
-                        skin_update(WPS, i, full_update ?
-                                     SKIN_REFRESH_ALL : SKIN_REFRESH_NON_STATIC);
-                    }
-                }
+                bool full = np_full_update;
+                np_full_update = false;
+                ui_np_draw(full);
             }
             update = false;
         }
@@ -641,7 +581,7 @@ long gui_wps_show(void)
         if (button && !IS_SYSEVENT(button) )
             storage_spin();
 
-        button = skin_wait_for_action(WPS, CONTEXT_WPS|ALLOW_SOFTLOCK, HZ/5);
+        button = get_action(CONTEXT_WPS|ALLOW_SOFTLOCK, HZ/5);
 
         /* Exit if audio has stopped playing. This happens e.g. at end of
            playlist or if using the sleep timer. */
@@ -677,6 +617,8 @@ long gui_wps_show(void)
                 }
             }
             /* fall through */
+            /* Menu opens the track's options, like holding it */
+            case ACTION_WPS_MENU:
             case ACTION_WPS_CONTEXT:
             {
                 gwps_leave_wps(true);
@@ -701,9 +643,10 @@ long gui_wps_show(void)
             }
             break;
 
+            /* Back returns to the screen Now Playing was opened from */
             case ACTION_WPS_BROWSE:
                 gwps_leave_wps(true);
-                return GO_TO_PREVIOUS_BROWSER;
+                return GO_TO_PREVIOUS;
                 break;
 
                 /* play/pause */
@@ -719,10 +662,7 @@ long gui_wps_show(void)
                     adjust_volume(-1);
 
                 setvol();
-                FOR_NB_SCREENS(i)
-                {
-                    skin_update(WPS, i, SKIN_REFRESH_NON_STATIC);
-                }
+                ui_np_volume_changed();
                 update = false;
                 break;
             /* fast forward
@@ -826,12 +766,6 @@ long gui_wps_show(void)
                     change_dir(-1);
                 }
                 break;
-            /* menu key functions */
-            case ACTION_WPS_MENU:
-                gwps_leave_wps(true);
-                return GO_TO_ROOT;
-                break;
-
 
             case ACTION_WPS_QUICKSCREEN:
             {
@@ -914,8 +848,7 @@ long gui_wps_show(void)
              /* this case is used by the softlock feature
               * it requests a full update here */
             case ACTION_REDRAW:
-                skin_request_full_update(WPS);
-                skin_request_full_update(CUSTOM_STATUSBAR); /* if SBS is used */
+                np_full_update = true;
                 break;
             case ACTION_NONE: /* Timeout, do a partial update */
                 update = true;
@@ -967,7 +900,7 @@ static void track_info_callback(unsigned short id, void *param)
 #endif
     if (id == PLAYBACK_EVENT_NEXTTRACKID3_AVAILABLE)
         state->nid3 = audio_next_track();
-    skin_request_full_update(WPS);
+    np_full_update = true;
 }
 
 static void wps_state_init(void)
@@ -985,7 +918,7 @@ static void wps_state_init(void)
         state->nid3 = NULL;
     }
     /* We'll be updating due to restore initialized with true */
-    skin_request_full_update(WPS);
+    np_full_update = true;
     /* add the WPS track event callbacks */
     add_event(PLAYBACK_EVENT_TRACK_CHANGE, track_info_callback);
     add_event(PLAYBACK_EVENT_NEXTTRACKID3_AVAILABLE, track_info_callback);

@@ -63,8 +63,9 @@ static const struct button_mapping button_context_wps[]  = {
     { ACTION_WPS_SKIPNEXT,    BUTTON_NEXT|BUTTON_REL,        BUTTON_NEXT },
     { ACTION_WPS_SKIPPREV,    BUTTON_PREV|BUTTON_REL,        BUTTON_PREV },
     { ACTION_WPS_QUICKSCREEN, BUTTON_PLAY|BUTTON_REPEAT,     BUTTON_PLAY },
-    { ACTION_WPS_HOTKEY,      BUTTON_SCROLL_BACK,            BUTTON_NONE },
-    { ACTION_WPS_HOTKEY,      BUTTON_SCROLL_FWD,             BUTTON_NONE },
+    /* the wheel sets the volume on Now Playing (new UI) */
+    { ACTION_WPS_VOLDOWN,     BUTTON_SCROLL_BACK,            BUTTON_NONE },
+    { ACTION_WPS_VOLUP,       BUTTON_SCROLL_FWD,             BUTTON_NONE },
     { ACTION_WPS_VOLDOWN,     BUTTON_VOL_DOWN,               BUTTON_NONE },
     { ACTION_WPS_VOLDOWN,     BUTTON_VOL_DOWN|BUTTON_REPEAT, BUTTON_NONE },
     { ACTION_WPS_VOLUP,       BUTTON_VOL_UP,                 BUTTON_NONE },

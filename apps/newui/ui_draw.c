@@ -152,6 +152,7 @@ void ui_fill_triangle_right(int x, int y, int w, int h, unsigned color)
 int ui_text_width(int font, const char *text)
 {
     int w = 0, h;
+    font = ui_resolve_font(font);
     font_getstringsize(text, &w, &h, font);
     return w;
 }
@@ -164,6 +165,7 @@ int ui_text(int x, int y, int font, unsigned color, const char *text,
 {
     static const char ellipsis[] = "\xe2\x80\xa6";
     char buf[256];
+    font = ui_resolve_font(font);
     const char *out = text;
     int w = ui_text_width(font, text);
 
@@ -197,11 +199,14 @@ int ui_text(int x, int y, int font, unsigned color, const char *text,
     else if (max_w > 0 && align > 0)
         x += max_w - w;
 
+    /* lcd_setfont() sets the current viewport's font: put it back */
+    int vp_font = lcd_current_viewport->font;
     lcd_setfont(font);
     lcd_set_drawmode(DRMODE_FG);
     lcd_set_foreground(color);
     lcd_putsxy(x, y, out);
     lcd_set_drawmode(DRMODE_SOLID);
+    lcd_setfont(vp_font);
     return w;
 }
 
@@ -209,6 +214,7 @@ int ui_text(int x, int y, int font, unsigned color, const char *text,
 int ui_text_vcenter(int x, int y, int h, int font, unsigned color,
                     const char *text, int max_w, int align)
 {
+    font = ui_resolve_font(font);
     struct font *pf = font_get(font);
     return ui_text(x, y + (h - pf->height) / 2, font, color, text, max_w, align);
 }

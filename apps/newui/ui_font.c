@@ -21,6 +21,7 @@
 #include "config.h"
 #include "font.h"
 #include "rbpaths.h"
+#include "settings.h"
 #include "ui.h"
 
 /* Source Sans 3, installed by buildzip from fonts/newui */
@@ -44,6 +45,14 @@ void ui_font_init(void)
         font_ids[i] = id >= 0 ? id : FONT_SYSFIXED;
     }
     loaded = true;
+    /* Unless pinned, FONT_UI means "the highest loaded font", which would
+     * now be one of ours: pin it to the theme's UI font again */
+    set_ui_font(global_status.font_id[SCREEN_MAIN]);
+}
+
+int ui_resolve_font(int font)
+{
+    return font == FONT_UI ? global_status.font_id[SCREEN_MAIN] : font;
 }
 
 int ui_font(enum ui_font f)

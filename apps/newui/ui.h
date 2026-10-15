@@ -59,6 +59,8 @@ enum ui_font {
 void ui_font_init(void);
 /* Rockbox font id for one of the UI fonts */
 int ui_font(enum ui_font f);
+/* FONT_UI as the theme's actual UI font id; other ids unchanged */
+int ui_resolve_font(int font);
 
 /* --- drawing (ui_draw.c); coordinates relative to the current viewport --- */
 

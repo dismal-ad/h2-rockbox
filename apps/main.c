@@ -38,6 +38,7 @@
 #include "menu.h"
 #include "usb.h"
 #include "wifi.h"
+#include "newui/ui.h"
 #ifdef HAVE_BLUETOOTH
 #include "bluetooth/bluetooth.h"
 #endif
@@ -355,6 +356,7 @@ static void init(void)
     audio_init();
     talk_announce_voice_invalid(); /* notify user w/ voice prompt if voice file invalid */
     settings_apply_skins();
+    ui_font_init(); /* after the theme font, so FONT_UI stays pinned to it */
 
 /* do USB last so prompt (if enabled) can work correctly if USB was inserted with device off,
  * also doesn't hurt that it will display the nice pretty backdrop this way too. */
@@ -610,6 +612,7 @@ static void init(void)
     CHART("<settings_apply_skins");
     settings_apply_skins();
     CHART(">settings_apply_skins");
+    ui_font_init(); /* after the theme font, so FONT_UI stays pinned to it */
 }
 
 #endif /* CONFIG_PLATFORM & PLATFORM_HOSTED */

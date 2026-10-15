@@ -374,13 +374,20 @@ possible and is measured first.
 
 ---
 
-## 9. Decisions needed from you
+## 9. Decisions
 
-1. **Font**: Inter or Source Sans 3 (or another you like).
-2. **Home items** and order (draft in §4.2).
-3. **Now Playing pages**: how to switch between them, since the wheel is
-   volume there (draft: Menu → View).
-4. **Default theme**: Minimal (light selection card) or Classic (accent bar).
-5. **Branch**: build the UI on `newui-bt` (has Bluetooth, tested on device).
-6. **Testing tool**: install `xvfb xdotool` and `libfreetype-dev`, or have me
-   build the key-script mode into the simulator instead of `xvfb`.
+Made (2026-10-15):
+
+1. **Font**: Source Sans 3.
+2. **Home items and menu layout**: as drafted in §4, refined during the work.
+3. **Back** always goes to the parent screen, including from Now Playing.
+   Now Playing's extra pages (track info, big art) open from its Menu sheet
+   instead of being switched in place.
+4. **Default theme**: Classic (accent-coloured selection bar). Minimal stays
+   available as an option.
+5. **Branch**: `newui-bt`.
+
+Open:
+
+6. Simulator test tool: `xvfb` + `xdotool`, or a key-script mode built into
+   the simulator. `libfreetype-dev` is needed in either case (font conversion).

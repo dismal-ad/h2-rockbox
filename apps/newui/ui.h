@@ -93,6 +93,18 @@ struct ui_status {
 /* Draws the bar into the current viewport (UI_STATUS_H high) */
 void ui_status_draw(const struct ui_status *st);
 
+/* --- wheel (ui_wheel.c) --- */
+
+/* Rows to move for one step in direction dir (+1/-1) of a list of nb_items,
+ * growing while the wheel spins fast */
+int ui_wheel_step(int dir, int nb_items);
+/* The fast-scroll letter should be on screen */
+bool ui_wheel_letter_visible(void);
+/* True once after the letter has been drawn and its time ran out */
+bool ui_wheel_letter_expired(void);
+/* Draws the letter for 'title' centred in the current viewport */
+void ui_wheel_draw_letter(const char *title);
+
 /* --- time (ui_time.c) --- */
 
 /* Free-running microsecond counter for measuring frame times */

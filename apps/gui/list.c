@@ -638,6 +638,10 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
     /* Disable the skin redraw callback */
     current_lists = NULL;
 
+    /* the fast-scroll letter has timed out: draw the list without it */
+    if (ui_wheel_letter_expired())
+        gui_synclist_draw(lists);
+
     /* repeat actions block list wraparound */
     bool allow_wrap = lists->wraparound;
 
@@ -677,24 +681,39 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
             allow_wrap = false; /* Prevent list wraparound on repeating actions */
             /*Fallthrough*/
         case ACTION_STD_PREV:
-
-            gui_list_select_at_offset(lists, -next_item_modifier, allow_wrap);
+        {
+            int step = next_item_modifier;
+            /* wheel ticks and quick presses speed up; held buttons
+               use the repeat acceleration above */
+            if (action == ACTION_STD_PREV)
+                step *= ui_wheel_step(-1, lists->nb_items);
+            if (step > 1)
+                allow_wrap = false;
+            gui_list_select_at_offset(lists, -step, allow_wrap);
             if (button_queue_count() < FRAMEDROP_TRIGGER)
                 gui_synclist_draw(lists);
             yield();
             *actionptr = ACTION_STD_PREV;
             return true;
+        }
 
         case ACTION_STD_NEXTREPEAT:
             allow_wrap = false; /* Prevent list wraparound on repeating actions */
             /*Fallthrough*/
         case ACTION_STD_NEXT:
-            gui_list_select_at_offset(lists, next_item_modifier, allow_wrap);
+        {
+            int step = next_item_modifier;
+            if (action == ACTION_STD_NEXT)
+                step *= ui_wheel_step(1, lists->nb_items);
+            if (step > 1)
+                allow_wrap = false;
+            gui_list_select_at_offset(lists, step, allow_wrap);
             if (button_queue_count() < FRAMEDROP_TRIGGER)
                 gui_synclist_draw(lists);
             yield();
             *actionptr = ACTION_STD_NEXT;
             return true;
+        }
 
         case ACTION_TREE_PGRIGHT:
             gui_synclist_scroll_right(lists);
@@ -777,6 +796,9 @@ int list_do_action_timeout(struct gui_synclist *lists, int timeout)
         if(timeout > delay || timeout == TIMEOUT_BLOCK)
             timeout = delay;
     }
+    /* wake up to hide the fast-scroll letter */
+    if (ui_wheel_letter_visible() && (timeout > HZ/20 || timeout == TIMEOUT_BLOCK))
+        timeout = HZ/20;
     return timeout;
 }
 

@@ -42,6 +42,7 @@
 #include "debug.h"
 #include "line.h"
 #include "fixedpoint.h"
+#include "string-extra.h"
 #include "newui/ui.h"
 
 /* these are static to make scrolling work */
@@ -122,6 +123,7 @@ void list_draw(struct screen *display, struct gui_synclist *list)
                            list->nb_items > nb_lines;
     const int text_right = vp->width - UI_MARGIN - (scrollbar ? SCROLLBAR_W + 3 : 0);
 
+    char sel_name[64] = "";
     display->set_viewport(vp);
     for (int i = start; i < start + nb_lines && i < list->nb_items; i++)
     {
@@ -160,6 +162,7 @@ void list_draw(struct screen *display, struct gui_synclist *list)
 
         if (selected)
         {
+            strmemccpy(sel_name, name, sizeof(sel_name));
             ui_fill_rect(0, y, vp->width - (scrollbar ? SCROLLBAR_W + 3 : 0),
                          row_h, UI_COL_ACCENT);
             if (ui_text_width(font, name) <= text_w)
@@ -219,6 +222,9 @@ void list_draw(struct screen *display, struct gui_synclist *list)
         ui_fill_round_rect(vp->width - SCROLLBAR_W - 2, thumb_y + 2,
                            SCROLLBAR_W, thumb_h - 4, 1, UI_COL_MUTED);
     }
+
+    if (ui_wheel_letter_visible() && sel_name[0])
+        ui_wheel_draw_letter(sel_name);
 
     display->set_viewport(last_vp);
 }

@@ -136,6 +136,11 @@ void do_setting_screen(const struct settings_list *setting, const char * title,
 int do_menu(const struct menu_item_ex *menu, int *start_selected,
             struct viewport parent[NB_SCREENS], bool hide_theme);
 
+/* Until reset with NULLs, 'menu' (not its submenus) is shown with this
+ * title (NULL: its own) and list header callback (NULL: none) */
+void menu_set_header(const struct menu_item_ex *menu, const char *title,
+                     list_get_header *header);
+
 /* In all the following macros the argument names are as follows:
     - name: The name for the variable (so it can be used in a MAKE_MENU()
     - str:  the string to display for this menu item. use ID2P() for LANG_* id's

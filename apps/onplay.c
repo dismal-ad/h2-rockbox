@@ -62,6 +62,8 @@
 #include "shortcuts.h"
 #include "misc.h"
 #include "language.h"
+#include "string-extra.h"
+#include "newui/ui.h"
 
 static int onplay_result = ONPLAY_OK;
 static bool in_queue_submenu = false;
@@ -1569,6 +1571,74 @@ int hotkey_run_menu(intptr_t flag, bool execute, int current_action)
     }
 }
 
+/* new UI: the context menu says what it is for. A song gets a header
+ * with its cover, title and artist; anything else shows its name as the
+ * title. */
+static struct {
+    char title[MAX_PATH];
+    char artist[64];
+    char path[MAX_PATH];
+    bool song;
+} ctx_header;
+
+static bool ctx_header_cb(void *data, const fb_data **thumb, char *line2,
+                          size_t len)
+{
+    (void)data;
+    if (!ctx_header.song)
+        return false;
+    *thumb = ui_thumb_get(ctx_header.path);
+    strmemccpy(line2, ctx_header.artist, len);
+    return true;
+}
+
+static void ctx_header_set(int from_context)
+{
+    static struct mp3entry id3;
+    const struct mp3entry *t = NULL;
+    const char *path = selected_file.path;
+
+    ctx_header.song = false;
+    ctx_header.title[0] = ctx_header.artist[0] = '\0';
+    if (from_context == CONTEXT_WPS)
+        t = audio_status() ? audio_current_track() : NULL;
+    else if (path && (selected_file.attr & FILE_ATTR_MASK) == FILE_ATTR_AUDIO)
+    {
+        int fd = open(path, O_RDONLY);
+        if (fd >= 0)
+        {
+            if (get_metadata(&id3, fd, path))
+                t = &id3;
+            close(fd);
+        }
+    }
+
+    if (t)
+    {
+        ctx_header.song = true;
+        strmemccpy(ctx_header.path, t->path, sizeof(ctx_header.path));
+        if (t->artist && *t->artist)
+            strmemccpy(ctx_header.artist, t->artist, sizeof(ctx_header.artist));
+        else if (t->albumartist && *t->albumartist)
+            strmemccpy(ctx_header.artist, t->albumartist, sizeof(ctx_header.artist));
+        if (t->title && *t->title)
+        {
+            strmemccpy(ctx_header.title, t->title, sizeof(ctx_header.title));
+            return;
+        }
+        path = t->path;
+    }
+    if (path && *path)
+    {
+        const char *name = strrchr(path, '/');
+        name = name && name[1] ? name + 1 : path;
+        strmemccpy(ctx_header.title, name, sizeof(ctx_header.title));
+        char *dot = (selected_file.attr & ATTR_DIRECTORY) ? NULL : strrchr(ctx_header.title, '.');
+        if (dot && dot != ctx_header.title)
+            *dot = '\0';
+    }
+}
+
 int onplay(char* file, int attr, int from_context, bool hotkey, int customaction)
 {
     const struct menu_item_ex *menu;
@@ -1625,7 +1695,11 @@ int onplay(char* file, int attr, int from_context, bool hotkey, int customaction
         menu = &wps_onplay_menu;
     else
         menu = &tree_onplay_menu;
+    ctx_header_set(from_context);
+    menu_set_header(menu, ctx_header.title[0] ? ctx_header.title : NULL,
+                    ctx_header.song ? ctx_header_cb : NULL);
     menu_selection = do_menu(menu, NULL, NULL, false);
+    menu_set_header(NULL, NULL, NULL);
     pop_current_activity();
 
     if (menu_selection == GO_TO_WPS)

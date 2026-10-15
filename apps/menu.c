@@ -256,6 +256,19 @@ static char* init_title(const struct menu_item_ex *menu, int *icon,
     return title;
 }
 
+/* a title and header for one menu (menu_set_header) */
+static const struct menu_item_ex *header_menu;
+static const char *header_title;
+static list_get_header *header_cb;
+
+void menu_set_header(const struct menu_item_ex *menu, const char *title,
+                     list_get_header *header)
+{
+    header_menu = menu;
+    header_title = title;
+    header_cb = header;
+}
+
 static int init_menu_lists(const struct menu_item_ex *menu,
                      struct gui_synclist *lists, int selected, bool callback,
                      struct viewport parent[NB_SCREENS], char* buf, size_t buf_sz)
@@ -297,6 +310,12 @@ static int init_menu_lists(const struct menu_item_ex *menu,
     gui_synclist_init(lists,get_menu_item_name,(void*)menu,false,1, parent);
     title = init_title(menu, &icon, buf, buf_sz);
     gui_synclist_set_title(lists, title, icon);
+    if (menu == header_menu)
+    {
+        if (header_title)
+            gui_synclist_set_title(lists, header_title, NOICON);
+        gui_synclist_set_header_callback(lists, header_cb);
+    }
     gui_synclist_set_icon_callback(lists, global_settings.show_icons?menu_get_icon:NULL);
     gui_synclist_set_drills_callback(lists, menu_item_drills);
     gui_synclist_set_value_callback(lists, menu_item_value);

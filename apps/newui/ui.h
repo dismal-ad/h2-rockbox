@@ -107,11 +107,22 @@ bool ui_art_decode_to(const struct mp3entry *id3, int size, fb_data *out);
  * RAM and in /.rockbox/newui/thumbs, so each album is decoded once. */
 const fb_data *ui_thumb_get(const char *track_path);
 
+#define UI_COVER 120 /* Cover Flow's cover size */
+/* The UI_COVER cover from RAM only: NULL with *known false if it is not
+ * loaded yet, else the cover or NULL for none. Load it with ui_cover_load
+ * (from the card, or decoded: slow). */
+const fb_data *ui_cover_peek(const char *track_path, bool *known);
+void ui_cover_load(const char *track_path);
+
 /* --- screens --- */
 
 /* Home (scr_home.c). Returns the root menu screen to open (GO_TO_*),
  * or MENU_ATTACHED_USB. *selected keeps the row between visits. */
 int ui_home(int *selected);
+
+/* Cover Flow (scr_coverflow.c). Returns GO_TO_WPS when an album was
+ * started, MENU_ATTACHED_USB, or GO_TO_ROOT for Back. */
+int ui_coverflow(void);
 
 /* Now Playing's drawing (scr_np.c), called by apps/gui/wps.c: full redraw,
  * or just the progress bar and times */

@@ -17500,3 +17500,17 @@
     *: "Music"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_NEWUI_COVERFLOW
+  desc: new UI: Home entry that opens Cover Flow (albums as covers)
+  user: core
+  <source>
+    *: "Cover Flow"
+  </source>
+  <dest>
+    *: "Cover Flow"
+  </dest>
+  <voice>
+    *: "Cover Flow"
+  </voice>
+</phrase>

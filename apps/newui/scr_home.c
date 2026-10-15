@@ -49,6 +49,7 @@
 enum home_target {
     HOME_NOW_PLAYING,
     HOME_MUSIC,
+    HOME_COVERFLOW,
     HOME_FILES,
     HOME_PLAYLISTS,
 #ifdef HAVE_BLUETOOTH
@@ -67,6 +68,7 @@ struct home_item {
 static const struct home_item items[HOME_COUNT] = {
     [HOME_NOW_PLAYING] = { LANG_NOW_PLAYING,  GO_TO_WPS },
     [HOME_MUSIC]       = { LANG_NEWUI_MUSIC,  GO_TO_DBBROWSER },
+    [HOME_COVERFLOW]   = { LANG_NEWUI_COVERFLOW, -1 },
     [HOME_FILES]       = { LANG_DIR_BROWSER,  GO_TO_FILEBROWSER },
     [HOME_PLAYLISTS]   = { LANG_PLAYLISTS,    GO_TO_PLAYLISTS_SCREEN },
 #ifdef HAVE_BLUETOOTH
@@ -208,6 +210,17 @@ int ui_home(int *selected)
             case ACTION_STD_OK:
             {
                 enum home_target t = list[sel];
+                if (t == HOME_COVERFLOW)
+                {
+                    int r = ui_coverflow();
+                    if (r != GO_TO_ROOT)
+                    {
+                        ret = r;
+                        goto out;
+                    }
+                    redraw = true;
+                    break;
+                }
 #ifdef HAVE_BLUETOOTH
                 if (t == HOME_BLUETOOTH)
                 {

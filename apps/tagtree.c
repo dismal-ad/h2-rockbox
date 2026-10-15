@@ -2865,7 +2865,7 @@ bool tagtree_is_album_list(struct tree_context *c)
 /* One track of the album with tag seek 'seek': its path, its album artist
  * (or artist) and year. Looked-up albums are remembered, as lists ask on
  * every redraw. */
-static bool album_info(int seek, char *path, size_t path_len,
+bool tagtree_album_info(int seek, char *path, size_t path_len,
                        char *artist, size_t artist_len, int *year)
 {
     #define ALBUM_CACHE 32
@@ -2934,7 +2934,7 @@ bool tagtree_album_track(struct tree_context *c, int id, char *path,
     struct tagentry *e = tagtree_get_entry(c, id);
     if (!e || e->newtable != TABLE_NAVIBROWSE || e->extraseek <= 0)
         return false;
-    return album_info(e->extraseek, path, path_len, artist, artist_len, NULL);
+    return tagtree_album_info(e->extraseek, path, path_len, artist, artist_len, NULL);
 }
 
 /* For the tracks of one album: the path of one of them, and
@@ -2950,7 +2950,7 @@ bool tagtree_album_header(struct tree_context *c, char *path, size_t path_len,
 
     char artist[64];
     int year;
-    if (!album_info(csi->result_seek[level - 1], path, path_len,
+    if (!tagtree_album_info(csi->result_seek[level - 1], path, path_len,
                     artist, sizeof(artist), &year))
         return false;
 

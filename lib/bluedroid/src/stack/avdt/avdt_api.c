@@ -34,14 +34,8 @@
 #include "stack/btu.h"
 #include "osi/allocator.h"
 
-#if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE)
-
 /* Control block for AVDT */
-#if AVDT_DYNAMIC_MEMORY == FALSE
 tAVDT_CB avdt_cb;
-#else
-tAVDT_CB *avdt_cb_ptr;
-#endif
 
 /*******************************************************************************
 **
@@ -125,13 +119,11 @@ void AVDT_Register(tAVDT_REG *p_reg, tAVDT_CTRL_CBACK *p_cback)
     BTM_SetSecurityLevel(FALSE, "", BTM_SEC_SERVICE_AVDTP_NOSEC, BTM_SEC_NONE,
                          AVDT_PSM, BTM_SEC_PROTO_AVDT, AVDT_CHAN_MEDIA);
 
-#if AVDT_REPORTING == TRUE
     /* do not use security on the reporting channel */
     BTM_SetSecurityLevel(TRUE, "", BTM_SEC_SERVICE_AVDTP_NOSEC, BTM_SEC_NONE,
                          AVDT_PSM, BTM_SEC_PROTO_AVDT, AVDT_CHAN_REPORT);
     BTM_SetSecurityLevel(FALSE, "", BTM_SEC_SERVICE_AVDTP_NOSEC, BTM_SEC_NONE,
                          AVDT_PSM, BTM_SEC_PROTO_AVDT, AVDT_CHAN_REPORT);
-#endif
 
     /* initialize AVDTP data structures */
     avdt_scb_init();
@@ -1112,7 +1104,6 @@ UINT16 AVDT_GetSignalChannel(UINT8 handle, BD_ADDR bd_addr)
 
 
 
-#if AVDT_MULTIPLEXING == TRUE
 /*******************************************************************************
 **
 ** Function         AVDT_SetMediaBuf
@@ -1150,9 +1141,7 @@ extern UINT16 AVDT_SetMediaBuf(UINT8 handle, UINT8 *p_buf, UINT32 buf_len)
 
     return result;
 }
-#endif
 
-#if AVDT_REPORTING == TRUE
 /*******************************************************************************
 **
 ** Function         AVDT_SendReport
@@ -1172,9 +1161,7 @@ UINT16 AVDT_SendReport(UINT8 handle, AVDT_REPORT_TYPE type,
     BT_HDR          *p_pkt;
     tAVDT_TC_TBL    *p_tbl;
     UINT8           *p, *plen, *pm1, *p_end;
-#if AVDT_MULTIPLEXING == TRUE
     UINT8           *p_al = NULL, u;
-#endif
     UINT32  ssrc;
     UINT16  len;
 
@@ -1192,13 +1179,11 @@ UINT16 AVDT_SendReport(UINT8 handle, AVDT_REPORT_TYPE type,
                 (p_pkt = (BT_HDR *)osi_malloc(p_tbl->peer_mtu)) != NULL) {
             p_pkt->offset = L2CAP_MIN_OFFSET;
             p = (UINT8 *)(p_pkt + 1) + p_pkt->offset;
-#if AVDT_MULTIPLEXING == TRUE
             if (p_scb->curr_cfg.psc_mask & AVDT_PSC_MUX) {
                 /* Adaptation Layer header later */
                 p_al = p;
                 p += 2;
             }
-#endif
             pm1 = p;
             *p++ = AVDT_MEDIA_OCTET1 | 1;
             *p++ = type;
@@ -1245,7 +1230,6 @@ UINT16 AVDT_SendReport(UINT8 handle, AVDT_REPORT_TYPE type,
             len = p - pm1 - 1;
             UINT16_TO_BE_STREAM(plen, len);
 
-#if AVDT_MULTIPLEXING == TRUE
             if (p_scb->curr_cfg.psc_mask & AVDT_PSC_MUX) {
                 /* Adaptation Layer header */
                 p = p_al;
@@ -1258,7 +1242,6 @@ UINT16 AVDT_SendReport(UINT8 handle, AVDT_REPORT_TYPE type,
                     *p |= AVDT_ALH_LCODE_9BITM1;
                 }
             }
-#endif
 
             /* set the actual payload length */
             p_pkt->len = p_end - p;
@@ -1271,7 +1254,6 @@ UINT16 AVDT_SendReport(UINT8 handle, AVDT_REPORT_TYPE type,
 
     return result;
 }
-#endif
 
 /******************************************************************************
 **
@@ -1331,4 +1313,3 @@ UINT16 AVDT_GetDelayValue(void)
     return avdt_cb.delay_value;
 }
 
-#endif /*  #if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE) */

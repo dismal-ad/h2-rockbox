@@ -32,40 +32,24 @@
  */
 
 /* define if you have a fast memcpy function on your system */
-#if 1
 #  define HAVE_MEMCPY
 #  include <string.h>
-#if 0
-#  if defined( _MSC_VER )
-#    include <intrin.h>
-#    pragma intrinsic( memcpy )
-#  endif
-#endif
-#endif
 
 #include <stdlib.h>
 
 /* add the target configuration to allow using internal data types and compilation options */
 #include "common/bt_target.h"
 
-#if (SMP_CRYPTO_STACK_NATIVE == TRUE)
-
 /* define if you have fast 32-bit types on your system */
-#if 1
 #  define HAVE_UINT_32T
-#endif
 
 /* define if you don't want any tables */
-#if 1
 #  define USE_TABLES
-#endif
 
 /*  On Intel Core 2 duo VERSION_1 is faster */
 
 /* alternative versions (test for performance on your system) */
-#if 1
 #  define VERSION_1
-#endif
 
 #include "aes.h"
 
@@ -381,7 +365,7 @@ static void copy_and_key( void *d, const void *s, const void *k )
     ((uint_32t *)d)[ 1] = ((uint_32t *)s)[ 1] ^ ((uint_32t *)k)[ 1];
     ((uint_32t *)d)[ 2] = ((uint_32t *)s)[ 2] ^ ((uint_32t *)k)[ 2];
     ((uint_32t *)d)[ 3] = ((uint_32t *)s)[ 3] ^ ((uint_32t *)k)[ 3];
-#elif 1
+#else
     ((uint_8t *)d)[ 0] = ((uint_8t *)s)[ 0] ^ ((uint_8t *)k)[ 0];
     ((uint_8t *)d)[ 1] = ((uint_8t *)s)[ 1] ^ ((uint_8t *)k)[ 1];
     ((uint_8t *)d)[ 2] = ((uint_8t *)s)[ 2] ^ ((uint_8t *)k)[ 2];
@@ -398,9 +382,6 @@ static void copy_and_key( void *d, const void *s, const void *k )
     ((uint_8t *)d)[13] = ((uint_8t *)s)[13] ^ ((uint_8t *)k)[13];
     ((uint_8t *)d)[14] = ((uint_8t *)s)[14] ^ ((uint_8t *)k)[14];
     ((uint_8t *)d)[15] = ((uint_8t *)s)[15] ^ ((uint_8t *)k)[15];
-#else
-    block_copy(d, s);
-    xor_block(d, k);
 #endif
 }
 
@@ -939,4 +920,3 @@ void bluedroid_aes_decrypt_256( const unsigned char in[N_BLOCK], unsigned char o
 
 #endif /* SMP_CRYPTO_STACK_NATIVE == TRUE */
 
-#endif

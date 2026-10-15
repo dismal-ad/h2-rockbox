@@ -36,7 +36,6 @@
 #include "stack/hcimsgs.h"
 #include "osi/allocator.h"
 
-#if (L2CAP_COC_INCLUDED == TRUE)
 /********************************************************************************/
 /*              L O C A L    F U N C T I O N     P R O T O T Y P E S            */
 /********************************************************************************/
@@ -134,16 +133,6 @@ static void l2c_csm_closed (tL2C_CCB *p_ccb, UINT16 event, void *p_data)
 #endif
         return;
     }
-
-#if (L2CAP_UCD_INCLUDED == TRUE)
-    if ( local_cid == L2CAP_CONNECTIONLESS_CID ) {
-        /* check if this event can be processed by UCD */
-        if ( l2c_ucd_process_event (p_ccb, event, p_data) ) {
-            /* The event is processed by UCD state machine */
-            return;
-        }
-    }
-#endif
 
     disconnect_ind = p_ccb->p_rcb->api.pL2CA_DisconnectInd_Cb;
     connect_cfm    = p_ccb->p_rcb->api.pL2CA_ConnectCfm_Cb;
@@ -293,16 +282,6 @@ static void l2c_csm_orig_w4_sec_comp (tL2C_CCB *p_ccb, UINT16 event, void *p_dat
     L2CAP_TRACE_EVENT ("L2CAP - st: ORIG_W4_SEC_COMP evt: %d", event);
 #endif
 
-#if (L2CAP_UCD_INCLUDED == TRUE)
-    if ( local_cid == L2CAP_CONNECTIONLESS_CID ) {
-        /* check if this event can be processed by UCD */
-        if ( l2c_ucd_process_event (p_ccb, event, p_data) ) {
-            /* The event is processed by UCD state machine */
-            return;
-        }
-    }
-#endif
-
     switch (event) {
     case L2CEVT_LP_DISCONNECT_IND:                   /* Link was disconnected */
         L2CAP_TRACE_API ("L2CAP - Calling Disconnect_Ind_Cb(), CID: 0x%04x  No Conf Needed", p_ccb->local_cid);
@@ -375,16 +354,6 @@ static void l2c_csm_term_w4_sec_comp (tL2C_CCB *p_ccb, UINT16 event, void *p_dat
     L2CAP_TRACE_EVENT ("L2CAP - LCID: 0x%04x  st: TERM_W4_SEC_COMP  evt: %s", p_ccb->local_cid, l2c_csm_get_event_name (event));
 #else
     L2CAP_TRACE_EVENT ("L2CAP - st: TERM_W4_SEC_COMP evt: %d", event);
-#endif
-
-#if (L2CAP_UCD_INCLUDED == TRUE)
-    if ( p_ccb->local_cid == L2CAP_CONNECTIONLESS_CID ) {
-        /* check if this event can be processed by UCD */
-        if ( l2c_ucd_process_event (p_ccb, event, p_data) ) {
-            /* The event is processed by UCD state machine */
-            return;
-        }
-    }
 #endif
 
     switch (event) {
@@ -731,9 +700,6 @@ static void l2c_csm_config (tL2C_CCB *p_ccb, UINT16 event, void *p_data)
                     l2c_fcr_adj_monitor_retran_timeout (p_ccb);
                 }
 
-#if (L2CAP_ERTM_STATS == TRUE)
-                p_ccb->fcrb.connect_tick_count = osi_time_get_os_boottime_ms();
-#endif
                 /* See if we can forward anything on the hold queue */
                 if (!fixed_queue_is_empty(p_ccb->xmit_hold_q)) {
                     l2c_link_check_send_pkts (p_ccb->p_lcb, NULL, NULL);
@@ -809,10 +775,6 @@ static void l2c_csm_config (tL2C_CCB *p_ccb, UINT16 event, void *p_data)
             l2c_fcr_start_timer(p_ccb);
         }
 
-#if (L2CAP_ERTM_STATS == TRUE)
-        p_ccb->fcrb.connect_tick_count = osi_time_get_os_boottime_ms();
-#endif
-
         /* See if we can forward anything on the hold queue */
         if ( (p_ccb->chnl_state == CST_OPEN) &&
              (!fixed_queue_is_empty(p_ccb->xmit_hold_q))) {
@@ -833,7 +795,6 @@ static void l2c_csm_config (tL2C_CCB *p_ccb, UINT16 event, void *p_data)
 
     case L2CEVT_L2CAP_DATA:                        /* Peer data packet rcvd    */
         L2CAP_TRACE_API ("L2CAP - Calling DataInd_Cb(), CID: 0x%04x", p_ccb->local_cid);
-#if (L2CAP_NUM_FIXED_CHNLS > 0)
         if (p_ccb->local_cid >= L2CAP_FIRST_FIXED_CHNL &&
                 p_ccb->local_cid <= L2CAP_LAST_FIXED_CHNL) {
             if (p_ccb->local_cid < L2CAP_BASE_APPL_CID) {
@@ -846,7 +807,6 @@ static void l2c_csm_config (tL2C_CCB *p_ccb, UINT16 event, void *p_data)
                 break;
             }
         }
-#endif
         (*p_ccb->p_rcb->api.pL2CA_DataInd_Cb)(p_ccb->local_cid, (BT_HDR *)p_data);
         break;
 
@@ -892,16 +852,6 @@ static void l2c_csm_open (tL2C_CCB *p_ccb, UINT16 event, void *p_data)
                        p_ccb->local_cid, l2c_csm_get_event_name (event));
 #else
     L2CAP_TRACE_EVENT ("L2CAP - st: OPEN evt: %d", event);
-#endif
-
-#if (L2CAP_UCD_INCLUDED == TRUE)
-    if ( local_cid == L2CAP_CONNECTIONLESS_CID ) {
-        /* check if this event can be processed by UCD */
-        if ( l2c_ucd_process_event (p_ccb, event, p_data) ) {
-            /* The event is processed by UCD state machine */
-            return;
-        }
-    }
 #endif
 
     switch (event) {
@@ -1125,7 +1075,6 @@ static void l2c_csm_w4_l2ca_disconnect_rsp (tL2C_CCB *p_ccb, UINT16 event, void 
         break;
     }
 }
-#endif /// (L2CAP_COC_INCLUDED == TRUE)
 
 #if (BT_TRACE_VERBOSE == TRUE)
 /*******************************************************************************
@@ -1255,14 +1204,12 @@ void l2c_enqueue_peer_data (tL2C_CCB *p_ccb, BT_HDR *p_buf)
 
     l2cu_check_channel_congestion (p_ccb);
 
-#if (L2CAP_ROUND_ROBIN_CHANNEL_SERVICE == TRUE)
     /* if new packet is higher priority than serving ccb and it is not overrun */
     if (( p_ccb->p_lcb->rr_pri > p_ccb->ccb_priority )
             && ( p_ccb->p_lcb->rr_serv[p_ccb->ccb_priority].quota > 0)) {
         /* send out higher priority packet */
         p_ccb->p_lcb->rr_pri = p_ccb->ccb_priority;
     }
-#endif
 
     /* if we are doing a round robin scheduling, set the flag */
     if (p_ccb->p_lcb->link_xmit_quota == 0) {

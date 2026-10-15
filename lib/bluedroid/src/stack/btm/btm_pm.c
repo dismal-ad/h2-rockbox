@@ -46,7 +46,6 @@
 //#include "osi/include/log.h"
 #include "osi/allocator.h"
 
-#if (CLASSIC_BT_INCLUDED == TRUE)
 /*****************************************************************************/
 /*      to handle different modes                                            */
 /*****************************************************************************/
@@ -312,32 +311,7 @@ tBTM_STATUS BTM_ReadPowerMode (BD_ADDR remote_bda, tBTM_PM_MODE *p_mode)
 tBTM_STATUS BTM_SetSsrParams (BD_ADDR remote_bda, UINT16 max_lat,
                               UINT16 min_rmt_to, UINT16 min_loc_to)
 {
-#if (BTM_SSR_INCLUDED == TRUE)
-    tBTM_PM_MCB *p_cb;
-    tACL_CONN *p_acl_cb = NULL;
-
-    p_acl_cb = btm_bda_to_acl(remote_bda, BT_TRANSPORT_BR_EDR);
-    if (!p_acl_cb) {
-        return (BTM_UNKNOWN_ADDR);
-    }
-    p_cb = p_acl_cb->p_pm_mode_db;
-
-    if (BTM_PM_STS_ACTIVE == p_cb->state ||
-            BTM_PM_STS_SNIFF == p_cb->state) {
-        if (btsnd_hcic_sniff_sub_rate(p_acl_cb->hci_handle, max_lat,
-                                      min_rmt_to, min_loc_to)) {
-            return BTM_SUCCESS;
-        } else {
-            return BTM_NO_RESOURCES;
-        }
-    }
-    p_cb->max_lat       = max_lat;
-    p_cb->min_rmt_to    = min_rmt_to;
-    p_cb->min_loc_to    = min_loc_to;
-    return BTM_CMD_STORED;
-#else
     return BTM_ILLEGAL_ACTION;
-#endif  // BTM_SSR_INCLUDED
 }
 
 /*******************************************************************************
@@ -584,13 +558,6 @@ static tBTM_STATUS btm_pm_snd_md_req(UINT8 pm_id, UINT16 link_hdl, tBTM_PM_PWR_M
     if (p_cb->chg_ind == TRUE) { /* needs to wake first */
         md_res.mode = BTM_PM_MD_ACTIVE;
     }
-#if (BTM_SSR_INCLUDED == TRUE)
-    else if (BTM_PM_MD_SNIFF == md_res.mode && p_cb->max_lat) {
-        btsnd_hcic_sniff_sub_rate(link_hdl, p_cb->max_lat,
-                                  p_cb->min_rmt_to, p_cb->min_loc_to);
-        p_cb->max_lat = 0;
-    }
-#endif  // BTM_SSR_INCLUDED
     /* Default is failure */
     btm_cb.pm_pend_link_hdl = BTM_INVALID_HANDLE;
 
@@ -822,10 +789,8 @@ void btm_pm_proc_mode_change (UINT8 hci_status, UINT16 hci_handle, UINT8 mode, U
             (*btm_cb.pm_reg_db[yy].cback)( p->remote_addr, mode, interval, hci_status);
         }
     }
-#if (CLASSIC_BT_INCLUDED == TRUE)
     /* If mode change was because of an active role switch or change link key */
     btm_cont_rswitch(p, btm_find_dev(p->remote_addr), hci_status);
-#endif // (CLASSIC_BT_INCLUDED == TRUE)
 }
 
 /*******************************************************************************
@@ -837,43 +802,6 @@ void btm_pm_proc_mode_change (UINT8 hci_status, UINT16 hci_handle, UINT8 mode, U
 ** Returns          none.
 **
 *******************************************************************************/
-#if (BTM_SSR_INCLUDED == TRUE)
-void btm_pm_proc_ssr_evt (UINT8 *p, UINT16 evt_len)
-{
-    UINT8       status;
-    UINT16      handle;
-    UINT16      max_rx_lat;
-    int         xx;
-    tBTM_PM_MCB *p_cb;
-    tACL_CONN   *p_acl = NULL;
-    UINT16      use_ssr = TRUE;
-    UNUSED(evt_len);
-
-    STREAM_TO_UINT8 (status, p);
-
-    STREAM_TO_UINT16 (handle, p);
-    /* get the index to acl_db */
-
-    p += 2;
-    STREAM_TO_UINT16 (max_rx_lat, p);
-    p_acl = btm_handle_to_acl(handle);
-    if (!p_acl) {
-        return;
-    }
-    p_cb = p_acl->p_pm_mode_db;
-    if (p_cb->interval == max_rx_lat) {
-        /* using legacy sniff */
-        use_ssr = FALSE;
-    }
-
-    /* notify registered parties */
-    for (xx = 0; xx < BTM_MAX_PM_RECORDS; xx++) {
-        if (btm_cb.pm_reg_db[xx].mask & BTM_PM_REG_NOTIF) {
-            (*btm_cb.pm_reg_db[xx].cback)( p_acl->remote_addr, BTM_PM_STS_SSR, use_ssr, status);
-        }
-    }
-}
-#endif  // BTM_SSR_INCLUDED
 
 /*******************************************************************************
 **
@@ -894,17 +822,8 @@ BOOLEAN btm_pm_device_in_active_or_sniff_mode(void)
         return TRUE;
     }
 
-#if ((defined BLE_INCLUDED) && (BLE_INCLUDED == TRUE))
-    /* Check BLE states */
-    if (btm_ble_get_conn_st() != BLE_CONN_IDLE) {
-        BTM_TRACE_DEBUG("%s - BLE state: %x", __func__, btm_ble_get_conn_st());
-        return TRUE;
-    }
-#endif
-
     return FALSE;
 }
-#if (CLASSIC_BT_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         btm_pm_device_in_scan_state
@@ -933,7 +852,6 @@ BOOLEAN btm_pm_device_in_scan_state(void)
 
     return FALSE;
 }
-#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         BTM_PM_ReadControllerState
@@ -948,11 +866,9 @@ tBTM_CONTRL_STATE BTM_PM_ReadControllerState(void)
     if (TRUE == btm_pm_device_in_active_or_sniff_mode()) {
         return BTM_CONTRL_ACTIVE;
     }
-#if (CLASSIC_BT_INCLUDED == TRUE)
     else if (TRUE == btm_pm_device_in_scan_state()) {
         return BTM_CONTRL_SCAN;
     }
-#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
     else {
         return BTM_CONTRL_IDLE;
     }
@@ -971,4 +887,3 @@ static const char *mode_to_string(tBTM_PM_MODE mode)
 }
 #endif
 
-#endif // #if (CLASSIC_BT_INCLUDED == TRUE)

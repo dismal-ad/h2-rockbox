@@ -19,7 +19,6 @@
 #include "btc_av_api.h"
 #include "esp_a2dp_api.h"
 
-#if BTC_AV_INCLUDED
 /*******************************************************************************
  **  Public functions
  *******************************************************************************/
@@ -96,7 +95,5 @@ bool btc_a2dp_control_init(void);
  **
  *******************************************************************************/
 void btc_a2dp_control_cleanup(void);
-
-#endif /* #if BTC_AV_INCLUDED */
 
 #endif /* __BTC_A2DP_CONTROL_H__ */

@@ -346,7 +346,6 @@ extern "C"
 {
 #endif
 
-#if (CLASSIC_BT_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         L2CA_Register
@@ -499,77 +498,6 @@ extern BOOLEAN L2CA_DisconnectReq (UINT16 cid);
 **
 *******************************************************************************/
 extern BOOLEAN L2CA_DisconnectRsp (UINT16 cid);
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
-
-#if (BLE_L2CAP_COC_INCLUDED == TRUE)
-/*******************************************************************************
-**
-** Function         L2CA_RegisterLECoc
-**
-** Description      Other layers call this function to register for L2CAP
-**                  Connection Oriented Channel.
-**
-** Returns          PSM to use or zero if error. Typically, the PSM returned
-**                  is the same as was passed in, but for an outgoing-only
-**                  connection to a dynamic PSM, a "virtual" PSM is returned
-**                  and should be used in the calls to L2CA_ConnectLECocReq()
-**                  and BTM_SetSecurityLevel().
-**
-*******************************************************************************/
-extern UINT16 L2CA_RegisterLECoc (UINT16 psm, tL2CAP_APPL_INFO *p_cb_info);
-
-/*******************************************************************************
-**
-** Function         L2CA_DeregisterLECoc
-**
-** Description      Other layers call this function to deregister for L2CAP
-**                  Connection Oriented Channel.
-**
-** Returns          void
-**
-*******************************************************************************/
-extern void L2CA_DeregisterLECoc (UINT16 psm);
-
-/*******************************************************************************
-**
-** Function         L2CA_ConnectLECocReq
-**
-** Description      Higher layers call this function to create an L2CAP LE COC.
-**                  Note that the connection is not established at this time, but
-**                  connection establishment gets started. The callback function
-**                  will be invoked when connection establishes or fails.
-**
-** Returns          the CID of the connection, or 0 if it failed to start
-**
-*******************************************************************************/
-extern UINT16 L2CA_ConnectLECocReq (UINT16 psm, BD_ADDR p_bd_addr, tL2CAP_LE_CFG_INFO *p_cfg);
-
-/*******************************************************************************
-**
-** Function         L2CA_ConnectLECocRsp
-**
-** Description      Higher layers call this function to accept an incoming
-**                  L2CAP LE COC connection, for which they had gotten an connect
-**                  indication callback.
-**
-** Returns          TRUE for success, FALSE for failure
-**
-*******************************************************************************/
-extern BOOLEAN L2CA_ConnectLECocRsp (BD_ADDR p_bd_addr, UINT8 id, UINT16 lcid, UINT16 result,
-                                         UINT16 status, tL2CAP_LE_CFG_INFO *p_cfg);
-
-/*******************************************************************************
-**
-**  Function         L2CA_GetPeerLECocConfig
-**
-**  Description      Get peers configuration for LE Connection Oriented Channel.
-**
-**  Return value:    TRUE if peer is connected
-**
-*******************************************************************************/
-extern BOOLEAN L2CA_GetPeerLECocConfig (UINT16 lcid, tL2CAP_LE_CFG_INFO* peer_cfg);
-
-#endif // (BLE_L2CAP_COC_INCLUDED == TRUE)
 
 /*******************************************************************************
 **
@@ -583,8 +511,6 @@ extern BOOLEAN L2CA_GetPeerLECocConfig (UINT16 lcid, tL2CAP_LE_CFG_INFO* peer_cf
 **
 *******************************************************************************/
 extern UINT8 L2CA_DataWrite (UINT16 cid, BT_HDR *p_data);
-
-#if (CLASSIC_BT_INCLUDED == TRUE)
 
 /*******************************************************************************
 **
@@ -608,7 +534,6 @@ extern BOOLEAN L2CA_Ping (BD_ADDR p_bd_addr, tL2CA_ECHO_RSP_CB *p_cb);
 **
 *******************************************************************************/
 extern BOOLEAN  L2CA_Echo (BD_ADDR p_bd_addr, BT_HDR *p_data, tL2CA_ECHO_DATA_CB *p_callback);
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
 
 
 // Given a local channel identifier, |lcid|, this function returns the bound remote
@@ -689,7 +614,6 @@ extern UINT8 L2CA_SetTraceLevel (UINT8 trace_level);
 **
 *******************************************************************************/
 extern UINT8 L2CA_SetDesireRole (UINT8 new_role);
-#if (CLASSIC_BT_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function     L2CA_LocalLoopbackReq
@@ -816,7 +740,6 @@ typedef void (tL2CA_RESERVE_CMPL_CBACK) (void);
 **                  ACL link.
 *******************************************************************************/
 extern BOOLEAN L2CA_SetFlushTimeout (BD_ADDR bd_addr, UINT16 flush_tout);
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
 
 /*******************************************************************************
 **
@@ -875,8 +798,6 @@ extern BOOLEAN L2CA_GetPeerFeatures (BD_ADDR bd_addr, UINT32 *p_ext_feat, UINT8 
 *******************************************************************************/
 extern BOOLEAN L2CA_GetBDAddrbyHandle (UINT16 handle, BD_ADDR bd_addr);
 
-#if (CLASSIC_BT_INCLUDED == TRUE)
-
 /*******************************************************************************
 **
 **  Function         L2CA_GetChnlFcrMode
@@ -889,7 +810,6 @@ extern BOOLEAN L2CA_GetBDAddrbyHandle (UINT16 handle, BD_ADDR bd_addr);
 **
 *******************************************************************************/
 extern UINT8 L2CA_GetChnlFcrMode (UINT16 lcid);
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
 
 
 /*******************************************************************************
@@ -1061,7 +981,6 @@ typedef struct {
 } tL2CAP_FIXED_CHNL_REG;
 
 
-#if (L2CAP_NUM_FIXED_CHNLS > 0)
 /*******************************************************************************
 **
 **  Function        L2CA_RegisterFixedChannel
@@ -1142,9 +1061,6 @@ extern BOOLEAN L2CA_RemoveFixedChnl (UINT16 fixed_cid, BD_ADDR rem_bda);
 *******************************************************************************/
 extern BOOLEAN L2CA_SetFixedChannelTout (BD_ADDR rem_bda, UINT16 fixed_cid, UINT16 idle_tout);
 
-#endif /* (L2CAP_NUM_FIXED_CHNLS > 0) */
-
-#if (CLASSIC_BT_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function     L2CA_GetCurrentConfig
@@ -1161,75 +1077,7 @@ extern BOOLEAN L2CA_SetFixedChannelTout (BD_ADDR rem_bda, UINT16 fixed_cid, UINT
 extern BOOLEAN L2CA_GetCurrentConfig (UINT16 lcid,
                                       tL2CAP_CFG_INFO **pp_our_cfg,  tL2CAP_CH_CFG_BITS *p_our_cfg_bits,
                                       tL2CAP_CFG_INFO **pp_peer_cfg, tL2CAP_CH_CFG_BITS *p_peer_cfg_bits);
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
 
-
-#if (BLE_INCLUDED == TRUE)
-/*******************************************************************************
-**
-**  Function        L2CA_CancelBleConnectReq
-**
-**  Description     Cancel a pending connection attempt to a BLE device.
-**
-**  Parameters:     BD Address of remote
-**
-**  Return value:   TRUE if connection was cancelled
-**
-*******************************************************************************/
-extern BOOLEAN L2CA_CancelBleConnectReq (BD_ADDR rem_bda);
-
-/*******************************************************************************
-**
-**  Function        L2CA_UpdateBleConnParams
-**
-**  Description     Update BLE connection parameters.
-**
-**  Parameters:     BD Address of remote
-**
-**  Return value:   TRUE if update started
-**
-*******************************************************************************/
-extern BOOLEAN L2CA_UpdateBleConnParams (BD_ADDR rem_bdRa, UINT16 min_int,
-        UINT16 max_int, UINT16 latency, UINT16 timeout);
-
-/*******************************************************************************
-**
-**  Function        L2CA_EnableUpdateBleConnParams
-**
-**  Description     Update BLE connection parameters.
-**
-**  Parameters:     BD Address of remote
-**                  enable flag
-**
-**  Return value:   TRUE if update started
-**
-*******************************************************************************/
-extern BOOLEAN L2CA_EnableUpdateBleConnParams (BD_ADDR rem_bda, BOOLEAN enable);
-
-/*******************************************************************************
-**
-** Function         L2CA_GetBleConnRole
-**
-** Description      This function returns the connection role.
-**
-** Returns          link role.
-**
-*******************************************************************************/
-extern UINT8 L2CA_GetBleConnRole (BD_ADDR bd_addr);
-
-/*******************************************************************************
-**
-** Function         L2CA_BleDisconnect
-**
-** Description      This function use to disconnect LE connection.
-**
-** Parameters       BD Address of remote
-**
-** Returns          TRUE if disconnect successfully.
-**
-*******************************************************************************/
-extern BOOLEAN L2CA_BleDisconnect (BD_ADDR rem_bda);
-#endif /* (BLE_INCLUDED == TRUE) */
 
 /*******************************************************************************
 **

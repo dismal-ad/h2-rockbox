@@ -18,7 +18,6 @@
 #include "esp_gap_ble_api.h"
 #include "bta/bta_api.h"
 
-#if (SMP_INCLUDED == TRUE)
 #define BTC_LE_LOCAL_KEY_IR       (1<<0)
 #define BTC_LE_LOCAL_KEY_IRK      (1<<1)
 #define BTC_LE_LOCAL_KEY_DHK      (1<<2)
@@ -93,8 +92,6 @@ int btc_storage_get_num_ble_bond_devices(void);
 void btc_storage_delete_duplicate_ble_devices(void);
 
 void btc_storage_remove_unused_sections(uint8_t *cur_addr, tBTM_LE_PID_KEYS *del_pid_key);
-
-#endif  ///SMP_INCLUDED == TRUE
 
 #define BTC_BLE_STORAGE_GATT_CL_SUPP_FEAT_STR       "GATT_CL_SUPP_FEAT"
 #define BTC_BLE_STORAGE_GATT_DB_HASH_STR            "GATT_DB_HASH"

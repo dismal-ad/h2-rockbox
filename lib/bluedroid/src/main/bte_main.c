@@ -64,9 +64,6 @@ static void bte_main_enable(void);
 bluedroid_init_done_cb_t bluedroid_init_done_cb;
 
 extern void osi_mem_dbg_init(void);
-#if (BT_BLE_DYNAMIC_ENV_MEMORY == TRUE)
-extern void free_controller_param(void);
-#endif
 /******************************************************************************
 **
 ** Function         bte_main_boot_entry
@@ -105,10 +102,6 @@ int bte_main_boot_entry(bluedroid_init_done_cb_t cb)
 ******************************************************************************/
 void bte_main_shutdown(void)
 {
-
-#if (BT_BLE_DYNAMIC_ENV_MEMORY == TRUE)
-    free_controller_param();
-#endif
 
     bte_main_disable();
 
@@ -174,52 +167,6 @@ void bte_main_postload_cfg(void)
 {
     hci->do_postload();
 }
-
-#if (defined(HCILP_INCLUDED) && HCILP_INCLUDED == TRUE)
-/******************************************************************************
-**
-** Function         bte_main_enable_lpm
-**
-** Description      BTE MAIN API - Enable/Disable low power mode operation
-**
-** Returns          None
-**
-******************************************************************************/
-void bte_main_enable_lpm(BOOLEAN enable)
-{
-    /*Enable Low power ?*/
-    //hci->send_low_power_command(enable ? LPM_ENABLE : LPM_DISABLE);
-}
-
-/******************************************************************************
-**
-** Function         bte_main_lpm_allow_bt_device_sleep
-**
-** Description      BTE MAIN API - Allow BT controller goest to sleep
-**
-** Returns          None
-**
-******************************************************************************/
-void bte_main_lpm_allow_bt_device_sleep(void)
-{
-    /**/
-    //hci->send_low_power_command(LPM_WAKE_DEASSERT);
-}
-
-/******************************************************************************
-**
-** Function         bte_main_lpm_wake_bt_device
-**
-** Description      BTE MAIN API - Wake BT controller up if it is in sleep mode
-**
-** Returns          None
-**
-******************************************************************************/
-void bte_main_lpm_wake_bt_device(void)
-{
-    //hci->send_low_power_command(LPM_WAKE_ASSERT);
-}
-#endif  // HCILP_INCLUDED
 
 /******************************************************************************
 **

@@ -25,8 +25,6 @@
 #ifndef BTA_AV_SBC_H
 #define BTA_AV_SBC_H
 
-#if (BTA_AV_INCLUDED == TRUE)
-
 /*****************************************************************************
 **  constants
 *****************************************************************************/
@@ -228,7 +226,5 @@ extern UINT8 bta_av_sbc_cfg_matches_cap(UINT8 *p_cfg, tA2D_SBC_CIE *p_cap);
 **
 *******************************************************************************/
 extern void bta_av_sbc_bld_hdr(BT_HDR *p_buf, UINT16 fr_per_pkt);
-
-#endif  ///BTA_AV_INCLUDED == TRUE
 
 #endif /* BTA_AV_SBC_H */

@@ -16,8 +16,6 @@
 #include "obex_tl_l2cap.h"
 #include "obex_tl_rfcomm.h"
 
-#if (OBEX_INCLUDED == TRUE)
-
 static inline void obex_server_to_tl_server(tOBEX_SVR_INFO *server, tOBEX_TL_SVR_INFO *tl_server)
 {
     if (server->tl == OBEX_OVER_L2CAP) {
@@ -56,25 +54,15 @@ static inline void obex_updata_packet_length(BT_HDR *p_buf, UINT16 len)
 *******************************************************************************/
 UINT16 OBEX_Init(void)
 {
-#if (OBEX_DYNAMIC_MEMORY)
-    if (!obex_cb_ptr) {
-        obex_cb_ptr = (tOBEX_CB *)osi_malloc(sizeof(tOBEX_CB));
-        if (!obex_cb_ptr) {
-            return OBEX_NO_RESOURCES;
-        }
-    }
-#endif /* #if (OBEX_DYNAMIC_MEMORY) */
     memset(&obex_cb, 0, sizeof(tOBEX_CB));
     obex_cb.tl_ops[OBEX_OVER_L2CAP] = obex_tl_l2cap_ops_get();
     if (obex_cb.tl_ops[OBEX_OVER_L2CAP]->init != NULL) {
         obex_cb.tl_ops[OBEX_OVER_L2CAP]->init(obex_tl_l2cap_callback);
     }
-#if (RFCOMM_INCLUDED == TRUE)
     obex_cb.tl_ops[OBEX_OVER_RFCOMM] = obex_tl_rfcomm_ops_get();
     if (obex_cb.tl_ops[OBEX_OVER_RFCOMM]->init != NULL) {
         obex_cb.tl_ops[OBEX_OVER_RFCOMM]->init(obex_tl_rfcomm_callback);
     }
-#endif
     obex_cb.trace_level = BT_TRACE_LEVEL_ERROR;
     return OBEX_SUCCESS;
 }
@@ -92,17 +80,9 @@ void OBEX_Deinit(void)
     if (obex_cb.tl_ops[OBEX_OVER_L2CAP]->deinit != NULL) {
         obex_cb.tl_ops[OBEX_OVER_L2CAP]->deinit();
     }
-#if (RFCOMM_INCLUDED == TRUE)
     if (obex_cb.tl_ops[OBEX_OVER_RFCOMM]->deinit != NULL) {
         obex_cb.tl_ops[OBEX_OVER_RFCOMM]->deinit();
     }
-#endif
-#if (OBEX_DYNAMIC_MEMORY)
-    if (obex_cb_ptr) {
-        osi_free(obex_cb_ptr);
-        obex_cb_ptr = NULL;
-    }
-#endif /* #if (OBEX_DYNAMIC_MEMORY) */
 }
 
 /*******************************************************************************
@@ -773,4 +753,3 @@ UINT8 *OBEX_GetNextHeader(BT_HDR *pkt, tOBEX_PARSE_INFO *info)
     return header;
 }
 
-#endif /* #if (OBEX_INCLUDED == TRUE) */

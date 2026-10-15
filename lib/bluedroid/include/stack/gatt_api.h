@@ -151,11 +151,7 @@ typedef UINT16 tGATT_DISCONN_REASON;
 #define GATT_INVALID_CONN_ID                0xFFFF
 
 #ifndef GATT_CL_MAX_LCB
-#if (GATT_MAX_PHY_CHANNEL > 12)
-#define GATT_CL_MAX_LCB                     GATT_MAX_PHY_CHANNEL
-#else
 #define GATT_CL_MAX_LCB                     12
-#endif
 #endif
 
 #ifndef GATT_MAX_SCCB

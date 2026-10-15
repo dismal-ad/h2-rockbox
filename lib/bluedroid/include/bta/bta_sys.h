@@ -142,10 +142,8 @@ typedef void (tBTA_SYS_CONN_CBACK)(tBTA_SYS_CONN_STATUS status, UINT8 id, UINT8 
 /* conn callback for role / low power manager*/
 typedef void (tBTA_SYS_SSR_CFG_CBACK)(UINT8 id, UINT8 app_id, UINT16 latency, UINT16 tout);
 
-#if (BTA_EIR_CANNED_UUID_LIST != TRUE)
 /* eir callback for adding/removing UUID */
 typedef void (tBTA_SYS_EIR_CBACK)(tBT_UUID uuid, BOOLEAN adding);
-#endif
 
 /* registration structure */
 typedef struct {
@@ -252,17 +250,11 @@ extern void bta_sys_sco_unuse(UINT8 id, UINT8 app_id, BD_ADDR peer_addr);
 extern void bta_sys_idle(UINT8 id, UINT8 app_id, BD_ADDR peer_addr);
 extern void bta_sys_busy(UINT8 id, UINT8 app_id, BD_ADDR peer_addr);
 
-#if (BTM_SSR_INCLUDED == TRUE)
-extern void bta_sys_ssr_cfg_register(tBTA_SYS_SSR_CFG_CBACK *p_cback);
-extern void bta_sys_chg_ssr_config (UINT8 id, UINT8 app_id, UINT16 max_latency, UINT16 min_tout);
-#endif
-
 extern void bta_sys_role_chg_register(tBTA_SYS_CONN_CBACK *p_cback);
 extern void bta_sys_notify_role_chg(BD_ADDR_PTR p_bda, UINT8 new_role, UINT8 hci_status);
 extern void bta_sys_collision_register(UINT8 bta_id, tBTA_SYS_CONN_CBACK *p_cback);
 extern void bta_sys_notify_collision (BD_ADDR_PTR p_bda);
 
-#if (BTA_EIR_CANNED_UUID_LIST != TRUE)
 extern void bta_sys_eir_register(tBTA_SYS_EIR_CBACK *p_cback);
 extern void bta_sys_add_uuid(UINT16 uuid);
 extern void bta_sys_add_uuid_32(UINT32 uuid32);
@@ -270,15 +262,6 @@ extern void bta_sys_add_uuid_128(UINT8 *uuid128);
 extern void bta_sys_remove_uuid(UINT16 uuid16);
 extern void bta_sys_remove_uuid_32(UINT32 uuid32);
 extern void bta_sys_remove_uuid_128(UINT8 *uuid128);
-#else
-#define bta_sys_eir_register(ut)
-#define bta_sys_add_uuid(ut)
-#define bta_sys_add_uuid_32(ut)
-#define bta_sys_add_uuid_128(ut)
-#define bta_sys_remove_uuid(ut)
-#define bta_sys_remove_uuid_32(ut)
-#define bta_sys_remove_uuid_128(ut)
-#endif
 
 extern void bta_sys_set_policy (UINT8 id, UINT8 policy, BD_ADDR peer_addr);
 extern void bta_sys_clear_policy (UINT8 id, UINT8 policy, BD_ADDR peer_addr);

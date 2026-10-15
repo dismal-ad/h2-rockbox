@@ -40,7 +40,6 @@
 
 #include "stack/btu.h"
 
-#if (SDP_INCLUDED == TRUE)
 static const UINT8  sdp_base_uuid[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
                                        0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB
                                       };
@@ -84,7 +83,6 @@ tCONN_CB *sdpu_find_ccb_by_cid (UINT16 cid)
 *******************************************************************************/
 tCONN_CB *sdpu_find_ccb_by_db (tSDP_DISCOVERY_DB *p_db)
 {
-#if SDP_CLIENT_ENABLED == TRUE
     UINT16       xx;
     tCONN_CB     *p_ccb;
 
@@ -96,7 +94,6 @@ tCONN_CB *sdpu_find_ccb_by_db (tSDP_DISCOVERY_DB *p_db)
             }
         }
     }
-#endif
     /* If here, not found */
     return (NULL);
 }
@@ -149,9 +146,7 @@ void sdpu_release_ccb (tCONN_CB *p_ccb)
 
     /* Drop any response pointer we may be holding */
     p_ccb->con_state = SDP_STATE_IDLE;
-#if SDP_CLIENT_ENABLED == TRUE
     p_ccb->is_attr_search = FALSE;
-#endif
 
     /* Free the response buffer */
     if (p_ccb->rsp_list) {
@@ -235,21 +230,12 @@ UINT8 *sdpu_build_attrib_entry (UINT8 *p_out, tSDP_ATTRIBUTE *p_attr)
     case DATA_ELE_SEQ_DESC_TYPE:/* 6 */
     case DATA_ELE_ALT_DESC_TYPE:/* 7 */
     case URL_DESC_TYPE:         /* 8 */
-#if (SDP_MAX_ATTR_LEN > 0xFFFF)
-        if (p_attr->len > 0xFFFF) {
-            UINT8_TO_BE_STREAM (p_out, (p_attr->type << 3) | SIZE_IN_NEXT_LONG);
-            UINT32_TO_BE_STREAM (p_out, p_attr->len);
-        } else
-
-#endif /* 0xFFFF - 0xFF */
         {
-#if (SDP_MAX_ATTR_LEN > 0xFF)
             if (p_attr->len > 0xFF) {
                 UINT8_TO_BE_STREAM (p_out, (p_attr->type << 3) | SIZE_IN_NEXT_WORD);
                 UINT16_TO_BE_STREAM (p_out, p_attr->len);
             } else
 
-#endif /* 0xFF and less*/
             {
                 UINT8_TO_BE_STREAM (p_out, (p_attr->type << 3) | SIZE_IN_NEXT_BYTE);
                 UINT8_TO_BE_STREAM (p_out, p_attr->len);
@@ -933,19 +919,11 @@ UINT16 sdpu_get_attrib_entry_len(tSDP_ATTRIBUTE *p_attr)
     case DATA_ELE_SEQ_DESC_TYPE:/* 6 */
     case DATA_ELE_ALT_DESC_TYPE:/* 7 */
     case URL_DESC_TYPE:         /* 8 */
-#if (SDP_MAX_ATTR_LEN > 0xFFFF)
-        if (p_attr->len > 0xFFFF) {
-            len += 5;
-        } else
-
-#endif/* 0xFFFF - 0xFF */
         {
-#if (SDP_MAX_ATTR_LEN > 0xFF)
             if (p_attr->len > 0xFF) {
                 len += 3;
             } else
 
-#endif /* 0xFF and less*/
             {
                 len += 2;
             }
@@ -1039,4 +1017,3 @@ void sdpu_uuid16_to_uuid128(UINT16 uuid16, UINT8 *p_uuid128)
     memcpy(p_uuid128 + 2, &uuid16_bo, sizeof(uint16_t));
 }
 
-#endif  ///SDP_INCLUDED == TRUE

@@ -270,7 +270,6 @@ typedef struct {
     UINT8   recov_mrws;                         /* Maximum recovery window size */
     UINT8   recov_mnmp;                         /* Recovery maximum number of media packets */
     UINT8   hdrcmp_mask;                        /* Header compression capabilities */
-#if AVDT_MULTIPLEXING == TRUE
     UINT8   mux_mask;                           /* Multiplexing capabilities. AVDT_MUX_XXX bits can be combined with a bitwise OR */
     UINT8   mux_tsid_media;                     /* TSID for media transport session */
     UINT8   mux_tcid_media;                     /* TCID for media transport session */
@@ -278,7 +277,6 @@ typedef struct {
     UINT8   mux_tcid_report;                    /* TCID for reporting transport session */
     UINT8   mux_tsid_recov;                     /* TSID for recovery transport session */
     UINT8   mux_tcid_recov;                     /* TCID for recovery transport session */
-#endif
 } tAVDT_CFG;
 
 /* Header structure for callback event parameters. */
@@ -371,7 +369,6 @@ typedef void (tAVDT_CTRL_CBACK)(UINT8 handle, BD_ADDR bd_addr, UINT8 event,
 typedef void (tAVDT_DATA_CBACK)(UINT8 handle, BT_HDR *p_pkt, UINT32 time_stamp,
                                 UINT8 m_pt);
 
-#if AVDT_MULTIPLEXING == TRUE
 /* This is the second version of the data callback function. This version uses
 ** application buffer assigned by AVDT_SetMediaBuf. Caller can assign different
 ** buffer during callback or can leave the current buffer for further using.
@@ -380,16 +377,13 @@ typedef void (tAVDT_DATA_CBACK)(UINT8 handle, BT_HDR *p_pkt, UINT32 time_stamp,
 */
 typedef void (tAVDT_MEDIA_CBACK)(UINT8 handle, UINT8 *p_payload, UINT32 payload_len,
                                  UINT32 time_stamp, UINT16 seq_num, UINT8 m_pt, UINT8 marker);
-#endif
 
-#if AVDT_REPORTING == TRUE
 /* This is the report callback function.  It is executed when AVDTP has a reporting
 ** packet ready for the application.  This function is required for streams
 ** created with AVDT_PSC_REPORT.
 */
 typedef void (tAVDT_REPORT_CBACK)(UINT8 handle, AVDT_REPORT_TYPE type,
                                   tAVDT_REPORT_DATA *p_data);
-#endif
 
 typedef UINT16 (tAVDT_GETCAP_REQ) (BD_ADDR bd_addr, UINT8 seid, tAVDT_CFG *p_cfg, tAVDT_CTRL_CBACK *p_cback);
 
@@ -400,12 +394,8 @@ typedef struct {
     tAVDT_CFG           cfg;            /* SEP configuration */
     tAVDT_CTRL_CBACK    *p_ctrl_cback;  /* Control callback function */
     tAVDT_DATA_CBACK    *p_data_cback;  /* Data callback function */
-#if AVDT_MULTIPLEXING == TRUE
     tAVDT_MEDIA_CBACK   *p_media_cback; /* Media callback function. It will be called only if p_data_cback is NULL */
-#endif
-#if AVDT_REPORTING == TRUE
     tAVDT_REPORT_CBACK  *p_report_cback;/* Report callback function. */
-#endif
     UINT16              mtu;            /* The L2CAP MTU of the transport channel */
     UINT16              flush_to;       /* The L2CAP flush timeout of the transport channel */
     UINT8               tsep;           /* SEP type */

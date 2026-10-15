@@ -37,8 +37,6 @@
 #include "btc/btc_util.h"
 #include "osi/mutex.h"
 
-#if BTC_AV_INCLUDED
-
 /*****************************************************************************
  **  Constants
  *****************************************************************************/
@@ -106,11 +104,7 @@ const tA2D_SBC_CIE btc_av_sbc_default_config = {
 };
 
 /* Control block instance */
-#if AVRC_DYNAMIC_MEMORY == FALSE
 tBTA_AV_CO_CB bta_av_co_cb;
-#else
-tBTA_AV_CO_CB *bta_av_co_cb_ptr;
-#endif
 
 static BOOLEAN bta_av_co_audio_codec_build_config(const UINT8 *p_codec_caps, UINT8 *p_codec_cfg);
 static void bta_av_co_audio_peer_reset_config(tBTA_AV_CO_PEER *p_peer);
@@ -245,29 +239,15 @@ BOOLEAN bta_av_co_audio_init(UINT8 *p_codec_type, UINT8 *p_codec_info, UINT8 *p_
             UINT16_TO_STREAM(p, BTA_AV_CP_SCMS_T_ID);
         } while (0);
 #endif
-#if (BTC_AV_EXT_CODEC == TRUE)
-        /* for external codec, we get codec capability from BTA_AV */
-        bta_av_co_cb.codec_caps.id = *p_codec_type;
-        memcpy(bta_av_co_cb.codec_caps.info, p_codec_info, AVDT_CODEC_SIZE);
-        bta_av_co_audio_codec_reset();
-#else
         /* Set up for SBC codec  for SRC*/
         *p_codec_type = BTA_AV_CODEC_SBC;
         /* This should not fail because we are using constants for parameters */
         A2D_BldSbcInfo(AVDT_MEDIA_AUDIO, (tA2D_SBC_CIE *) &bta_av_co_sbc_caps, p_codec_info);
-#endif
         return TRUE;
     } else if (tsep == AVDT_TSEP_SNK) {
-#if (BTC_AV_EXT_CODEC == TRUE)
-        /* for external codec, we get codec capability from BTA_AV */
-        bta_av_co_cb.codec_caps.id = *p_codec_type;
-        memcpy(bta_av_co_cb.codec_caps.info, p_codec_info, AVDT_CODEC_SIZE);
-        bta_av_co_audio_codec_reset();
-#else
         *p_codec_type = BTA_AV_CODEC_SBC;
         /* This should not fail because we are using constants for parameters */
         A2D_BldSbcInfo(AVDT_MEDIA_AUDIO, (tA2D_SBC_CIE *) &bta_av_co_sbc_sink_caps, p_codec_info);
-#endif
         /* Codec is valid */
         return TRUE;
     } else {
@@ -966,7 +946,6 @@ extern void bta_av_co_audio_stop(tBTA_AV_HNDL hndl, tBTA_AV_CODEC codec_type)
 void *bta_av_co_audio_src_data_path(tBTA_AV_CODEC codec_type, UINT32 *p_len,
                                     UINT32 *p_timestamp)
 {
-#if BTC_AV_SRC_INCLUDED
     BT_HDR *p_buf;
     UNUSED(p_len);
 
@@ -1005,9 +984,6 @@ void *bta_av_co_audio_src_data_path(tBTA_AV_CODEC codec_type, UINT32 *p_len,
 #endif
     }
     return p_buf;
-#else /* BTC_AV_SRC_INCLUDED */
-    return NULL;
-#endif /* BTC_AV_SRC_INCLUDED */
 }
 
 /*******************************************************************************
@@ -1312,20 +1288,10 @@ static BOOLEAN bta_av_co_audio_peer_src_supports_codec(tBTA_AV_CO_PEER *p_peer, 
                 if (p_src_index) {
                     *p_src_index = index;
                 }
-#if (BTC_AV_EXT_CODEC == TRUE)
-                tA2D_SBC_CIE cap_cie;
-                if (A2D_ParsSbcInfo(&cap_cie, bta_av_co_cb.codec_caps.info, TRUE) != A2D_SUCCESS) {
-                    return FALSE;
-                }
-                if (0 ==  bta_av_sbc_cfg_matches_cap((UINT8 *)p_peer->srcs[index].codec_caps, &cap_cie)) {
-                    return TRUE;
-                }
-#else
                 if (0 ==  bta_av_sbc_cfg_matches_cap((UINT8 *)p_peer->srcs[index].codec_caps,
                                                         (tA2D_SBC_CIE *)&bta_av_co_sbc_sink_caps)) {
                     return TRUE;
                 }
-#endif
                 break;
 
             default:
@@ -1355,11 +1321,7 @@ static UINT8 bta_av_co_audio_sink_supports_config(UINT8 codec_type, const UINT8 
 
     switch (codec_type) {
     case BTA_AV_CODEC_SBC:
-#if (BTC_AV_EXT_CODEC == TRUE)
-        status = bta_av_sbc_cfg_in_external_codec_cap((UINT8 *)p_codec_cfg, (UINT8 *)bta_av_co_cb.codec_caps.info);
-#else
         status = bta_av_sbc_cfg_in_cap((UINT8 *)p_codec_cfg, (tA2D_SBC_CIE *)&bta_av_co_sbc_sink_caps);
-#endif
         break;
     case BTA_AV_CODEC_M12:
     case BTA_AV_CODEC_M24:
@@ -1390,11 +1352,7 @@ static UINT8 bta_av_co_audio_media_supports_config(UINT8 codec_type, const UINT8
 
     switch (codec_type) {
     case BTA_AV_CODEC_SBC:
-#if (BTC_AV_EXT_CODEC == TRUE)
-        status = bta_av_sbc_cfg_in_external_codec_cap((UINT8 *)p_codec_cfg, (UINT8 *)bta_av_co_cb.codec_caps.info);
-#else
         status = bta_av_sbc_cfg_in_cap((UINT8 *)p_codec_cfg, (tA2D_SBC_CIE *)&bta_av_co_sbc_caps);
-#endif
         break;
     case BTA_AV_CODEC_M12:
     case BTA_AV_CODEC_M24:
@@ -1420,15 +1378,9 @@ static UINT8 bta_av_co_audio_media_supports_config(UINT8 codec_type, const UINT8
  *******************************************************************************/
 static BOOLEAN bta_av_co_audio_src_supports_pref_cfg(void)
 {
-#if (BTC_AV_EXT_CODEC == TRUE)
-    return (bta_av_co_cb.codec_pref_cfg.id == bta_av_co_cb.codec_caps.id &&
-            bta_av_sbc_cfg_in_external_codec_cap((UINT8 *)&bta_av_co_cb.codec_pref_cfg.info,
-                                             (UINT8 *)&bta_av_co_cb.codec_caps.info) == A2D_SUCCESS);
-#else
     return (bta_av_co_cb.codec_pref_cfg.id == BTC_AV_CODEC_SBC &&
             bta_av_sbc_cfg_in_cap((UINT8 *)&bta_av_co_cb.codec_pref_cfg.info,
                                   (tA2D_SBC_CIE *)&bta_av_co_sbc_caps) == A2D_SUCCESS);
-#endif
 }
 
 /*******************************************************************************
@@ -1532,7 +1484,6 @@ BOOLEAN bta_av_co_audio_codec_supported(tBTC_AV_STATUS *p_status)
  *******************************************************************************/
 BOOLEAN bta_av_co_audio_set_pref_mcc(tBTA_AV_HNDL hndl, tBTC_AV_CODEC_INFO *pref_mcc)
 {
-#if (BTC_AV_SRC_INCLUDED == TRUE)
     tBTA_AV_CO_PEER *p_peer;
     tBTA_AV_CO_SINK *p_sink;
     UINT8 codec_cfg[AVDT_CODEC_SIZE];
@@ -1645,11 +1596,6 @@ BOOLEAN bta_av_co_audio_set_pref_mcc(tBTA_AV_HNDL hndl, tBTC_AV_CODEC_INFO *pref
         APPL_TRACE_ERROR("bta_av_co_audio_set_pref_mcc pref_mcc NULL");
         return FALSE;
     }
-#else
-    UNUSED(hndl);
-    UNUSED(pref_mcc);
-    return FALSE;
-#endif /* BTC_AV_SRC_INCLUDED == TRUE */
 }
 
 /*******************************************************************************
@@ -1664,12 +1610,10 @@ BOOLEAN bta_av_co_audio_set_pref_mcc(tBTA_AV_HNDL hndl, tBTC_AV_CODEC_INFO *pref
 void bta_av_co_audio_clear_pref_mcc(tBTA_AV_HNDL hndl)
 {
     UNUSED(hndl);
-#if (BTC_AV_SRC_INCLUDED == TRUE)
     bta_av_co_cb.codec_pref_cfg.id = BTC_AV_CODEC_NONE;
     memset(bta_av_co_cb.codec_pref_cfg.info, 0, AVDT_CODEC_SIZE);
     /* reset codec configuration */
     bta_av_co_audio_codec_reset();
-#endif
 }
 
 /*******************************************************************************
@@ -1686,7 +1630,6 @@ void bta_av_co_audio_clear_pref_mcc(tBTA_AV_HNDL hndl)
  *******************************************************************************/
 BOOLEAN bta_av_co_audio_pref_mcc_reconfig_initiated(tBTA_AV_HNDL hndl)
 {
-#if (BTC_AV_SRC_INCLUDED == TRUE)
     tBTA_AV_CO_PEER *p_peer;
 
     /* Retrieve the peer info for the specified handle */
@@ -1696,10 +1639,6 @@ BOOLEAN bta_av_co_audio_pref_mcc_reconfig_initiated(tBTA_AV_HNDL hndl)
     }
 
     return p_peer->pref_mcc_reconfig_initiated;
-#else
-    UNUSED(hndl);
-    return FALSE;
-#endif /* BTC_AV_SRC_INCLUDED == TRUE */
 }
 
 /*******************************************************************************
@@ -1715,7 +1654,6 @@ BOOLEAN bta_av_co_audio_pref_mcc_reconfig_initiated(tBTA_AV_HNDL hndl)
  *******************************************************************************/
 void bta_av_co_audio_pref_mcc_reconfig_clear(tBTA_AV_HNDL hndl)
 {
-#if (BTC_AV_SRC_INCLUDED == TRUE)
     tBTA_AV_CO_PEER *p_peer;
 
     /* Retrieve the peer info for the specified handle */
@@ -1723,9 +1661,6 @@ void bta_av_co_audio_pref_mcc_reconfig_clear(tBTA_AV_HNDL hndl)
     if (p_peer != NULL) {
         p_peer->pref_mcc_reconfig_initiated = FALSE;
     }
-#else
-    UNUSED(hndl);
-#endif /* BTC_AV_SRC_INCLUDED == TRUE */
 }
 
 /*******************************************************************************
@@ -1745,7 +1680,6 @@ void bta_av_co_audio_codec_reset(void)
     FUNC_TRACE();
 
     pref_cfg_supported = FALSE;
-#if (BTC_AV_SRC_INCLUDED == TRUE)
     switch (bta_av_co_cb.codec_pref_cfg.id) {
     case BTC_AV_CODEC_NONE: {
         APPL_TRACE_DEBUG("bta_av_co_audio_codec_reset preferred codec configuration is not set");
@@ -1764,21 +1698,15 @@ void bta_av_co_audio_codec_reset(void)
         APPL_TRACE_ERROR("bta_av_co_audio_codec_reset bad pref cfg id %d", bta_av_co_cb.codec_pref_cfg.id);
         break;
     }
-#endif
 
     if (pref_cfg_supported) {
         bta_av_co_cb.codec_cfg = bta_av_co_cb.codec_pref_cfg;
     } else {
-#if (BTC_AV_EXT_CODEC == TRUE)
-        bta_av_co_cb.codec_cfg.id = bta_av_co_cb.codec_caps.id;
-        bta_av_build_src_cfg(bta_av_co_cb.codec_cfg.info, bta_av_co_cb.codec_caps.info);
-#else
         /* Reset the current configuration to SBC */
         bta_av_co_cb.codec_cfg.id = BTC_AV_CODEC_SBC;
         if (A2D_BldSbcInfo(A2D_MEDIA_TYPE_AUDIO, (tA2D_SBC_CIE *)&btc_av_sbc_default_config, bta_av_co_cb.codec_cfg.info) != A2D_SUCCESS) {
             APPL_TRACE_ERROR("bta_av_co_audio_codec_reset A2D_BldSbcInfo failed");
         }
-#endif
     }
 
     osi_mutex_global_unlock();
@@ -2116,4 +2044,3 @@ const tBTA_AV_CO_FUNCTS bta_av_a2d_cos = {
     bta_av_co_audio_delay
 };
 
-#endif /* #if BTC_AV_INCLUDED */

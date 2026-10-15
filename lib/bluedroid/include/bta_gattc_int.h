@@ -83,20 +83,12 @@ typedef enum {
 
 /* max client application GATTC can support */
 #ifndef     BTA_GATTC_CL_MAX
-#if (GATT_MAX_PHY_CHANNEL > 3)
     #define     BTA_GATTC_CL_MAX    GATT_MAX_PHY_CHANNEL
-#else
-    #define     BTA_GATTC_CL_MAX    3 // The origin value is 10
-#endif
 #endif
 
 /* max known devices GATTC can support */
 #ifndef     BTA_GATTC_KNOWN_SR_MAX
-#if (GATT_MAX_PHY_CHANNEL > 3)
     #define     BTA_GATTC_KNOWN_SR_MAX    GATT_MAX_PHY_CHANNEL
-#else
-    #define     BTA_GATTC_KNOWN_SR_MAX    3 // The origin value is 10
-#endif
 #endif
 
 #define BTA_GATTC_CONN_MAX      GATT_MAX_PHY_CHANNEL
@@ -130,11 +122,6 @@ typedef struct {
     tBTA_GATTC_IF           client_if;
     BOOLEAN                 is_direct;
     BOOLEAN                 is_aux;
-#if (BT_BLE_FEAT_PAWR_EN == TRUE)
-    BOOLEAN                 is_pawr_synced;
-    UINT8                   adv_handle;
-    UINT8                   subevent;
-#endif // (BT_BLE_FEAT_PAWR_EN == TRUE)
     tBTA_TRANSPORT          transport;
     tBTA_ADDR_TYPE          own_addr_type;
     UINT8                   phy_mask;
@@ -375,13 +362,7 @@ typedef struct {
 } tBTA_GATTC_CLCB;
 
 /* background connection tracking information */
-#if GATT_MAX_APPS <= 8
 typedef UINT8 tBTA_GATTC_CIF_MASK ;
-#elif GATT_MAX_APPS <= 16
-typedef UINT16 tBTA_GATTC_CIF_MASK;
-#elif GATT_MAX_APPS <= 32
-typedef UINT32 tBTA_GATTC_CIF_MASK;
-#endif
 
 typedef struct {
     BOOLEAN                 in_use;
@@ -431,12 +412,7 @@ typedef enum {
 *****************************************************************************/
 
 /* GATTC control block */
-#if BTA_DYNAMIC_MEMORY == FALSE
 extern tBTA_GATTC_CB  bta_gattc_cb;
-#else
-extern tBTA_GATTC_CB *bta_gattc_cb_ptr;
-#define bta_gattc_cb (*bta_gattc_cb_ptr)
-#endif
 
 /*****************************************************************************
 **  Function prototypes

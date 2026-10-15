@@ -31,7 +31,6 @@
 #include "bta/bta_api.h"
 #include "bta/bta_sdp_api.h"
 
-#if (SDP_INCLUDED == TRUE)
 /*****************************************************************************
 **  Constants
 *****************************************************************************/
@@ -90,12 +89,7 @@ typedef struct {
 
 
 /* SDP control block */
-#if BTA_DYNAMIC_MEMORY == FALSE
 extern tBTA_SDP_CB bta_sdp_cb;
-#else
-extern tBTA_SDP_CB *bta_sdp_cb_ptr;
-#define bta_sdp_cb (*bta_sdp_cb_ptr)
-#endif
 
 /* config struct */
 extern tBTA_SDP_CFG *p_bta_sdp_cfg;
@@ -107,7 +101,5 @@ extern void bta_sdp_search (tBTA_SDP_MSG *p_data);
 extern void bta_sdp_create_record(tBTA_SDP_MSG *p_data);
 extern void bta_sdp_remove_record(tBTA_SDP_MSG *p_data);
 extern void bta_sdp_disable(tBTA_SDP_MSG *p_data);
-
-#endif  ///SDP_INCLUDED == TRUE
 
 #endif /* BTA_SDP_INT_H */

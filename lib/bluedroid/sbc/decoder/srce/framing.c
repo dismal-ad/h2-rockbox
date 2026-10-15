@@ -37,8 +37,6 @@ Checksum and header-related functions.
 #include "oi_codec_sbc_private.h"
 #include "oi_assert.h"
 
-#if (defined(SBC_DEC_INCLUDED) && SBC_DEC_INCLUDED == TRUE)
-
 /* asdasd */
 
 #define USE_NIBBLEWISE_CRC
@@ -104,10 +102,6 @@ const OI_UINT32 dequant_long_unscaled[17] = {
     0x00010002,  /* bits=15 0.00003052  1/32767  (0x0000fffe)*/
     0x00008001,  /* bits=16 0.00001526  1/65535  (0x0001fffc)*/
 };
-
-#if defined(OI_DEBUG) || defined(PRINT_SAMPLES) || defined(PRINT_SCALEFACTORS)
-#include <stdio.h>
-#endif
 
 #ifdef USE_WIDE_CRC
 static INLINE OI_CHAR crc_iterate(OI_UINT8 oldcrc, OI_UINT8 next)
@@ -221,16 +215,10 @@ void OI_SBC_ExpandFrameFields(OI_CODEC_SBC_FRAME_INFO *frame)
     } while (0)
 
 
-#if defined(USE_PLATFORM_MEMMOVE) || defined(USE_PLATFORM_MEMCPY)
-#include <string.h>
-#endif
 PRIVATE void shift_buffer(SBC_BUFFER_T *dest, SBC_BUFFER_T *src, OI_UINT wordCount)
 {
 #ifdef USE_PLATFORM_MEMMOVE
     memmove(dest, src, wordCount * sizeof(SBC_BUFFER_T));
-#elif defined(USE_PLATFORM_MEMCPY)
-    OI_ASSERT(((OI_CHAR *)(dest) - (OI_CHAR *)(src)) >= wordCount * sizeof(*dest));
-    memcpy(dest, src, wordCount * sizeof(SBC_BUFFER_T));
 #else
     OI_UINT n;
     OI_INT32 *d;
@@ -250,4 +238,3 @@ PRIVATE void shift_buffer(SBC_BUFFER_T *dest, SBC_BUFFER_T *src, OI_UINT wordCou
 @}
 */
 
-#endif /* #if (defined(SBC_DEC_INCLUDED) && SBC_DEC_INCLUDED == TRUE) */

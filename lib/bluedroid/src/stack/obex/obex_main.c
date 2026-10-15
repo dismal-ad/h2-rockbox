@@ -14,13 +14,7 @@
 #include "obex_int.h"
 #include "obex_tl.h"
 
-#if (OBEX_INCLUDED == TRUE)
-
-#if OBEX_DYNAMIC_MEMORY == FALSE
 tOBEX_CB obex_cb;
-#else
-tOBEX_CB *obex_cb_ptr = NULL;
-#endif
 
 static tOBEX_CCB *obex_find_ccb_by_tl_hdl(UINT8 tl, UINT16 tl_hdl)
 {
@@ -213,4 +207,3 @@ void obex_tl_rfcomm_callback(tOBEX_TL_EVT evt, tOBEX_TL_MSG *msg)
     obex_tl_evt_handler(OBEX_OVER_RFCOMM, evt, msg);
 }
 
-#endif /* #if (OBEX_INCLUDED == TRUE) */

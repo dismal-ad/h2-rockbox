@@ -160,12 +160,8 @@ BOOLEAN btsnd_hcic_create_conn(BD_ADDR dest, UINT16 packet_types,
     UINT8_TO_STREAM  (pp, page_scan_rep_mode);
     UINT8_TO_STREAM  (pp, page_scan_mode);
     UINT16_TO_STREAM (pp, clock_offset);
-#if !defined (BT_10A)
     UINT8_TO_STREAM  (pp, allow_switch);
-#endif
-#if (SMP_INCLUDED == TRUE && CLASSIC_BT_INCLUDED == TRUE)
     btm_acl_paging (p, dest);
-#endif  ///SMP_INCLUDED == TRUE && CLASSIC_BT_INCLUDED == TRUE
     return (TRUE);
 }
 
@@ -192,32 +188,6 @@ BOOLEAN btsnd_hcic_disconnect (UINT16 handle, UINT8 reason)
     HCI_TRACE_WARNING("hci cmd send: disconnect: hdl 0x%x, rsn:0x%x", handle, reason);
     return (TRUE);
 }
-
-#if BTM_SCO_INCLUDED == TRUE
-BOOLEAN btsnd_hcic_add_SCO_conn (UINT16 handle, UINT16 packet_types)
-{
-    BT_HDR *p;
-    UINT8 *pp;
-
-    if ((p = HCI_GET_CMD_BUF(HCIC_PARAM_SIZE_ADD_SCO_CONN)) == NULL) {
-        return (FALSE);
-    }
-
-    pp = (UINT8 *)(p + 1);
-
-    p->len    = HCIC_PREAMBLE_SIZE + HCIC_PARAM_SIZE_ADD_SCO_CONN;
-    p->offset = 0;
-
-    UINT16_TO_STREAM (pp, HCI_ADD_SCO_CONNECTION);
-    UINT8_TO_STREAM  (pp, HCIC_PARAM_SIZE_ADD_SCO_CONN);
-
-    UINT16_TO_STREAM (pp, handle);
-    UINT16_TO_STREAM (pp, packet_types);
-
-    btu_hcif_send_cmd (LOCAL_BR_EDR_CONTROLLER_ID, p);
-    return (TRUE);
-}
-#endif /* BTM_SCO_INCLUDED */
 
 BOOLEAN btsnd_hcic_create_conn_cancel(BD_ADDR dest)
 {
@@ -491,9 +461,7 @@ BOOLEAN btsnd_hcic_rmt_name_req (BD_ADDR bd_addr, UINT8 page_scan_rep_mode,
     UINT8_TO_STREAM  (pp, page_scan_rep_mode);
     UINT8_TO_STREAM  (pp, page_scan_mode);
     UINT16_TO_STREAM (pp, clock_offset);
-#if (SMP_INCLUDED == TRUE && CLASSIC_BT_INCLUDED == TRUE)
     btm_acl_paging (p, bd_addr);
-#endif  ///SMP_INCLUDED == TRUE && CLASSIC_BT_INCLUDED == TRUE
     return (TRUE);
 }
 
@@ -1401,35 +1369,6 @@ BOOLEAN btsnd_hcic_write_cur_iac_lap (UINT8 num_cur_iac, LAP *const iac_lap)
 /******************************************
 **    Lisbon Features
 *******************************************/
-#if BTM_SSR_INCLUDED == TRUE
-
-BOOLEAN btsnd_hcic_sniff_sub_rate(UINT16 handle, UINT16 max_lat,
-                                  UINT16 min_remote_lat, UINT16 min_local_lat)
-{
-    BT_HDR *p;
-    UINT8 *pp;
-
-    if ((p = HCI_GET_CMD_BUF(HCIC_PARAM_SIZE_SNIFF_SUB_RATE)) == NULL) {
-        return (FALSE);
-    }
-
-    pp = (UINT8 *)(p + 1);
-
-    p->len    = HCIC_PREAMBLE_SIZE + HCIC_PARAM_SIZE_SNIFF_SUB_RATE;
-    p->offset = 0;
-
-    UINT16_TO_STREAM (pp, HCI_SNIFF_SUB_RATE);
-    UINT8_TO_STREAM  (pp, HCIC_PARAM_SIZE_SNIFF_SUB_RATE);
-
-    UINT16_TO_STREAM  (pp, handle);
-    UINT16_TO_STREAM  (pp, max_lat);
-    UINT16_TO_STREAM  (pp, min_remote_lat);
-    UINT16_TO_STREAM  (pp, min_local_lat);
-
-    btu_hcif_send_cmd (LOCAL_BR_EDR_CONTROLLER_ID,  p);
-    return (TRUE);
-}
-#endif /* BTM_SSR_INCLUDED */
 
 /**** Extended Inquiry Response Commands ****/
 void btsnd_hcic_write_ext_inquiry_response (BT_HDR *buffer, UINT8 fec_req)
@@ -1720,7 +1659,6 @@ BOOLEAN btsnd_hcic_send_keypress_notif (BD_ADDR bd_addr, UINT8 notif)
 
 /**** end of Simple Pairing Commands ****/
 
-#if L2CAP_NON_FLUSHABLE_PB_INCLUDED == TRUE
 BOOLEAN btsnd_hcic_enhanced_flush (UINT16 handle, UINT8 packet_type)
 {
     BT_HDR *p;
@@ -1743,7 +1681,6 @@ BOOLEAN btsnd_hcic_enhanced_flush (UINT16 handle, UINT8 packet_type)
     btu_hcif_send_cmd (LOCAL_BR_EDR_CONTROLLER_ID,  p);
     return (TRUE);
 }
-#endif
 
 /*************************
 ** End of Lisbon Commands
@@ -1886,9 +1823,6 @@ BOOLEAN btsnd_hcic_write_pagescan_type (UINT8 type)
 }
 
 /* Must have room to store BT_HDR + max VSC length + callback pointer */
-#if (HCI_CMD_BUF_SIZE < 268)
-#error "HCI_CMD_POOL_BUF_SIZE must be larger than 268"
-#endif
 
 void btsnd_hcic_vendor_spec_cmd (BT_HDR *buffer, UINT16 opcode, UINT8 len,
                                  UINT8 *p_data, void *p_cmd_cplt_cback)
@@ -1909,7 +1843,6 @@ void btsnd_hcic_vendor_spec_cmd (BT_HDR *buffer, UINT16 opcode, UINT8 len,
     btu_hcif_send_cmd (LOCAL_BR_EDR_CONTROLLER_ID,  p);
 }
 
-#if (CLASSIC_BT_INCLUDED == TRUE)
 BOOLEAN btsnd_hcic_set_afh_channels (AFH_CHANNELS channels)
 {
     BT_HDR *p;
@@ -1933,7 +1866,6 @@ BOOLEAN btsnd_hcic_set_afh_channels (AFH_CHANNELS channels)
     return (TRUE);
 }
 
-#if (ENC_KEY_SIZE_CTRL_MODE == ENC_KEY_SIZE_CTRL_MODE_STD)
 BOOLEAN btsnd_hcic_set_min_enc_key_size (UINT8 size)
 {
     BT_HDR *p;
@@ -1956,6 +1888,4 @@ BOOLEAN btsnd_hcic_set_min_enc_key_size (UINT8 size)
     btu_hcif_send_cmd (LOCAL_BR_EDR_CONTROLLER_ID,  p);
     return (TRUE);
 }
-#endif
 
-#endif /// CLASSIC_BT_INCLUDED == TRUE

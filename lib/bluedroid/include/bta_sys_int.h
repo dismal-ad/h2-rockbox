@@ -56,7 +56,6 @@ typedef struct {
     tBTA_SYS_HW_STATE state;
     tBTA_SYS_HW_CBACK *sys_hw_cback[BTA_SYS_MAX_HW_MODULES];    /* enable callback for each HW modules */
     UINT32                  sys_hw_module_active;   /* bitmask of all active modules */
-#if (CLASSIC_BT_INCLUDED == TRUE)
     UINT16                  sys_features;           /* Bitmask of sys features */
     tBTA_SYS_CONN_CBACK     *prm_cb;                 /* role management callback registered by DM */
     tBTA_SYS_CONN_CBACK     *ppm_cb;                 /* low power management callback registered by DM */
@@ -64,15 +63,9 @@ typedef struct {
     tBTA_SYS_CONN_CBACK     *p_sco_cb;               /* SCO connection change callback registered by AV */
     tBTA_SYS_CONN_CBACK     *p_role_cb;              /* role change callback registered by AV */
     tBTA_SYS_COLLISION      colli_reg;               /* collision handling module */
-#if (BTA_EIR_CANNED_UUID_LIST != TRUE)
     tBTA_SYS_EIR_CBACK      *eir_cb;                /* add/remove UUID into EIR */
-#endif
-#if (BTM_SSR_INCLUDED == TRUE)
-    tBTA_SYS_SSR_CFG_CBACK      *p_ssr_cb;
-#endif
     /* VS event handler */
     tBTA_SYS_VS_EVT_HDLR   *p_vs_evt_hdlr;
-#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
 
 } tBTA_SYS_CB;
 
@@ -81,12 +74,7 @@ typedef struct {
 *****************************************************************************/
 
 /* system manager control block */
-#if BTA_DYNAMIC_MEMORY == FALSE
 extern tBTA_SYS_CB bta_sys_cb;
-#else
-extern tBTA_SYS_CB *bta_sys_cb_ptr;
-#define bta_sys_cb (*bta_sys_cb_ptr)
-#endif
 
 /* functions used for BTA SYS HW state machine */
 void bta_sys_hw_btm_cback( tBTM_DEV_STATUS status );

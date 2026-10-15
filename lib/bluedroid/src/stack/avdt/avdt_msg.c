@@ -36,7 +36,6 @@
 #include "stack/btu.h"
 #include "osi/allocator.h"
 
-#if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE)
 /*****************************************************************************
 ** constants
 *****************************************************************************/
@@ -280,13 +279,11 @@ static void avdt_msg_bld_cfg(UINT8 **p, tAVDT_CFG *p_cfg)
         *(*p)++ = 0; /* length */
     }
 
-#if AVDT_REPORTING == TRUE
     /* reporting transport */
     if (p_cfg->psc_mask & AVDT_PSC_REPORT) {
         *(*p)++ = AVDT_CAT_REPORT;
         *(*p)++ = 0; /* length */
     }
-#endif
 
     /* codec */
     if (p_cfg->num_codec != 0) {
@@ -312,7 +309,6 @@ static void avdt_msg_bld_cfg(UINT8 **p, tAVDT_CFG *p_cfg)
         *p += len;
     }
 
-#if AVDT_MULTIPLEXING == TRUE
     /* multiplexing */
     if (p_cfg->psc_mask & AVDT_PSC_MUX) {
         *(*p)++ = AVDT_CAT_MUX;
@@ -349,7 +345,6 @@ static void avdt_msg_bld_cfg(UINT8 **p, tAVDT_CFG *p_cfg)
             *(*p)++ = p_cfg->mux_tcid_report << 3; /* TCID */
         }
     }
-#endif
 
     /* delay report */
     if (p_cfg->psc_mask & AVDT_PSC_DELAY_RPT) {
@@ -589,9 +584,7 @@ static UINT8 avdt_msg_prs_cfg(tAVDT_CFG *p_cfg, UINT8 *p, UINT16 len, UINT8 *p_e
     p_cfg->psc_mask = 0;
     p_cfg->num_codec = 0;
     p_cfg->num_protect = 0;
-#if AVDT_MULTIPLEXING == TRUE
     p_cfg->mux_mask = 0;
-#endif
 
     /* while there is still data to parse */
     p_end = p + len;
@@ -667,7 +660,6 @@ static UINT8 avdt_msg_prs_cfg(tAVDT_CFG *p_cfg, UINT8 *p, UINT16 len, UINT8 *p_e
             p_cfg->hdrcmp_mask = *p++;
             break;
 
-#if AVDT_MULTIPLEXING == TRUE
         case AVDT_CAT_MUX:
             /* verify length */
             AVDT_TRACE_WARNING("psc_mask=0x%x elem_len=%d\n", p_cfg->psc_mask, elem_len);
@@ -722,7 +714,6 @@ static UINT8 avdt_msg_prs_cfg(tAVDT_CFG *p_cfg, UINT8 *p, UINT16 len, UINT8 *p_e
                 break;
             }
             break;
-#endif
 
         case AVDT_CAT_CODEC:
             p_cfg->psc_mask &= ~AVDT_PSC_CODEC;
@@ -1785,4 +1776,3 @@ void avdt_msg_ind(tAVDT_CCB *p_ccb, BT_HDR *p_buf)
     }
 }
 
-#endif /* #if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE) */

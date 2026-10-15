@@ -18,7 +18,6 @@
 #include "btc/btc_common.h"
 #include "btc/btc_sm.h"
 
-#if BTC_SM_INCLUDED
 /*****************************************************************************
 **  Constants & Macros
 ******************************************************************************/
@@ -188,4 +187,3 @@ bt_status_t btc_sm_change_state(btc_sm_handle_t handle, btc_sm_state_t state)
     return status;
 }
 
-#endif /* #if BTC_SM_INCLUDED */

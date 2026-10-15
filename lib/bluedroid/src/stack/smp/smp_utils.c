@@ -23,8 +23,6 @@
  ******************************************************************************/
 #include "common/bt_target.h"
 
-#if SMP_INCLUDED == TRUE
-
 #include "stack/bt_types.h"
 //#include "bt_utils.h"
 #include <string.h>
@@ -368,9 +366,7 @@ BOOLEAN smp_send_cmd(UINT8 cmd_code, tSMP_CB *p_cb)
     if (!sent) {
         SMP_TRACE_ERROR("%s failed, cmd_code=0x%02x", __func__, cmd_code);
         if (p_cb->smp_over_br) {
-#if (CLASSIC_BT_INCLUDED == TRUE)
             smp_br_state_machine_event(p_cb, SMP_BR_AUTH_CMPL_EVT, &failure);
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
         } else {
             smp_sm_event(p_cb, SMP_AUTH_CMPL_EVT, &failure);
         }
@@ -396,9 +392,7 @@ void smp_rsp_timeout(TIMER_LIST_ENT *p_tle)
     SMP_TRACE_ERROR("%s state=%d br_state=%d", __func__, p_cb->state, p_cb->br_state);
 
     if (p_cb->smp_over_br) {
-#if (CLASSIC_BT_INCLUDED == TRUE)
         smp_br_state_machine_event(p_cb, SMP_BR_AUTH_CMPL_EVT, &failure);
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
     } else {
         smp_sm_event(p_cb, SMP_AUTH_CMPL_EVT, &failure);
     }
@@ -555,26 +549,6 @@ static BT_HDR *smp_build_master_id_cmd(UINT8 cmd_code, tSMP_CB *p_cb)
 static BT_HDR *smp_build_identity_info_cmd(UINT8 cmd_code, tSMP_CB *p_cb)
 {
     BT_HDR      *p_buf = NULL ;
-#if (BLE_INCLUDED == TRUE)
-    UINT8       *p;
-    BT_OCTET16  irk;
-    UNUSED(cmd_code);
-    UNUSED(p_cb);
-
-    SMP_TRACE_EVENT("smp_build_identity_info_cmd\n");
-    if ((p_buf = (BT_HDR *)osi_malloc(sizeof(BT_HDR) + SMP_ID_INFO_SIZE + L2CAP_MIN_OFFSET)) != NULL) {
-        p = (UINT8 *)(p_buf + 1) + L2CAP_MIN_OFFSET;
-
-        BTM_GetDeviceIDRoot(irk);
-
-        UINT8_TO_STREAM (p, SMP_OPCODE_IDENTITY_INFO);
-        ARRAY_TO_STREAM (p,  irk, BT_OCTET16_LEN);
-
-        p_buf->offset = L2CAP_MIN_OFFSET;
-        p_buf->len = SMP_ID_INFO_SIZE;
-    }
-
-#endif  ///BLE_INCLUDED == TRUE
     return p_buf;
 }
 
@@ -600,12 +574,6 @@ static BT_HDR *smp_build_id_addr_cmd(UINT8 cmd_code, tSMP_CB *p_cb)
         /* Identity Address Information is used in the Transport Specific Key Distribution phase to distribute
         its public device address or static random address. if slave using static random address is encrypted,
         it should distribute its static random address */
-#if (BLE_INCLUDED == TRUE)
-        if(btm_cb.ble_ctr_cb.addr_mgnt_cb.own_addr_type == BLE_ADDR_RANDOM && memcmp(btm_cb.ble_ctr_cb.addr_mgnt_cb.static_rand_addr, btm_cb.ble_ctr_cb.addr_mgnt_cb.private_addr,6) == 0) {
-            UINT8_TO_STREAM (p, 0x01);
-            BDADDR_TO_STREAM (p, btm_cb.ble_ctr_cb.addr_mgnt_cb.static_rand_addr);
-        } else
-#endif  ///BLE_INCLUDED == TRUE
         {
             UINT8_TO_STREAM (p, 0);
             BDADDR_TO_STREAM (p, controller_get_interface()->get_address()->address);
@@ -981,25 +949,10 @@ void smp_proc_pairing_cmpl(tSMP_CB *p_cb)
     evt_data.cmplt.reason = p_cb->status;
     evt_data.cmplt.smp_over_br = p_cb->smp_over_br;
     evt_data.cmplt.auth_mode = 0;
-#if (BLE_INCLUDED == TRUE)
-    tBTM_SEC_DEV_REC    *p_rec = btm_find_dev (p_cb->pairing_bda);
-    if (p_cb->status == SMP_SUCCESS) {
-        evt_data.cmplt.sec_level = p_cb->sec_level;
-        if (p_cb->auth_mode) { // the first encryption
-            evt_data.cmplt.auth_mode = p_cb->auth_mode;
-            if (p_rec) {
-                p_rec->ble.auth_mode = p_cb->auth_mode;
-            }
-        } else if (p_rec) {
-            evt_data.cmplt.auth_mode =  p_rec->ble.auth_mode;
-        }
-    }
-#else
     if (p_cb->status == SMP_SUCCESS) {
         evt_data.cmplt.sec_level = p_cb->sec_level;
         evt_data.cmplt.auth_mode = p_cb->auth_mode;
     }
-#endif
 
     evt_data.cmplt.is_pair_cancel  = FALSE;
 
@@ -1013,22 +966,6 @@ void smp_proc_pairing_cmpl(tSMP_CB *p_cb)
                      evt_data.cmplt.sec_level );
 
     memcpy (pairing_bda, p_cb->pairing_bda, BD_ADDR_LEN);
-
-#if (BLE_INCLUDED == TRUE)
-#if (SMP_SLAVE_CON_PARAMS_UPD_ENABLE == TRUE)
-    if (p_cb->role == HCI_ROLE_SLAVE) {
-        if(p_rec && p_rec->ble.skip_update_conn_param) {
-            //clear flag
-            p_rec->ble.skip_update_conn_param = false;
-        } else {
-            #if (BT_MULTI_CONNECTION_ENBALE == FALSE)
-            L2CA_EnableUpdateBleConnParams(p_cb->pairing_bda, TRUE);
-            #endif
-        }
-    }
-
-#endif
-#endif  ///BLE_INCLUDED == TRUE
 
     smp_reset_control_value(p_cb);
     // TODO: clear local oob data when start advertising
@@ -1147,21 +1084,12 @@ BOOLEAN smp_pairing_request_response_parameters_are_valid(tSMP_CB *p_cb)
 
     /* `bte_appl_cfg.ble_min_enc_key_size` will be `SMP_ENCR_KEY_SIZE_MIN` by
      * default if not set explicitly  */
-#if (BLE_INCLUDED == TRUE)
-    if (enc_size < bte_appl_cfg.ble_min_key_size) {
-        SMP_TRACE_WARNING("Rcvd from the peer cmd 0x%02x with Maximum Encryption \
-            Key value (0x%02x) less than minimum required key size).\n",
-                          p_cb->rcvd_cmd_code, enc_size);
-        return FALSE;
-    }
-#else
     if (enc_size < SMP_ENCR_KEY_SIZE_MIN) {
         SMP_TRACE_WARNING("Rcvd from the peer cmd 0x%02x with Maximum Encryption \
             Key value (0x%02x) less than minimum required key size).\n",
                           p_cb->rcvd_cmd_code, enc_size);
         return FALSE;
     }
-#endif
 
     if (enc_size > SMP_ENCR_KEY_SIZE_MAX) {
         SMP_TRACE_WARNING("Rcvd from the peer cmd 0x%02x with Maximum Encryption \
@@ -1448,160 +1376,6 @@ void smp_collect_peer_io_capabilities(UINT8 *iocap, tSMP_CB *p_cb)
     iocap[1] = p_cb->peer_oob_flag;
     iocap[2] = p_cb->peer_auth_req;
 }
-#if (BLE_INCLUDED == TRUE)
-/*******************************************************************************
-** Function         smp_collect_local_ble_address
-**
-** Description      This function puts into le_addr array local device le address:
-**                  le_addr[0-5] = local BD ADDR,
-**                  le_addr[6] = local le address type (PUBLIC/RANDOM).
-**
-** Returns          void
-**
-*******************************************************************************/
-void smp_collect_local_ble_address(UINT8 *le_addr, tSMP_CB *p_cb)
-{
-    tBLE_ADDR_TYPE  addr_type = 0;
-    BD_ADDR         bda;
-    UINT8           *p = le_addr;
-
-    SMP_TRACE_DEBUG("%s\n", __func__);
-
-    BTM_ReadConnectionAddr( p_cb->pairing_bda, bda, &addr_type);
-    BDADDR_TO_STREAM(p, bda);
-    UINT8_TO_STREAM(p, addr_type);
-}
-
-/*******************************************************************************
-** Function         smp_collect_peer_ble_address
-**
-** Description      This function puts into le_addr array peer device le address:
-**                  le_addr[0-5] = peer BD ADDR,
-**                  le_addr[6] = peer le address type (PUBLIC/RANDOM).
-**
-** Returns          void
-**
-*******************************************************************************/
-void smp_collect_peer_ble_address(UINT8 *le_addr, tSMP_CB *p_cb)
-{
-    tBLE_ADDR_TYPE  addr_type = 0;
-    BD_ADDR         bda;
-    UINT8           *p = le_addr;
-
-    SMP_TRACE_DEBUG("%s\n", __func__);
-
-    if (!BTM_ReadRemoteConnectionAddr(p_cb->pairing_bda, bda, &addr_type)) {
-        SMP_TRACE_ERROR("can not collect peer le addr information for unknown device\n");
-        return;
-    }
-
-    BDADDR_TO_STREAM(p, bda);
-    UINT8_TO_STREAM(p, addr_type);
-}
-
-/*******************************************************************************
-** Function         smp_check_commitment
-**
-** Description      This function compares peer commitment values:
-**                  - expected (i.e. calculated locally),
-**                  - received from the peer.
-**
-** Returns          TRUE  if the values are the same
-**                  FALSE otherwise
-**
-*******************************************************************************/
-BOOLEAN smp_check_commitment(tSMP_CB *p_cb)
-{
-    BT_OCTET16 expected;
-
-    SMP_TRACE_DEBUG("%s\n", __func__);
-
-    smp_calculate_peer_commitment(p_cb, expected);
-    print128(expected, (const UINT8 *)"calculated peer commitment");
-    print128(p_cb->remote_commitment, (const UINT8 *)"received peer commitment");
-
-    if (memcmp(p_cb->remote_commitment, expected, BT_OCTET16_LEN)) {
-        SMP_TRACE_WARNING("Commitment check fails\n");
-        return FALSE;
-    }
-
-    SMP_TRACE_DEBUG("Commitment check succeeds\n");
-    return TRUE;
-}
-
-/*******************************************************************************
-**
-** Function         smp_save_secure_connections_long_term_key
-**
-** Description      The function saves SC LTK as BLE key for future use as local
-**                  and/or peer key.
-**
-** Returns          void
-**
-*******************************************************************************/
-void smp_save_secure_connections_long_term_key(tSMP_CB *p_cb)
-{
-    tBTM_LE_LENC_KEYS   lle_key;
-    tBTM_LE_PENC_KEYS   ple_key;
-
-    SMP_TRACE_DEBUG("%s-Save LTK as local LTK key\n", __func__);
-    memcpy(lle_key.ltk, p_cb->ltk, BT_OCTET16_LEN);
-    lle_key.div = 0;
-    lle_key.key_size = p_cb->loc_enc_size;
-    lle_key.sec_level = p_cb->sec_level;
-    btm_sec_save_le_key(p_cb->pairing_bda, BTM_LE_KEY_LENC, (tBTM_LE_KEY_VALUE *)&lle_key, TRUE);
-
-    SMP_TRACE_DEBUG("%s-Save LTK as peer LTK key\n", __func__);
-    ple_key.ediv = 0;
-    memset(ple_key.rand, 0, BT_OCTET8_LEN);
-    memcpy(ple_key.ltk, p_cb->ltk, BT_OCTET16_LEN);
-    ple_key.sec_level = p_cb->sec_level;
-    ple_key.key_size  = p_cb->loc_enc_size;
-    btm_sec_save_le_key(p_cb->pairing_bda, BTM_LE_KEY_PENC, (tBTM_LE_KEY_VALUE *)&ple_key, TRUE);
-}
-
-/*******************************************************************************
-**
-** Function         smp_calculate_f5_mackey_and_long_term_key
-**
-** Description      The function calculates MacKey and LTK and saves them in CB.
-**                  To calculate MacKey and LTK it calls smp_calc_f5(...).
-**                  MacKey is used in dhkey calculation, LTK is used to encrypt
-**                  the link.
-**
-** Returns          FALSE if out of resources, TRUE otherwise.
-**
-*******************************************************************************/
-BOOLEAN smp_calculate_f5_mackey_and_long_term_key(tSMP_CB *p_cb)
-{
-    UINT8 a[7];
-    UINT8 b[7];
-    UINT8 *p_na;
-    UINT8 *p_nb;
-
-    SMP_TRACE_DEBUG("%s\n", __func__);
-
-    if (p_cb->role == HCI_ROLE_MASTER) {
-        smp_collect_local_ble_address(a, p_cb);
-        smp_collect_peer_ble_address(b, p_cb);
-        p_na = p_cb->rand;
-        p_nb = p_cb->rrand;
-    } else {
-        smp_collect_local_ble_address(b, p_cb);
-        smp_collect_peer_ble_address(a, p_cb);
-        p_na = p_cb->rrand;
-        p_nb = p_cb->rand;
-    }
-
-    if (!smp_calculate_f5(p_cb->dhkey, p_na, p_nb, a, b, p_cb->mac_key, p_cb->ltk)) {
-        SMP_TRACE_ERROR("%s failed\n", __func__);
-        return FALSE;
-    }
-
-    SMP_TRACE_EVENT ("%s is completed\n", __func__);
-    return TRUE;
-}
-#endif  ///BLE_INCLUDED == TRUE
 /*******************************************************************************
 **
 ** Function         smp_request_oob_data
@@ -1642,4 +1416,3 @@ BOOLEAN smp_request_oob_data(tSMP_CB *p_cb)
 }
 
 
-#endif

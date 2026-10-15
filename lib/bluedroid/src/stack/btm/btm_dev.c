@@ -62,7 +62,6 @@ BOOLEAN BTM_SecAddDevice (BD_ADDR bd_addr, DEV_CLASS dev_class, BD_NAME bd_name,
                           LINK_KEY link_key, UINT8 key_type, tBTM_IO_CAP io_cap,
                           UINT8 pin_length, UINT8 sc_support)
 {
-#if (SMP_INCLUDED == TRUE)
     tBTM_SEC_DEV_REC  *p_dev_rec;
     int               i, j;
     BOOLEAN           found = FALSE;
@@ -86,11 +85,6 @@ BOOLEAN BTM_SecAddDevice (BD_ADDR bd_addr, DEV_CLASS dev_class, BD_NAME bd_name,
                 p_dev_rec->ble_hci_handle = BTM_GetHCIConnHandle (bd_addr, BT_TRANSPORT_LE);
                 p_dev_rec->enc_mode = BTM_ENC_MODE_UNKNOWN;
 
-#if BLE_INCLUDED == TRUE
-                /* use default value for background connection params */
-                /* update conn params, use default value for background connection params */
-                memset(&p_dev_rec->conn_params, 0xff, sizeof(tBTM_LE_CONN_PRAMS));
-#endif
             }
         }
 
@@ -152,17 +146,8 @@ BOOLEAN BTM_SecAddDevice (BD_ADDR bd_addr, DEV_CLASS dev_class, BD_NAME bd_name,
         }
     }
 
-#if defined(BTIF_MIXED_MODE_INCLUDED) && (BTIF_MIXED_MODE_INCLUDED == TRUE)
-    if (key_type  < BTM_MAX_PRE_SM4_LKEY_TYPE) {
-        p_dev_rec->sm4 = BTM_SM4_KNOWN;
-    } else {
-        p_dev_rec->sm4 = BTM_SM4_TRUE;
-    }
-#endif
-
     p_dev_rec->rmt_io_caps = io_cap;
     p_dev_rec->device_type |= BT_DEVICE_TYPE_BREDR;
-#endif  ///SMP_INCLUDED == TRUE
     return (TRUE);
 }
 
@@ -189,24 +174,11 @@ BOOLEAN BTM_SecDeleteDevice (BD_ADDR bd_addr, tBT_TRANSPORT transport)
     }
 
     if ((p_dev_rec = btm_find_dev(bd_addr)) != NULL) {
-#if (CLASSIC_BT_INCLUDED == TRUE)
         /* Tell controller to get rid of the link key, if it has one stored */
         BTM_DeleteStoredLinkKey (p_dev_rec->bd_addr, NULL);
-#endif // (CLASSIC_BT_INCLUDED == TRUE)
 
         btm_sec_free_dev(p_dev_rec, transport);
     }
-
-#if (BLE_SMP_ID_RESET_ENABLE == TRUE)
-    /*
-     * There are tracking risks associated with using a fixed or static IRK.
-     * A best-practices approach, when all pairing and bonding records are deleted,
-     * assign a new randomly-generated IRK.
-     */
-    if (list_is_empty(btm_cb.p_sec_dev_rec_list)) {
-        btm_ble_reset_id();
-    }
-#endif
 
     return TRUE;
 }
@@ -281,34 +253,14 @@ BOOLEAN btm_find_sec_dev_in_list (void *p_node_data, void *context)
 	    break;
             case SEC_DEV_HDL:
 	        if (p_context->context.handle == p_sec_dev->hci_handle
-#if BLE_INCLUDED == TRUE
-                    || (p_context->context.handle == p_sec_dev->ble_hci_handle)
-#endif
 		    ) {
 		    ret = FALSE;
 		}
 	    break;
-#if BLE_PRIVACY_SPT == TRUE
-	    case SEC_DEV_ID_ADDR:
-	        if (!memcmp(p_context->context.p_bd_addr, p_sec_dev->ble.static_addr, BD_ADDR_LEN)) {
-		    ret = FALSE;
-		}
-	    break;
-#endif //BLE_PRIVACY_SPT == TRUE
             case SEC_DEV_BTDM_BDA:
 	       if (!memcmp(p_context->context.p_bd_addr, p_sec_dev->bd_addr, BD_ADDR_LEN)) {
 	           ret = FALSE;
 	       }
-#if BLE_INCLUDED == TRUE
-               // If a LE random address is looking for device record
-               if (!memcmp(p_sec_dev->ble.pseudo_addr, p_context->context.p_bd_addr, BD_ADDR_LEN)) {
-                   ret = FALSE;
-               }
-
-               if (btm_ble_addr_resolvable(p_context->context.p_bd_addr, p_sec_dev)) {
-                   ret = FALSE;
-               }
-#endif
 	    break;
 	default:
 	    break;
@@ -373,12 +325,6 @@ tBTM_SEC_DEV_REC *btm_sec_alloc_dev (BD_ADDR bd_addr)
     }
     if (!new_entry_found) {
         p_dev_rec = btm_find_oldest_dev();
-#if (BLE_INCLUDED == TRUE) && (SMP_INCLUDED == TRUE)
-    // If device record exists and contains identity key, remove it from resolving list
-    if (p_dev_rec && (p_dev_rec->ble.key_type & SMP_SEC_KEY_TYPE_ID)) {
-        btm_ble_resolving_list_remove_dev(p_dev_rec);
-    }
-#endif // (BLE_INCLUDED == TRUE) && (SMP_INCLUDED == TRUE)
     } else {
         /* if the old device entry not present go with new entry */
         if (old_entry_found) {
@@ -403,18 +349,7 @@ tBTM_SEC_DEV_REC *btm_sec_alloc_dev (BD_ADDR bd_addr)
     if ((p_inq_info = BTM_InqDbRead(bd_addr)) != NULL) {
         memcpy (p_dev_rec->dev_class, p_inq_info->results.dev_class, DEV_CLASS_LEN);
 
-#if BLE_INCLUDED == TRUE
-        p_dev_rec->device_type = p_inq_info->results.device_type;
-        p_dev_rec->ble.ble_addr_type = p_inq_info->results.ble_addr_type;
-
-        /* update conn params, use default value for background connection params */
-        memset(&p_dev_rec->conn_params, 0xff, sizeof(tBTM_LE_CONN_PRAMS));
-#endif
     } else {
-#if BLE_INCLUDED == TRUE
-        /* update conn params, use default value for background connection params */
-        memset(&p_dev_rec->conn_params, 0xff, sizeof(tBTM_LE_CONN_PRAMS));
-#endif
 
         if (!memcmp (bd_addr, btm_cb.connecting_bda, BD_ADDR_LEN)) {
             memcpy (p_dev_rec->dev_class, btm_cb.connecting_dc, DEV_CLASS_LEN);
@@ -423,9 +358,6 @@ tBTM_SEC_DEV_REC *btm_sec_alloc_dev (BD_ADDR bd_addr)
 
     memcpy (p_dev_rec->bd_addr, bd_addr, BD_ADDR_LEN);
 
-#if BLE_INCLUDED == TRUE
-    p_dev_rec->ble_hci_handle = BTM_GetHCIConnHandle (bd_addr, BT_TRANSPORT_LE);
-#endif
     p_dev_rec->hci_handle = BTM_GetHCIConnHandle (bd_addr, BT_TRANSPORT_BR_EDR);
     p_dev_rec->timestamp = btm_cb.dev_rec_count++;
 
@@ -453,19 +385,11 @@ void btm_sec_free_dev (tBTM_SEC_DEV_REC *p_dev_rec, tBT_TRANSPORT transport)
         p_dev_rec->sec_flags &= ~(BTM_SEC_LE_AUTHENTICATED | BTM_SEC_LE_ENCRYPTED
                                 | BTM_SEC_LE_NAME_KNOWN | BTM_SEC_LE_LINK_KEY_KNOWN
                                 | BTM_SEC_LE_LINK_KEY_AUTHED | BTM_SEC_ROLE_SWITCHED);
-#if BLE_INCLUDED == TRUE
-        /* Clear out any saved BLE keys */
-        btm_sec_clear_ble_keys (p_dev_rec);
-#endif
     } else {
         p_dev_rec->bond_type = BOND_TYPE_UNKNOWN;
         memset(p_dev_rec->link_key, 0, LINK_KEY_LEN);
         p_dev_rec->sec_flags = 0;
 
-#if BLE_INCLUDED == TRUE
-        /* Clear out any saved BLE keys */
-        btm_sec_clear_ble_keys (p_dev_rec);
-#endif
     }
     /* No BLE keys and BT keys, clear the sec_flags */
     if(p_dev_rec->sec_flags == BTM_SEC_IN_USE) {
@@ -492,12 +416,6 @@ BOOLEAN btm_dev_support_switch (BD_ADDR bd_addr)
     UINT8   xx;
     BOOLEAN feature_empty = TRUE;
 
-#if BTM_SCO_INCLUDED == TRUE
-    /* Role switch is not allowed if a SCO is up */
-    if (btm_is_sco_active_by_bdaddr(bd_addr)) {
-        return (FALSE);
-    }
-#endif
     p_dev_rec = btm_find_dev (bd_addr);
     if (p_dev_rec && controller_get_interface()->supports_master_slave_role_switch()) {
         if (HCI_SWITCH_SUPPORTED(p_dev_rec->features[HCI_EXT_FEATURES_PAGE_0])) {
@@ -585,45 +503,6 @@ tBTM_SEC_DEV_REC *btm_find_dev(BD_ADDR bd_addr)
 *******************************************************************************/
 void btm_consolidate_dev(tBTM_SEC_DEV_REC *p_target_rec)
 {
-#if BLE_INCLUDED == TRUE && SMP_INCLUDED == TRUE
-    tBTM_SEC_DEV_REC *p_dev_rec = NULL;
-    tBTM_SEC_DEV_REC temp_rec = *p_target_rec;
-    list_node_t *p_node = NULL;
-    BTM_TRACE_DEBUG("%s\n", __func__);
-
-    for (p_node = list_begin(btm_cb.p_sec_dev_rec_list); p_node; p_node = list_next(p_node)) {
-        p_dev_rec = list_node(p_node);
-        if (p_target_rec != p_dev_rec && p_dev_rec->sec_flags & BTM_SEC_IN_USE) {
-            if (!memcmp (p_dev_rec->bd_addr, p_target_rec->bd_addr, BD_ADDR_LEN)) {
-                memcpy(p_target_rec, p_dev_rec, sizeof(tBTM_SEC_DEV_REC));
-                p_target_rec->ble = temp_rec.ble;
-                p_target_rec->ble_hci_handle = temp_rec.ble_hci_handle;
-                p_target_rec->enc_key_size = temp_rec.enc_key_size;
-                p_target_rec->conn_params = temp_rec.conn_params;
-                p_target_rec->device_type |= temp_rec.device_type;
-                p_target_rec->sec_flags |= temp_rec.sec_flags;
-
-                p_target_rec->new_encryption_key_is_p256 = temp_rec.new_encryption_key_is_p256;
-                p_target_rec->no_smp_on_br = temp_rec.no_smp_on_br;
-                p_target_rec->bond_type = temp_rec.bond_type;
-                /* Remove the unused device from the list */
-                list_remove(btm_cb.p_sec_dev_rec_list, p_dev_rec);
-                break;
-            }
-
-            /* an RPA device entry is a duplicate of the target record */
-            if (btm_ble_addr_resolvable(p_dev_rec->bd_addr, p_target_rec)) {
-                if (memcmp(p_target_rec->ble.pseudo_addr, p_dev_rec->bd_addr, BD_ADDR_LEN) == 0) {
-                    p_target_rec->ble.ble_addr_type = p_dev_rec->ble.ble_addr_type;
-                    p_target_rec->device_type |= p_dev_rec->device_type;
-                    /* Remove the unused device from the list */
-                    list_remove(btm_cb.p_sec_dev_rec_list, p_dev_rec);
-		}
-                break;
-            }
-        }
-    }
-#endif
 }
 
 /*******************************************************************************

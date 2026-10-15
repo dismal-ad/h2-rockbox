@@ -22,13 +22,9 @@
 #include "avrc_int.h"
 #include "common/bt_defs.h"
 
-#if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE)
-
 /*****************************************************************************
 **  Global data
 *****************************************************************************/
-
-#if (AVRC_METADATA_INCLUDED == TRUE)
 
 /*******************************************************************************
 **
@@ -84,7 +80,6 @@ static tAVRC_STS avrc_pars_vendor_rsp(tAVRC_MSG_VENDOR *p_msg, tAVRC_RESPONSE *p
         /* case AVRC_PDU_REQUEST_CONTINUATION_RSP: 0x40 */
         /* case AVRC_PDU_ABORT_CONTINUATION_RSP:   0x41 */
 
-#if (AVRC_ADV_CTRL_INCLUDED == TRUE)
     case AVRC_PDU_SET_ABSOLUTE_VOLUME:      /* 0x50 */
         if (len != 1) {
             status = AVRC_STS_INTERNAL_ERR;
@@ -92,10 +87,8 @@ static tAVRC_STS avrc_pars_vendor_rsp(tAVRC_MSG_VENDOR *p_msg, tAVRC_RESPONSE *p
             BE_STREAM_TO_UINT8 (p_result->volume.volume, p);
         }
         break;
-#endif /* (AVRC_ADV_CTRL_INCLUDED == TRUE) */
 
     case AVRC_PDU_REGISTER_NOTIFICATION:    /* 0x31 */
-#if (AVRC_ADV_CTRL_INCLUDED == TRUE)
         if (len < 1) {
             AVRC_TRACE_WARNING("invalid message length %u: must be at least 1", len);
             return AVRC_STS_INTERNAL_ERR;
@@ -115,7 +108,6 @@ static tAVRC_STS avrc_pars_vendor_rsp(tAVRC_MSG_VENDOR *p_msg, tAVRC_RESPONSE *p
         // todo: parse the response for other event_ids
         AVRC_TRACE_DEBUG("avrc_pars_vendor_rsp PDU reg notif response:event 0x%x", eventid);
         break;
-#endif /* (AVRC_ADV_CTRL_INCLUDED == TRUE) */
     case AVRC_PDU_GET_CAPABILITIES:        /* 0x10 */
         if (len < 2) {
             AVRC_TRACE_WARNING("invalid message length %u: must be at least 2", len);
@@ -211,6 +203,3 @@ tAVRC_STS AVRC_ParsResponse (tAVRC_MSG *p_msg, tAVRC_RESPONSE *p_result)
 }
 
 
-#endif /* (AVRC_METADATA_INCLUDED == TRUE) */
-
-#endif /* #if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE) */

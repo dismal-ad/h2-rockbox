@@ -31,8 +31,6 @@
 #include "stack/btm_api.h"
 #include "osi/allocator.h"
 
-#if (defined(AVCT_INCLUDED) && AVCT_INCLUDED == TRUE)
-
 /* packet header length lookup table */
 const UINT8 avct_lcb_pkt_type_len[] = {
     AVCT_HDR_LEN_SINGLE,
@@ -383,9 +381,6 @@ void avct_lcb_bind_conn(tAVCT_LCB *p_lcb, tAVCT_LCB_EVT *p_data)
 void avct_lcb_chk_disc(tAVCT_LCB *p_lcb, tAVCT_LCB_EVT *p_data)
 {
     AVCT_TRACE_EVENT("avct_lcb_chk_disc");
-#if (AVCT_BROWSE_INCLUDED == TRUE)
-    avct_close_bcb(p_lcb, p_data);
-#endif
     if (avct_lcb_last_ccb(p_lcb, p_data->p_ccb)) {
         AVCT_TRACE_EVENT("closing");
         p_data->p_ccb->ch_close = TRUE;
@@ -687,4 +682,3 @@ void avct_lcb_msg_ind(tAVCT_LCB *p_lcb, tAVCT_LCB_EVT *p_data)
     }
 }
 
-#endif /* #if (defined(AVCT_INCLUDED) && AVCT_INCLUDED == TRUE) */

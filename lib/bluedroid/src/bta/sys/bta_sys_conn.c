@@ -29,8 +29,6 @@
 #include "bta_sys_int.h"
 #include "bta/utl.h"
 
-#if (CLASSIC_BT_INCLUDED == TRUE)
-
 /*******************************************************************************
 **
 ** Function         bta_sys_rm_register
@@ -86,12 +84,6 @@ void bta_sys_role_chg_register(tBTA_SYS_CONN_CBACK *p_cback)
 ** Returns          void
 **
 *******************************************************************************/
-#if (BTM_SSR_INCLUDED == TRUE)
-void bta_sys_ssr_cfg_register(tBTA_SYS_SSR_CFG_CBACK *p_cback)
-{
-    bta_sys_cb.p_ssr_cb = p_cback;
-}
-#endif
 /*******************************************************************************
 **
 ** Function         bta_sys_role_chg_register
@@ -376,14 +368,6 @@ void bta_sys_sco_unuse(UINT8 id, UINT8 app_id, BD_ADDR peer_addr)
 ** Returns          void
 **
 *******************************************************************************/
-#if (BTM_SSR_INCLUDED == TRUE)
-void bta_sys_chg_ssr_config (UINT8 id, UINT8 app_id, UINT16 max_latency, UINT16 min_tout)
-{
-    if (bta_sys_cb.p_ssr_cb) {
-        bta_sys_cb.p_ssr_cb(id, app_id, max_latency, min_tout);
-    }
-}
-#endif
 /*******************************************************************************
 **
 ** Function         bta_sys_set_policy
@@ -502,7 +486,6 @@ void bta_sys_busy(UINT8 id, UINT8 app_id, BD_ADDR peer_addr)
     }
 }
 
-#if (BTA_EIR_CANNED_UUID_LIST != TRUE)
 /*******************************************************************************
 **
 ** Function         bta_sys_eir_register
@@ -645,8 +628,6 @@ void bta_sys_remove_uuid_128(UINT8 *uuid128)
     }
 }
 
-#endif
-
 /*******************************************************************************
 **
 ** Function         bta_sys_vs_hdl
@@ -665,4 +646,3 @@ BOOLEAN bta_sys_vs_hdl(UINT16 evt, void *p)
     return FALSE;
 }
 
-#endif // #if (CLASSIC_BT_INCLUDED == TRUE)

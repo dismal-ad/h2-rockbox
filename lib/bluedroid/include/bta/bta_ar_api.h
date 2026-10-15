@@ -33,8 +33,6 @@
 #include "bta/bta_av_api.h"
 #include "bta/bta_sys.h"
 
-#if (BTA_AR_INCLUDED == TRUE)
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -142,7 +140,5 @@ extern void bta_ar_dereg_avrc(UINT16 service_uuid, tBTA_SYS_ID sys_id);
 #ifdef __cplusplus
 }
 #endif
-
-#endif  ///BTA_AR_INCLUDED == TRUE
 
 #endif /* BTA_AR_API_H */

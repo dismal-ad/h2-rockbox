@@ -24,7 +24,6 @@
 #include "bta/bta_av_api.h"
 #include "btc_avrc.h"
 
-#if BTC_AV_INCLUDED
 /*******************************************************************************
  **
  ** Function         bta_avrc_co_cmd_allowed
@@ -96,4 +95,3 @@ tBTA_AVRC_CO_FUNCTS bta_avrc_cos = {
     bta_avrc_co_rn_evt_supported,
 };
 
-#endif /* #if BTC_AV_INCLUDED */

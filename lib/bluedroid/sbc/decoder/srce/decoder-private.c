@@ -38,8 +38,6 @@ This file drives SBC decoding.
 #include "oi_bitstream.h"
 #include <stdio.h>
 
-#if (defined(SBC_DEC_INCLUDED) && SBC_DEC_INCLUDED == TRUE)
-
 OI_CHAR *const OI_Codec_Copyright = "Copyright 2002-2007 Open Interface North America, Inc. All rights reserved";
 
 INLINE OI_STATUS internal_DecoderReset(OI_CODEC_SBC_DECODER_CONTEXT *context,
@@ -256,4 +254,3 @@ PRIVATE void OI_SBC_ReadSamples(OI_CODEC_SBC_DECODER_CONTEXT *context, OI_BITSTR
 /**
 @}
 */
-#endif /* #if (defined(SBC_DEC_INCLUDED) && SBC_DEC_INCLUDED == TRUE) */

@@ -78,57 +78,6 @@ typedef enum {
 #define BLE_ISO_MAX_TRANSPORT_LATENCY_MIN               (0x0005)
 #define BLE_ISO_MAX_TRANSPORT_LATENCY_MAX               (0x0FA0)
 
-#if (BLE_FEAT_ISO_BIG_BROCASTER_EN == TRUE)
-typedef struct {
-    uint8_t big_handle;             /*!< Used to identify the BIG, value 0x00 to 0xEF */
-    uint8_t adv_handle;             /*!< Used to identify the periodic advertising train, value 0x00 to 0xEF */
-    uint8_t num_bis;                /*!< Total number of BISes in the BIG, value 0x01 to 0x1F */
-    uint32_t sdu_interval;          /*!< The interval, in microseconds, of periodic SDUs, value 0x0000FF to 0x0FFFFF*/
-    uint16_t max_sdu;               /*!< Maximum size of an SDU, in octets, value 0x0001 to 0x0FFF */
-    uint16_t max_transport_latency; /*!< Maximum transport latency, in milliseconds, value 0x0005 to 0x0FA0 */
-    uint8_t rtn;                    /*!< The number of times that every BIS Data PDU should be retransmitted, value 0x00 to 0x1E */
-    uint8_t phy;                    /*!< The transmitter PHY of packets, value bit[0, 2] */
-    uint8_t packing;                /*!< The preferred method of arranging subevents of multiple BISes, value 0x00 to 0x01 */
-    uint8_t framing;                /*!< The format of the BIS Data PDUs and the mode of framed PDUs that the Controller shall use on the specified BIG, value 0x00 to 0x02 */
-    uint8_t encryption;             /*!< The encryption mode of the BISes in the BIG, value 0x00 to 0x01 */
-    uint8_t broadcast_code[16];     /*!< The code used to derive the session key that is used to encrypt and decrypt BIS payloads */
-} esp_ble_iso_big_creat_params_t;
-
-typedef struct {
-    uint8_t big_handle;    /*!< Used to identify the BIG, value 0x00 to 0xEF */
-    uint8_t adv_handle;    /*!< Used to identify the periodic advertising train, value 0x00 to 0xEF */
-    uint8_t num_bis;       /*!< Total number of BISes in the BIG, value 0x01 to 0x1F */
-    uint32_t sdu_interval; /*!< The interval, in microseconds, of periodic SDUs, value 0x0000FF to 0x0FFFFF*/
-    uint16_t iso_interval; /*!< the time between two consecutive BIG anchor points, Range: 0x0004 to 0x0C80, Time = N × 1.25 ms */
-    uint8_t nse;           /*!< The total number of subevents in each interval of each BIS in the BIG, value 0x01 to 0x1F */
-    uint16_t max_sdu;      /*!< Maximum size, in octets, of an SDU */
-    uint16_t max_pdu;      /*!< Maximum size, in octets, of payload, value 0x0001 to 0x00FB */
-    uint8_t phy;           /*!< The transmitter PHY of packets */
-    uint8_t packing;       /*!< The preferred method of arranging subevents of multiple BISes, value 0x00 to 0x01 */
-    uint8_t framing;       /*!< The format of the BIS Data PDUs and the mode of framed PDUs that the Controller shall use on the specified BIG, value 0x00 to 0x02 */
-    uint8_t bn;            /*!< The number of new payloads in each interval for each BIS, value 0x01 to 0x07 */
-    uint8_t irc;           /*!< The number of times the scheduled payloads are transmitted in a given event, value 0x01 to 0x0F */
-    uint8_t pto;           /*!< Offset used for pre-transmissions, value 0x00 to 0x0F */
-    uint8_t encryption;    /*!< The encryption mode of the BISes in the BIG, value 0x00 to 0x01 */
-    uint8_t broadcast_code[16]; /*!< The code used to derive the session key that is used to encrypt and decrypt BIS payloads */
-} esp_ble_iso_big_creat_test_params_t;
-
-#endif //#if (BLE_FEAT_ISO_BIG_BROCASTER_EN == TRUE)
-
-#if (BLE_FEAT_ISO_BIG_SYNCER_EN == TRUE)
-typedef struct {
-    uint8_t big_handle;               /*!< Used to identify the BIG, value 0x00 to 0xEF */
-    uint16_t sync_handle;             /*!< Identifier of the periodic advertising train, value 0x0000 to 0x0EFF*/
-    uint8_t encryption;               /*!< Broadcast_Code is valid or invalid, value 0x00 to 0x01 */
-    uint8_t bc_code[16];              /*!< 128-bit code used for deriving the session key for decrypting payloads of BISes in the BIG */
-    uint8_t mse;                      /*!< Maximum number of subevents that should be used to receive data payloads in each BIS event, value 0x00 to 0x1F */
-    uint16_t big_sync_timeout;        /*!< Synchronization timeout for the BIG, Range: 0x000A to 0x4000, Time = N × 10 ms, Time Range: 100 ms to 163.84 s*/
-    uint8_t num_bis;                  /*!< Total number of BISes to synchronize, value 0x01 to 0x1F */
-    uint8_t bis[ESP_BLE_MAX_BIS_NUM]; /*!< Index of a BIS, value 0x01 to 0x1F */
-} esp_ble_iso_big_sync_creat_params_t;
-
-#endif // #if (BLE_FEAT_ISO_BIG_SYNCER_EN == TRUE)
-
 typedef struct {
     uint16_t iso_handle;       /*!< Connection handle of the CIS or BIS*/
     uint8_t data_path_dir;     /*!< The direction for which the data path is being configured, value 0x00 to 0x01 */
@@ -168,45 +117,6 @@ struct ble_iso_cis_params_test {
     uint8_t bn_c_to_p;       /*!< The burst number for Central to Peripheral */
     uint8_t bn_p_to_c;       /*!< The burst number for Peripheral to Central */
 } __attribute__((packed));
-
-#if (BLE_FEAT_ISO_CIG_CENTRAL_EN == TRUE)
-struct esp_ble_iso_set_cig_params {
-    uint8_t cig_id;           /*!< Used to identify the CIG */
-    uint32_t sdu_int_c_to_p;  /*!< The interval, in microseconds, of periodic SDUs */
-    uint32_t sdu_int_p_to_c;  /*!< The interval, in microseconds, of periodic SDUs */
-    uint8_t worse_case_SCA;   /*!< The worst-case sleep clock accuracy of all the Peripherals that will participate in the CIG */
-    uint8_t packing;          /*!< The preferred method of arranging subevents of multiple CISes */
-    uint8_t framing;          /*!< The format of the CIS Data PDUs of the specified CISes' framing mode that the Host is requesting for the CIG */
-    uint16_t mtl_c_to_p;      /*!< The maximum transport latency from the Central to the Peripheral, in milliseconds */
-    uint16_t mtl_p_to_c;      /*!< The maximum transport latency from the Peripheral to the Central, in milliseconds */
-    uint8_t cis_cnt;          /*!< Total number of CIS configurations in the CIG being added or modified */
-    struct ble_iso_cis_params cis_params[ESP_BLE_MAX_CIS_NUM]; /*!< */
-}__attribute__((packed));
-
-struct esp_ble_iso_set_cig_params_test {
-    uint8_t cig_id;          /*!< Used to identify the CIG */
-    uint32_t sdu_int_c_to_p; /*!< The interval, in microseconds, of periodic SDUs */
-    uint32_t sdu_int_p_to_c; /*!< The interval, in microseconds, of periodic SDUs */
-    uint8_t ft_c_to_p;       /*!< The flush timeout in multiples of ISO_Interval for each payload sent from the Central to Peripheral */
-    uint8_t ft_p_to_c;       /*!< The flush timeout in multiples of ISO_Interval for each payload sent from the Peripheral to Central */
-    uint16_t iso_interval;   /*!< Time between consecutive CIS anchor points. Range: 0x0004 to 0x0C80, Time = N × 1.25 ms, Time Range: 5 ms to 4 s */
-    uint8_t worse_case_SCA;  /*!< The worst-case sleep clock accuracy of all the Peripherals that will participate in the CIG */
-    uint8_t packing;         /*!< The preferred method of arranging subevents of multiple CISes */
-    uint8_t framing;         /*!< The format of the CIS Data PDUs of the specified CISes' framing mode that the Host is requesting for the CIG */
-    uint8_t cis_cnt;         /*!< Total number of CIS configurations in the CIG being added or modified */
-    struct ble_iso_cis_params_test cis_params_test[ESP_BLE_MAX_CIS_NUM];
-} __attribute__((packed));
-
-struct esp_ble_gatt_cis_hdl {
-    uint16_t cis_hdl; /*!< Connection handle of a CIS */
-    uint16_t acl_hdl; /*!< Connection handle of an ACL connection */
-}__attribute__((packed));
-
-struct esp_ble_iso_create_cis_params {
-    uint8_t cis_count; /*!< Total number of CISes to be created */
-    struct esp_ble_gatt_cis_hdl cis_hdl_info[ESP_BLE_MAX_CIS_NUM];
-}__attribute__((packed));
-#endif // #if (BLE_FEAT_ISO_CIG_CENTRAL_EN == TRUE)
 
 /**
  * @brief ISO callback parameters union
@@ -353,14 +263,6 @@ typedef union {
         uint16_t max_pdu_c_to_p;   /*!< Maximum size, in octets, of the payload from Central to Peripheral */
         uint16_t max_pdu_p_to_c;   /*!< Maximum size, in octets, of the payload from Peripheral to Central */
         uint16_t iso_interval;     /*!< The time between two consecutive CIS anchor points, Time = N × 1.25 ms */
-#if (BLE_FEAT_ISO_60_EN == TRUE)
-        uint32_t sub_interval;     /*!< Time, in microseconds, between the start of consecutive subevents in a CIS event */
-        uint16_t max_sdu_c_to_p;   /*!< Maximum size, in octets, of the payload from the Central’s Host */
-        uint16_t max_sdu_p_to_c;   /*!< Maximum size, in octets, of the payload from the Peripheral’s Host */
-        uint32_t sdu_int_c_to_p;   /*!< Time, in microseconds, between the start of consecutive SDUs sent by the Central */
-        uint32_t sdu_int_p_to_c;   /*!< Time, in microseconds, between the start of consecutive SDUs sent by the Peripheral */
-        uint8_t framing;           /*!< The format of the CIS Data PDUs and the mode of framed PDUs that the Controller used on the specified CIG */
-#endif // #if (BLE_FEAT_ISO_60_EN == TRUE)
     } cis_estab;                   /*!< Event parameter of ESP_BLE_ISO_CIS_ESTABLISHED_EVT */
     /**
      * @brief ESP_BLE_ISO_CIS_DISCONNECTED_EVT
@@ -431,73 +333,6 @@ esp_ble_iso_cb_t esp_ble_iso_get_callback(void);
 
 
 
-#if (BLE_FEAT_ISO_BIG_BROCASTER_EN == TRUE)
-
-/**
- * @brief           This function is called to create BIG.
- *
- * @param[in]       big_creat_param: pointer to User defined big_creat_param data structure.
-
- * @return
- *                  - ESP_OK : success
- *                  - other  : failed
- *
- */
-esp_err_t esp_ble_iso_create_big(esp_ble_iso_big_creat_params_t *big_creat_param);
-
-/**
- * @brief           This function is called to create BIG test.
- *
- * @param[in]       big_creat_test_param: pointer to User defined big_creat_test_param data structure.
-
- * @return
- *                  - ESP_OK : success
- *                  - other  : failed
- *
- */
-esp_err_t esp_ble_iso_create_big_test(esp_ble_iso_big_creat_test_params_t *big_creat_test_param);
-
-/**
- * @brief           This function is called to terminate a BIG.
- *
- * @param[in]       big_handle: Used to identify the BIG.
- * @param[in]       reason: indicate the reason why the BIG is to be terminated.
- *
- * @return
- *                  - ESP_OK : success
- *                  - other  : failed
- *
- */
-esp_err_t esp_ble_iso_terminate_big(uint8_t big_handle, uint8_t reason);
-#endif // #if (BLE_FEAT_ISO_BIG_BROCASTER_EN == TRUE)
-
-#if (BLE_FEAT_ISO_BIG_SYNCER_EN == TRUE)
-
-/**
- * @brief           This function is called to create BIG sync.
- *
- * @param[in]       big_sync_create_param: pointer to User defined big_sync_create_param data structure.
-
- * @return
- *                  - ESP_OK : success
- *                  - other  : failed
- *
- */
-esp_err_t esp_ble_iso_big_create_sync(esp_ble_iso_big_sync_creat_params_t *big_sync_create_param);
-
-/**
- * @brief           This function is called to terminate BIG sync.
- *
- * @param[in]       big_handle: Identifier of the BIG.
-
- * @return
- *                  - ESP_OK : success
- *                  - other  : failed
- *
- */
-esp_err_t esp_ble_iso_big_terminate_sync(uint8_t big_handle);
-#endif // #if (BLE_FEAT_ISO_BIG_SYNCER_EN == TRUE)
-
 /**
  * @brief           This function is called to set iso data path.
  *
@@ -547,111 +382,6 @@ esp_err_t esp_ble_iso_read_iso_tx_sync(uint16_t iso_handle);
  *
  */
 esp_err_t esp_ble_iso_read_link_quality(uint16_t iso_handle);
-
-#if (BLE_FEAT_ISO_CIG_PERIPHERAL_EN == TRUE)
-/**
- * @brief           This function is called to accept cis request.
- *
- * @param[in]       cis_handle: Connection handle of the CIS
-
- *
- * @return
- *                  - ESP_OK : success
- *                  - other  : failed
- *
- */
-esp_err_t esp_ble_iso_accept_cis_request(uint16_t cis_handle);
-
-/**
- * @brief           This function is called to reject cis request.
- *
- * @param[in]       cis_handle: Connection handle of the CIS
- * @param[in]       reason: The reason for rejecting the CIS request
- *
- *
- * @return
- *                  - ESP_OK : success
- *                  - other  : failed
- *
- */
-esp_err_t esp_ble_iso_reject_cis_request(uint16_t cis_handle, uint8_t reason);
-#endif // #if (BLE_FEAT_ISO_CIG_PERIPHERAL_EN == TRUE)
-
-#if (BLE_FEAT_ISO_CIG_CENTRAL_EN == TRUE)
-
-/**
- * @brief           This function is called to set cig parameters.
- *
- * @param[in]       cig_params: pointer to User defined cig_params data structure.
-
- * @return
- *                  - ESP_OK : success
- *                  - other  : failed
- *
- */
-esp_err_t esp_ble_iso_set_cig_parameters(struct esp_ble_iso_set_cig_params *cig_params);
-
-/**
- * @brief           This function is called to set cig test parameters.
- *
- * @param[in]       cig_params_test: pointer to User defined cig_params_test data structure.
-
- * @return
- *                  - ESP_OK : success
- *                  - other  : failed
- *
- */
-esp_err_t esp_ble_iso_set_cig_parameters_test(struct esp_ble_iso_set_cig_params_test *cig_params_test);
-
-/**
- * @brief           This function is called to create cis.
- *
- * @param[in]       creat_cis_params: pointer to User defined creat_cis_params data structure.
-
- * @return
- *                  - ESP_OK : success
- *                  - other  : failed
- *
- */
-esp_err_t esp_ble_iso_create_cis(struct esp_ble_iso_create_cis_params *creat_cis_params);
-
-/**
- * @brief           This function is called to remove CIG.
- *
- * @param[in]       cig_id: Identifier of a CIG.
-
- * @return
- *                  - ESP_OK : success
- *                  - other  : failed
- *
- */
-esp_err_t esp_ble_iso_remove_cig(uint8_t cig_id);
-#endif // #if (BLE_FEAT_ISO_CIG_CENTRAL_EN == TRUE)
-
-#if (BLE_FEAT_ISO_CIG_EN == TRUE)
-
-/**
- * @brief           This function is called to disconnect cis.
- *
- * @param[in]       cis_handle: Connection handle of the CIS
- * @param[in]       reason: The reason for disconnecting the CIS. ESP_HCI_ERR_REMOTE_USER_TERM_CONN is recommended.
- *
- *                  The value of the reason is one of the following values:
- *                  - ESP_HCI_ERR_AUTH_FAIL
- *                  - ESP_HCI_ERR_REMOTE_USER_TERM_CONN
- *                  - ESP_HCI_ERR_REMOTE_LOW_RESOURCES
- *                  - ESP_HCI_ERR_REMOTE_POWER_OFF
- *                  - ESP_HCI_ERR_UNSUPP_REMOTE_FEATURE
- *                  - ESP_HCI_ERR_PAIRING_NOT_SUPPORTED
- *                  - ESP_HCI_ERR_UNACCEPT_CONN_PARAM
- *
- * @return
- *                  - ESP_OK : success
- *                  - other  : failed
- *
- */
-esp_err_t esp_ble_iso_disconnect_cis(uint16_t cis_handle, uint8_t reason);
-#endif // #if (BLE_FEAT_ISO_CIG_EN == TRUE)
 
 #ifdef __cplusplus
 }

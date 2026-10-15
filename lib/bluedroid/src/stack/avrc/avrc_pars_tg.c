@@ -21,12 +21,9 @@
 #include "stack/avrc_defs.h"
 #include "avrc_int.h"
 
-#if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE)
-
 /*****************************************************************************
 **  Global data
 *****************************************************************************/
-#if (AVRC_METADATA_INCLUDED == TRUE)
 
 /*******************************************************************************
 **
@@ -322,6 +319,3 @@ tAVRC_STS AVRC_ParsCommand (tAVRC_MSG *p_msg, tAVRC_COMMAND *p_result, UINT8 *p_
     return status;
 }
 
-#endif /* (AVRC_METADATA_INCLUDED == TRUE) */
-
-#endif /* #if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE) */

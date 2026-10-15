@@ -32,8 +32,6 @@
 #include "avdt_int.h"
 #include "stack/btu.h"
 
-#if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE)
-
 /*****************************************************************************
 ** state machine constants and types
 *****************************************************************************/
@@ -453,4 +451,3 @@ tAVDT_CCB *avdt_ccb_by_idx(UINT8 idx)
     return p_ccb;
 }
 
-#endif /* #if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE) */

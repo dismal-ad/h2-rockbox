@@ -23,11 +23,7 @@
 #include "gap_int.h"
 #include "osi/allocator.h"
 
-#if GAP_DYNAMIC_MEMORY == FALSE
 tGAP_CB  gap_cb;
-#else
-tGAP_CB  *gap_cb_ptr;
-#endif
 
 /*******************************************************************************
 **
@@ -62,12 +58,6 @@ UINT8 GAP_SetTraceLevel (UINT8 new_level)
 *******************************************************************************/
 bt_status_t GAP_Init(void)
 {
-#if GAP_DYNAMIC_MEMORY == TRUE
-    gap_cb_ptr = (tGAP_CB *)osi_malloc(sizeof(tGAP_CB));
-    if (!gap_cb_ptr) {
-        return BT_STATUS_NOMEM;
-    }
-#endif
 
     memset (&gap_cb, 0, sizeof (tGAP_CB));
 
@@ -75,14 +65,6 @@ bt_status_t GAP_Init(void)
     gap_cb.trace_level = GAP_INITIAL_TRACE_LEVEL;
 #else
     gap_cb.trace_level = BT_TRACE_LEVEL_NONE;    /* No traces */
-#endif
-
-#if GAP_CONN_INCLUDED == TRUE
-    gap_conn_init();
-#endif
-
-#if BLE_INCLUDED == TRUE && GATTS_INCLUDED == TRUE
-    gap_attr_db_init();
 #endif
 
     return BT_STATUS_SUCCESS;
@@ -100,10 +82,4 @@ bt_status_t GAP_Init(void)
 *******************************************************************************/
 void GAP_Deinit(void)
 {
-#if GAP_DYNAMIC_MEMORY == TRUE
-    if (gap_cb_ptr) {
-        osi_free(gap_cb_ptr);
-        gap_cb_ptr = NULL;
-    }
-#endif
 }

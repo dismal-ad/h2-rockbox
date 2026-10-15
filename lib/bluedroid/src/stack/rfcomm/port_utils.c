@@ -33,7 +33,6 @@
 #include "stack/btu.h"
 #include "osi/mutex.h"
 #include "osi/allocator.h"
-#if (defined RFCOMM_INCLUDED && RFCOMM_INCLUDED == TRUE)
 
 static const tPORT_STATE default_port_pars = {
     PORT_BAUD_RATE_9600,
@@ -573,4 +572,3 @@ void port_flow_control_peer(tPORT *p_port, BOOLEAN enable, UINT16 count)
 }
 
 
-#endif ///(defined RFCOMM_INCLUDED && RFCOMM_INCLUDED == TRUE)

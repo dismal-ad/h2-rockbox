@@ -47,11 +47,7 @@
 
 
 /* system manager control block definition */
-#if BTA_DYNAMIC_MEMORY == FALSE
 tBTA_SYS_CB bta_sys_cb;
-#else
-tBTA_SYS_CB *bta_sys_cb_ptr;
-#endif
 
 static hash_map_t *bta_alarm_hash_map;
 static const size_t BTA_ALARM_HASH_MAP_SIZE = 17;
@@ -193,9 +189,6 @@ void bta_sys_free(void)
 {
     hash_map_free(bta_alarm_hash_map);
     osi_mutex_free(&bta_alarm_lock);
-#if BTA_DYNAMIC_MEMORY
-    FREE_AND_RESET(bta_sys_cb_ptr);
-#endif
 }
 
 /*******************************************************************************
@@ -750,7 +743,6 @@ void bta_sys_set_trace_level(UINT8 level)
 {
     appl_trace_level = level;
 }
-#if (CLASSIC_BT_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         bta_sys_get_sys_features
@@ -764,4 +756,3 @@ UINT16 bta_sys_get_sys_features (void)
 {
     return bta_sys_cb.sys_features;
 }
-#endif // #if (CLASSIC_BT_INCLUDED == TRUE)

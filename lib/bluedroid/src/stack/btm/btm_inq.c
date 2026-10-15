@@ -37,9 +37,7 @@
 #include "stack/btm_api.h"
 #include "btm_int.h"
 #include "stack/hcidefs.h"
-#if (defined(SDP_INCLUDED) && SDP_INCLUDED == TRUE)
 #include "stack/sdpdefs.h"
-#endif
 
 #define BTM_INQ_REPLY_TIMEOUT   3       /* 3 second timeout waiting for responses */
 
@@ -53,7 +51,6 @@
 static const LAP general_inq_lap = {0x9e, 0x8b, 0x33};
 static const LAP limited_inq_lap = {0x9e, 0x8b, 0x00};
 
-#if (defined(SDP_INCLUDED) && SDP_INCLUDED == TRUE)
 static const UINT16 BTM_EIR_UUID_LKUP_TBL[BTM_EIR_MAX_SERVICES] = {
     UUID_SERVCLASS_SERVICE_DISCOVERY_SERVER,
     /*    UUID_SERVCLASS_BROWSE_GROUP_DESCRIPTOR,   */
@@ -125,9 +122,6 @@ static const UINT16 BTM_EIR_UUID_LKUP_TBL[BTM_EIR_MAX_SERVICES] = {
     UUID_SERVCLASS_HDP_SOURCE,
     UUID_SERVCLASS_HDP_SINK
 };
-#else
-static const UINT16 BTM_EIR_UUID_LKUP_TBL[BTM_EIR_MAX_SERVICES];
-#endif
 
 /********************************************************************************/
 /*              L O C A L    F U N C T I O N     P R O T O T Y P E S            */
@@ -819,10 +813,6 @@ tBTM_STATUS BTM_StartInquiry (tBTM_INQ_PARMS *p_inqparms, tBTM_INQ_RESULTS_CB *p
 
     if ((p_inqparms->mode & BTM_BR_INQUIRY_MASK) != BTM_GENERAL_INQUIRY &&
             (p_inqparms->mode & BTM_BR_INQUIRY_MASK) != BTM_LIMITED_INQUIRY
-#if (BLE_INCLUDED == TRUE)
-            && (p_inqparms->mode & BTM_BLE_INQUIRY_MASK) != BTM_BLE_GENERAL_INQUIRY
-            && (p_inqparms->mode & BTM_BLE_INQUIRY_MASK) != BTM_BLE_LIMITED_INQUIRY
-#endif
        ) {
         return (BTM_ILLEGAL_VALUE);
     }
@@ -914,11 +904,6 @@ tBTM_STATUS  BTM_ReadRemoteDeviceName (BD_ADDR remote_bda, tBTM_CMPL_CB *p_cb
     }
     BTM_TRACE_API ("no device found in inquiry db\n");
 
-#if (BLE_INCLUDED == TRUE)
-    if (transport == BT_TRANSPORT_LE) {
-        return btm_ble_read_remote_name(remote_bda, p_cur, p_cb);
-    } else
-#endif
     {
         return (btm_initiate_rem_name (remote_bda, p_cur, BTM_RMT_NAME_EXT,
                                        BTM_EXT_RMT_NAME_TIMEOUT, p_cb));
@@ -949,15 +934,6 @@ tBTM_STATUS  BTM_CancelRemoteDeviceName (void)
 
     /* Make sure there is not already one in progress */
     if (p_inq->remname_active) {
-#if BLE_INCLUDED == TRUE
-        if (BTM_UseLeLink(p_inq->remname_bda)) {
-            if (btm_ble_cancel_remote_name(p_inq->remname_bda)) {
-                return (BTM_CMD_STARTED);
-            } else {
-                return (BTM_UNKNOWN_ADDR);
-            }
-        } else
-#endif
         {
             if (btsnd_hcic_rmt_name_req_cancel (p_inq->remname_bda)) {
                 return (BTM_CMD_STARTED);
@@ -1086,7 +1062,6 @@ tBTM_STATUS BTM_ClearInqDb (BD_ADDR p_bda)
     return (BTM_SUCCESS);
 }
 
-#if (CLASSIC_BT_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         BTM_ReadInquiryRspTxPower
@@ -1173,7 +1148,6 @@ tBTM_STATUS BTM_WriteInquiryTxPower(INT8 tx_power, tBTM_CMPL_CB *p_cb)
 
     return BTM_CMD_STARTED;
 }
-#endif // (CLASSIC_BT_INCLUDED == TRUE)
 
 /*********************************************************************************
 **********************************************************************************
@@ -1253,10 +1227,6 @@ void btm_inq_db_reset (void)
     p_inq->page_scan_type    = BTM_SCAN_TYPE_STANDARD;
     p_inq->inq_scan_type     = BTM_SCAN_TYPE_STANDARD;
 
-#if BLE_INCLUDED == TRUE
-    p_inq->discoverable_mode |= BTM_BLE_NON_DISCOVERABLE;
-    p_inq->connectable_mode  |= BTM_BLE_NON_CONNECTABLE;
-#endif
     return;
 }
 
@@ -1273,9 +1243,6 @@ void btm_inq_db_reset (void)
 *******************************************************************************/
 void btm_inq_db_init (void)
 {
-#if 0  /* cleared in btm_init; put back in if called from anywhere else! */
-    memset (&btm_cb.btm_inq_vars, 0, sizeof (tBTM_INQUIRY_VAR_ST));
-#endif
 
     btu_free_timer(&btm_cb.btm_inq_vars.rmt_name_timer_ent);
     memset(&btm_cb.btm_inq_vars.rmt_name_timer_ent, 0, sizeof(TIMER_LIST_ENT));
@@ -1790,13 +1757,6 @@ void btm_process_inq_results (UINT8 *p, UINT8 inq_res_mode)
         */
         if (p_inq->inqparms.max_resps &&
                 p_inq->inq_cmpl_info.num_resp >= p_inq->inqparms.max_resps
-#if BLE_INCLUDED == TRUE
-                /* new device response */
-                && ( p_i == NULL ||
-                     /* existing device with BR/EDR info */
-                     ((p_i->inq_info.results.device_type & BT_DEVICE_TYPE_BREDR) != 0)
-                   )
-#endif
 
            ) {
             BTM_TRACE_WARNING("INQ RES: Extra Response Received...ignoring\n");
@@ -1813,10 +1773,6 @@ void btm_process_inq_results (UINT8 *p, UINT8 inq_res_mode)
             /* If this new RSSI is higher than the last one */
             if (p_inq->inqparms.report_dup && (rssi != 0) &&
                     p_i && (i_rssi > p_i->inq_info.results.rssi || p_i->inq_info.results.rssi == 0
-#if BLE_INCLUDED == TRUE
-                            /* BR/EDR inquiry information update */
-                            || (p_i->inq_info.results.device_type & BT_DEVICE_TYPE_BREDR) != 0
-#endif
                            )) {
                 p_cur = &p_i->inq_info.results;
                 BTM_TRACE_DEBUG("update RSSI new:%d, old:%d\n", i_rssi, p_cur->rssi);
@@ -1846,9 +1802,6 @@ void btm_process_inq_results (UINT8 *p, UINT8 inq_res_mode)
            inquiry.
         */
         else if (p_i->inq_count == p_inq->inq_counter
-#if (BLE_INCLUDED == TRUE )
-                 && (p_i->inq_info.results.device_type == BT_DEVICE_TYPE_BREDR)
-#endif
                 ) {
             is_new = FALSE;
         }
@@ -1877,27 +1830,12 @@ void btm_process_inq_results (UINT8 *p, UINT8 inq_res_mode)
                 p_inq->inq_cmpl_info.num_resp++;    /* A new response was found */
             }
 
-#if (defined BLE_INCLUDED && BLE_INCLUDED == TRUE)
-            p_cur->inq_result_type    = BTM_INQ_RESULT_BR;
-            if (p_i->inq_count != p_inq->inq_counter) {
-                p_cur->device_type  = BT_DEVICE_TYPE_BREDR;
-                p_i->scan_rsp       = FALSE;
-            } else {
-                p_cur->device_type    |= BT_DEVICE_TYPE_BREDR;
-            }
-#endif
             p_i->inq_count = p_inq->inq_counter;   /* Mark entry for current inquiry */
 
             /* If the number of responses found and not unlimited, issue a cancel inquiry */
             if (!(p_inq->inq_active & BTM_PERIODIC_INQUIRY_ACTIVE) &&
                     p_inq->inqparms.max_resps &&
                     p_inq->inq_cmpl_info.num_resp == p_inq->inqparms.max_resps
-#if BLE_INCLUDED == TRUE
-                    /* BLE scanning is active and received adv */
-                    && ((((p_inq->inqparms.mode & BTM_BLE_INQUIRY_MASK) != 0) &&
-                         p_cur->device_type == BT_DEVICE_TYPE_DUMO && p_i->scan_rsp) ||
-                        (p_inq->inqparms.mode & BTM_BLE_INQUIRY_MASK) == 0)
-#endif
                ) {
                 /*                BTM_TRACE_DEBUG("BTMINQ: Found devices, cancelling inquiry..."); */
                 btsnd_hcic_inq_cancel();
@@ -2001,9 +1939,6 @@ void btm_process_inq_complete (UINT8 status, UINT8 mode)
 
         /* Notify caller that the inquiry has completed; (periodic inquiries do not send completion events */
         if (!(p_inq->inq_active & BTM_PERIODIC_INQUIRY_ACTIVE) && p_inq->inqparms.mode == 0) {
-#if BLE_INCLUDED == TRUE
-            btm_clear_all_pending_le_entry();
-#endif
             p_inq->state = BTM_INQ_INACTIVE_STATE;
 
             /* Increment so the start of a next inquiry has a new count */
@@ -2169,13 +2104,6 @@ void btm_process_remote_name (BD_ADDR bda, BD_NAME bdn, UINT16 evt_len, UINT8 hc
               (memcmp(bda, p_inq->remname_bda, BD_ADDR_LEN) == 0)) || bda == NULL))
 
     {
-#if BLE_INCLUDED == TRUE
-        if (BTM_UseLeLink(p_inq->remname_bda)) {
-            if (hci_status == HCI_ERR_UNSPECIFIED) {
-                btm_ble_cancel_remote_name(p_inq->remname_bda);
-            }
-        }
-#endif
         btu_stop_timer (&p_inq->rmt_name_timer_ent);
         p_inq->remname_active = FALSE;
         /* Clean up and return the status if the command was not successful */
@@ -2235,12 +2163,9 @@ void btm_inq_rmt_name_failed (void)
     } else {
         btm_process_remote_name (NULL, NULL, 0, HCI_ERR_UNSPECIFIED);
     }
-#if (SMP_INCLUDED == TRUE)
     btm_sec_rmt_name_request_complete (NULL, NULL, HCI_ERR_UNSPECIFIED);
-#endif  ///SMP_INCLUDED == TRUE
 }
 
-#if (CLASSIC_BT_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         btm_read_iscan_tx_power_complete
@@ -2312,7 +2237,6 @@ void btm_write_inq_tx_power_complete(UINT8 *p)
         (*p_cb)(&results);
     }
 }
-#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
 
 /*******************************************************************************
 **

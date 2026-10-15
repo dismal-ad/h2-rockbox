@@ -23,7 +23,6 @@
  ******************************************************************************/
 #ifndef A2D_SBC_H
 #define A2D_SBC_H
-#if (A2D_INCLUDED == TRUE)
 /*****************************************************************************
 **  Constants
 *****************************************************************************/
@@ -192,7 +191,5 @@ extern void A2D_ParsSbcMplHdr(UINT8 *p_src, BOOLEAN *p_frag,
 #ifdef __cplusplus
 }
 #endif
-
-#endif  ///A2D_INCLUDED == TRUE
 
 #endif /* A2D_SBC_H */

@@ -12,8 +12,6 @@
 #include "btc/btc_manage.h"
 #include "btc_avrc.h"
 
-#if BTC_AV_INCLUDED
-
 esp_err_t esp_avrc_ct_register_callback(esp_avrc_ct_cb_t callback)
 {
     if (esp_bluedroid_get_status() != ESP_BLUEDROID_STATUS_ENABLED) {
@@ -257,8 +255,6 @@ esp_err_t esp_avrc_ct_send_get_play_status_cmd(uint8_t tl)
     return (stat == BT_STATUS_SUCCESS) ? ESP_OK : ESP_FAIL;
 }
 
-#if BTC_AV_CA_INCLUDED
-
 esp_err_t esp_avrc_ct_cover_art_connect(uint16_t mtu)
 {
     if ((esp_bluedroid_get_status() != ESP_BLUEDROID_STATUS_ENABLED) ||
@@ -397,8 +393,6 @@ esp_err_t esp_avrc_ct_cover_art_get_linked_thumbnail(uint8_t *image_handle)
     bt_status_t stat = btc_transfer_context(&msg, &arg, sizeof(btc_avrc_args_t), NULL, NULL);
     return (stat == BT_STATUS_SUCCESS) ? ESP_OK : ESP_FAIL;
 }
-
-#endif /* #if BTC_AV_CA_INCLUDED */
 
 /*********************************************************************************************/
 /**                  following is the API of AVRCP target role                              **/
@@ -657,4 +651,3 @@ esp_err_t esp_avrc_get_profile_status(esp_avrc_profile_status_t *profile_status)
     return ESP_OK;
 }
 
-#endif /* #if BTC_AV_INCLUDED */

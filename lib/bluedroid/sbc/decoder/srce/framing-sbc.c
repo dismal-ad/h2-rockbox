@@ -31,8 +31,6 @@
 #include "common/bt_target.h"
 #include "oi_codec_sbc_private.h"
 
-#if (defined(SBC_DEC_INCLUDED) && SBC_DEC_INCLUDED == TRUE)
-
 const OI_CHAR *const OI_CODEC_SBC_FreqText[] =     { "SBC_FREQ_16000", "SBC_FREQ_32000", "SBC_FREQ_44100", "SBC_FREQ_48000" };
 const OI_CHAR *const OI_CODEC_SBC_ModeText[] =     { "SBC_MONO", "SBC_DUAL_CHANNEL", "SBC_STEREO", "SBC_JOINT_STEREO" };
 const OI_CHAR *const OI_CODEC_SBC_SubbandsText[] = { "SBC_SUBBANDS_4", "SBC_SUBBANDS_8" };
@@ -56,4 +54,3 @@ void OI_CODEC_SBC_DumpConfig(OI_CODEC_SBC_FRAME_INFO *frameInfo)
 
 /**@}*/
 
-#endif /* #if (defined(SBC_DEC_INCLUDED) && SBC_DEC_INCLUDED == TRUE) */

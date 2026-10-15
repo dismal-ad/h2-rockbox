@@ -116,15 +116,8 @@ tBTA_DM_CFG *const p_bta_dm_cfg = (tBTA_DM_CFG *) &bta_dm_cfg;
 
 tBTA_DM_RM *const p_bta_dm_rm_cfg = (tBTA_DM_RM *) &bta_dm_rm_cfg;
 
-#if BLE_INCLUDED == TRUE
-#  define BTA_DM_NUM_PM_ENTRY         10  /* number of entries in bta_dm_pm_cfg except the first */
-#  define BTA_DM_NUM_PM_SPEC          10  /* number of entries in bta_dm_pm_spec */
-#else
 #  define BTA_DM_NUM_PM_ENTRY         8  /* number of entries in bta_dm_pm_cfg except the first */
 #  define BTA_DM_NUM_PM_SPEC          8  /* number of entries in bta_dm_pm_spec */
-#endif
-
-#if (BTA_DM_PM_INCLUDED == TRUE)
 
 tBTA_DM_PM_TYPE_QUALIFIER tBTA_DM_PM_CFG bta_dm_pm_cfg[BTA_DM_NUM_PM_ENTRY + 1] = {
     {BTA_ID_SYS, BTA_DM_NUM_PM_ENTRY, 0},  /* reserved: specifies length of this table. */
@@ -136,10 +129,6 @@ tBTA_DM_PM_TYPE_QUALIFIER tBTA_DM_PM_CFG bta_dm_pm_cfg[BTA_DM_NUM_PM_ENTRY + 1] 
     {BTA_ID_AVK, BTA_ALL_APP_ID,      5},  /* avk spec table */
     {BTA_ID_HD,  BTA_ALL_APP_ID,      6},  /* hd spec table */
     {BTA_ID_HH,  BTA_ALL_APP_ID,      7}   /* hh spec table */
-#if BLE_INCLUDED == TRUE
-    , {BTA_ID_GATTC,  BTA_ALL_APP_ID,   8} /* gattc spec table */
-    , {BTA_ID_GATTS,  BTA_ALL_APP_ID,   9} /* gatts spec table */
-#endif
 };
 
 #define BTA_DM_PM_SPEC_TO_OFFSET     (197) /* timeout offset to avoid conflict with other bluedroid host */
@@ -147,9 +136,6 @@ tBTA_DM_PM_TYPE_QUALIFIER tBTA_DM_PM_SPEC bta_dm_pm_spec[BTA_DM_NUM_PM_SPEC] = {
     /* AG : 0 */
     {
         (BTA_DM_PM_SNIFF | BTA_DM_PM_PARK),                           /* allow park & sniff */
-#if (BTM_SSR_INCLUDED == TRUE)
-        (BTA_DM_PM_SSR2),                                              /* the SSR entry */
-#endif
         {
             {{BTA_DM_PM_SNIFF_AG_OPEN_IDX,  7000 + BTA_DM_PM_SPEC_TO_OFFSET},   {BTA_DM_PM_NO_ACTION, 0}},   /* conn open sniff  */
             {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},   /* conn close  */
@@ -166,9 +152,6 @@ tBTA_DM_PM_TYPE_QUALIFIER tBTA_DM_PM_SPEC bta_dm_pm_spec[BTA_DM_NUM_PM_SPEC] = {
     /* AV : 1 */
     {
         (BTA_DM_PM_SNIFF),                                             /* allow sniff */
-#if (BTM_SSR_INCLUDED == TRUE)
-        (BTA_DM_PM_SSR2),                                              /* the SSR entry */
-#endif
         {
             {{BTA_DM_PM_SNIFF_A2DP_IDX, 7000 + BTA_DM_PM_SPEC_TO_OFFSET}, {BTA_DM_PM_NO_ACTION, 0}}, /* conn open  sniff */
             {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},    /* conn close  */
@@ -185,9 +168,6 @@ tBTA_DM_PM_TYPE_QUALIFIER tBTA_DM_PM_SPEC bta_dm_pm_spec[BTA_DM_NUM_PM_SPEC] = {
     /* FTC, OPC, JV : 2 */
     {
         (BTA_DM_PM_SNIFF),                                             /* allow sniff */
-  #if (BTM_SSR_INCLUDED == TRUE)
-        (BTA_DM_PM_SSR2),                                              /* the SSR entry */
-  #endif
         {
             {{BTA_DM_PM_SNIFF_JV_IDX, BTA_FTC_OPS_IDLE_TO_SNIFF_DELAY_MS + BTA_DM_PM_SPEC_TO_OFFSET}, {BTA_DM_PM_NO_ACTION, 0}},    /* conn open  active */
             {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},    /* conn close  */
@@ -204,9 +184,6 @@ tBTA_DM_PM_TYPE_QUALIFIER tBTA_DM_PM_SPEC bta_dm_pm_spec[BTA_DM_NUM_PM_SPEC] = {
     /* FTS, PBS, OPS, MSE, BTA_JV_PM_ID_1 : 3 */
     {
         (BTA_DM_PM_SNIFF),                                             /* allow sniff */
-  #if (BTM_SSR_INCLUDED == TRUE)
-        (BTA_DM_PM_SSR2),                                              /* the SSR entry */
-  #endif
         {
             {{BTA_DM_PM_SNIFF_JV_IDX, BTA_FTS_OPS_IDLE_TO_SNIFF_DELAY_MS + BTA_DM_PM_SPEC_TO_OFFSET}, {BTA_DM_PM_NO_ACTION, 0}},    /* conn open  active */
             {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},    /* conn close  */
@@ -223,9 +200,6 @@ tBTA_DM_PM_TYPE_QUALIFIER tBTA_DM_PM_SPEC bta_dm_pm_spec[BTA_DM_NUM_PM_SPEC] = {
     /* HS : 4 */
     {
         (BTA_DM_PM_SNIFF | BTA_DM_PM_PARK),                           /* allow park & sniff */
-#if (BTM_SSR_INCLUDED == TRUE)
-        (BTA_DM_PM_SSR2),                                              /* the SSR entry */
-#endif
         {
             {{BTA_DM_PM_SNIFF,  7000 + BTA_DM_PM_SPEC_TO_OFFSET},   {BTA_DM_PM_NO_ACTION, 0}},   /* conn open sniff  */
             {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},   /* conn close  */
@@ -242,9 +216,6 @@ tBTA_DM_PM_TYPE_QUALIFIER tBTA_DM_PM_SPEC bta_dm_pm_spec[BTA_DM_NUM_PM_SPEC] = {
     /* AVK : 5 */
     {
         (BTA_DM_PM_SNIFF),                                             /* allow sniff */
-#if (BTM_SSR_INCLUDED == TRUE)
-        (BTA_DM_PM_SSR2),                                              /* the SSR entry */
-#endif
         {
             {{BTA_DM_PM_SNIFF,  3000 + BTA_DM_PM_SPEC_TO_OFFSET},   {BTA_DM_PM_NO_ACTION, 0}},    /* conn open  sniff */
             {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},    /* conn close  */
@@ -261,9 +232,6 @@ tBTA_DM_PM_TYPE_QUALIFIER tBTA_DM_PM_SPEC bta_dm_pm_spec[BTA_DM_NUM_PM_SPEC] = {
     /* HD : 6 */
     {
         (BTA_DM_PM_SNIFF | BTA_DM_PM_PARK),                            /* allow park & sniff */
-#if (BTM_SSR_INCLUDED == TRUE)
-        (BTA_DM_PM_SSR3),                                              /* the SSR entry */
-#endif
         {
             {{BTA_DM_PM_SNIFF_HD_ACTIVE_IDX, 5000 + BTA_DM_PM_SPEC_TO_OFFSET},   {BTA_DM_PM_NO_ACTION, 0}},   /* conn open sniff */
             {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},    /* conn close */
@@ -280,9 +248,6 @@ tBTA_DM_PM_TYPE_QUALIFIER tBTA_DM_PM_SPEC bta_dm_pm_spec[BTA_DM_NUM_PM_SPEC] = {
     /* HH : 7 */
     {
         (BTA_DM_PM_SNIFF | BTA_DM_PM_PARK),                            /* allow park & sniff */
-#if (BTM_SSR_INCLUDED == TRUE)
-        (BTA_DM_PM_SSR1),                                              /* the SSR entry */
-#endif
         {
             {{BTA_DM_PM_SNIFF_HH_OPEN_IDX, BTA_DM_PM_HH_OPEN_DELAY + BTA_DM_PM_SPEC_TO_OFFSET}, {BTA_DM_PM_NO_ACTION, 0}},   /* conn open  sniff */
             {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},    /* conn close  */
@@ -295,52 +260,6 @@ tBTA_DM_PM_TYPE_QUALIFIER tBTA_DM_PM_SPEC bta_dm_pm_spec[BTA_DM_NUM_PM_SPEC] = {
             {{BTA_DM_PM_NO_ACTION, 0},   {BTA_DM_PM_NO_ACTION, 0}}     /* mode change retry */
         }
     }
-
-#if BLE_INCLUDED == TRUE
-    /* GATTC : 8 */
-    , {
-        (BTA_DM_PM_SNIFF | BTA_DM_PM_PARK),                           /* allow park & sniff */
-#if (BTM_SSR_INCLUDED == TRUE)
-        (BTA_DM_PM_SSR2),                                              /* the SSR entry */
-#endif
-        {
-            {{BTA_DM_PM_SNIFF_A2DP_IDX, 10000 + BTA_DM_PM_SPEC_TO_OFFSET}, {BTA_DM_PM_NO_ACTION, 0}}, /* conn open  active */
-            {{BTA_DM_PM_NO_PREF,    0},   {BTA_DM_PM_NO_ACTION, 0}},    /* conn close  */
-            {{BTA_DM_PM_ACTIVE,     0},   {BTA_DM_PM_NO_ACTION, 0}},    /* app open */
-            {{BTA_DM_PM_NO_ACTION,  0},   {BTA_DM_PM_NO_ACTION, 0}},    /* app close */
-            {{BTA_DM_PM_NO_ACTION,  0},   {BTA_DM_PM_NO_ACTION, 0}},    /* sco open  */
-            {{BTA_DM_PM_NO_ACTION,  0},   {BTA_DM_PM_NO_ACTION, 0}},    /* sco close   */
-            {{BTA_DM_PM_SNIFF_A2DP_IDX, 10000 + BTA_DM_PM_SPEC_TO_OFFSET}, {BTA_DM_PM_NO_ACTION, 0}}, /* idle */
-            {{BTA_DM_PM_ACTIVE,     0},   {BTA_DM_PM_NO_ACTION, 0}},    /* busy */
-#if defined(AMP_INCLUDED) && (AMP_INCLUDED == TRUE)
-            {{BTA_DM_PM_NO_ACTION,  0},   {BTA_DM_PM_NO_ACTION, 0}},   /* amp */
-#endif
-            {{BTA_DM_PM_RETRY,   5000 + BTA_DM_PM_SPEC_TO_OFFSET},   {BTA_DM_PM_NO_ACTION, 0}}    /* mode change retry */
-        }
-    }
-    /* GATTS : 9 */
-    , {
-        (BTA_DM_PM_SNIFF | BTA_DM_PM_PARK),                           /* allow park & sniff */
-#if (BTM_SSR_INCLUDED == TRUE)
-        (BTA_DM_PM_SSR2),                                              /* the SSR entry */
-#endif
-        {
-            {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},    /* conn open  active */
-            {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},    /* conn close  */
-            {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},    /* app open */
-            {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},    /* app close */
-            {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},    /* sco open  */
-            {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},    /* sco close   */
-            {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},    /* idle */
-            {{BTA_DM_PM_NO_PREF,   0},   {BTA_DM_PM_NO_ACTION, 0}},    /* busy */
-#if defined(AMP_INCLUDED) && (AMP_INCLUDED == TRUE)
-            {{BTA_DM_PM_NO_PREF, 0},   {BTA_DM_PM_NO_ACTION, 0}},   /* amp */
-#endif
-            {{BTA_DM_PM_RETRY,  5000 + BTA_DM_PM_SPEC_TO_OFFSET},   {BTA_DM_PM_NO_ACTION, 0}}    /* mode change retry */
-        }
-    }
-
-#endif
 
 #ifdef BTE_SIM_APP      /* For Insight builds only */
     /* Entries at the end of the pm_spec table are user-defined (runtime configurable),
@@ -404,25 +323,10 @@ tBTA_DM_PM_TYPE_QUALIFIER tBTM_PM_PWR_MD bta_dm_pm_md[] = {
 /* 0=max_lat -> no SSR */
 /* the smaller of the SSR max latency wins.
  * the entries in this table must be from highest latency (biggest interval) to lowest latency */
-#if (BTM_SSR_INCLUDED == TRUE)
-tBTA_DM_SSR_SPEC bta_dm_ssr_spec[] = {
-    /*max_lat, min_rmt_to, min_loc_to*/
-    {0,      0, 0},     /* BTA_DM_PM_SSR0 - do not use SSR */
-    {0,      0, 2},     /* BTA_DM_PM_SSR1 - HH, can NOT share entry with any other profile,
-                           setting default max latency and min remote timeout as 0,
-                           and always read individual device preference from HH module */
-    {1200,   2, 2},     /* BTA_DM_PM_SSR2 - others (as long as sniff is allowed)*/
-    {360,  160, 1600}   /* BTA_DM_PM_SSR3 - HD */
-};
-
-tBTA_DM_SSR_SPEC *const p_bta_dm_ssr_spec = (tBTA_DM_SSR_SPEC *) &bta_dm_ssr_spec;
-#endif
 
 tBTA_DM_PM_CFG *const p_bta_dm_pm_cfg = (tBTA_DM_PM_CFG *) &bta_dm_pm_cfg;
 tBTA_DM_PM_SPEC *const p_bta_dm_pm_spec = (tBTA_DM_PM_SPEC *) &bta_dm_pm_spec;
 tBTM_PM_PWR_MD *const p_bta_dm_pm_md = (tBTM_PM_PWR_MD *) &bta_dm_pm_md;
-
-#endif /* #if (BTA_DM_PM_INCLUDED == TRUE) */
 
 /* The performance impact of EIR packet size
 **
@@ -442,15 +346,6 @@ tBTM_PM_PWR_MD *const p_bta_dm_pm_md = (tBTM_PM_PWR_MD *) &bta_dm_pm_md;
 ** 184 to 240 bytes, DH5 is used but it not recommended.
 */
 
-#if (BTA_EIR_CANNED_UUID_LIST == TRUE)
-/* for example */
-const UINT8 bta_dm_eir_uuid16_list[] = {    0x08, 0x11, /* Headset */
-                                            0x1E, 0x11, /* Handsfree */
-                                            0x0E, 0x11, /* AV Remote Control */
-                                            0x0B, 0x11, /* Audio Sink */
-                                       };
-#endif  // BTA_EIR_CANNED_UUID_LIST
-
 /* Extended Inquiry Response */
 tBTA_DM_EIR_CONF bta_dm_eir_cfg = {
     BTM_EIR_DEFAULT_FEC_REQUIRED, /* FEC required */
@@ -459,16 +354,11 @@ tBTA_DM_EIR_CONF bta_dm_eir_cfg = {
     /* if length of local name is longer than this and EIR has not enough */
     /* room for all UUID list then local name is shortened to this length */
     TRUE, /* Included UUIDs */
-#if (BTA_EIR_CANNED_UUID_LIST == TRUE)
-    8,
-    (UINT8 *)bta_dm_eir_uuid16_list,
-#else // BTA_EIR_CANNED_UUID_LIST
     {   /* mask of UUID list in EIR */
         0xFFFFFFFF, /* LSB is the first UUID of the first 32 UUIDs in BTM_EIR_UUID_LKUP_TBL */
         0xFFFFFFFF  /* LSB is the first UUID of the next 32 UUIDs in BTM_EIR_UUID_LKUP_TBL */
         /* BTM_EIR_UUID_LKUP_TBL can be overridden */
     },
-#endif  // BTA_EIR_CANNED_UUID_LIST
     FALSE,  /* Not included TX power*/
     3,      /* Inquiry TX power         */
     0,      /* flags for EIR */
@@ -476,10 +366,6 @@ tBTA_DM_EIR_CONF bta_dm_eir_cfg = {
     NULL,   /* manufacturer specific */
     0,      /* length of URL in bytes */
     NULL,   /* URL */
-#if (BTC_GAP_BT_INCLUDED == TRUE)
     (tBTA_DM_CONFIG_EIR_CBACK *)btc_gap_bt_config_eir_cmpl_callback    /* callback */
-#else
-    NULL
-#endif /* #if (BTC_GAP_BT_INCLUDED == TRUE) */
 };
 tBTA_DM_EIR_CONF *p_bta_dm_eir_cfg = (tBTA_DM_EIR_CONF *) &bta_dm_eir_cfg;

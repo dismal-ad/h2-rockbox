@@ -12,8 +12,6 @@
 #include "btc/btc_manage.h"
 #include "btc_av.h"
 
-#if BTC_AV_INCLUDED
-
 esp_a2d_audio_buff_t *esp_a2d_audio_buff_alloc(uint16_t size)
 {
     if (esp_bluedroid_get_status() != ESP_BLUEDROID_STATUS_ENABLED) {
@@ -45,7 +43,6 @@ void esp_a2d_audio_buff_free(esp_a2d_audio_buff_t *audio_buf)
     btc_av_audio_buff_free((uint8_t *)audio_buf);
 }
 
-#if BTC_AV_SINK_INCLUDED
 esp_err_t esp_a2d_sink_init(void)
 {
     if (esp_bluedroid_get_status() != ESP_BLUEDROID_STATUS_ENABLED) {
@@ -262,7 +259,6 @@ esp_err_t esp_a2d_sink_get_delay_value(void)
     stat = btc_transfer_context(&msg, NULL, 0, NULL, NULL);
     return (stat == BT_STATUS_SUCCESS) ? ESP_OK : ESP_FAIL;
 }
-#endif /* BTC_AV_SINK_INCLUDED */
 
 esp_err_t esp_a2d_register_callback(esp_a2d_cb_t callback)
 {
@@ -327,7 +323,6 @@ esp_err_t esp_a2d_get_profile_status(esp_a2d_profile_status_t *profile_status)
     return ESP_OK;
 }
 
-#if BTC_AV_SRC_INCLUDED
 esp_err_t esp_a2d_source_init(void)
 {
     if (esp_bluedroid_get_status() != ESP_BLUEDROID_STATUS_ENABLED) {
@@ -524,6 +519,3 @@ esp_err_t esp_a2d_source_audio_data_send(esp_a2d_conn_hdl_t conn_hdl, esp_a2d_au
     return ESP_OK;
 }
 
-#endif /* BTC_AV_SRC_INCLUDED */
-
-#endif /* #if BTC_AV_INCLUDED */

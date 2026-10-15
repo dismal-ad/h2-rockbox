@@ -46,27 +46,5 @@ typedef enum {
 
 future_t **btc_main_get_future_p(btc_main_future_type_t type);
 
-#if 0
-typedef union {
-    struct btc_main_init_args {
-        future_t *future;
-    } init;
-    struct btc_main_deinit_args {
-        future_t *future;
-    } deinit;
-    struct btc_main_init_args {
-        future_t *future;
-    } enable;
-    struct btc_main_init_args {
-        future_t *future;
-    } disable;
-} btc_main_args_t;
-
-bt_status_t btc_enable_bluetooth(future_t *future);
-void btc_disable_bluetooth(future_t *future);
-bt_status_t btc_init_bluetooth(future_t *future);
-void btc_deinit_bluetooth(future_t *future);
-#endif
-
 void btc_main_call_handler(btc_msg_t *msg);
 #endif /* __BTC_BT_MAIN_H__ */

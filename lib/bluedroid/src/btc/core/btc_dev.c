@@ -26,9 +26,6 @@ void btc_dev_call_arg_deep_free(btc_msg_t *msg)
     BTC_TRACE_DEBUG("%s \n", __func__);
 
     switch (msg->act) {
-#if (ESP_COEX_VSC_INCLUDED == TRUE)
-    case BTC_DEV_ACT_CFG_COEX_STATUS:
-#endif
         break;
     default:
         BTC_TRACE_DEBUG("Unhandled deep free %d\n", msg->act);
@@ -43,9 +40,6 @@ void btc_dev_call_arg_deep_copy(btc_msg_t *msg, void *p_dest, void *p_src)
     UNUSED(p_src);
 
     switch (msg->act) {
-#if (ESP_COEX_VSC_INCLUDED == TRUE)
-    case BTC_DEV_ACT_CFG_COEX_STATUS:
-#endif
         break;
     default:
         BTC_TRACE_ERROR("Unhandled deep copy %d\n", msg->act);
@@ -98,14 +92,6 @@ void btc_dev_call_handler(btc_msg_t *msg)
     BTC_TRACE_DEBUG("%s act %d", __func__, msg->act);
 
     switch (msg->act) {
-#if (ESP_COEX_VSC_INCLUDED == TRUE)
-    case BTC_DEV_ACT_CFG_COEX_STATUS:
-        btc_dev_args_t *arg = (btc_dev_args_t *)msg->arg;
-        BTA_DmCfgCoexStatus(arg->cfg_coex_status.op,
-                            arg->cfg_coex_status.type,
-                            arg->cfg_coex_status.status);
-        break;
-#endif
     default:
         break;
     }

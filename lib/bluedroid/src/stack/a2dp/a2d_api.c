@@ -29,16 +29,10 @@
 #include "stack/avdt_api.h"
 #include "osi/allocator.h"
 
-#if (defined(A2D_INCLUDED) && A2D_INCLUDED == TRUE)
-
 /*****************************************************************************
 **  Global data
 *****************************************************************************/
-#if A2D_DYNAMIC_MEMORY == FALSE
 tA2D_CB a2d_cb;
-#else
-tA2D_CB *a2d_cb_ptr;
-#endif
 
 
 /******************************************************************************
@@ -392,12 +386,6 @@ UINT8 A2D_BitsSet(UINT8 num)
 *******************************************************************************/
 bt_status_t A2D_Init(void)
 {
-#if (A2D_DYNAMIC_MEMORY)
-    a2d_cb_ptr = (tA2D_CB *)osi_malloc(sizeof(tA2D_CB));
-    if (!a2d_cb_ptr) {
-        return BT_STATUS_NOMEM;
-    }
-#endif /* #if (A2D_DYNAMIC_MEMORY) */
     memset(&a2d_cb, 0, sizeof(tA2D_CB));
 
     a2d_cb.avdt_sdp_ver = AVDT_VERSION;
@@ -423,12 +411,5 @@ bt_status_t A2D_Init(void)
 *******************************************************************************/
 void A2D_Deinit(void)
 {
-#if (A2D_DYNAMIC_MEMORY)
-    if (a2d_cb_ptr) {
-        osi_free(a2d_cb_ptr);
-        a2d_cb_ptr = NULL;
-    }
-#endif /* #if (A2D_DYNAMIC_MEMORY) */
 }
 
-#endif /* #if (defined(A2D_INCLUDED) && A2D_INCLUDED == TRUE) */

@@ -25,7 +25,6 @@
 #define A2D_INT_H
 
 #include "stack/a2d_api.h"
-#if (A2D_INCLUDED == TRUE)
 /*****************************************************************************
 **  Constants
 *****************************************************************************/
@@ -63,15 +62,9 @@ extern "C"
 /******************************************************************************
 ** Main Control Block
 *******************************************************************************/
-#if A2D_DYNAMIC_MEMORY == FALSE
 extern tA2D_CB  a2d_cb;
-#else
-extern tA2D_CB *a2d_cb_ptr;
-#define a2d_cb (*a2d_cb_ptr)
-#endif
 
 #ifdef __cplusplus
 }
 #endif
-#endif  ///A2D_INCLUDED == TRUE
 #endif /* A2D_INT_H */

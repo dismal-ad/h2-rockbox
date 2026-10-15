@@ -8,8 +8,6 @@
 
 #include "common/bt_target.h"
 
-#if (OBEX_INCLUDED == TRUE)
-
 /* API function return value result codes. */
 #define OBEX_SUCCESS                0       /* Operation successful */
 #define OBEX_FAILURE                1       /* Operation failed */
@@ -268,4 +266,3 @@ extern UINT8 *OBEX_GetNextHeader(BT_HDR *pkt, tOBEX_PARSE_INFO *info);
 
 extern UINT16 OBEX_GetHeaderLength(UINT8 *header);
 
-#endif /* #if (OBEX_INCLUDED == TRUE) */

@@ -31,8 +31,6 @@
 #include "avct_int.h"
 #include "osi/allocator.h"
 
-#if (defined(AVCT_INCLUDED) && AVCT_INCLUDED == TRUE)
-
 /*****************************************************************************
 ** state machine constants and types
 *****************************************************************************/
@@ -231,35 +229,6 @@ void avct_lcb_event(tAVCT_LCB *p_lcb, UINT8 event, tAVCT_LCB_EVT *p_data)
 ** Returns          Nothing.
 **
 *******************************************************************************/
-#if (AVCT_BROWSE_INCLUDED == TRUE)
-void avct_bcb_event(tAVCT_BCB *p_bcb, UINT8 event, tAVCT_LCB_EVT *p_data)
-{
-    tAVCT_LCB_ST_TBL    state_table;
-    UINT8               action;
-    int                 i;
-
-#if BT_TRACE_VERBOSE == TRUE
-    AVCT_TRACE_EVENT("BCB lcb=%d event=%s state=%s", p_bcb->allocated, avct_lcb_evt_str[event], avct_lcb_st_str[p_bcb->state]);
-#else
-    AVCT_TRACE_EVENT("BCB lcb=%d event=%d state=%d", p_bcb->allocated, event, p_bcb->state);
-#endif
-
-    /* look up the state table for the current state */
-    state_table = avct_lcb_st_tbl[p_bcb->state];
-
-    /* set next state */
-    p_bcb->state = state_table[event][AVCT_LCB_NEXT_STATE];
-
-    /* execute action functions */
-    for (i = 0; i < AVCT_LCB_ACTIONS; i++) {
-        if ((action = state_table[event][i]) != AVCT_LCB_IGNORE) {
-            (*avct_bcb_action[action])(p_bcb, p_data);
-        } else {
-            break;
-        }
-    }
-}
-#endif
 
 /*******************************************************************************
 **
@@ -442,4 +411,3 @@ BOOLEAN avct_lcb_last_ccb(tAVCT_LCB *p_lcb, tAVCT_CCB *p_ccb_last)
 }
 
 
-#endif /* #if (defined(AVCT_INCLUDED) && AVCT_INCLUDED == TRUE) */

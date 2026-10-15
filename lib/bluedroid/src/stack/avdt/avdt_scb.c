@@ -34,8 +34,6 @@
 #include "osi/allocator.h"
 #include "osi/fixed_queue.h"
 
-#if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE)
-
 /*****************************************************************************
 ** state machine constants and types
 *****************************************************************************/
@@ -132,13 +130,9 @@ const tAVDT_SCB_ACTION avdt_scb_action[] = {
     avdt_scb_hdl_suspend_cmd,
     avdt_scb_hdl_suspend_rsp,
     avdt_scb_hdl_tc_close,
-#if AVDT_REPORTING == TRUE
     avdt_scb_hdl_tc_close_sto,
-#endif
     avdt_scb_hdl_tc_open,
-#if AVDT_REPORTING == TRUE
     avdt_scb_hdl_tc_open_sto,
-#endif
     avdt_scb_snd_delay_rpt_req,
     avdt_scb_hdl_delay_rpt_cmd,
     avdt_scb_hdl_delay_rpt_rsp,
@@ -390,13 +384,8 @@ const UINT8 avdt_scb_st_open[][AVDT_SCB_NUM_COLS] = {
     /* MSG_START_REJ_EVT */     {AVDT_SCB_HDL_START_RSP,        AVDT_SCB_IGNORE,            AVDT_SCB_OPEN_ST},
     /* MSG_SUSPEND_REJ_EVT */   {AVDT_SCB_HDL_SUSPEND_RSP,      AVDT_SCB_IGNORE,            AVDT_SCB_OPEN_ST},
     /* TC_TOUT_EVT */           {AVDT_SCB_IGNORE,               AVDT_SCB_IGNORE,            AVDT_SCB_OPEN_ST},
-#if AVDT_REPORTING == TRUE
     /* TC_OPEN_EVT */           {AVDT_SCB_HDL_TC_OPEN_STO,      AVDT_SCB_IGNORE,            AVDT_SCB_OPEN_ST},
     /* TC_CLOSE_EVT */          {AVDT_SCB_HDL_TC_CLOSE_STO,     AVDT_SCB_IGNORE,            AVDT_SCB_OPEN_ST},
-#else
-    /* TC_OPEN_EVT */           {AVDT_SCB_IGNORE,               AVDT_SCB_IGNORE,            AVDT_SCB_OPEN_ST},
-    /* TC_CLOSE_EVT */          {AVDT_SCB_HDL_TC_CLOSE,         AVDT_SCB_IGNORE,            AVDT_SCB_OPEN_ST},
-#endif
     /* TC_CONG_EVT */           {AVDT_SCB_CONG_STATE,           AVDT_SCB_IGNORE,            AVDT_SCB_OPEN_ST},
     /* TC_DATA_EVT */           {AVDT_SCB_DROP_PKT,             AVDT_SCB_IGNORE,            AVDT_SCB_OPEN_ST},
     /* CC_CLOSE_EVT */          {AVDT_SCB_SND_TC_CLOSE,         AVDT_SCB_IGNORE,            AVDT_SCB_CLOSING_ST},
@@ -612,19 +601,15 @@ tAVDT_SCB *avdt_scb_alloc(tAVDT_CS *p_cs)
             }
 
             memcpy(&p_scb->cs, p_cs, sizeof(tAVDT_CS));
-#if AVDT_MULTIPLEXING == TRUE
             /* initialize fragments gueue */
             p_scb->frag_q = fixed_queue_new(QUEUE_SIZE_MAX);
 
             if (p_cs->cfg.psc_mask & AVDT_PSC_MUX) {
                 p_scb->cs.cfg.mux_tcid_media = avdt_ad_type_to_tcid(AVDT_CHAN_MEDIA, p_scb);
-#if AVDT_REPORTING == TRUE
                 if (p_cs->cfg.psc_mask & AVDT_PSC_REPORT) {
                     p_scb->cs.cfg.mux_tcid_report = avdt_ad_type_to_tcid(AVDT_CHAN_REPORT, p_scb);
                 }
-#endif
             }
-#endif
             p_scb->timer_entry.param = (UINT32) p_scb;
             AVDT_TRACE_DEBUG("avdt_scb_alloc hdl=%d, psc_mask:0x%x\n", i + 1, p_cs->cfg.psc_mask);
             break;
@@ -657,10 +642,8 @@ void avdt_scb_dealloc(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
     AVDT_TRACE_DEBUG("avdt_scb_dealloc hdl=%d\n", avdt_scb_to_hdl(p_scb));
     btu_free_timer(&p_scb->timer_entry);
 
-#if AVDT_MULTIPLEXING == TRUE
     /* free fragments we're holding, if any; it shouldn't happen */
     fixed_queue_free(p_scb->frag_q, osi_free_func);
-#endif
 
     memset(p_scb, 0, sizeof(tAVDT_SCB));
 }
@@ -793,4 +776,3 @@ void avdt_scb_peer_seid_list(tAVDT_MULTI *p_multi)
     }
 }
 
-#endif /* #if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE) */

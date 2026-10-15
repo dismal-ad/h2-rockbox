@@ -28,8 +28,6 @@
 #include "sbc_encoder.h"
 #include "sbc_enc_func_declare.h"
 
-#if (defined(SBC_ENC_INCLUDED) && SBC_ENC_INCLUDED == TRUE)
-
 /*global arrays*/
 extern const SINT16 sbc_enc_as16Offset4[4][4];
 extern const SINT16 sbc_enc_as16Offset8[4][8];
@@ -190,4 +188,3 @@ void sbc_enc_bit_alloc_ste(SBC_ENC_PARAMS *pstrCodecParams)
 
 /*End of BitAlloc() function*/
 
-#endif /* #if (defined(SBC_ENC_INCLUDED) && SBC_ENC_INCLUDED == TRUE) */

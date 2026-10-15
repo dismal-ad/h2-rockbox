@@ -19,11 +19,9 @@
 #include "btc_av_api.h"
 #include "esp_a2dp_api.h"
 
-#if BTC_AV_SRC_INCLUDED
 /*******************************************************************************
  **  Data types
  *******************************************************************************/
-#if (BTC_AV_EXT_CODEC == FALSE)
 
 /* tBTC_MEDIA_INIT_AUDIO msg structure */
 typedef struct {
@@ -50,8 +48,6 @@ typedef struct {
     tBTC_AV_FEEDING_MODE feeding_mode;
     tBTC_AV_MEDIA_FEEDINGS feeding;
 } tBTC_MEDIA_INIT_AUDIO_FEEDING;
-
-#endif
 
 /*******************************************************************************
  **  Public functions
@@ -172,8 +168,6 @@ void btc_a2dp_source_set_tx_flush(BOOLEAN enable);
  *******************************************************************************/
 BOOLEAN btc_a2dp_source_set_pref_mcc(tBTA_AV_HNDL hndl, tBTC_AV_CODEC_INFO *pref_mcc);
 
-#if (BTC_AV_EXT_CODEC == FALSE)
-
 /*******************************************************************************
  **
  ** Function         btc_a2dp_source_setup_codec
@@ -192,8 +186,6 @@ void btc_a2dp_source_setup_codec(void);
  *******************************************************************************/
 void btc_a2dp_source_encoder_update(void);
 
-#endif
-
 /*****************************************************************************
 **
 ** Function        btc_source_report_delay_value
@@ -202,20 +194,5 @@ void btc_a2dp_source_encoder_update(void);
 **
 *******************************************************************************/
 void btc_source_report_delay_value(UINT16 delay_value);
-
-#if (BTC_AV_EXT_CODEC == TRUE)
-
-/*****************************************************************************
-**
-** Function        btc_a2dp_source_enqueue_audio_frame
-**
-** Description     Enqueue source audio frame to tx queue
-**
-*******************************************************************************/
-BOOLEAN btc_a2dp_source_enqueue_audio_frame(BT_HDR *p_buf);
-
-#endif
-
-#endif /* #if BTC_AV_SRC_INCLUDED */
 
 #endif /* __BTC_A2DP_SOURCE_H__ */

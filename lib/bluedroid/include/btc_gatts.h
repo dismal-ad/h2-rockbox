@@ -155,11 +155,6 @@ typedef struct {
     uint16_t handles[ESP_GATT_ATTR_HANDLE_MAX];
 } esp_btc_creat_tab_t;
 
-#if GATT_DYNAMIC_MEMORY == TRUE
-extern esp_btc_creat_tab_t *btc_creat_tab_env_ptr;
-#define btc_creat_tab_env (*btc_creat_tab_env_ptr)
-#endif
-
 void btc_gatts_call_handler(btc_msg_t *msg);
 void btc_gatts_cb_handler(btc_msg_t *msg);
 void btc_gatts_arg_deep_copy(btc_msg_t *msg, void *p_dest, void *p_src);

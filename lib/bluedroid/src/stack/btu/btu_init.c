@@ -32,17 +32,7 @@
 #include "stack/btu.h"
 #include "btm_int.h"
 
-#if SDP_INCLUDED == TRUE
 #include "sdpint.h"
-#endif
-
-#if (BLE_INCLUDED == TRUE)
-#include "stack/gatt_api.h"
-#include "gatt_int.h"
-#if SMP_INCLUDED == TRUE
-#include "smp_int.h"
-#endif
-#endif
 
 #define BTU_TASK_PINNED_TO_CORE         (TASK_PINNED_TO_CORE)
 #define BTU_TASK_STACK_SIZE             (BT_BTU_TASK_STACK_SIZE + BT_TASK_EXTRA_STACK_SIZE)
@@ -93,19 +83,8 @@ void btu_init_core(void)
 
     l2c_init();
 
-#if (defined(SDP_INCLUDED) && SDP_INCLUDED == TRUE)
     sdp_init();
-#endif
 
-#if BLE_INCLUDED == TRUE
-#if (defined(SMP_INCLUDED) && SMP_INCLUDED == TRUE)
-    SMP_Init();
-#endif
-#if (defined(GATT_INCLUDED) && GATT_INCLUDED == true)
-    gatt_init();
-#endif
-    btm_ble_init();
-#endif
 }
 
 /*****************************************************************************
@@ -123,19 +102,8 @@ void btu_free_core(void)
     // Free the mandatory core stack components
     l2c_free();
 
-#if (defined(SDP_INCLUDED) && SDP_INCLUDED == TRUE)
     sdp_deinit();
-#endif
 
-#if BLE_INCLUDED == TRUE
-#if (defined(GATT_INCLUDED) && GATT_INCLUDED == true)
-    gatt_free();
-#endif
-#if SMP_INCLUDED == TRUE
-    SMP_Free();
-#endif
-    btm_ble_free();
-#endif
     btm_free();
 }
 
@@ -153,9 +121,6 @@ void btu_free_core(void)
 ******************************************************************************/
 void BTU_StartUp(void)
 {
-#if BTU_DYNAMIC_MEMORY
-    btu_cb_ptr = (tBTU_CB *)osi_malloc(sizeof(tBTU_CB));
-#endif /* #if BTU_DYNAMIC_MEMORY */
     memset (&btu_cb, 0, sizeof (tBTU_CB));
     btu_cb.trace_level = HCI_INITIAL_TRACE_LEVEL;
 
@@ -212,9 +177,6 @@ error_exit:;
 ******************************************************************************/
 void BTU_ShutDown(void)
 {
-#if BTU_DYNAMIC_MEMORY
-    FREE_AND_RESET(btu_cb_ptr);
-#endif
     btu_task_shut_down();
 
     hash_map_free(btu_general_alarm_hash_map);
@@ -247,11 +209,7 @@ void BTU_ShutDown(void)
 ******************************************************************************/
 UINT16 BTU_BleAclPktSize(void)
 {
-#if BLE_INCLUDED == TRUE
-    return controller_get_interface()->get_acl_packet_size_ble();
-#else
     return 0;
-#endif
 }
 
 int get_btu_work_queue_size(void)

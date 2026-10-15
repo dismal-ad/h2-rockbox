@@ -40,8 +40,6 @@ frame length and bitrate.
 #include "oi_utils.h"
 #include <oi_codec_sbc_private.h>
 
-#if (defined(SBC_DEC_INCLUDED) && SBC_DEC_INCLUDED == TRUE)
-
 OI_UINT32 OI_SBC_MaxBitpool(OI_CODEC_SBC_FRAME_INFO *frame)
 {
     switch (frame->mode) {
@@ -402,4 +400,3 @@ void monoBitAllocation(OI_CODEC_SBC_COMMON_CONTEXT *common)
 @}
 */
 
-#endif /* #if (defined(SBC_DEC_INCLUDED) && SBC_DEC_INCLUDED == TRUE) */

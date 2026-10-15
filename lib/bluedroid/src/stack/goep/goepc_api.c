@@ -15,8 +15,6 @@
 #include "stack/goepc_api.h"
 #include "goep_int.h"
 
-#if (GOEPC_INCLUDED == TRUE)
-
 /*******************************************************************************
 **
 ** Function         GOEPC_Init
@@ -29,14 +27,6 @@
 *******************************************************************************/
 UINT16 GOEPC_Init(void)
 {
-#if (GOEP_DYNAMIC_MEMORY)
-    if (!goepc_cb_ptr) {
-        goepc_cb_ptr = (tGOEPC_CB *)osi_malloc(sizeof(tGOEPC_CB));
-        if (!goepc_cb_ptr) {
-            return GOEP_NO_RESOURCES;
-        }
-    }
-#endif /* #if (GOEP_DYNAMIC_MEMORY) */
     memset(&goepc_cb, 0, sizeof(tGOEPC_CB));
     goepc_cb.trace_level = BT_TRACE_LEVEL_ERROR;
     return GOEP_SUCCESS;
@@ -52,12 +42,6 @@ UINT16 GOEPC_Init(void)
 *******************************************************************************/
 void GOEPC_Deinit(void)
 {
-#if (GOEP_DYNAMIC_MEMORY)
-    if (goepc_cb_ptr) {
-        osi_free(goepc_cb_ptr);
-        goepc_cb_ptr = NULL;
-    }
-#endif /* #if (GOEP_DYNAMIC_MEMORY) */
 }
 
 /*******************************************************************************
@@ -373,4 +357,3 @@ UINT16 GOEPC_RequestAddHeader(UINT16 handle, UINT8 header_id, const UINT8 *data,
     return ret;
 }
 
-#endif /* #if (GOEPC_INCLUDED == TRUE) */

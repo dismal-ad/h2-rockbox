@@ -36,8 +36,6 @@
 #include "common/bt_target.h"
 #include "oi_codec_sbc_private.h"
 
-#if (defined(SBC_DEC_INCLUDED) && SBC_DEC_INCLUDED == TRUE)
-
 #define AAN_C4_FIX (759250125)/* S1.30  759250125   0.707107*/
 
 #define AAN_C6_FIX (410903207)/* S1.30  410903207   0.382683*/
@@ -305,4 +303,3 @@ PRIVATE void dct2_8(SBC_BUFFER_T *RESTRICT out, OI_INT32 const *RESTRICT in)
 }
 
 /**@}*/
-#endif /* #if (defined(SBC_DEC_INCLUDED) && SBC_DEC_INCLUDED == TRUE) */

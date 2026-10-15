@@ -83,28 +83,11 @@ typedef struct {
 } tGAP_CCB;
 
 typedef struct {
-#if ((defined AMP_INCLUDED) && (AMP_INCLUDED == TRUE))
-    tAMP_APPL_INFO    reg_info;
-#else
     tL2CAP_APPL_INFO  reg_info;                     /* L2CAP Registration info */
-#endif
     tGAP_CCB    ccb_pool[GAP_MAX_CONNECTIONS];
 } tGAP_CONN;
 
 
-#if BLE_INCLUDED == TRUE
-#if (BT_GATTS_KEY_MATERIAL_CHAR == TRUE)
-#define GAP_MAX_CHAR_NUM          6
-#else
-#define GAP_MAX_CHAR_NUM          5
-#endif
-
-typedef struct {
-    UINT16                  handle;
-    UINT16                  uuid;
-    tGAP_BLE_ATTR_VALUE     attr_value;
-} tGAP_ATTR;
-#endif
 /**********************************************************************
 ** M A I N   C O N T R O L   B L O C K
 ***********************************************************************/
@@ -128,37 +111,14 @@ typedef struct {
 } tGAP_CLCB;
 
 typedef struct {
-#if (CLASSIC_BT_INCLUDED == TRUE)
     tGAP_INFO        blk[GAP_MAX_BLOCKS];
-#endif // (CLASSIC_BT_INCLUDED == TRUE)
     UINT8            trace_level;
     //tGAP_FINDADDR_CB findaddr_cb;   /* Contains the control block for finding a device addr */
     //tBTM_INQ_INFO   *cur_inqptr;
 
-#if GAP_CONN_INCLUDED == TRUE
-    tGAP_CONN        conn;
-#endif
-
     /* LE GAP attribute database */
-#if BLE_INCLUDED == TRUE && GATTS_INCLUDED == TRUE
-    tGAP_ATTR               gap_attr[GAP_MAX_CHAR_NUM];
-    tGAP_CLCB               clcb[GAP_MAX_CL]; /* connection link*/
-    tGATT_IF                gatt_if;
-#endif
 } tGAP_CB;
 
-#if GAP_DYNAMIC_MEMORY == FALSE
 extern tGAP_CB  gap_cb;
-#else
-extern tGAP_CB  *gap_cb_ptr;
-#define gap_cb (*gap_cb_ptr)
-#endif
-
-#if (GAP_CONN_INCLUDED == TRUE)
-extern void gap_conn_init(void);
-#endif
-#if (BLE_INCLUDED == TRUE && GATTS_INCLUDED == TRUE)
-extern void gap_attr_db_init(void);
-#endif
 
 #endif

@@ -52,19 +52,6 @@ static BT_HDR *make_set_c2h_flow_control(uint8_t enable)
     return packet;
 }
 
-#if (BLE_42_SCAN_EN == TRUE)
-static BT_HDR *make_set_adv_report_flow_control(uint8_t enable, uint16_t num, uint16_t lost_threshold)
-{
-    uint8_t *stream;
-    const uint8_t parameter_size = 1 + 2 + 2;
-    BT_HDR *packet = make_command(HCI_VENDOR_BLE_SET_ADV_FLOW_CONTROL, parameter_size, &stream);
-
-    UINT8_TO_STREAM(stream, enable);
-    UINT16_TO_STREAM(stream, num);
-    UINT16_TO_STREAM(stream, lost_threshold);
-    return packet;
-}
-#endif // #if (BLE_42_SCAN_EN == TRUE)
 static BT_HDR *make_host_buffer_size(uint16_t acl_size, uint8_t sco_size, uint16_t acl_count, uint16_t sco_count)
 {
     uint8_t *stream;
@@ -159,13 +146,6 @@ static BT_HDR *make_ble_read_buffer_size(void)
     return make_command_no_params(HCI_BLE_READ_BUFFER_SIZE);
 }
 
-#if (BLE_FEAT_ISO_EN == TRUE)
-static BT_HDR *make_ble_read_buffer_size_v2(void)
-{
-    return make_command_no_params(HCI_BLE_READ_BUFFER_SZIE_V2);
-}
-#endif // #if (BLE_FEAT_ISO_EN == TRUE)
-
 static BT_HDR *make_ble_read_supported_states(void)
 {
     return make_command_no_params(HCI_BLE_READ_SUPPORTED_STATES);
@@ -226,20 +206,6 @@ static BT_HDR *make_write_default_erroneous_data_report(uint8_t enable)
     UINT8_TO_STREAM(stream, enable);
     return packet;
 }
-#if (BLE_50_FEATURE_SUPPORT == TRUE)
-#if (BLE_50_EXTEND_ADV_EN == TRUE)
-static BT_HDR *make_read_max_adv_data_len(void)
-{
-    return make_command_no_params(HCI_BLE_RD_MAX_ADV_DATA_LEN);
-}
-#endif // #if (BLE_50_EXTEND_ADV_EN == TRUE)
-#if (BLE_50_EXTEND_SYNC_EN == TRUE)
-static BT_HDR *read_periodic_adv_list_size(void)
-{
-    return make_command_no_params(HCI_BLE_RD_PERIOD_ADV_LIST_SIZE);
-}
-#endif // #if (BLE_50_EXTEND_SYNC_EN == TRUE)
-#endif // #if (BLE_50_FEATURE_SUPPORT == TRUE)
 // Internal functions
 
 static BT_HDR *make_command_no_params(uint16_t opcode)
@@ -268,9 +234,6 @@ static const hci_packet_factory_t interface = {
     make_reset,
     make_read_buffer_size,
     make_set_c2h_flow_control,
-#if (BLE_42_SCAN_EN == TRUE)
-    make_set_adv_report_flow_control,
-#endif // #if (BLE_42_SCAN_EN == TRUE)
     make_host_buffer_size,
     make_read_local_version_info,
     make_read_bd_addr,
@@ -283,20 +246,9 @@ static const hci_packet_factory_t interface = {
     make_ble_write_host_support,
     make_ble_read_white_list_size,
     make_ble_read_buffer_size,
-#if (BLE_FEAT_ISO_EN == TRUE)
-    make_ble_read_buffer_size_v2,
-#endif // #if (BLE_FEAT_ISO_EN == TRUE)
     make_ble_read_supported_states,
     make_ble_read_local_supported_features,
     make_ble_read_resolving_list_size,
-#if (BLE_50_FEATURE_SUPPORT == TRUE)
-#if (BLE_50_EXTEND_ADV_EN == TRUE)
-    make_read_max_adv_data_len,
-#endif // #if (BLE_50_EXTEND_ADV_EN == TRUE)
-#if (BLE_50_EXTEND_SYNC_EN == TRUE)
-    read_periodic_adv_list_size,
-#endif // #if (BLE_50_EXTEND_SYNC_EN == TRUE)
-#endif // #if (BLE_50_FEATURE_SUPPORT == TRUE)
     make_ble_read_suggested_default_data_length,
     make_ble_write_suggested_default_data_length,
     make_ble_set_event_mask,

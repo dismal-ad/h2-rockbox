@@ -34,8 +34,6 @@
 #include "stack/btm_api.h"
 #include "osi/allocator.h"
 
-#if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE)
-
 /*******************************************************************************
 **
 ** Function         avdt_ccb_clear_ccb
@@ -1081,4 +1079,3 @@ void avdt_ccb_ll_opened(tAVDT_CCB *p_ccb, tAVDT_CCB_EVT *p_data)
     }
 }
 
-#endif /* #if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE) */

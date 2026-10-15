@@ -17,8 +17,6 @@
 #include "obex_tl.h"
 #include "obex_tl_l2cap.h"
 
-#if (OBEX_INCLUDED == TRUE)
-
 #define OBEX_TL_L2CAP_NUM_CONN          4
 #define OBEX_TL_L2CAP_NUM_SERVER        2
 
@@ -67,12 +65,7 @@ typedef struct {
     UINT8               trace_level;                        /* trace level */
 } tOBEX_TL_L2CAP_CB;
 
-#if OBEX_DYNAMIC_MEMORY == FALSE
 static tOBEX_TL_L2CAP_CB obex_tl_l2cap_cb;
-#else
-static tOBEX_TL_L2CAP_CB *obex_tl_l2cap_cb_ptr = NULL;
-#define obex_tl_l2cap_cb (*obex_tl_l2cap_cb_ptr)
-#endif
 
 static tL2CAP_ERTM_INFO obex_tl_l2cap_etm_opts =
 {
@@ -557,15 +550,6 @@ void obex_tl_l2cap_congestion_status_ind(UINT16 lcid, BOOLEAN is_congested)
 void obex_tl_l2cap_init(tOBEX_TL_CBACK callback)
 {
     assert(callback != NULL);
-#if (OBEX_DYNAMIC_MEMORY)
-    if (!obex_tl_l2cap_cb_ptr) {
-        obex_tl_l2cap_cb_ptr = (tOBEX_TL_L2CAP_CB *)osi_malloc(sizeof(tOBEX_TL_L2CAP_CB));
-        if (!obex_tl_l2cap_cb_ptr) {
-            OBEX_TL_L2CAP_TRACE_ERROR("OBEX over L2CAP transport layer initialize failed, no memory\n");
-            assert(0);
-        }
-    }
-#endif /* #if (OBEX_DYNAMIC_MEMORY) */
     memset(&obex_tl_l2cap_cb, 0, sizeof(tOBEX_TL_L2CAP_CB));
     obex_tl_l2cap_cb.callback = callback;
     obex_tl_l2cap_cb.trace_level = BT_TRACE_LEVEL_ERROR;
@@ -594,12 +578,6 @@ void obex_tl_l2cap_init(tOBEX_TL_CBACK callback)
 *******************************************************************************/
 void obex_tl_l2cap_deinit(void)
 {
-#if (OBEX_DYNAMIC_MEMORY)
-    if (obex_tl_l2cap_cb_ptr) {
-        osi_free(obex_tl_l2cap_cb_ptr);
-        obex_tl_l2cap_cb_ptr = NULL;
-    }
-#endif /* #if (OBEX_DYNAMIC_MEMORY) */
 }
 
 /*******************************************************************************
@@ -808,4 +786,3 @@ tOBEX_TL_OPS *obex_tl_l2cap_ops_get(void)
     return &obex_tl_l2cap_ops;
 }
 
-#endif /* #if (OBEX_INCLUDED == TRUE) */

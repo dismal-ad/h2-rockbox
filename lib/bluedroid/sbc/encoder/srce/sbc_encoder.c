@@ -27,8 +27,6 @@
 #include "sbc_encoder.h"
 #include "sbc_enc_func_declare.h"
 
-#if (defined(SBC_ENC_INCLUDED) && SBC_ENC_INCLUDED == TRUE)
-
 SINT16 EncMaxShiftCounter;
 
 #if (SBC_JOINT_STE_INCLUDED == TRUE)
@@ -330,4 +328,3 @@ void SBC_Encoder_Init(SBC_ENC_PARAMS *pstrEncParams)
     SbcAnalysisInit();
 }
 
-#endif /* #if (defined(SBC_ENC_INCLUDED) && SBC_ENC_INCLUDED == TRUE) */

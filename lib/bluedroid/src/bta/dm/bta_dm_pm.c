@@ -32,15 +32,8 @@
 #include "stack/btm_api.h"
 #include "osi/allocator.h"
 
-#if (CLASSIC_BT_INCLUDED == TRUE)
-
-#if BTA_DYNAMIC_MEMORY == FALSE
 tBTA_DM_CONNECTED_SRVCS  bta_dm_conn_srvcs;
-#else
-tBTA_DM_CONNECTED_SRVCS *bta_dm_conn_srvcs_ptr;
-#endif
 
-#if (BTA_DM_PM_INCLUDED == TRUE)
 static void bta_dm_pm_cback(tBTA_SYS_CONN_STATUS status, UINT8 id, UINT8 app_id, BD_ADDR peer_addr);
 static void bta_dm_pm_set_mode(BD_ADDR peer_addr, tBTA_DM_PM_ACTION pm_mode,
                                tBTA_DM_PM_REQ pm_req);
@@ -53,15 +46,6 @@ static void bta_dm_pm_hid_check(BOOLEAN bScoActive);
 static void bta_dm_pm_set_sniff_policy(tBTA_DM_PEER_DEVICE *p_dev, BOOLEAN bDisable);
 static void bta_dm_pm_stop_timer_by_index(tBTA_PM_TIMER *p_timer,
         UINT8 timer_idx);
-
-#if (BTM_SSR_INCLUDED == TRUE)
-#if (defined BTA_HH_INCLUDED && BTA_HH_INCLUDED == TRUE)
-#include "bta_hh_int.h"
-/* BTA_DM_PM_SSR1 will be dedicated for HH SSR setting entry, no other profile can use it */
-#define BTA_DM_PM_SSR_HH      BTA_DM_PM_SSR1
-#endif /* (defined BTA_HH_INCLUDED && BTA_HH_INCLUDED == TRUE) */
-static void bta_dm_pm_ssr(BD_ADDR peer_addr);
-#endif /* (BTM_SSR_INCLUDED == TRUE) */
 
 /*******************************************************************************
 **
@@ -323,11 +307,6 @@ static void bta_dm_pm_cback(tBTA_SYS_CONN_STATUS status, UINT8 id, UINT8 app_id,
     UINT8 i, j;
     tBTA_DM_PEER_DEVICE *p_dev;
 
-#if (BTM_SSR_INCLUDED == TRUE)
-    UINT8 *p = NULL;
-    int               index = BTA_DM_PM_SSR0;
-#endif
-
     APPL_TRACE_DEBUG("bta_dm_pm_cback: st(%d), id(%d), app(%d)", status, id, app_id);
 
     p_dev = bta_dm_find_peer_device(peer_addr);
@@ -350,18 +329,8 @@ static void bta_dm_pm_cback(tBTA_SYS_CONN_STATUS status, UINT8 id, UINT8 app_id,
     bta_dm_pm_stop_timer_by_srvc_id(peer_addr, id);
     /*p_dev = bta_dm_find_peer_device(peer_addr);*/
 
-#if (BTM_SSR_INCLUDED == TRUE)
-    /* set SSR parameters on SYS CONN OPEN */
-    if ((BTA_SYS_CONN_OPEN == status) && p_dev && (p_dev->info & BTA_DM_DI_USE_SSR)) {
-        index = p_bta_dm_pm_spec[p_bta_dm_pm_cfg[i].spec_idx].ssr;
-    }
-#endif
-
     /* if no action for the event */
     if (p_bta_dm_pm_spec[p_bta_dm_pm_cfg[i].spec_idx].actn_tbl[status][0].power_mode == BTA_DM_PM_NO_ACTION) {
-#if (BTM_SSR_INCLUDED == TRUE)
-        if (BTA_DM_PM_SSR0 == index) /* and do not need to set SSR, return. */
-#endif
             return;
     }
 
@@ -420,28 +389,6 @@ static void bta_dm_pm_cback(tBTA_SYS_CONN_STATUS status, UINT8 id, UINT8 app_id,
         p_dev->pm_mode_attempted = 0;
         p_dev->pm_mode_failed = 0;
     }
-
-#if (BTM_SSR_INCLUDED == TRUE)
-    if (p_bta_dm_ssr_spec[index].max_lat
-#if (defined BTA_HH_INCLUDED && BTA_HH_INCLUDED == TRUE)
-            || index == BTA_DM_PM_SSR_HH
-#endif
-       ) {
-        bta_dm_pm_ssr(peer_addr);
-    } else {
-        if ( ((NULL != (p = BTM_ReadLocalFeatures ())) && HCI_SNIFF_SUB_RATE_SUPPORTED(p)) &&
-                ((NULL != (p = BTM_ReadRemoteFeatures (peer_addr))) && HCI_SNIFF_SUB_RATE_SUPPORTED(p)) &&
-                (index == BTA_DM_PM_SSR0)) {
-            if (status == BTA_SYS_SCO_OPEN) {
-                APPL_TRACE_DEBUG("%s: SCO inactive, reset SSR to zero", __func__);
-                BTM_SetSsrParams (peer_addr, 0, 0, 0 );
-            } else if (status == BTA_SYS_SCO_CLOSE) {
-                APPL_TRACE_DEBUG("%s: SCO active, back to old SSR", __func__);
-                bta_dm_pm_ssr(peer_addr);
-            }
-        }
-    }
-#endif
 
     bta_dm_pm_set_mode(peer_addr, BTA_DM_PM_NO_ACTION, BTA_DM_PM_NEW_REQ);
 
@@ -678,33 +625,11 @@ static BOOLEAN bta_dm_pm_sniff(tBTA_DM_PEER_DEVICE *p_peer_dev, UINT8 index)
     tBTM_PM_MODE    mode = BTM_PM_STS_ACTIVE;
     tBTM_PM_PWR_MD  pwr_md;
     tBTM_STATUS     status;
-#if (BTM_SSR_INCLUDED == TRUE)
-    UINT8 *p_rem_feat = NULL;
-#endif
 
     BTM_ReadPowerMode(p_peer_dev->peer_bdaddr, &mode);
-#if (BTM_SSR_INCLUDED == TRUE)
-    p_rem_feat = BTM_ReadRemoteFeatures (p_peer_dev->peer_bdaddr);
-    APPL_TRACE_DEBUG("bta_dm_pm_sniff cur:%d, idx:%d, info:x%x", mode, index, p_peer_dev->info);
-    if (mode != BTM_PM_MD_SNIFF ||
-            (HCI_SNIFF_SUB_RATE_SUPPORTED(BTM_ReadLocalFeatures ()) && p_rem_feat &&
-             HCI_SNIFF_SUB_RATE_SUPPORTED(p_rem_feat) &&
-             !(p_peer_dev->info & BTA_DM_DI_USE_SSR)))
-#else
     APPL_TRACE_DEBUG("bta_dm_pm_sniff cur:%d, idx:%d", mode, index);
     if (mode != BTM_PM_MD_SNIFF)
-#endif
     {
-#if (BTM_SSR_INCLUDED == TRUE)
-        /* Dont initiate Sniff if controller has already accepted
-         * remote sniff params. This avoid sniff loop issue with
-         * some aggressive headsets who use sniff latencies more than
-         * DUT supported range of Sniff intervals.*/
-        if ((mode == BTM_PM_MD_SNIFF) && (p_peer_dev->info & BTA_DM_DI_ACP_SNIFF)) {
-            APPL_TRACE_DEBUG("%s: already in remote initiate sniff", __func__);
-            return TRUE;
-        }
-#endif
         /* if the current mode is not sniff, issue the sniff command.
          * If sniff, but SSR is not used in this link, still issue the command */
         memcpy(&pwr_md, &p_bta_dm_pm_md[index], sizeof (tBTM_PM_PWR_MD));
@@ -735,57 +660,6 @@ static BOOLEAN bta_dm_pm_sniff(tBTA_DM_PEER_DEVICE *p_peer_dev, UINT8 index)
 ** Returns          void
 **
 *******************************************************************************/
-#if (BTM_SSR_INCLUDED == TRUE)
-static void bta_dm_pm_ssr(BD_ADDR peer_addr)
-{
-    tBTA_DM_SSR_SPEC *p_spec, *p_spec_cur;
-    UINT8   i, j;
-    int     ssr = BTA_DM_PM_SSR0;
-
-    /* go through the connected services */
-    for (i = 0; i < bta_dm_conn_srvcs.count ; i++) {
-        if (!bdcmp(bta_dm_conn_srvcs.conn_srvc[i].peer_bdaddr, peer_addr)) {
-            /* p_bta_dm_pm_cfg[0].app_id is the number of entries */
-            for (j = 1; j <= p_bta_dm_pm_cfg[0].app_id; j++) {
-                /* find the associated p_bta_dm_pm_cfg */
-                if ((p_bta_dm_pm_cfg[j].id == bta_dm_conn_srvcs.conn_srvc[i].id)
-                        && ((p_bta_dm_pm_cfg[j].app_id == BTA_ALL_APP_ID )
-                            || (p_bta_dm_pm_cfg[j].app_id == bta_dm_conn_srvcs.conn_srvc[i].app_id))) {
-                    APPL_TRACE_WARNING("bta_dm_pm_ssr conn_srvc id:%d, app_id:%d",
-                                       bta_dm_conn_srvcs.conn_srvc[i].id, bta_dm_conn_srvcs.conn_srvc[i].app_id);
-                    break;
-                }
-            }
-
-            /* find the ssr index with the smallest max latency. */
-            p_spec_cur = &p_bta_dm_ssr_spec[p_bta_dm_pm_spec[p_bta_dm_pm_cfg[j].spec_idx].ssr];
-            p_spec = &p_bta_dm_ssr_spec[ssr];
-
-#if (defined BTA_HH_INCLUDED && BTA_HH_INCLUDED == TRUE)
-            /* HH has the per connection SSR preference, already read the SSR params from BTA HH */
-            if (p_bta_dm_pm_spec[p_bta_dm_pm_cfg[j].spec_idx].ssr == BTA_DM_PM_SSR_HH) {
-                if (bta_hh_read_ssr_param(peer_addr, &p_spec_cur->max_lat, &p_spec_cur->min_rmt_to) == BTA_HH_ERR) {
-                    continue;
-                }
-            }
-#endif
-            if (p_spec_cur->max_lat < p_spec->max_lat ||
-                    (ssr == BTA_DM_PM_SSR0 && p_bta_dm_pm_spec[p_bta_dm_pm_cfg[j].spec_idx].ssr != BTA_DM_PM_SSR0)) {
-                ssr = p_bta_dm_pm_spec[p_bta_dm_pm_cfg[j].spec_idx].ssr;
-            }
-
-        }
-    }
-
-    p_spec = &p_bta_dm_ssr_spec[ssr];
-    APPL_TRACE_WARNING("bta_dm_pm_ssr:%d, lat:%d", ssr, p_spec->max_lat);
-    if (p_spec->max_lat) {
-        /* set the SSR parameters. */
-        BTM_SetSsrParams (peer_addr, p_spec->max_lat,
-                          p_spec->min_rmt_to, p_spec->min_loc_to);
-    }
-}
-#endif
 
 /*******************************************************************************
 **
@@ -917,38 +791,12 @@ void bta_dm_pm_btm_status(tBTA_DM_MSG *p_data)
                 bta_dm_pm_set_mode(p_data->pm_status.bd_addr, BTA_DM_PM_NO_ACTION, BTA_DM_PM_RESTART);
             }
         } else {
-#if (BTM_SSR_INCLUDED == TRUE)
-            if (p_dev->prev_low) {
-                /* need to send the SSR parameters to controller again */
-                bta_dm_pm_ssr(p_dev->peer_bdaddr);
-            }
-            p_dev->prev_low = BTM_PM_STS_ACTIVE;
-#endif
             /* link to active mode, need to restart the timer for next low power mode if needed */
             bta_dm_pm_stop_timer(p_data->pm_status.bd_addr);
             bta_dm_pm_set_mode(p_data->pm_status.bd_addr, BTA_DM_PM_NO_ACTION, BTA_DM_PM_RESTART);
         }
         break;
 
-#if (BTM_SSR_INCLUDED == TRUE)
-    case BTM_PM_STS_PARK:
-    case BTM_PM_STS_HOLD:
-        /* save the previous low power mode - for SSR.
-         * SSR parameters are sent to controller on "conn open".
-         * the numbers stay good until park/hold/detach */
-        if (p_dev->info & BTA_DM_DI_USE_SSR) {
-            p_dev->prev_low = p_data->pm_status.status;
-        }
-        break;
-
-    case BTM_PM_STS_SSR:
-        if (p_data->pm_status.value) {
-            p_dev->info |= BTA_DM_DI_USE_SSR;
-        } else {
-            p_dev->info &= ~BTA_DM_DI_USE_SSR;
-        }
-        break;
-#endif
     case BTM_PM_STS_SNIFF:
         if (p_data->pm_status.hci_status == 0) {
             /* Stop PM timer now if already active for
@@ -1103,7 +951,6 @@ static void bta_dm_pm_set_sniff_policy(tBTA_DM_PEER_DEVICE *p_dev, BOOLEAN bDisa
     BTM_SetLinkPolicy(p_dev->peer_bdaddr, &policy_setting);
 
 }
-#endif /* #if (BTA_DM_PM_INCLUDED == TRUE) */
 
 /*******************************************************************************
 **
@@ -1150,28 +997,3 @@ tBTA_DM_PEER_DEVICE *bta_dm_find_peer_device(BD_ADDR peer_addr)
 }
 
 
-#if ((defined BLE_INCLUDED) && (BLE_INCLUDED == TRUE) && SDP_INCLUDED == TRUE)
-/*******************************************************************************
-**
-** Function         bta_dm_pm_obtain_controller_state
-**
-** Description      This function obtains the consolidated controller power state
-**
-** Parameters:
-**
-*******************************************************************************/
-tBTA_DM_CONTRL_STATE bta_dm_pm_obtain_controller_state(void)
-{
-    /*   Did not use counts as it is not sure, how accurate the count values are in
-     **  bta_dm_cb.device_list.count > 0 || bta_dm_cb.device_list.le_count > 0 */
-
-    tBTA_DM_CONTRL_STATE cur_state = BTA_DM_CONTRL_UNKNOWN;
-    cur_state = BTM_PM_ReadControllerState();
-
-    APPL_TRACE_DEBUG("bta_dm_pm_obtain_controller_state: %d", cur_state);
-    return cur_state;
-}
-
-#endif
-
-#endif // #if (CLASSIC_BT_INCLUDED == TRUE)

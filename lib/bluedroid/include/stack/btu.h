@@ -203,10 +203,6 @@ typedef struct {
 #define BTU_MAX_REG_EVENT     (6)   /* max # event callbacks which may register */
 #define BTU_DEFAULT_DATA_SIZE (0x2a0)
 
-#if (BLE_INCLUDED == TRUE)
-#define BTU_DEFAULT_BLE_DATA_SIZE   (27)
-#endif
-
 /* structure to hold registered timers */
 typedef struct {
     TIMER_LIST_ENT          *p_tle;      /* timer entry */
@@ -241,12 +237,7 @@ extern "C" {
 #endif
 */
 /* Global BTU data */
-#if BTU_DYNAMIC_MEMORY == FALSE
 extern tBTU_CB  btu_cb;
-#else
-extern tBTU_CB *btu_cb_ptr;
-#define btu_cb (*btu_cb_ptr)
-#endif
 
 extern const BD_ADDR        BT_BD_ANY;
 
@@ -264,25 +255,16 @@ void btu_uipc_rx_cback(BT_HDR *p_msg);
 /*
 ** Quick Timer
 */
-#if defined(QUICK_TIMER_TICKS_PER_SEC) && (QUICK_TIMER_TICKS_PER_SEC > 0)
 void btu_start_quick_timer (TIMER_LIST_ENT *p_tle, UINT16 type, UINT32 timeout);
 void btu_stop_quick_timer (TIMER_LIST_ENT *p_tle);
 void btu_free_quick_timer (TIMER_LIST_ENT *p_tle);
 void btu_process_quick_timer_evt (void);
-#endif
-
-#if (defined(HCILP_INCLUDED) && HCILP_INCLUDED == TRUE)
-void btu_check_bt_sleep (void);
-#endif
 
 /* Functions provided by btu_hcif.c
 ************************************
 */
 void  btu_hcif_process_event (UINT8 controller_id, BT_HDR *p_buf);
 void  btu_hcif_send_cmd (UINT8 controller_id, BT_HDR *p_msg);
-#if (BLE_50_FEATURE_SUPPORT == TRUE)
-UINT8  btu_hcif_send_cmd_sync (UINT8 controller_id, BT_HDR *p_buf);
-#endif // #if (BLE_50_FEATURE_SUPPORT == TRUE)
 void  btu_hcif_send_host_rdy_for_data(void);
 void  btu_hcif_cmd_timeout (UINT8 controller_id);
 

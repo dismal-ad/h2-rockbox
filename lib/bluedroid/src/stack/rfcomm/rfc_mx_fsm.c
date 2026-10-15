@@ -34,7 +34,6 @@
 #include "osi/allocator.h"
 #include "osi/mutex.h"
 #include "common/bt_target.h"
-#if (defined RFCOMM_INCLUDED && RFCOMM_INCLUDED == TRUE)
 
 #define L2CAP_SUCCESS   0
 #define L2CAP_ERROR     1
@@ -680,4 +679,3 @@ static void rfc_mx_conf_ind (tRFC_MCB *p_mcb, tL2CAP_CFG_INFO *p_cfg)
     }
 }
 
-#endif ///(defined RFCOMM_INCLUDED && RFCOMM_INCLUDED == TRUE)

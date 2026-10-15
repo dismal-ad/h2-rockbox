@@ -23,12 +23,9 @@
 #include "common/bt_defs.h"
 #include "osi/allocator.h"
 
-#if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE)
-
 /*****************************************************************************
 **  Global data
 *****************************************************************************/
-#if (AVRC_METADATA_INCLUDED == TRUE)
 
 /*******************************************************************************
 **
@@ -887,6 +884,3 @@ tAVRC_STS AVRC_BldResponse( UINT8 handle, tAVRC_RESPONSE *p_rsp, BT_HDR **pp_pkt
     return status;
 }
 
-#endif /* (AVRC_METADATA_INCLUDED == TRUE)*/
-
-#endif /* #if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE) */

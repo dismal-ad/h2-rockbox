@@ -33,26 +33,12 @@
 
 #include "common/bt_target.h"
 
-#if (SMP_CRYPTO_STACK_NATIVE == TRUE)
-
-#if 1
 #  define AES_ENC_PREKEYED  /* AES encryption with a precomputed key schedule  */
-#endif
-#if 1
 #  define AES_DEC_PREKEYED  /* AES decryption with a precomputed key schedule  */
-#endif
-#if 1
 #  define AES_ENC_128_OTFK  /* AES encryption with 'on the fly' 128 bit keying */
-#endif
-#if 1
 #  define AES_DEC_128_OTFK  /* AES decryption with 'on the fly' 128 bit keying */
-#endif
-#if 1
 #  define AES_ENC_256_OTFK  /* AES encryption with 'on the fly' 256 bit keying */
-#endif
-#if 1
 #  define AES_DEC_256_OTFK  /* AES decryption with 'on the fly' 256 bit keying */
-#endif
 
 #define N_ROW                   4
 #define N_COL                   4
@@ -162,7 +148,5 @@ void bluedroid_aes_decrypt_256( const unsigned char in[N_BLOCK],
                                 const unsigned char key[2 * N_BLOCK],
                                 unsigned char o_key[2 * N_BLOCK] );
 #endif
-
-#endif /* SMP_CRYPTO_STACK_NATIVE == TRUE */
 
 #endif /* AES_H */

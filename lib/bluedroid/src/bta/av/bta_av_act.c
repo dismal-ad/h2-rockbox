@@ -24,7 +24,6 @@
  ******************************************************************************/
 
 #include "common/bt_target.h"
-#if defined(BTA_AV_INCLUDED) && (BTA_AV_INCLUDED == TRUE)
 
 #include <string.h>
 #include "bta/bta_av_api.h"
@@ -37,10 +36,8 @@
 #if( defined BTA_AR_INCLUDED ) && (BTA_AR_INCLUDED == TRUE)
 #include "bta/bta_ar_api.h"
 #endif
-#if BTA_AV_CA_INCLUDED
 #include "stack/goep_common.h"
 #include "stack/goepc_api.h"
-#endif
 
 #define LOG_TAG "bt_bta_av"
 // #include "osi/include/log.h"
@@ -102,10 +99,8 @@ void bta_av_del_rc(tBTA_AV_RCB *p_rcb)
 
     p_scb = NULL;
     if (p_rcb->handle != BTA_AV_RC_HANDLE_NONE) {
-#if BTA_AV_CA_INCLUDED
         /* reset cover art state */
         bta_av_ca_reset(p_rcb);
-#endif
         if (p_rcb->shdl) {
             /* Validate array index*/
             if ((p_rcb->shdl - 1) < BTA_AV_NUM_STRS) {
@@ -727,8 +722,6 @@ tBTA_AV_EVT bta_av_proc_meta_cmd(tAVRC_RESPONSE  *p_rc_rsp, tBTA_AV_RC_MSG *p_ms
     UINT16      u16;
     tAVRC_MSG_VENDOR    *p_vendor = &p_msg->msg.vendor;
 
-#if (AVRC_METADATA_INCLUDED == TRUE)
-
     if (!p_vendor || !p_vendor->p_vendor_data || (p_vendor->vendor_len == 0)) {
         evt = 0;
         p_rc_rsp->rsp.status = AVRC_STS_BAD_CMD;
@@ -808,12 +801,6 @@ tBTA_AV_EVT bta_av_proc_meta_cmd(tAVRC_RESPONSE  *p_rc_rsp, tBTA_AV_RC_MSG *p_ms
             break;
         }
     }
-#else
-    APPL_TRACE_DEBUG("AVRCP 1.3 Metadata not supporteed. Reject command.");
-    /* reject invalid message without reporting to app */
-    evt = 0;
-    p_rc_rsp->rsp.status = AVRC_STS_BAD_CMD;
-#endif
 
     return evt;
 }
@@ -835,12 +822,10 @@ void bta_av_rc_msg(tBTA_AV_CB *p_cb, tBTA_AV_DATA *p_data)
     BT_HDR      *p_pkt = NULL;
     tAVRC_MSG_VENDOR    *p_vendor = &p_data->rc_msg.msg.vendor;
     BOOLEAN is_inquiry = ((p_data->rc_msg.msg.hdr.ctype == AVRC_CMD_SPEC_INQ) || p_data->rc_msg.msg.hdr.ctype == AVRC_CMD_GEN_INQ);
-#if (AVRC_METADATA_INCLUDED == TRUE)
     UINT8       ctype = 0;
     tAVRC_RESPONSE  rc_rsp;
 
     rc_rsp.rsp.status = BTA_AV_STS_NO_RSP;
-#endif
 
     if (p_data->rc_msg.opcode == AVRC_OP_PASS_THRU) {
         /* if this is a pass thru command */
@@ -851,13 +836,11 @@ void bta_av_rc_msg(tBTA_AV_CB *p_cb, tBTA_AV_DATA *p_data)
             /* check if operation is supported */
             if (p_data->rc_msg.msg.pass.op_id == AVRC_ID_VENDOR) {
                 p_data->rc_msg.msg.hdr.ctype = BTA_AV_RSP_NOT_IMPL;
-#if (AVRC_METADATA_INCLUDED == TRUE)
                 if (p_cb->features & BTA_AV_FEAT_METADATA) {
                     p_data->rc_msg.msg.hdr.ctype =
                         bta_av_group_navi_supported(p_data->rc_msg.msg.pass.pass_len,
                                                     p_data->rc_msg.msg.pass.p_pass_data, is_inquiry);
                 }
-#endif
             } else {
                 p_data->rc_msg.msg.hdr.ctype = bta_av_op_supported(p_data->rc_msg.msg.pass.op_id, is_inquiry);
             }
@@ -907,13 +890,11 @@ void bta_av_rc_msg(tBTA_AV_CB *p_cb, tBTA_AV_DATA *p_data)
         /* if configured to support vendor specific and it's a command */
         if ((p_cb->features & BTA_AV_FEAT_VENDOR)  &&
                 p_data->rc_msg.msg.hdr.ctype <= AVRC_CMD_GEN_INQ) {
-#if (AVRC_METADATA_INCLUDED == TRUE)
             if ((p_cb->features & BTA_AV_FEAT_METADATA) &&
                     (p_vendor->company_id == AVRC_CO_METADATA)) {
                 av.meta_msg.p_msg = &p_data->rc_msg.msg;
                 evt = bta_av_proc_meta_cmd (&rc_rsp, &p_data->rc_msg, &ctype);
             } else
-#endif
             {
                 evt = BTA_AV_VENDOR_CMD_EVT;
             }
@@ -921,13 +902,11 @@ void bta_av_rc_msg(tBTA_AV_CB *p_cb, tBTA_AV_DATA *p_data)
         /* else if configured to support vendor specific and it's a response */
         else if ((p_cb->features & BTA_AV_FEAT_VENDOR) &&
                  p_data->rc_msg.msg.hdr.ctype >= AVRC_RSP_ACCEPT) {
-#if (AVRC_METADATA_INCLUDED == TRUE)
             if ((p_cb->features & BTA_AV_FEAT_METADATA) &&
                     (p_vendor->company_id == AVRC_CO_METADATA)) {
                 av.meta_msg.p_msg = &p_data->rc_msg.msg;
                 evt = BTA_AV_META_MSG_EVT;
             } else
-#endif
             {
                 evt = BTA_AV_VENDOR_RSP_EVT;
             }
@@ -946,7 +925,6 @@ void bta_av_rc_msg(tBTA_AV_CB *p_cb, tBTA_AV_DATA *p_data)
             AVRC_VendorRsp(p_data->rc_msg.handle, p_data->rc_msg.label, &p_data->rc_msg.msg.vendor);
         }
     }
-#if (AVRC_METADATA_INCLUDED == TRUE)
     if (evt == 0 && rc_rsp.rsp.status != BTA_AV_STS_NO_RSP) {
         if (!p_pkt) {
             rc_rsp.rsp.opcode = p_data->rc_msg.opcode;
@@ -956,7 +934,6 @@ void bta_av_rc_msg(tBTA_AV_CB *p_cb, tBTA_AV_DATA *p_data)
             AVRC_MsgReq (p_data->rc_msg.handle, p_data->rc_msg.label, ctype, p_pkt);
         }
     }
-#endif
 
     /* call callback */
     if (evt != 0) {
@@ -1506,8 +1483,6 @@ static void bta_av_acp_sig_timer_cback (TIMER_LIST_ENT *p_tle)
     }
 }
 
-#if BTA_AV_CA_INCLUDED
-
 /*******************************************************************************
 **
 ** Function         bta_av_extra_tg_cover_art_l2cap_psm
@@ -1548,8 +1523,6 @@ static UINT16 bta_av_extra_tg_cover_art_l2cap_psm(void)
     }
     return l2cap_psm;
 }
-
-#endif /* BTA_AV_CA_INCLUDED */
 
 /*******************************************************************************
 **
@@ -1644,9 +1617,7 @@ void bta_av_rc_disc_done(tBTA_AV_DATA *p_data)
     tBTA_AV_FEAT        peer_features;  /* peer features mask */
     UINT16              peer_ct_features;  /* peer features mask as controller */
     UINT16              peer_tg_features;  /* peer features mask as target */
-#if BTA_AV_CA_INCLUDED
     UINT16              obex_l2cap_psm = 0; /* target obex l2cap psm */
-#endif
     UNUSED(p_data);
 
     APPL_TRACE_DEBUG("bta_av_rc_disc_done disc:x%x", p_cb->disc);
@@ -1674,11 +1645,9 @@ void bta_av_rc_disc_done(tBTA_AV_DATA *p_data)
     /* check peer version and whether support CT and TG role */
     peer_features = bta_av_check_peer_rc_features (UUID_SERVCLASS_AV_REMOTE_CONTROL, &peer_ct_features);
     peer_features |= bta_av_check_peer_rc_features (UUID_SERVCLASS_AV_REM_CTRL_TARGET, &peer_tg_features);
-#if BTA_AV_CA_INCLUDED
     if (peer_features & BTA_AV_FEAT_COVER_ART) {
         obex_l2cap_psm = bta_av_extra_tg_cover_art_l2cap_psm();
     }
-#endif
     p_cb->disc = 0;
     utl_freebuf((void **) &p_cb->p_disc_db);
 
@@ -1697,9 +1666,7 @@ void bta_av_rc_disc_done(tBTA_AV_DATA *p_data)
                         p_cb->rcb[rc_handle].peer_features = peer_features;
                         p_cb->rcb[rc_handle].peer_ct_features = peer_ct_features;
                         p_cb->rcb[rc_handle].peer_tg_features = peer_tg_features;
-#if BTA_AV_CA_INCLUDED
                         p_cb->rcb[rc_handle].cover_art_l2cap_psm = obex_l2cap_psm;
-#endif
                     } else {
                         /* cannot create valid rc_handle for current device. report failure */
                         APPL_TRACE_ERROR("%s: no link resources available", __func__);
@@ -1730,9 +1697,7 @@ void bta_av_rc_disc_done(tBTA_AV_DATA *p_data)
         p_cb->rcb[rc_handle].peer_features = peer_features;
         p_cb->rcb[rc_handle].peer_ct_features = peer_ct_features;
         p_cb->rcb[rc_handle].peer_tg_features = peer_tg_features;
-#if BTA_AV_CA_INCLUDED
         p_cb->rcb[rc_handle].cover_art_l2cap_psm = obex_l2cap_psm;
-#endif
         rc_feat.rc_handle =  rc_handle;
         rc_feat.peer_features = peer_features;
         rc_feat.peer_ct_features = peer_ct_features;
@@ -1773,10 +1738,8 @@ void bta_av_rc_closed(tBTA_AV_DATA *p_data)
             p_rcb->peer_features = 0;
             p_rcb->peer_ct_features = 0;
             p_rcb->peer_tg_features = 0;
-#if BTA_AV_CA_INCLUDED
             /* reset cover art state */
             bta_av_ca_reset(p_rcb);
-#endif
             APPL_TRACE_DEBUG("       shdl:%d, lidx:%d", p_rcb->shdl, p_rcb->lidx);
             if (p_rcb->shdl) {
                 if ((p_rcb->shdl - 1) < BTA_AV_NUM_STRS) {
@@ -1950,10 +1913,8 @@ void bta_av_dereg_comp(tBTA_AV_DATA *p_data)
                 bta_av_del_sdp_rec(&p_cb->sdp_a2d_handle);
                 bta_sys_remove_uuid(UUID_SERVCLASS_AUDIO_SOURCE);
 
-#if (BTA_AV_SINK_INCLUDED == TRUE)
                 bta_av_del_sdp_rec(&p_cb->sdp_a2d_snk_handle);
                 bta_sys_remove_uuid(UUID_SERVCLASS_AUDIO_SINK);
-#endif
             }
         } else {
             p_cb->reg_video  &= ~mask;
@@ -1993,11 +1954,8 @@ void bta_av_dereg_comp(tBTA_AV_DATA *p_data)
         if (p_data->api_reg.tsep == AVDT_TSEP_SRC) {
             cod.service = BTM_COD_SERVICE_CAPTURING | BTM_COD_SERVICE_AUDIO;
         } else {
-#if (BTA_AV_SINK_INCLUDED == TRUE)
             cod.service = BTM_COD_SERVICE_RENDERING | BTM_COD_SERVICE_AUDIO;
-#endif
         }
         utl_set_device_class(&cod, BTA_UTL_CLR_COD_SERVICE_CLASS);
     }
 }
-#endif /* BTA_AV_INCLUDED */

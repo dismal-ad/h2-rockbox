@@ -8,8 +8,6 @@
 
 #include "common/bt_target.h"
 
-#if (OBEX_INCLUDED == TRUE)
-
 /* Return code of obex_tl_send_data */
 #define OBEX_TL_FAILED              FALSE
 #define OBEX_TL_SUCCESS             TRUE
@@ -94,4 +92,3 @@ typedef struct {
     void (*unbind)(UINT16 tl_hdl);
 } tOBEX_TL_OPS;
 
-#endif /* #if (OBEX_INCLUDED == TRUE) */

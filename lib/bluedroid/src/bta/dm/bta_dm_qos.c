@@ -29,8 +29,6 @@
 #include "stack/btm_api.h"
 #include "osi/allocator.h"
 
-#if (BTA_DM_QOS_INCLUDED == TRUE)
-
 void bta_dm_set_qos(tBTA_DM_MSG *p_data)
 {
     FLOW_SPEC p_flow = {
@@ -65,4 +63,3 @@ void BTA_DmSetQos(BD_ADDR bd_addr, UINT32 t_poll, tBTM_CMPL_CB *p_cb)
         bta_sys_sendmsg(p_msg);
     }
 }
-#endif /// (BTA_DM_QOS_INCLUDED == TRUE)

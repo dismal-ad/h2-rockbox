@@ -29,7 +29,6 @@
 #include "avct_defs.h"
 #include "stack/avrc_api.h"
 
-#if (AVRC_INCLUDED == TRUE)
 /*      DEBUG FLAGS
  *
  * #define META_DEBUG_ENABLED
@@ -97,7 +96,6 @@
 **  Type definitions
 *****************************************************************************/
 
-#if (AVRC_METADATA_INCLUDED == TRUE)
 /* type for Metadata fragmentation control block */
 typedef struct {
     BT_HDR              *p_fmsg;        /* the fragmented message */
@@ -111,14 +109,11 @@ typedef struct {
     UINT16              rasm_offset;    /* re-assembly flag, the offset of the start fragment */
     UINT8               rasm_pdu;       /* the PDU ID for re-assembly */
 } tAVRC_RASM_CB;
-#endif
 
 typedef struct {
     tAVRC_CONN_CB       ccb[AVCT_NUM_CONN];
-#if (AVRC_METADATA_INCLUDED == TRUE)
     tAVRC_FRAG_CB       fcb[AVCT_NUM_CONN];
     tAVRC_RASM_CB       rcb[AVCT_NUM_CONN];
-#endif
     tAVRC_FIND_CBACK    *p_cback;       /* pointer to application callback */
     tSDP_DISCOVERY_DB   *p_db;          /* pointer to discovery database */
     UINT16              service_uuid;   /* service UUID to search */
@@ -135,12 +130,7 @@ extern "C"
 /******************************************************************************
 ** Main Control Block
 *******************************************************************************/
-#if AVRC_DYNAMIC_MEMORY == FALSE
 extern tAVRC_CB  avrc_cb;
-#else
-extern tAVRC_CB *avrc_cb_ptr;
-#define avrc_cb (*avrc_cb_ptr)
-#endif
 
 extern BOOLEAN avrc_is_valid_pdu_id(UINT8 pdu_id);
 extern BOOLEAN avrc_is_valid_player_attrib_value(UINT8 attrib, UINT8 value);
@@ -152,7 +142,5 @@ extern BOOLEAN avrc_is_valid_opcode(UINT8 opcode);
 #ifdef __cplusplus
 }
 #endif
-
-#endif  ///AVRC_INCLUDED == TRUE
 
 #endif /* AVRC_INT_H */

@@ -33,8 +33,6 @@
 #include "osi/future.h"
 #include <assert.h>
 
-#if (BTC_AV_SINK_INCLUDED == TRUE) && (BTC_AV_EXT_CODEC == FALSE)
-
 #include "oi_codec_sbc.h"
 #include "oi_status.h"
 
@@ -124,12 +122,7 @@ static void btc_a2dp_sink_data_ready(void *context);
 
 static int btc_a2dp_sink_state = BTC_A2DP_SINK_STATE_OFF;
 static esp_a2d_sink_data_cb_t bt_aa_snk_data_cb = NULL;
-#if A2D_DYNAMIC_MEMORY == FALSE
 static a2dp_sink_local_param_t a2dp_sink_local_param;
-#else
-static a2dp_sink_local_param_t *a2dp_sink_local_param_ptr;
-#define a2dp_sink_local_param (*a2dp_sink_local_param_ptr)
-#endif ///A2D_DYNAMIC_MEMORY == FALSE
 
 void btc_a2dp_sink_reg_data_cb(esp_a2d_sink_data_cb_t callback)
 {
@@ -196,14 +189,6 @@ bool btc_a2dp_sink_startup(void)
         return false;
     }
 
-#if A2D_DYNAMIC_MEMORY == TRUE
-    if ((a2dp_sink_local_param_ptr = (a2dp_sink_local_param_t *)osi_malloc(sizeof(a2dp_sink_local_param_t))) == NULL) {
-        APPL_TRACE_ERROR("%s malloc failed!", __func__);
-        return false;
-    }
-    memset((void *)a2dp_sink_local_param_ptr, 0, sizeof(a2dp_sink_local_param_t));
-#endif
-
     APPL_TRACE_EVENT("## A2DP SINK START MEDIA THREAD ##");
 
     a2dp_sink_local_param.btc_aa_snk_task_hdl = btc_get_current_thread();
@@ -220,11 +205,6 @@ error_exit:;
     APPL_TRACE_ERROR("%s unable to start up media thread\n", __func__);
     a2dp_sink_local_param.btc_aa_snk_task_hdl = NULL;
 
-#if A2D_DYNAMIC_MEMORY == TRUE
-    osi_free(a2dp_sink_local_param_ptr);
-    a2dp_sink_local_param_ptr = NULL;
-#endif
-
     return false;
 }
 
@@ -239,10 +219,6 @@ void btc_a2dp_sink_shutdown(void)
 
     a2dp_sink_local_param.btc_aa_snk_task_hdl = NULL;
 
-#if A2D_DYNAMIC_MEMORY == TRUE
-    osi_free(a2dp_sink_local_param_ptr);
-    a2dp_sink_local_param_ptr = NULL;
-#endif
 }
 
 /*****************************************************************************
@@ -742,4 +718,3 @@ static void btc_a2dp_sink_thread_cleanup(UNUSED_ATTR void *context)
     a2dp_sink_local_param.btc_aa_snk_cb.data_ready_event = NULL;
 }
 
-#endif /* (BTC_AV_SINK_INCLUDED == TRUE) && (BTC_AV_EXT_CODEC == FALSE) */

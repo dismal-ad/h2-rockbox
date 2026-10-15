@@ -209,11 +209,7 @@ typedef uint8_t esp_link_key[ESP_BT_OCTET16_LEN];      /* Link Key */
 /// Default GATT interface id
 #define ESP_DEFAULT_GATT_IF             0xff
 
-#if BLE_HIGH_DUTY_ADV_INTERVAL
-#define ESP_BLE_PRIM_ADV_INT_MIN            0x000008     /*!< Minimum advertising interval for undirected and low duty cycle directed advertising */
-#else
 #define ESP_BLE_PRIM_ADV_INT_MIN            0x000020     /*!< Minimum advertising interval for undirected and low duty cycle directed advertising */
-#endif
 #define ESP_BLE_PRIM_ADV_INT_MAX            0xFFFFFF     /*!< Maximum advertising interval for undirected and low duty cycle directed advertising */
 #define ESP_BLE_CONN_INT_MIN                0x0006       /*!< relate to BTM_BLE_CONN_INT_MIN in stack/btm_ble_api.h */
 #define ESP_BLE_CONN_INT_MAX                0x0C80       /*!< relate to BTM_BLE_CONN_INT_MAX in stack/btm_ble_api.h */
@@ -284,9 +280,6 @@ typedef enum {
 typedef enum {
     BLE_WL_ADDR_TYPE_PUBLIC        = 0x00,  /*!< Public Device Address */
     BLE_WL_ADDR_TYPE_RANDOM        = 0x01,  /*!< Random Device Address */
-#if (CONFIG_BT_BLE_50_FEATURES_SUPPORTED)
-    BLE_WL_ADDR_TYPE_ANONYMOUS     = 0xFF,  /*!< Devices sending anonymous advertisements, use to enable anonymous advertising report for scanning */
-#endif // (CONFIG_BT_BLE_50_FEATURES_SUPPORTED)
 } esp_ble_wl_addr_type_t;
 
 /// Used to exchange the encryption key in the init key & response key

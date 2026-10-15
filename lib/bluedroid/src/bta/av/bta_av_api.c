@@ -25,7 +25,6 @@
  ******************************************************************************/
 
 #include "common/bt_target.h"
-#if defined(BTA_AV_INCLUDED) && (BTA_AV_INCLUDED == TRUE)
 
 #include "osi/allocator.h"
 #include "bta/bta_api.h"
@@ -264,16 +263,12 @@ void BTA_AvStart(void)
 *******************************************************************************/
 void BTA_AvEnable_Sink(int enable)
 {
-#if (BTA_AV_SINK_INCLUDED == TRUE)
     BT_HDR  *p_buf;
     if ((p_buf = (BT_HDR *) osi_malloc(sizeof(BT_HDR))) != NULL) {
         p_buf->event = BTA_AV_API_SINK_ENABLE_EVT;
         p_buf->layer_specific = enable;
         bta_sys_sendmsg(p_buf);
     }
-#else
-    return;
-#endif
 }
 
 /*******************************************************************************
@@ -630,8 +625,6 @@ void BTA_AvMetaCmd(UINT8 rc_handle, UINT8 label, tBTA_AV_CMD cmd_code, BT_HDR *p
     }
 }
 
-#if BTA_AV_CA_INCLUDED
-
 /*******************************************************************************
 **
 ** Function         BTA_AvCaOpen
@@ -701,6 +694,3 @@ void BTA_AvCaGet(UINT8 rc_handle, tBTA_AV_GET_TYPE type, UINT8 *image_handle, UI
     }
 }
 
-#endif /* BTA_AV_CA_INCLUDED */
-
-#endif /* BTA_AV_INCLUDED */

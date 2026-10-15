@@ -22,14 +22,11 @@
 #include "avrc_int.h"
 #include "osi/allocator.h"
 
-#if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE)
-
 /*****************************************************************************
 **  Global data
 *****************************************************************************/
 
 
-#if (AVRC_METADATA_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         avrc_bld_next_cmd
@@ -62,7 +59,6 @@ static tAVRC_STS avrc_bld_next_cmd (tAVRC_NEXT_CMD *p_cmd, BT_HDR *p_pkt)
 **  the following commands are introduced in AVRCP 1.4
 *****************************************************************************/
 
-#if (AVRC_ADV_CTRL_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         avrc_bld_set_abs_volume_cmd
@@ -114,7 +110,6 @@ static tAVRC_STS avrc_bld_register_change_notfn(UINT8 event_id, UINT32 event_par
     p_pkt->len = (p_data - p_start);
     return AVRC_STS_NO_ERROR;
 }
-#endif
 
 /*******************************************************************************
 **
@@ -309,11 +304,9 @@ tAVRC_STS AVRC_BldCommand( tAVRC_COMMAND *p_cmd, BT_HDR **pp_pkt)
     case AVRC_PDU_ABORT_CONTINUATION_RSP:       /*          0x41 */
         status = avrc_bld_next_cmd(&p_cmd->abort, p_pkt);
         break;
-#if (AVRC_ADV_CTRL_INCLUDED == TRUE)
     case AVRC_PDU_SET_ABSOLUTE_VOLUME:         /* 0x50 */
         status = avrc_bld_set_abs_volume_cmd(&p_cmd->volume, p_pkt);
         break;
-#endif
 
     case AVRC_PDU_SET_PLAYER_APP_VALUE:       /* 0x14 */
         status = avrc_bld_set_player_value_cmd(&p_cmd->set_app_val, p_pkt);
@@ -342,6 +335,4 @@ tAVRC_STS AVRC_BldCommand( tAVRC_COMMAND *p_cmd, BT_HDR **pp_pkt)
     AVRC_TRACE_API("AVRC_BldCommand: returning %d", status);
     return status;
 }
-#endif /* (AVRC_METADATA_INCLUDED == TRUE) */
 
-#endif /* #if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE) */

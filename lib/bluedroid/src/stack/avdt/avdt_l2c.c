@@ -35,8 +35,6 @@
 #include "btm_int.h"
 #include "osi/allocator.h"
 
-#if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE)
-
 /* callback function declarations */
 void avdt_l2c_connect_ind_cback(BD_ADDR bd_addr, UINT16 lcid, UINT16 psm, UINT8 id);
 void avdt_l2c_connect_cfm_cback(UINT16 lcid, UINT16 result);
@@ -219,7 +217,6 @@ void avdt_l2c_connect_ind_cback(BD_ADDR bd_addr, UINT16 lcid, UINT16 psm, UINT8 
         /* yes; proceed with connection */
         result = L2CAP_CONN_OK;
     }
-#if AVDT_REPORTING == TRUE
     /* this must be a reporting channel; are we accepting a reporting channel
     ** for this ccb?
     */
@@ -227,7 +224,6 @@ void avdt_l2c_connect_ind_cback(BD_ADDR bd_addr, UINT16 lcid, UINT16 psm, UINT8 
         /* yes; proceed with connection */
         result = L2CAP_CONN_OK;
     }
-#endif
     /* else we're not listening for traffic channel; reject */
     else {
         result = L2CAP_CONN_NO_PSM;
@@ -498,4 +494,3 @@ void avdt_l2c_data_ind_cback(UINT16 lcid, BT_HDR *p_buf)
     }
 }
 
-#endif /* #if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE) */

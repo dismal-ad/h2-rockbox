@@ -32,53 +32,17 @@
 #include "stack/hcimsgs.h"
 #include "l2c_int.h"
 #include "osi/osi.h"
-#if (defined(SDP_INCLUDED) && SDP_INCLUDED == TRUE)
 #include "sdpint.h"
-#endif
 
-#if (defined(RFCOMM_INCLUDED) && RFCOMM_INCLUDED == TRUE)
 #include "stack/port_api.h"
 #include "stack/port_ext.h"
-#endif
 
-#if (defined(GAP_INCLUDED) && GAP_INCLUDED == TRUE)
 #include "gap_int.h"
-#endif
 
-#if (defined(BNEP_INCLUDED) && BNEP_INCLUDED == TRUE)
-#include "bnep_int.h"
-#endif
-
-#if (defined(PAN_INCLUDED) && PAN_INCLUDED == TRUE)
-#include "pan_int.h"
-#endif
-
-#if (defined(HID_HOST_INCLUDED) && HID_HOST_INCLUDED == TRUE )
-#include "hid_int.h"
-#endif
-
-#if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE)
 #include "avdt_int.h"
-#else
-extern void avdt_rcv_sync_info (BT_HDR *p_buf);
-#endif
-
-#if (defined(MCA_INCLUDED) && MCA_INCLUDED == TRUE)
-#include "mca_api.h"
-#include "mca_defs.h"
-#include "mca_int.h"
-#endif
 
 #if (defined(BTA_INCLUDED) && BTA_INCLUDED == TRUE)
 #include "bta/bta_sys.h"
-#endif
-
-#if (BLE_INCLUDED == TRUE)
-#include "gatt_int.h"
-#if (SMP_INCLUDED == TRUE)
-#include "smp_int.h"
-#endif
-#include "btm_ble_int.h"
 #endif
 
 typedef struct {
@@ -95,11 +59,7 @@ extern void BTE_DeinitStack(void);
 
 /* Define BTU storage area
 */
-#if BTU_DYNAMIC_MEMORY == FALSE
 tBTU_CB  btu_cb;
-#else
-tBTU_CB  *btu_cb_ptr;
-#endif
 
 extern hash_map_t *btu_general_alarm_hash_map;
 extern osi_mutex_t btu_general_alarm_lock;
@@ -150,20 +110,11 @@ static void btu_hci_msg_process(void *param)
         break;
 
     case BT_EVT_TO_BTU_HCI_SCO:
-#if BTM_SCO_INCLUDED == TRUE
-        btm_route_sco_data (p_msg);
-        break;
-#endif
 
     case BT_EVT_TO_BTU_HCI_EVT:
         btu_hcif_process_event ((UINT8)(p_msg->event & BT_SUB_EVT_MASK), p_msg);
         osi_free(p_msg);
 
-#if (defined(HCILP_INCLUDED) && HCILP_INCLUDED == TRUE)
-        /* If host receives events which it doesn't response to, */
-        /* host should start idle timer to enter sleep mode.     */
-        btu_check_bt_sleep ();
-#endif
         break;
 
     case BT_EVT_TO_BTU_HCI_CMD:
@@ -228,18 +179,8 @@ bool btu_task_post(uint32_t sig, void *param, uint32_t timeout)
             status = osi_thread_post(btu_thread, btu_hci_msg_process, param, 0, timeout);
             break;
         case SIG_BTU_HCI_ADV_RPT_MSG:
-#if BLE_INCLUDED == TRUE
-#if (BLE_42_SCAN_EN == TRUE)
-            if (param != NULL) {
-                btm_ble_adv_pkt_post(param);
-            }
-            btm_ble_adv_pkt_ready();
-            status = true;
-#endif // #if (BLE_42_SCAN_EN == TRUE)
-#else
             osi_free(param);
             status = false;
-#endif
             break;
 #if (defined(BTA_INCLUDED) && BTA_INCLUDED == TRUE)
         case SIG_BTU_BTA_MSG:
@@ -315,9 +256,7 @@ static void btu_general_alarm_process(void *param)
 
     switch (p_tle->event) {
     case BTU_TTYPE_BTM_DEV_CTL:
-#if (CLASSIC_BT_INCLUDED == TRUE)
         btm_dev_timeout(p_tle);
-#endif // (CLASSIC_BT_INCLUDED == TRUE)
         break;
 
     case BTU_TTYPE_L2CAP_LINK:
@@ -328,28 +267,18 @@ static void btu_general_alarm_process(void *param)
     case BTU_TTYPE_L2CAP_UPDA_CONN_PARAMS:
         l2c_process_timeout (p_tle);
         break;
-#if (defined(SDP_INCLUDED) && SDP_INCLUDED == TRUE)
     case BTU_TTYPE_SDP:
         sdp_conn_timeout ((tCONN_CB *)p_tle->param);
         break;
-#endif
     case BTU_TTYPE_BTM_RMT_NAME:
         btm_inq_rmt_name_failed();
         break;
-#if (defined(RFCOMM_INCLUDED) && RFCOMM_INCLUDED == TRUE)
     case BTU_TTYPE_RFCOMM_MFC:
     case BTU_TTYPE_RFCOMM_PORT:
         rfcomm_process_timeout (p_tle);
         break;
-#endif
-#if ((defined(BNEP_INCLUDED) && BNEP_INCLUDED == TRUE))
-    case BTU_TTYPE_BNEP:
-        bnep_process_timeout(p_tle);
-        break;
-#endif
 
 
-#if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE)
     case BTU_TTYPE_AVDT_SCB_DELAY_RPT:
     case BTU_TTYPE_AVDT_CCB_RET:
     case BTU_TTYPE_AVDT_CCB_RSP:
@@ -357,49 +286,7 @@ static void btu_general_alarm_process(void *param)
     case BTU_TTYPE_AVDT_SCB_TC:
         avdt_process_timeout(p_tle);
         break;
-#endif
 
-#if (defined(HID_HOST_INCLUDED) && HID_HOST_INCLUDED == TRUE)
-    case BTU_TTYPE_HID_HOST_REPAGE_TO :
-        hidh_proc_repage_timeout(p_tle);
-        break;
-#endif
-
-#if (defined(BLE_INCLUDED) && BLE_INCLUDED == TRUE)
-    case BTU_TTYPE_BLE_INQUIRY:
-    case BTU_TTYPE_BLE_GAP_LIM_DISC:
-    case BTU_TTYPE_BLE_RANDOM_ADDR:
-    case BTU_TTYPE_BLE_GAP_FAST_ADV:
-    case BTU_TTYPE_BLE_SCAN:
-    case BTU_TTYPE_BLE_OBSERVE:
-        btm_ble_timeout(p_tle);
-        break;
-
-    case BTU_TTYPE_ATT_WAIT_FOR_RSP:
-#if (GATTC_INCLUDED == TRUE)
-        gatt_rsp_timeout(p_tle);
-#endif // (GATTC_INCLUDED == TRUE)
-        break;
-
-    case BTU_TTYPE_ATT_WAIT_FOR_IND_ACK:
-#if (GATTC_INCLUDED == TRUE)
-        gatt_ind_ack_timeout(p_tle);
-#endif // (GATTC_INCLUDED == TRUE)
-        break;
-
-#if (defined(SMP_INCLUDED) && SMP_INCLUDED == TRUE)
-    case BTU_TTYPE_SMP_PAIRING_CMD:
-        smp_rsp_timeout(p_tle);
-        break;
-#endif
-
-#endif
-
-#if (MCA_INCLUDED == TRUE)
-    case BTU_TTYPE_MCA_CCB_RSP:
-        mca_process_timeout(p_tle);
-        break;
-#endif
     case BTU_TTYPE_USER_FUNC: {
         tUSER_TIMEOUT_FUNC  *p_uf = (tUSER_TIMEOUT_FUNC *)p_tle->param;
         (*p_uf)(p_tle);
@@ -412,11 +299,9 @@ static void btu_general_alarm_process(void *param)
     case BTU_TTYPE_BTM_SET_PAGE_TO:
         btm_page_to_setup_timeout(p_tle);
         break;
-#if (CLASSIC_BT_INCLUDED == TRUE)
     case BTU_TTYPE_BTM_BREDR_PWR_CTRL:
         btm_bredr_pwr_ctrl_timeout(p_tle);
         break;
-#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
     default:
         for (int i = 0; i < BTU_MAX_REG_TIMER; i++) {
             if (btu_cb.timer_reg[i].timer_cb == NULL) {
@@ -520,7 +405,6 @@ void btu_free_timer(TIMER_LIST_ENT *p_tle)
     hash_map_erase(btu_general_alarm_hash_map, p_tle);
 }
 
-#if defined(QUICK_TIMER_TICKS_PER_SEC) && (QUICK_TIMER_TICKS_PER_SEC > 0)
 /*******************************************************************************
 **
 ** Function         btu_start_quick_timer
@@ -625,8 +509,6 @@ void btu_free_quick_timer(TIMER_LIST_ENT *p_tle)
     hash_map_erase(btu_l2cap_alarm_hash_map, p_tle);
 }
 
-#endif /* defined(QUICK_TIMER_TICKS_PER_SEC) && (QUICK_TIMER_TICKS_PER_SEC > 0) */
-
 void btu_oneshot_alarm_cb(void *data)
 {
     assert(data != NULL);
@@ -686,21 +568,3 @@ void btu_stop_timer_oneshot(TIMER_LIST_ENT *p_tle)
     osi_alarm_cancel(alarm);
 }
 
-#if (defined(HCILP_INCLUDED) && HCILP_INCLUDED == TRUE)
-/*******************************************************************************
-**
-** Function         btu_check_bt_sleep
-**
-** Description      This function is called to check if controller can go to sleep.
-**
-** Returns          void
-**
-*******************************************************************************/
-void btu_check_bt_sleep (void)
-{
-    // TODO(zachoverflow) take pending commands into account?
-    if (l2cb.controller_xmit_window == l2cb.num_lm_acl_bufs) {
-        bte_main_lpm_allow_bt_device_sleep();
-    }
-}
-#endif

@@ -8,7 +8,6 @@
 #include "btc_gap_bt.h"
 #include "btc/btc_util.h"
 
-#if (BTC_GAP_BT_INCLUDED == TRUE)
 void btc_gap_bt_config_eir_cmpl_callback (uint8_t status, uint8_t eir_type_num, uint8_t *eir_type)
 {
     esp_bt_gap_cb_param_t param;
@@ -29,4 +28,3 @@ void btc_gap_bt_config_eir_cmpl_callback (uint8_t status, uint8_t eir_type_num, 
         BTC_TRACE_ERROR("%s btc_transfer_context failed\n", __func__);
     }
 }
-#endif /// (BTC_GAP_BT_INCLUDED == TRUE)

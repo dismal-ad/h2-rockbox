@@ -15,13 +15,7 @@
 #include "stack/goepc_api.h"
 #include "goep_int.h"
 
-#if (GOEPC_INCLUDED == TRUE)
-
-#if GOEP_DYNAMIC_MEMORY == FALSE
 tGOEPC_CB goepc_cb;
-#else
-tGOEPC_CB *goepc_cb_ptr = NULL;
-#endif
 
 tGOEPC_CCB *goepc_allocate_ccb(void)
 {
@@ -525,4 +519,3 @@ void goepc_srm_sm_execute(tGOEPC_CCB *p_ccb, BOOLEAN is_req, BOOLEAN srm_en, BOO
     }
 }
 
-#endif /* #if (GOEPC_INCLUDED == TRUE) */

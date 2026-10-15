@@ -25,7 +25,6 @@
  ******************************************************************************/
 
 #include "common/bt_target.h"
-#if defined(BTA_AV_INCLUDED) && (BTA_AV_INCLUDED == TRUE)
 
 #include <assert.h>
 #include "common/bt_trace.h"
@@ -63,9 +62,6 @@
 #endif
 
 /* avdt_handle to send abort command for AVDTP BQB test */
-#if A2D_SRC_BQB_INCLUDED
-static uint8_t s_avdt_bqb_handle;
-#endif /* CONFIG_BT_BQB_ENABLED */
 
 static void bta_av_st_rc_timer(tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data);
 
@@ -154,10 +150,8 @@ static const UINT16 bta_av_stream_evt_ok[] = {
     BTA_AV_STR_WRITE_CFM_EVT,       /* AVDT_WRITE_CFM_EVT */
     BTA_AV_AVDT_CONNECT_EVT,        /* AVDT_CONNECT_IND_EVT */
     BTA_AV_AVDT_DISCONNECT_EVT,     /* AVDT_DISCONNECT_IND_EVT */
-#if (AVDT_REPORTING == TRUE)
     BTA_AV_AVDT_RPT_CONN_EVT,       /* AVDT_REPORT_CONN_EVT */
     BTA_AV_AVDT_RPT_CONN_EVT,       /* AVDT_REPORT_DISCONN_EVT */
-#endif
     BTA_AV_AVDT_DELAY_RPT_EVT,      /* AVDT_DELAY_REPORT_EVT */
     0                               /* AVDT_DELAY_REPORT_CFM_EVT */
 };
@@ -181,10 +175,8 @@ static const UINT16 bta_av_stream_evt_fail[] = {
     BTA_AV_STR_WRITE_CFM_EVT,       /* AVDT_WRITE_CFM_EVT */
     BTA_AV_AVDT_CONNECT_EVT,        /* AVDT_CONNECT_IND_EVT */
     BTA_AV_AVDT_DISCONNECT_EVT,     /* AVDT_DISCONNECT_IND_EVT */
-#if (AVDT_REPORTING == TRUE)
     BTA_AV_AVDT_RPT_CONN_EVT,       /* AVDT_REPORT_CONN_EVT */
     BTA_AV_AVDT_RPT_CONN_EVT,       /* AVDT_REPORT_DISCONN_EVT */
-#endif
     BTA_AV_AVDT_DELAY_RPT_EVT,      /* AVDT_DELAY_REPORT_EVT */
     0                               /* AVDT_DELAY_REPORT_CFM_EVT */
 };
@@ -1444,19 +1436,6 @@ void bta_av_str_opened (tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
         }
     }
 
-#if A2D_SRC_BQB_INCLUDED
-    s_avdt_bqb_handle = p_scb->avdt_handle;
-#endif /* A2D_SRC_BQB_INCLUDED */
-
-#if 0 /* TODO: implement the property enable/disable */
-    // This code is used to pass PTS TC for AVDTP ABORT
-    char value[PROPERTY_VALUE_MAX] = {0};
-    if ((property_get("bluetooth.pts.force_a2dp_abort", value, "false"))
-            && (!strcmp(value, "true"))) {
-        APPL_TRACE_ERROR ("%s: Calling AVDT_AbortReq", __func__);
-        AVDT_AbortReq(p_scb->avdt_handle);
-    }
-#endif /* #if 0*/
 }
 
 /*******************************************************************************
@@ -1468,12 +1447,6 @@ void bta_av_str_opened (tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
 ** Returns          void
 **
 *******************************************************************************/
-#if A2D_SRC_BQB_INCLUDED
-void avdt_bqb_abort(void)
-{
-    AVDT_AbortReq(s_avdt_bqb_handle);
-}
-#endif /* A2D_SRC_BQB_INCLUDED */
 
 /*******************************************************************************
 **
@@ -1892,9 +1865,7 @@ void bta_av_getcap_results (tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
 
     APPL_TRACE_DEBUG("num_codec %d", p_scb->p_cap->num_codec);
     APPL_TRACE_DEBUG("media type x%x, x%x", media_type, p_scb->media_type);
-#if AVDT_MULTIPLEXING == TRUE
     APPL_TRACE_DEBUG("mux x%x, x%x", cfg.mux_mask, p_scb->p_cap->mux_mask);
-#endif
 
     /* if codec present and we get a codec configuration */
     if ((p_scb->p_cap->num_codec != 0) &&
@@ -1902,10 +1873,8 @@ void bta_av_getcap_results (tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
             (p_scb->p_cos->getcfg(p_scb->hndl, p_scb->p_cap->codec_info[BTA_AV_CODEC_TYPE_IDX],
                                   cfg.codec_info, &p_scb->sep_info_idx, p_info->seid,
                                   &cfg.num_protect, cfg.protect_info) == 0)) {
-#if AVDT_MULTIPLEXING == TRUE
         cfg.mux_mask &= p_scb->p_cap->mux_mask;
         APPL_TRACE_DEBUG("mux_mask used x%x", cfg.mux_mask);
-#endif
         /* save copy of codec type and configuration */
         p_scb->codec_type = cfg.codec_info[BTA_AV_CODEC_TYPE_IDX];
         memcpy(&p_scb->cfg, &cfg, sizeof(tAVDT_CFG));
@@ -3056,4 +3025,3 @@ void bta_av_set_delay_value (tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
     (*bta_av_cb.p_cback)(BTA_AV_SET_DELAY_VALUE_EVT, (tBTA_AV *)&delay);
 }
 
-#endif /* BTA_AV_INCLUDED */

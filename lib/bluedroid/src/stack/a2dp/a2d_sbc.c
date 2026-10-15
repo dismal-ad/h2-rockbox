@@ -31,8 +31,6 @@
 #include "stack/a2d_sbc.h"
 #include "common/bt_defs.h"
 
-#if (defined(A2D_INCLUDED) && A2D_INCLUDED == TRUE)
-
 /******************************************************************************
 **
 ** Function         A2D_BldSbcInfo
@@ -225,4 +223,3 @@ void A2D_ParsSbcMplHdr(UINT8 *p_src, BOOLEAN *p_frag, BOOLEAN *p_start, BOOLEAN 
     }
 }
 
-#endif /* #if (defined(A2D_INCLUDED) && A2D_INCLUDED == TRUE) */

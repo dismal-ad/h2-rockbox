@@ -27,14 +27,8 @@
 #include "bta/bta_ar_api.h"
 #include "bta_ar_int.h"
 
-#if BTA_AR_INCLUDED
-
 /* AV control block */
-#if BTA_DYNAMIC_MEMORY == FALSE
 tBTA_AR_CB  bta_ar_cb;
-#else
-tBTA_AR_CB  *bta_ar_cb_ptr;
-#endif
 
 /*******************************************************************************
 **
@@ -315,4 +309,3 @@ void bta_ar_dereg_avrc(UINT16 service_uuid, tBTA_SYS_ID sys_id)
 
 }
 
-#endif /* #if BTA_AR_INCLUDED */

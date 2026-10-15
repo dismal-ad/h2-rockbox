@@ -19,7 +19,6 @@
 #include "btc_av_api.h"
 #include "esp_a2dp_api.h"
 
-#if BTC_AV_SINK_INCLUDED
 /*******************************************************************************
  **  Data types
  *******************************************************************************/
@@ -125,7 +124,5 @@ void btc_a2dp_sink_set_rx_flush(BOOLEAN enable);
  **
  *******************************************************************************/
 void btc_a2dp_sink_reset_decoder(UINT8 *p_av);
-
-#endif /* #if BTC_AV_SINK_INCLUDED */
 
 #endif /* __BTC_A2DP_SINK_H__ */

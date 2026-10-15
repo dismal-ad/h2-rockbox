@@ -13,7 +13,6 @@
 #include "osi/list.h"
 #include "osi/allocator.h"
 
-#if BTC_PRF_QUEUE_INCLUDED
 /*******************************************************************************
 **  Local type definitions
 *******************************************************************************/
@@ -163,4 +162,3 @@ void btc_queue_release(void)
     connect_queue = NULL;
 }
 
-#endif /* if BTC_PRF_QUEUE_INCLUDED */

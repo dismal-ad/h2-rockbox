@@ -39,9 +39,6 @@
 
 #include "osi/list.h"
 
-#if (SDP_INCLUDED == TRUE)
-
-#if SDP_SERVER_ENABLED == TRUE
 /********************************************************************************/
 /*              L O C A L    F U N C T I O N     P R O T O T Y P E S            */
 /********************************************************************************/
@@ -272,8 +269,6 @@ static int sdp_compose_proto_list( UINT8 *p, UINT16 num_elem,
     return (p - p_head);
 }
 
-#endif  /* SDP_SERVER_ENABLED == TRUE */
-
 /*******************************************************************************
 **
 ** Function         SDP_CreateRecord
@@ -288,7 +283,6 @@ static int sdp_compose_proto_list( UINT8 *p, UINT16 num_elem,
 *******************************************************************************/
 UINT32 SDP_CreateRecord (void)
 {
-#if SDP_SERVER_ENABLED == TRUE
     UINT32    handle;
     UINT8     buf[4];
     tSDP_DB  *p_db = &sdp_cb.server_db;
@@ -333,7 +327,6 @@ UINT32 SDP_CreateRecord (void)
     else {
         SDP_TRACE_ERROR("SDP_CreateRecord fail, exceed maximum records:%d\n", SDP_MAX_RECORDS);
     }
-#endif
     return (0);
 }
 
@@ -353,7 +346,6 @@ UINT32 SDP_CreateRecord (void)
 *******************************************************************************/
 BOOLEAN SDP_DeleteRecord (UINT32 handle)
 {
-#if SDP_SERVER_ENABLED == TRUE
     tSDP_RECORD     *p_rec  = NULL;
     list_node_t     *p_node = NULL;
 
@@ -388,7 +380,6 @@ BOOLEAN SDP_DeleteRecord (UINT32 handle)
             }
         }
     }
-#endif
     return (FALSE);
 }
 
@@ -410,7 +401,6 @@ BOOLEAN SDP_DeleteRecord (UINT32 handle)
 BOOLEAN SDP_AddAttribute (UINT32 handle, UINT16 attr_id, UINT8 attr_type,
                           UINT32 attr_len, UINT8 *p_val)
 {
-#if SDP_SERVER_ENABLED == TRUE
     UINT16          xx, yy;
     tSDP_RECORD     *p_rec = NULL;
     list_node_t     *p_node= NULL;
@@ -518,7 +508,6 @@ BOOLEAN SDP_AddAttribute (UINT32 handle, UINT16 attr_id, UINT8 attr_type,
             return (TRUE);
         }
     }
-#endif
     return (FALSE);
 }
 
@@ -540,7 +529,6 @@ BOOLEAN SDP_AddAttribute (UINT32 handle, UINT16 attr_id, UINT8 attr_type,
 BOOLEAN SDP_AddSequence (UINT32 handle,  UINT16 attr_id, UINT16 num_elem,
                          UINT8 type[], UINT8 len[], UINT8 *p_val[])
 {
-#if SDP_SERVER_ENABLED == TRUE
     UINT16          xx;
     UINT8           *p_buff;
     UINT8           *p;
@@ -597,9 +585,6 @@ BOOLEAN SDP_AddSequence (UINT32 handle,  UINT16 attr_id, UINT16 num_elem,
     result = SDP_AddAttribute (handle, attr_id, DATA_ELE_SEQ_DESC_TYPE, (UINT32) (p - p_buff), p_buff);
     osi_free(p_buff);
     return result;
-#else   /* SDP_SERVER_ENABLED == FALSE */
-    return (FALSE);
-#endif
 }
 
 
@@ -618,7 +603,6 @@ BOOLEAN SDP_AddSequence (UINT32 handle,  UINT16 attr_id, UINT16 num_elem,
 BOOLEAN SDP_AddUuidSequence (UINT32 handle,  UINT16 attr_id, UINT16 num_uuids,
                              UINT16 *p_uuids)
 {
-#if SDP_SERVER_ENABLED == TRUE
     UINT16          xx;
     UINT8           *p_buff;
     UINT8           *p;
@@ -645,9 +629,6 @@ BOOLEAN SDP_AddUuidSequence (UINT32 handle,  UINT16 attr_id, UINT16 num_uuids,
     result = SDP_AddAttribute (handle, attr_id, DATA_ELE_SEQ_DESC_TYPE, (UINT32) (p - p_buff), p_buff);
     osi_free(p_buff);
     return result;
-#else   /* SDP_SERVER_ENABLED == FALSE */
-    return (FALSE);
-#endif
 }
 
 /*******************************************************************************
@@ -665,7 +646,6 @@ BOOLEAN SDP_AddUuidSequence (UINT32 handle,  UINT16 attr_id, UINT16 num_uuids,
 BOOLEAN SDP_AddProtocolList (UINT32 handle, UINT16 num_elem,
                              tSDP_PROTOCOL_ELEM *p_elem_list)
 {
-#if SDP_SERVER_ENABLED == TRUE
     UINT8           *p_buff;
     int             offset;
     BOOLEAN         result;
@@ -679,9 +659,6 @@ BOOLEAN SDP_AddProtocolList (UINT32 handle, UINT16 num_elem,
     result = SDP_AddAttribute (handle, ATTR_ID_PROTOCOL_DESC_LIST, DATA_ELE_SEQ_DESC_TYPE, (UINT32) offset, p_buff);
     osi_free(p_buff);
     return result;
-#else   /* SDP_SERVER_ENABLED == FALSE */
-    return (FALSE);
-#endif
 }
 
 
@@ -700,7 +677,6 @@ BOOLEAN SDP_AddProtocolList (UINT32 handle, UINT16 num_elem,
 BOOLEAN SDP_AddAdditionProtoLists (UINT32 handle, UINT16 num_elem,
                                    tSDP_PROTO_LIST_ELEM *p_proto_list)
 {
-#if SDP_SERVER_ENABLED == TRUE
     UINT16          xx;
     UINT8           *p_buff;
     UINT8           *p;
@@ -730,9 +706,6 @@ BOOLEAN SDP_AddAdditionProtoLists (UINT32 handle, UINT16 num_elem,
     osi_free(p_buff);
     return result;
 
-#else   /* SDP_SERVER_ENABLED == FALSE */
-    return (FALSE);
-#endif
 }
 
 /*******************************************************************************
@@ -750,7 +723,6 @@ BOOLEAN SDP_AddAdditionProtoLists (UINT32 handle, UINT16 num_elem,
 BOOLEAN SDP_AddProfileDescriptorList (UINT32 handle, UINT16 profile_uuid,
                                       UINT16 version)
 {
-#if SDP_SERVER_ENABLED == TRUE
     UINT8           *p_buff;
     UINT8           *p;
     BOOLEAN        result;
@@ -777,9 +749,6 @@ BOOLEAN SDP_AddProfileDescriptorList (UINT32 handle, UINT16 profile_uuid,
     osi_free(p_buff);
     return result;
 
-#else   /* SDP_SERVER_ENABLED == FALSE */
-    return (FALSE);
-#endif
 }
 
 
@@ -798,7 +767,6 @@ BOOLEAN SDP_AddProfileDescriptorList (UINT32 handle, UINT16 profile_uuid,
 BOOLEAN SDP_AddLanguageBaseAttrIDList (UINT32 handle, UINT16 lang,
                                        UINT16 char_enc, UINT16 base_id)
 {
-#if SDP_SERVER_ENABLED == TRUE
     UINT8           *p_buff;
     UINT8           *p;
     BOOLEAN         result;
@@ -824,9 +792,6 @@ BOOLEAN SDP_AddLanguageBaseAttrIDList (UINT32 handle, UINT16 lang,
                                (UINT32) (p - p_buff), p_buff);
     osi_free(p_buff);
     return result;
-#else   /* SDP_SERVER_ENABLED == FALSE */
-    return (FALSE);
-#endif
 }
 
 
@@ -845,7 +810,6 @@ BOOLEAN SDP_AddLanguageBaseAttrIDList (UINT32 handle, UINT16 lang,
 BOOLEAN SDP_AddServiceClassIdList (UINT32 handle, UINT16 num_services,
                                    UINT16 *p_service_uuids)
 {
-#if SDP_SERVER_ENABLED == TRUE
     UINT16          xx;
     UINT8           *p_buff;
     UINT8           *p;
@@ -866,9 +830,6 @@ BOOLEAN SDP_AddServiceClassIdList (UINT32 handle, UINT16 num_services,
                                (UINT32) (p - p_buff), p_buff);
     osi_free(p_buff);
     return result;
-#else   /* SDP_SERVER_ENABLED == FALSE */
-    return (FALSE);
-#endif
 }
 
 
@@ -884,7 +845,6 @@ BOOLEAN SDP_AddServiceClassIdList (UINT32 handle, UINT16 num_services,
 *******************************************************************************/
 BOOLEAN SDP_DeleteAttribute (UINT32 handle, UINT16 attr_id)
 {
-#if SDP_SERVER_ENABLED == TRUE
     UINT16          xx, yy;
     tSDP_RECORD     *p_rec = NULL;
     list_node_t     *p_node= NULL;
@@ -933,7 +893,6 @@ BOOLEAN SDP_DeleteAttribute (UINT32 handle, UINT16 attr_id)
             }
         }
     }
-#endif
     /* If here, not found */
     return (FALSE);
 }
@@ -951,11 +910,9 @@ BOOLEAN SDP_DeleteAttribute (UINT32 handle, UINT16 attr_id)
 **                  The size of data copied into p_data is in *p_data_len.
 **
 *******************************************************************************/
-#if (SDP_RAW_DATA_INCLUDED == TRUE)
 INT32 SDP_ReadRecord(UINT32 handle, UINT8 *p_data, INT32 *p_data_len)
 {
     INT32           offset = -1; /* default to not found */
-#if SDP_SERVER_ENABLED == TRUE
     INT32           len = 0;                        /* Number of bytes in the entry */
     tSDP_RECORD     *p_rec;
     UINT16          start = 0;
@@ -999,10 +956,7 @@ INT32 SDP_ReadRecord(UINT32 handle, UINT8 *p_data, INT32 *p_data_len)
         }
         *p_data_len = len;
     }
-#endif
     /* If here, not found */
     return (offset);
 }
-#endif
 
-#endif  ///SDP_INCLUDED == TRUE

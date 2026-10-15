@@ -12,8 +12,6 @@
 #include "stack/goep_common.h"
 #include "stack/goepc_api.h"
 
-#if (GOEPC_INCLUDED == TRUE)
-
 /* GOEPC state machine events */
 enum {
     GOEPC_SM_EVENT_CONNECT = 0,
@@ -69,12 +67,7 @@ typedef struct {
     UINT8               trace_level;                    /* trace level */
 } tGOEPC_CB;
 
-#if GOEP_DYNAMIC_MEMORY == FALSE
 extern tGOEPC_CB goepc_cb;
-#else
-extern tGOEPC_CB *goepc_cb_ptr;
-#define goepc_cb (*goepc_cb_ptr)
-#endif
 
 typedef struct {
     UINT16              peer_mtu;
@@ -100,4 +93,3 @@ BOOLEAN goepc_check_obex_req_param(tOBEX_PARSE_INFO *info);
 void goepc_sm_execute(tGOEPC_CCB *p_ccb, UINT8 event, tGOEPC_DATA *p_data);
 void goepc_srm_sm_execute(tGOEPC_CCB *p_ccb, BOOLEAN is_req, BOOLEAN srm_en, BOOLEAN srm_wait);
 
-#endif /* #if (GOEPC_INCLUDED == TRUE) */

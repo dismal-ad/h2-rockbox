@@ -33,8 +33,6 @@
 #include "stack/btu.h"
 #include "osi/allocator.h"
 
-#if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE)
-
 /* This table is used to lookup the callback event that matches a particular
 ** state machine API request event.  Note that state machine API request
 ** events are at the beginning of the event list starting at zero, thus
@@ -314,7 +312,6 @@ void avdt_scb_hdl_pkt_no_frag(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
             (*p_scb->cs.p_data_cback)(avdt_scb_to_hdl(p_scb), p_data->p_pkt,
                                       time_stamp, (UINT8)(m_pt | (marker << 7)));
         } else {
-#if AVDT_MULTIPLEXING == TRUE
             if ((p_scb->cs.p_media_cback != NULL)
                     && (p_scb->p_media_buf != NULL)
                     && (p_scb->media_buf_len > len)) {
@@ -324,7 +321,6 @@ void avdt_scb_hdl_pkt_no_frag(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
                 (*p_scb->cs.p_media_cback)(avdt_scb_to_hdl(p_scb), p_scb->p_media_buf,
                                            p_scb->media_buf_len, time_stamp, seq, m_pt, marker);
             }
-#endif
             goto length_error;
         }
     }
@@ -335,7 +331,6 @@ length_error:
     p_data->p_pkt = NULL;
 }
 
-#if AVDT_REPORTING == TRUE
 /*******************************************************************************
 **
 ** Function         avdt_scb_hdl_report
@@ -448,9 +443,7 @@ avdt_scb_hdl_report_exit:
     p_start += len;
     return p_start;
 }
-#endif
 
-#if AVDT_MULTIPLEXING == TRUE
 /*******************************************************************************
 **
 ** Function         avdt_scb_hdl_pkt_frag
@@ -525,14 +518,12 @@ void avdt_scb_hdl_pkt_frag(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
 
         /* check TSID corresponds to config */
         if (al_tsid != p_scb->curr_cfg.mux_tsid_media) {
-#if AVDT_REPORTING == TRUE
             if ((p_scb->curr_cfg.psc_mask & AVDT_PSC_REPORT) &&
                     (al_tsid == p_scb->curr_cfg.mux_tsid_report)) {
                 /* parse reporting packet */
                 p = avdt_scb_hdl_report(p_scb, p, frag_len);
                 continue;
             } else
-#endif
             {
                 AVDT_TRACE_WARNING("bad tsid: %d, mux_tsid_media:%d\n", al_tsid, p_scb->curr_cfg.mux_tsid_media);
                 break;
@@ -662,7 +653,6 @@ void avdt_scb_hdl_pkt_frag(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
     osi_free(p_data->p_pkt);
     p_data->p_pkt = NULL;
 }
-#endif
 
 /*******************************************************************************
 **
@@ -675,25 +665,19 @@ void avdt_scb_hdl_pkt_frag(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
 *******************************************************************************/
 void avdt_scb_hdl_pkt(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
 {
-#if AVDT_REPORTING == TRUE
     UINT8 *p;
-#endif
 
-#if AVDT_MULTIPLEXING == TRUE
     /* select right function in dependence of is fragmentation supported or not */
     if ( 0 != (p_scb->curr_cfg.psc_mask & AVDT_PSC_MUX)) {
         avdt_scb_hdl_pkt_frag(p_scb, p_data);
     } else
-#endif
     {
-#if AVDT_REPORTING == TRUE
         if (p_data->p_pkt->layer_specific == AVDT_CHAN_REPORT) {
             p = (UINT8 *)(p_data->p_pkt + 1) + p_data->p_pkt->offset;
             avdt_scb_hdl_report(p_scb, p, p_data->p_pkt->len);
             osi_free(p_data->p_pkt);
             p_data->p_pkt = NULL;
         } else
-#endif
         {
             avdt_scb_hdl_pkt_no_frag(p_scb, p_data);
         }
@@ -1176,7 +1160,6 @@ void avdt_scb_hdl_delay_rpt_rsp (tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
                               (tAVDT_CTRL *) &p_data->msg.hdr);
 }
 
-#if AVDT_REPORTING == TRUE
 /*******************************************************************************
 **
 ** Function         avdt_scb_hdl_tc_close_sto
@@ -1208,7 +1191,6 @@ void avdt_scb_hdl_tc_close_sto(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
         avdt_scb_hdl_tc_close(p_scb, p_data);
     }
 }
-#endif
 
 /*******************************************************************************
  *
@@ -1245,9 +1227,7 @@ void avdt_scb_hdl_delay_rpt_tout(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
 void avdt_scb_hdl_tc_open(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
 {
     UINT8   event;
-#if AVDT_REPORTING == TRUE
     UINT8   role;
-#endif
 
     /* stop transport channel connect timer */
     btu_stop_timer(&p_scb->timer_entry);
@@ -1257,13 +1237,11 @@ void avdt_scb_hdl_tc_open(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
 
     AVDT_TRACE_DEBUG("psc_mask: cfg: 0x%x, req:0x%x, cur: 0x%x\n",
                      p_scb->cs.cfg.psc_mask, p_scb->req_cfg.psc_mask, p_scb->curr_cfg.psc_mask);
-#if AVDT_REPORTING == TRUE
     if (p_scb->curr_cfg.psc_mask & AVDT_PSC_REPORT) {
         /* open the reporting channel, if both devices support it */
         role = (p_scb->role == AVDT_OPEN_INT) ? AVDT_INT : AVDT_ACP;
         avdt_ad_open_req(AVDT_CHAN_REPORT, p_scb->p_ccb, p_scb, role);
     }
-#endif
 
     /* call app callback */
     (*p_scb->cs.p_ctrl_cback)(avdt_scb_to_hdl(p_scb),
@@ -1272,7 +1250,6 @@ void avdt_scb_hdl_tc_open(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
                               (tAVDT_CTRL *) &p_data->open);
 }
 
-#if AVDT_REPORTING == TRUE
 /*******************************************************************************
 **
 ** Function         avdt_scb_hdl_tc_open_sto
@@ -1299,7 +1276,6 @@ void avdt_scb_hdl_tc_open_sto(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
                                   AVDT_REPORT_CONN_EVT, &avdt_ctrl);
     }
 }
-#endif
 
 /*******************************************************************************
 **
@@ -1347,7 +1323,6 @@ void avdt_scb_hdl_write_req_no_frag(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
     p_scb->p_pkt = p_data->apiwrite.p_buf;
 }
 
-#if AVDT_MULTIPLEXING == TRUE
 /*******************************************************************************
 **
 ** Function         avdt_scb_hdl_write_req_frag
@@ -1428,7 +1403,6 @@ void avdt_scb_hdl_write_req_frag(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
         }
     }
 }
-#endif
 
 
 /*******************************************************************************
@@ -1443,17 +1417,13 @@ void avdt_scb_hdl_write_req_frag(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
 *******************************************************************************/
 void avdt_scb_hdl_write_req(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
 {
-#if AVDT_MULTIPLEXING == TRUE
     if (fixed_queue_is_empty(p_scb->frag_q))
-#endif
     {
         avdt_scb_hdl_write_req_no_frag(p_scb, p_data);
     }
-#if AVDT_MULTIPLEXING == TRUE
     else {
         avdt_scb_hdl_write_req_frag(p_scb, p_data);
     }
-#endif
 }
 
 /*******************************************************************************
@@ -1528,7 +1498,6 @@ void avdt_scb_snd_close_req(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
 *******************************************************************************/
 void avdt_scb_snd_stream_close(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
 {
-#if AVDT_MULTIPLEXING == TRUE
     AVDT_TRACE_WARNING("%s c:%d, off:%d", __func__,
         fixed_queue_length(p_scb->frag_q), p_scb->frag_off);
 
@@ -1538,7 +1507,6 @@ void avdt_scb_snd_stream_close(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
         osi_free(p_frag);
     }
     p_scb->frag_off = 0;
-#endif
     if (p_scb->p_pkt) {
         osi_free(p_scb->p_pkt);
         p_scb->p_pkt = NULL;
@@ -1760,14 +1728,12 @@ void avdt_scb_snd_setconfig_req(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
     p_scb->peer_seid = p_data->msg.config_cmd.hdr.seid;
     p_req = p_data->msg.config_cmd.p_cfg;
     p_cfg = &p_scb->cs.cfg;
-#if AVDT_MULTIPLEXING == TRUE
     p_req->mux_tsid_media = p_cfg->mux_tsid_media;
     p_req->mux_tcid_media = p_cfg->mux_tcid_media;
     if (p_req->psc_mask & AVDT_PSC_REPORT) {
         p_req->mux_tsid_report = p_cfg->mux_tsid_report;
         p_req->mux_tcid_report = p_cfg->mux_tcid_report;
     }
-#endif
     memcpy(&p_scb->req_cfg, p_data->msg.config_cmd.p_cfg, sizeof(tAVDT_CFG));
 
     avdt_msg_send_cmd(p_scb->p_ccb, p_scb, AVDT_SIG_SETCONFIG, &p_data->msg);
@@ -1811,11 +1777,9 @@ void avdt_scb_snd_tc_close(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
 {
     UNUSED(p_data);
 
-#if AVDT_REPORTING == TRUE
     if (p_scb->curr_cfg.psc_mask & AVDT_PSC_REPORT) {
         avdt_ad_close_req(AVDT_CHAN_REPORT, p_scb->p_ccb, p_scb);
     }
-#endif
     avdt_ad_close_req(AVDT_CHAN_MEDIA, p_scb->p_ccb, p_scb);
 }
 
@@ -1959,13 +1923,11 @@ void avdt_scb_free_pkt(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
         p_data->apiwrite.p_buf = NULL;
     }
 
-#if AVDT_MULTIPLEXING == TRUE
     /* clean fragments queue */
     BT_HDR          *p_frag;
     while ((p_frag = (BT_HDR*)fixed_queue_dequeue(p_scb->frag_q, 0)) != NULL) {
          osi_free(p_frag);
 	}
-#endif
 
     AVDT_TRACE_WARNING("Dropped media packet");
 
@@ -2013,7 +1975,6 @@ void avdt_scb_clr_pkt(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
         (*p_scb->cs.p_ctrl_cback)(avdt_scb_to_hdl(p_scb), NULL, AVDT_WRITE_CFM_EVT,
                                   &avdt_ctrl);
     }
-#if AVDT_MULTIPLEXING == TRUE
     else if (!fixed_queue_is_empty(p_scb->frag_q)) {
         AVDT_TRACE_DEBUG("Dropped fragments queue");
         /* clean fragments queue */
@@ -2027,7 +1988,6 @@ void avdt_scb_clr_pkt(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
         (*p_scb->cs.p_ctrl_cback)(avdt_scb_to_hdl(p_scb), NULL, AVDT_WRITE_CFM_EVT,
                                   &avdt_ctrl);
     }
-#endif
 }
 
 
@@ -2047,11 +2007,9 @@ void avdt_scb_chk_snd_pkt(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
 {
     tAVDT_CTRL      avdt_ctrl;
     BT_HDR          *p_pkt;
-#if AVDT_MULTIPLEXING == TRUE
     BOOLEAN         sent = FALSE;
     UINT8   res = AVDT_AD_SUCCESS;
     tAVDT_SCB_EVT data;
-#endif
     UNUSED(p_data);
 
     avdt_ctrl.hdr.err_code = 0;
@@ -2064,13 +2022,7 @@ void avdt_scb_chk_snd_pkt(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
 
             (*p_scb->cs.p_ctrl_cback)(avdt_scb_to_hdl(p_scb), NULL, AVDT_WRITE_CFM_EVT, &avdt_ctrl);
         }
-#if AVDT_MULTIPLEXING == TRUE
         else {
-#if 0
-            AVDT_TRACE_DEBUG("num_q=%d\n",
-                             L2CA_FlushChannel(avdt_cb.ad.rt_tbl[avdt_ccb_to_idx(p_scb->p_ccb)][avdt_ad_type_to_tcid(AVDT_CHAN_MEDIA, p_scb)].lcid),
-                             L2CAP_FLUSH_CHANS_GET);
-#endif
             while ((p_pkt = (BT_HDR*)fixed_queue_dequeue(p_scb->frag_q, 0)) != NULL) {
                 sent = TRUE;
                 AVDT_TRACE_DEBUG("Send fragment len=%d\n", p_pkt->len);
@@ -2100,7 +2052,6 @@ void avdt_scb_chk_snd_pkt(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
                 (*p_scb->cs.p_ctrl_cback)(avdt_scb_to_hdl(p_scb), NULL, AVDT_WRITE_CFM_EVT, &avdt_ctrl);
             }
         }
-#endif
     }
 }
 
@@ -2144,7 +2095,6 @@ void avdt_scb_clr_vars(tAVDT_SCB *p_scb, tAVDT_SCB_EVT *p_data)
     p_scb->peer_seid = 0;
 }
 
-#if AVDT_MULTIPLEXING == TRUE
 /*******************************************************************************
 **
 ** Function         avdt_scb_queue_frags
@@ -2238,6 +2188,4 @@ void avdt_scb_queue_frags(tAVDT_SCB *p_scb, UINT8 **pp_data, UINT32 *p_data_len,
         num_frag--;
     }
 }
-#endif
 
-#endif /* #if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE) */

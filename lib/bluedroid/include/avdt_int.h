@@ -31,8 +31,6 @@
 #include "stack/btm_api.h"
 #include "osi/fixed_queue.h"
 
-#if (AVRC_INCLUDED == TRUE)
-
 #ifndef AVDT_DEBUG
 #define AVDT_DEBUG  FALSE
 #endif
@@ -45,35 +43,14 @@
 enum {
     AVDT_CHAN_SIG,                  /* signaling channel */
     AVDT_CHAN_MEDIA,                /* media channel */
-#if AVDT_REPORTING == TRUE
     AVDT_CHAN_REPORT,               /* reporting channel */
-#endif
     AVDT_CHAN_NUM_TYPES
 };
 
 /* protocol service capabilities of this AVDTP implementation */
 /* for now multiplexing will be used only for fragmentation */
-#if ((AVDT_MULTIPLEXING == TRUE) && (AVDT_REPORTING == TRUE))
 #define AVDT_PSC                (AVDT_PSC_TRANS | AVDT_PSC_MUX | AVDT_PSC_REPORT | AVDT_PSC_DELAY_RPT)
 #define AVDT_LEG_PSC            (AVDT_PSC_TRANS | AVDT_PSC_MUX | AVDT_PSC_REPORT)
-#else /* AVDT_MULTIPLEXING && AVDT_REPORTING  */
-
-#if (AVDT_MULTIPLEXING == TRUE)
-#define AVDT_PSC                (AVDT_PSC_TRANS | AVDT_PSC_MUX | AVDT_PSC_DELAY_RPT)
-#define AVDT_LEG_PSC            (AVDT_PSC_TRANS | AVDT_PSC_MUX)
-#else /* AVDT_MULTIPLEXING */
-
-#if (AVDT_REPORTING == TRUE)
-#define AVDT_PSC                (AVDT_PSC_TRANS | AVDT_PSC_REPORT | AVDT_PSC_DELAY_RPT)
-#define AVDT_LEG_PSC            (AVDT_PSC_TRANS | AVDT_PSC_REPORT)
-#else /* AVDT_REPORTING  */
-#define AVDT_PSC                (AVDT_PSC_TRANS | AVDT_PSC_DELAY_RPT)
-#define AVDT_LEG_PSC            (AVDT_PSC_TRANS)
-#endif /* AVDT_REPORTING  */
-
-#endif /* AVDT_MULTIPLEXING */
-
-#endif /* AVDT_MULTIPLEXING && AVDT_REPORTING  */
 
 /* initiator/acceptor signaling roles */
 #define AVDT_CLOSE_ACP          0
@@ -241,13 +218,9 @@ enum {
     AVDT_SCB_HDL_SUSPEND_CMD,
     AVDT_SCB_HDL_SUSPEND_RSP,
     AVDT_SCB_HDL_TC_CLOSE,
-#if AVDT_REPORTING == TRUE
     AVDT_SCB_HDL_TC_CLOSE_STO,
-#endif
     AVDT_SCB_HDL_TC_OPEN,
-#if AVDT_REPORTING == TRUE
     AVDT_SCB_HDL_TC_OPEN_STO,
-#endif
     AVDT_SCB_SND_DELAY_RPT_REQ,
     AVDT_SCB_HDL_DELAY_RPT_CMD,
     AVDT_SCB_HDL_DELAY_RPT_RSP,
@@ -343,12 +316,8 @@ enum {
 };
 
 /* adaption layer number of stream routing table entries */
-#if AVDT_REPORTING == TRUE
 /* 2 channels(1 media, 1 report) for each SEP and one for signalling */
 #define AVDT_NUM_RT_TBL     ((AVDT_NUM_SEPS<<1) + 1)
-#else
-#define AVDT_NUM_RT_TBL     (AVDT_NUM_SEPS + 1)
-#endif
 
 /* adaption layer number of transport channel table entries - moved to target.h
 #define AVDT_NUM_TC_TBL     (AVDT_NUM_SEPS + AVDT_NUM_LINKS) */
@@ -461,11 +430,9 @@ typedef void (*tAVDT_CCB_ACTION)(tAVDT_CCB *p_ccb, tAVDT_CCB_EVT *p_data);
 typedef struct {
     BT_HDR      *p_buf;
     UINT32      time_stamp;
-#if AVDT_MULTIPLEXING == TRUE
     fixed_queue_t    *frag_q;          /* Queue for outgoing media fragments. p_buf should be 0 */
     UINT8       *p_data;
     UINT32      data_len;
-#endif
     UINT8       m_pt;
     tAVDT_DATA_OPT_MASK     opt;
 } tAVDT_SCB_APIWRITE;
@@ -508,14 +475,12 @@ typedef struct {
     UINT8           curr_evt;       /* current event; set only by state machine */
     BOOLEAN         cong;           /* Whether media transport channel is congested */
     UINT8           close_code;     /* Error code received in close response */
-#if AVDT_MULTIPLEXING == TRUE
     fixed_queue_t        *frag_q;         /* Queue for outgoing media fragments */
     UINT32          frag_off;       /* length of already received media fragments */
     UINT32          frag_org_len;   /* original length before fragmentation of receiving media packet */
     UINT8           *p_next_frag;   /* next fragment to send */
     UINT8           *p_media_buf;   /* buffer for media packet assigned by AVDT_SetMediaBuf */
     UINT32          media_buf_len;  /* length of buffer for media packet assigned by AVDT_SetMediaBuf */
-#endif
 } tAVDT_SCB;
 
 /* type for action functions */
@@ -739,12 +704,7 @@ extern "C"
 /******************************************************************************
 ** Main Control Block
 *******************************************************************************/
-#if AVDT_DYNAMIC_MEMORY == FALSE
 extern tAVDT_CB  avdt_cb;
-#else
-extern tAVDT_CB *avdt_cb_ptr;
-#define avdt_cb (*avdt_cb_ptr)
-#endif
 
 
 /* L2CAP callback registration structure */
@@ -755,7 +715,5 @@ extern const UINT8 avdt_msg_rej_2_evt[];
 #ifdef __cplusplus
 }
 #endif
-
-#endif  ///AVRC_INCLUDED == TRUE
 
 #endif /* AVDT_INT_H */

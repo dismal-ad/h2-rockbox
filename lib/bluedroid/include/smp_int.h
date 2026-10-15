@@ -349,12 +349,7 @@ extern "C"
 {
 #endif
 
-#if SMP_DYNAMIC_MEMORY == FALSE
 extern tSMP_CB  smp_cb;
-#else
-extern tSMP_CB *smp_cb_ptr;
-#define smp_cb (*smp_cb_ptr)
-#endif
 
 #ifdef __cplusplus
 }
@@ -533,10 +528,6 @@ extern BOOLEAN smp_calculate_h6(UINT8 *w, UINT8 *keyid, UINT8 *h2);
 extern void smp_save_local_oob_data(tSMP_CB *p_cb);
 extern void smp_clear_local_oob_data(void);
 extern tSMP_LOC_OOB_DATA *smp_get_local_oob_data(void);
-#if SMP_DEBUG == TRUE
-extern void smp_debug_print_nbyte_little_endian (UINT8 *p, const UINT8 *key_name,
-        UINT8 len);
-#endif
 
 /* smp_cmac.c */
 extern BOOLEAN aes_cipher_msg_auth_code(BT_OCTET16 key, UINT8 *input, UINT16 length,

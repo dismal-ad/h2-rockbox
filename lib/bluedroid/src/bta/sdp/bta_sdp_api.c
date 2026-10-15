@@ -31,7 +31,6 @@
 #include "osi/allocator.h"
 #include "stack/sdp_api.h"
 
-#if defined(BTA_SDP_INCLUDED) && (BTA_SDP_INCLUDED == TRUE)
 /*****************************************************************************
 **  Constants
 *****************************************************************************/
@@ -61,16 +60,6 @@ tBTA_SDP_STATUS BTA_SdpEnable(tBTA_SDP_DM_CBACK *p_cback)
     tBTA_SDP_API_ENABLE  *p_buf;
 
     APPL_TRACE_API("%s\n", __FUNCTION__);
-
-#if BTA_DYNAMIC_MEMORY == TRUE
-    /* Malloc buffer for SDP configuration structure */
-    p_bta_sdp_cfg->p_sdp_db = (tSDP_DISCOVERY_DB *)osi_malloc(p_bta_sdp_cfg->sdp_db_size);
-    p_bta_sdp_cfg->p_sdp_raw_data = (UINT8 *)osi_malloc(p_bta_sdp_cfg->sdp_raw_size);
-    if (p_bta_sdp_cfg->p_sdp_db == NULL || p_bta_sdp_cfg->p_sdp_raw_data == NULL) {
-        BTA_SdpCleanup();
-        return BTA_SDP_FAILURE;
-    }
-#endif
 
     if (p_cback && FALSE == bta_sys_is_register(BTA_ID_SDP)) {
         memset(&bta_sdp_cb, 0, sizeof(tBTA_SDP_CB));
@@ -118,18 +107,6 @@ tBTA_SDP_STATUS BTA_SdpDisable(void)
 tBTA_SDP_STATUS BTA_SdpCleanup(void)
 {
     bta_sys_deregister(BTA_ID_SDP);
-#if BTA_DYNAMIC_MEMORY == TRUE
-    /* Free buffer for SDP configuration structure */
-    if (p_bta_sdp_cfg->p_sdp_db) {
-        osi_free(p_bta_sdp_cfg->p_sdp_db);
-        p_bta_sdp_cfg->p_sdp_db = NULL;
-    }
-
-    if (p_bta_sdp_cfg->p_sdp_raw_data) {
-        osi_free(p_bta_sdp_cfg->p_sdp_raw_data);
-        p_bta_sdp_cfg->p_sdp_raw_data = NULL;
-    }
-#endif
     return BTA_SDP_SUCCESS;
 }
 
@@ -221,4 +198,3 @@ tBTA_SDP_STATUS BTA_SdpRemoveRecordByUser(void *user_data)
 }
 
 
-#endif /* #if defined(BTA_SDP_INCLUDED) && (BTA_SDP_INCLUDED == TRUE) */

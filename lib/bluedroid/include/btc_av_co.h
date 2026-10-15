@@ -10,7 +10,6 @@
 #include "btc_a2dp.h"
 #include "bta/bta_av_co.h"
 
-#if (BTA_AV_INCLUDED == TRUE)
 /*******************************************************************************
 **  Constants & Macros
 ********************************************************************************/
@@ -75,12 +74,7 @@ typedef struct {
 } tBTA_AV_CO_CB;
 
 /* Control block instance */
-#if AVRC_DYNAMIC_MEMORY == FALSE
 extern tBTA_AV_CO_CB bta_av_co_cb;
-#else
-extern tBTA_AV_CO_CB *bta_av_co_cb_ptr;
-#define bta_av_co_cb (*bta_av_co_cb_ptr)
-#endif
 /*******************************************************************************
 **  Functions
 ********************************************************************************/
@@ -283,7 +277,5 @@ BOOLEAN bta_av_co_get_remote_bitpool_pref(UINT8 *min, UINT8 *max);
  **
  *******************************************************************************/
 BOOLEAN bta_av_co_get_peer_sink_caps(tBTA_AV_HNDL hndl, UINT8 *p_codec_caps, UINT8 *p_codec_type);
-
-#endif  ///BTA_AV_INCLUDED == TRUE
 
 #endif

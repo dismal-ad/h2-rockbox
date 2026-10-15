@@ -20,7 +20,6 @@
 
 #include "common/bt_target.h"
 #include "stack/sdpdefs.h"
-#if (SDP_INCLUDED == TRUE)
 /*****************************************************************************
 **  Constants
 *****************************************************************************/
@@ -125,11 +124,9 @@ typedef struct {
     UINT16          num_attr_filters;           /* Number of attribute filters  */
     UINT16          attr_filters[SDP_MAX_ATTR_FILTERS]; /* Attributes to filter */
     UINT8           *p_free_mem;                /* Pointer to free memory       */
-#if (SDP_RAW_DATA_INCLUDED == TRUE)
     UINT8           *raw_data;                  /* Received record from server. allocated/released by client  */
     UINT32          raw_size;                   /* size of raw_data */
     UINT32          raw_used;                   /* length of raw_data used */
-#endif
 } tSDP_DISCOVERY_DB;
 
 /* This structure is used to add protocol lists and find protocol elements */
@@ -734,7 +731,5 @@ BOOLEAN SDP_FindServiceUUIDInRec(tSDP_DISC_REC *p_rec, tBT_UUID *p_uuid);
 #ifdef __cplusplus
 }
 #endif
-
-#endif  ///SDP_INCLUDED == TRUE
 
 #endif  /* SDP_API_H */

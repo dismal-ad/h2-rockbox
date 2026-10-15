@@ -38,8 +38,6 @@ Functions for manipulating input bitstreams.
 #include "oi_bitstream.h"
 #include "oi_assert.h"
 
-#if (defined(SBC_DEC_INCLUDED) && SBC_DEC_INCLUDED == TRUE)
-
 PRIVATE void OI_BITSTREAM_ReadInit(OI_BITSTREAM *bs,
                                    const OI_BYTE *buffer)
 {
@@ -92,4 +90,3 @@ PRIVATE OI_UINT8 OI_BITSTREAM_ReadUINT8Aligned(OI_BITSTREAM *bs)
 @}
 */
 
-#endif /* #if (defined(SBC_DEC_INCLUDED) && SBC_DEC_INCLUDED == TRUE) */

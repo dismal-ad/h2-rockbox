@@ -25,7 +25,6 @@
 #define A2D_API_H
 #include "common/bt_defs.h"
 #include "stack/sdp_api.h"
-#if (A2D_INCLUDED == TRUE)
 /*****************************************************************************
 **  constants
 *****************************************************************************/
@@ -291,5 +290,4 @@ extern void a2d_set_a2dp_sdp_ver(UINT16 a2dp_sdp_ver);
 }
 #endif
 
-#endif  ///A2D_INCLUDED
 #endif /* A2D_API_H */

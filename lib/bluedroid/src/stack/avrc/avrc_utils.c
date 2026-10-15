@@ -20,10 +20,6 @@
 #include "stack/avrc_api.h"
 #include "avrc_int.h"
 
-#if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE)
-
-#if (AVRC_METADATA_INCLUDED == TRUE)
-
 /**************************************************************************
 **
 ** Function         AVRC_IsValidAvcType
@@ -234,6 +230,3 @@ BOOLEAN avrc_is_valid_opcode(UINT8 opcode)
     return is_valid;
 }
 
-#endif /* (AVRC_METADATA_INCLUDED == TRUE) */
-
-#endif /* #if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE) */

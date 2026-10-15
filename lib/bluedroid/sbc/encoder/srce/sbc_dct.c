@@ -27,8 +27,6 @@
 #include "sbc_dct.h"
 
 
-#if (defined(SBC_ENC_INCLUDED) && SBC_ENC_INCLUDED == TRUE)
-
 /*******************************************************************************
 **
 ** Function         SBC_FastIDCT8
@@ -241,4 +239,3 @@ void SBC_FastIDCT4(SINT32 *pInVect, SINT32 *pOutVect)
 #endif
 }
 
-#endif /* #if (defined(SBC_ENC_INCLUDED) && SBC_ENC_INCLUDED == TRUE) */

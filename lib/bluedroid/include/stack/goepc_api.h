@@ -11,8 +11,6 @@
 #include "stack/goep_common.h"
 #include "stack/obex_api.h"
 
-#if (GOEPC_INCLUDED == TRUE)
-
 enum {
     GOEPC_OPENED_EVT,               /* connection open */
     GOEPC_CLOSED_EVT,               /* disconnect unexpected */
@@ -79,4 +77,3 @@ extern UINT16 GOEPC_RequestSetSRM(UINT16 handle, BOOLEAN srm_en, BOOLEAN srm_wai
 
 extern UINT16 GOEPC_RequestAddHeader(UINT16 handle, UINT8 header_id, const UINT8 *data, UINT16 data_len);
 
-#endif /* #if (GOEPC_INCLUDED == TRUE) */

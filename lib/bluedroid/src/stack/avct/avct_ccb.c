@@ -29,8 +29,6 @@
 #include "stack/avct_api.h"
 #include "avct_int.h"
 
-#if (defined(AVCT_INCLUDED) && AVCT_INCLUDED == TRUE)
-
 /*******************************************************************************
 **
 ** Function         avct_ccb_alloc
@@ -79,17 +77,7 @@ void avct_ccb_dealloc(tAVCT_CCB *p_ccb, UINT8 event, UINT16 result, BD_ADDR bd_a
     tAVCT_CTRL_CBACK    *p_cback = p_ccb->cc.p_ctrl_cback;
 
     AVCT_TRACE_DEBUG("avct_ccb_dealloc %d", avct_ccb_to_idx(p_ccb));
-#if (AVCT_BROWSE_INCLUDED == TRUE)
-    if (p_ccb->p_bcb == NULL) {
-        memset(p_ccb, 0, sizeof(tAVCT_CCB));
-    } else {
-        /* control channel is down, but the browsing channel is still connected 0 disconnect it now */
-        avct_bcb_event(p_ccb->p_bcb, AVCT_LCB_UL_UNBIND_EVT, (tAVCT_LCB_EVT *) &p_ccb);
-        p_ccb->p_lcb = NULL;
-    }
-#else
     memset(p_ccb, 0, sizeof(tAVCT_CCB));
-#endif
 
     if (event != AVCT_NO_EVT) {
         (*p_cback)(avct_ccb_to_idx(p_ccb), event, result, bd_addr);
@@ -142,4 +130,3 @@ tAVCT_CCB *avct_ccb_by_idx(UINT8 idx)
     return p_ccb;
 }
 
-#endif /* #if (defined(AVCT_INCLUDED) && AVCT_INCLUDED == TRUE) */

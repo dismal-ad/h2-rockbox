@@ -31,7 +31,7 @@
 #include "oi_cpu_dep.h"
 #include "oi_stddefs.h"
 
-#if defined(USE_NATIVE_MEMCPY) || defined(USE_NATIVE_MALLOC)
+#if defined(USE_NATIVE_MEMCPY)
 #include <string.h>
 #endif
 

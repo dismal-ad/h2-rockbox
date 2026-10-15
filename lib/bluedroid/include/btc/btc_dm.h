@@ -61,18 +61,11 @@ typedef struct
 typedef struct
 {
     tBTA_SERVICE_MASK btc_enabled_services;
-#if (SMP_INCLUDED == TRUE)
     btc_dm_pairing_cb_t pairing_cb;
     btc_dm_local_key_cb_t ble_local_key_cb;
-#endif
 } btc_dm_cb_t;
 
-#if BTC_DYNAMIC_MEMORY == FALSE
 extern btc_dm_cb_t btc_dm_cb;
-#else
-extern btc_dm_cb_t *btc_dm_cb_ptr;
-#define btc_dm_cb (*btc_dm_cb_ptr)
-#endif
 
 // void btc_dm_call_handler(btc_msg_t *msg);
 void btc_dm_sec_evt(tBTA_DM_SEC_EVT event, tBTA_DM_SEC *data);
@@ -82,11 +75,9 @@ void btc_dm_sec_arg_deep_copy(btc_msg_t *msg, void *dst, void *src);
 bt_status_t btc_dm_enable_service(tBTA_SERVICE_ID service_id);
 bt_status_t btc_dm_disable_service(tBTA_SERVICE_ID service_id);
 
-#if (SMP_INCLUDED == TRUE)
 void btc_dm_load_ble_local_keys(void);
 
 void btc_dm_get_ble_local_keys(tBTA_DM_BLE_LOCAL_KEY_MASK *p_key_mask, BT_OCTET16 er,
                                                             tBTA_BLE_LOCAL_ID_KEYS *p_id_keys);
-#endif
 
 #endif /* __BTC_DM_H__ */

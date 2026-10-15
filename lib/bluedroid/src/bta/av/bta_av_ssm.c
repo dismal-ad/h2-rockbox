@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 #include "common/bt_target.h"
-#if defined(BTA_AV_INCLUDED) && (BTA_AV_INCLUDED == TRUE)
 
 #include <string.h>
 #include "bta/bta_av_co.h"
@@ -577,4 +576,3 @@ UNUSED_ATTR static char *bta_av_sst_code(UINT8 state)
     }
 }
 
-#endif /* BTA_AV_INCLUDED */

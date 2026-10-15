@@ -29,8 +29,6 @@
 #include "avrc_int.h"
 #include "osi/allocator.h"
 
-#if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE)
-
 /*****************************************************************************
 **  Global data
 *****************************************************************************/
@@ -134,7 +132,6 @@ static BT_HDR *avrc_copy_packet(BT_HDR *p_pkt, int rsp_pkt_len)
     return p_pkt_copy;
 }
 
-#if (AVRC_METADATA_INCLUDED == TRUE)
 /******************************************************************************
 **
 ** Function         avrc_prep_end_frag
@@ -495,7 +492,6 @@ static UINT8 avrc_proc_far_msg(UINT8 handle, UINT8 label, UINT8 cr, BT_HDR **pp_
 
     return drop_code;
 }
-#endif /* (AVRC_METADATA_INCLUDED == TRUE) */
 
 /******************************************************************************
 **
@@ -667,7 +663,6 @@ static void avrc_msg_cback(UINT8 handle, UINT8 label, UINT8 cr,
             p_msg->p_vendor_data   = p_data;
             p_msg->vendor_len      = p_pkt->len - (p_data - p_begin);
 
-#if (AVRC_METADATA_INCLUDED == TRUE)
             UINT8 drop_code = 0;
             if (p_msg->company_id == AVRC_CO_METADATA) {
                 /* Validate length for metadata message */
@@ -709,7 +704,6 @@ static void avrc_msg_cback(UINT8 handle, UINT8 label, UINT8 cr,
                 }
 #endif
             }
-#endif /* (AVRC_METADATA_INCLUDED == TRUE) */
             break;
 
         case AVRC_OP_PASS_THRU:
@@ -903,10 +897,8 @@ UINT16 AVRC_Open(UINT8 *p_handle, tAVRC_CONN_CB *p_ccb, BD_ADDR_PTR peer_addr)
     status = AVCT_CreateConn(p_handle, &cc, peer_addr);
     if (status == AVCT_SUCCESS) {
         memcpy(&avrc_cb.ccb[*p_handle], p_ccb, sizeof(tAVRC_CONN_CB));
-#if (AVRC_METADATA_INCLUDED == TRUE)
         memset(&avrc_cb.fcb[*p_handle], 0, sizeof(tAVRC_FRAG_CB));
         memset(&avrc_cb.rcb[*p_handle], 0, sizeof(tAVRC_RASM_CB));
-#endif
     }
     AVRC_TRACE_DEBUG("AVRC_Open role: %d, control:%d status:%d, handle:%d", cc.role, cc.control,
                      status, *p_handle);
@@ -957,7 +949,6 @@ UINT16 AVRC_Close(UINT8 handle)
 ******************************************************************************/
 UINT16 AVRC_MsgReq (UINT8 handle, UINT8 label, UINT8 ctype, BT_HDR *p_pkt)
 {
-#if (AVRC_METADATA_INCLUDED == TRUE)
     UINT8   *p_data;
     UINT8   cr = AVCT_CMD;
     BOOLEAN chk_frag = TRUE;
@@ -1053,9 +1044,6 @@ UINT16 AVRC_MsgReq (UINT8 handle, UINT8 label, UINT8 ctype, BT_HDR *p_pkt)
     }
 
     return AVCT_MsgReq( handle, label, cr, p_pkt);
-#else
-    return AVRC_NO_RESOURCES;
-#endif
 }
 
 
@@ -1134,4 +1122,3 @@ UINT16 AVRC_PassRsp(UINT8 handle, UINT8 label, tAVRC_MSG_PASS *p_msg)
     return AVRC_NO_RESOURCES;
 }
 
-#endif /* #if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE) */

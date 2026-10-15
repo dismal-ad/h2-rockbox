@@ -5,7 +5,6 @@
  */
 
 #include "common/bt_target.h"
-#if BTA_AV_CA_INCLUDED
 
 #include <string.h>
 #include "bta/bta_av_api.h"
@@ -167,4 +166,3 @@ void bta_av_ca_sm_execute(tBTA_AV_RCB *p_rcb, UINT16 event, tBTA_AV_DATA *p_data
     }
 }
 
-#endif /* BTA_AV_CA_INCLUDED */

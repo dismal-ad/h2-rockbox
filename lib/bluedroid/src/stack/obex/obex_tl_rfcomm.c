@@ -16,8 +16,6 @@
 #include "obex_tl.h"
 #include "obex_tl_rfcomm.h"
 
-#if (OBEX_INCLUDED == TRUE && RFCOMM_INCLUDED == TRUE)
-
 #define OBEX_TL_RFCOMM_NUM_CONN         4
 #define OBEX_TL_RFCOMM_NUM_SERVER       2
 
@@ -45,12 +43,7 @@ typedef struct {
     UINT8               trace_level;                        /* trace level */
 } tOBEX_TL_RFCOMM_CB;
 
-#if OBEX_DYNAMIC_MEMORY == FALSE
 static tOBEX_TL_RFCOMM_CB obex_tl_rfcomm_cb;
-#else
-static tOBEX_TL_RFCOMM_CB *obex_tl_rfcomm_cb_ptr = NULL;
-#define obex_tl_rfcomm_cb (*obex_tl_rfcomm_cb_ptr)
-#endif
 
 static tOBEX_TL_RFCOMM_CCB *allocate_ccb(void)
 {
@@ -279,15 +272,6 @@ static void rfcomm_event_callback(UINT32 code, UINT16 rfc_handle)
 void obex_tl_rfcomm_init(tOBEX_TL_CBACK *callback)
 {
     assert(callback != NULL);
-#if (OBEX_DYNAMIC_MEMORY)
-    if (!obex_tl_rfcomm_cb_ptr) {
-        obex_tl_rfcomm_cb_ptr = (tOBEX_TL_RFCOMM_CB *)osi_malloc(sizeof(tOBEX_TL_RFCOMM_CB));
-        if (!obex_tl_rfcomm_cb_ptr) {
-            OBEX_TL_RFCOMM_TRACE_ERROR("OBEX over RFCOMM transport layer initialize failed, no memory\n");
-            assert(0);
-        }
-    }
-#endif /* #if (OBEX_DYNAMIC_MEMORY) */
     memset(&obex_tl_rfcomm_cb, 0, sizeof(tOBEX_TL_RFCOMM_CB));
     obex_tl_rfcomm_cb.callback = callback;
     obex_tl_rfcomm_cb.trace_level = BT_TRACE_LEVEL_ERROR;
@@ -295,12 +279,6 @@ void obex_tl_rfcomm_init(tOBEX_TL_CBACK *callback)
 
 void obex_tl_rfcomm_deinit(void)
 {
-#if (OBEX_DYNAMIC_MEMORY)
-    if (obex_tl_rfcomm_cb_ptr) {
-        osi_free(obex_tl_rfcomm_cb_ptr);
-        obex_tl_rfcomm_cb_ptr = NULL;
-    }
-#endif /* #if (OBEX_DYNAMIC_MEMORY) */
 }
 
 UINT16 obex_tl_rfcomm_connect(tOBEX_TL_SVR_INFO *server)
@@ -436,4 +414,3 @@ tOBEX_TL_OPS *obex_tl_rfcomm_ops_get(void)
     return &obex_tl_rfcomm_ops;
 }
 
-#endif /* #if (OBEX_INCLUDED == TRUE && RFCOMM_INCLUDED == TRUE) */

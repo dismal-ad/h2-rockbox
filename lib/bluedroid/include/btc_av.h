@@ -26,8 +26,6 @@
 #include "bta/bta_av_api.h"
 #include "bta/bta_av_sbc.h"
 
-#if (BTC_AV_INCLUDED == TRUE)
-
 #if (BTA_AV_CO_CP_SCMS_T == TRUE)
 #define BTC_MEDIA_AA_SBC_OFFSET (AVDT_MEDIA_OFFSET + BTA_AV_SBC_HDR_SIZE + 1)
 #else
@@ -69,7 +67,6 @@ typedef enum {
 } btc_av_sm_event_t;
 
 typedef enum {
-#if BTC_AV_SINK_INCLUDED
     BTC_AV_SINK_API_INIT_EVT = 0,
     BTC_AV_SINK_API_REG_SEP_EVT,
     BTC_AV_SINK_API_DEINIT_EVT,
@@ -79,8 +76,6 @@ typedef enum {
     BTC_AV_SINK_API_REG_AUDIO_DATA_CB_EVT,
     BTC_AV_SINK_API_SET_DELAY_VALUE_EVT,
     BTC_AV_SINK_API_GET_DELAY_VALUE_EVT,
-#endif  /* BTC_AV_SINK_INCLUDED */
-#if BTC_AV_SRC_INCLUDED
     BTC_AV_SRC_API_INIT_EVT,
     BTC_AV_SRC_API_SET_PREF_MCC_EVT,
     BTC_AV_SRC_API_REG_SEP_EVT,
@@ -88,13 +83,11 @@ typedef enum {
     BTC_AV_SRC_API_CONNECT_EVT,
     BTC_AV_SRC_API_DISCONNECT_EVT,
     BTC_AV_SRC_API_REG_DATA_CB_EVT,
-#endif  /* BTC_AV_SRC_INCLUDED */
     BTC_AV_API_MEDIA_CTRL_EVT,
 } btc_av_act_t;
 
 /* btc_av_args_t */
 typedef union {
-#if BTC_AV_SINK_INCLUDED
     // BTC_AV_SINK_API_CONNECT_EVT
     bt_bdaddr_t connect;
     // BTC_AV_SINK_API_DISCONNECT_EVT
@@ -105,8 +98,6 @@ typedef union {
     esp_a2d_sink_audio_data_cb_t audio_data_cb;
     // BTC_AV_SINK_API_SET_DELAY_VALUE_EVT
     uint16_t delay_value;
-#endif  /* BTC_AV_SINK_INCLUDED */
-#if BTC_AV_SRC_INCLUDED
     // BTC_AV_SRC_API_REG_DATA_CB_EVT
     esp_a2d_source_data_cb_t src_data_cb;
     // BTC_AV_SRC_API_CONNECT
@@ -118,7 +109,6 @@ typedef union {
         esp_a2d_conn_hdl_t conn_hdl;
         esp_a2d_mcc_t pref_mcc;
     } set_pref_mcc;
-#endif /* BTC_AV_SRC_INCLUDED */
     // BTC_AV_CONFIG_EVT
     esp_a2d_mcc_t mcc;
     // BTC_AV_SINK_API_REG_SEP_EVT or BTC_AV_SRC_API_REG_SEP_EVT
@@ -152,21 +142,6 @@ void btc_a2dp_sink_reg_data_cb(esp_a2d_sink_data_cb_t callback);
 **
 *******************************************************************************/
 void btc_a2dp_sink_reg_audio_data_cb(esp_a2d_sink_audio_data_cb_t callback);
-
-#if (BTC_AV_EXT_CODEC == TRUE)
-
-/*******************************************************************************
-**
-** Function         btc_av_codec_cap_get
-**
-** Description      Get external codec capability
-**
-** Returns          Pointer to codec capability
-**
-*******************************************************************************/
-tBTC_AV_CODEC_INFO *btc_av_codec_cap_get(void);
-
-#endif
 
 void btc_a2dp_src_reg_data_cb(esp_a2d_source_data_cb_t callback);
 /*******************************************************************************
@@ -290,8 +265,6 @@ void btc_av_clear_remote_suspend_flag(void);
  *
  ******************************************************************************/
 uint8_t btc_av_get_service_id(void);
-
-#endif  ///BTC_AV_INCLUDED == TRUE
 
 /*******************************************************************************
 **

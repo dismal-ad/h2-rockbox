@@ -43,15 +43,10 @@
 
 #include "osi/list.h"
 
-#if (SDP_INCLUDED == TRUE)
 /********************************************************************************/
 /*                       G L O B A L      S D P       D A T A                   */
 /********************************************************************************/
-#if SDP_DYNAMIC_MEMORY == FALSE
 tSDP_CB  sdp_cb;
-#else
-tSDP_CB  *sdp_cb_ptr;
-#endif
 
 /********************************************************************************/
 /*              L O C A L    F U N C T I O N     P R O T O T Y P E S            */
@@ -63,19 +58,8 @@ static void sdp_config_cfm (UINT16 l2cap_cid, tL2CAP_CFG_INFO *p_cfg);
 static void sdp_disconnect_ind (UINT16 l2cap_cid, BOOLEAN ack_needed);
 static void sdp_data_ind (UINT16 l2cap_cid, BT_HDR *p_msg);
 
-#if SDP_CLIENT_ENABLED == TRUE
 static void sdp_connect_cfm (UINT16 l2cap_cid, UINT16 result);
 static void sdp_disconnect_cfm (UINT16 l2cap_cid, UINT16 result);
-#else
-#define sdp_connect_cfm     NULL
-#define sdp_disconnect_cfm  NULL
-#endif
-
-#if BT_SDP_BQB_INCLUDED
-static BOOLEAN s_sdp_bqb_disable_flag = FALSE;
-static BOOLEAN s_sdp_bqb_inact_timeout_flag = FALSE;
-BOOLEAN l2cap_bqb_ertm_mode_included_flag = FALSE;
-#endif /* BT_SDP_BQB_INCLUDED */
 
 /*******************************************************************************
 **
@@ -86,12 +70,6 @@ BOOLEAN l2cap_bqb_ertm_mode_included_flag = FALSE;
 ** Returns      void
 **
 *******************************************************************************/
-#if BT_SDP_BQB_INCLUDED
-void sdp_bqb_disable_ctrl(BOOLEAN enable)
-{
-    s_sdp_bqb_disable_flag = enable;
-}
-#endif /* BT_SDP_BQB_INCLUDED */
 
 /*******************************************************************************
 **
@@ -102,12 +80,6 @@ void sdp_bqb_disable_ctrl(BOOLEAN enable)
 ** Returns      void
 **
 *******************************************************************************/
-#if BT_SDP_BQB_INCLUDED
-void sdp_bqb_inact_timeout_ctrl(BOOLEAN enable)
-{
-    s_sdp_bqb_inact_timeout_flag = enable;
-}
-#endif /* BT_SDP_BQB_INCLUDED */
 
 /*******************************************************************************
 **
@@ -118,12 +90,6 @@ void sdp_bqb_inact_timeout_ctrl(BOOLEAN enable)
 ** Returns      void
 **
 *******************************************************************************/
-#if BT_SDP_BQB_INCLUDED
-void l2cap_bqb_ertm_mode_included_ctrl(BOOLEAN enable)
-{
-    l2cap_bqb_ertm_mode_included_flag = enable;
-}
-#endif /* BT_SDP_BQB_INCLUDED */
 
 /*******************************************************************************
 **
@@ -136,9 +102,6 @@ void l2cap_bqb_ertm_mode_included_ctrl(BOOLEAN enable)
 *******************************************************************************/
 void sdp_init (void)
 {
-#if SDP_DYNAMIC_MEMORY
-    sdp_cb_ptr = (tSDP_CB *)osi_malloc(sizeof(tSDP_CB));
-#endif /* #if SDP_DYNAMIC_MEMORY */
     /* Clears all structures and local SDP database (if Server is enabled) */
     memset (&sdp_cb, 0, sizeof (tSDP_CB));
 
@@ -148,37 +111,22 @@ void sdp_init (void)
     sdp_cb.l2cap_my_cfg.mtu               = SDP_MTU_SIZE;
     sdp_cb.l2cap_my_cfg.flush_to_present  = TRUE;
     sdp_cb.l2cap_my_cfg.flush_to          = SDP_FLUSH_TO;
-#if BT_SDP_BQB_INCLUDED
-    if (l2cap_bqb_ertm_mode_included_flag) {
-        sdp_cb.l2cap_my_cfg.fcr_present         = TRUE;
-        sdp_cb.l2cap_my_cfg.fcr.mode            = L2CAP_FCR_ERTM_MODE;
-        sdp_cb.l2cap_my_cfg.fcr.tx_win_sz       = 8;
-        sdp_cb.l2cap_my_cfg.fcr.max_transmit    = 0xff;
-        sdp_cb.l2cap_my_cfg.fcr.rtrans_tout     = 2000;
-        sdp_cb.l2cap_my_cfg.fcr.mon_tout        = 12000;
-        sdp_cb.l2cap_my_cfg.fcr.mps             = 672;
-    }
-#endif /* BT_SDP_BQB_INCLUDED */
     sdp_cb.max_attr_list_size             = SDP_MTU_SIZE - 16;
     sdp_cb.max_recs_per_search            = SDP_MAX_DISC_SERVER_RECS;
 
-#if SDP_SERVER_ENABLED == TRUE
     /* Register with Security Manager for the specific security level */
     if (!BTM_SetSecurityLevel (FALSE, SDP_SERVICE_NAME, BTM_SEC_SERVICE_SDP_SERVER,
                                SDP_SECURITY_LEVEL, SDP_PSM, 0, 0)) {
         SDP_TRACE_ERROR ("Security Registration Server failed\n");
         return;
     }
-#endif
 
-#if SDP_CLIENT_ENABLED == TRUE
     /* Register with Security Manager for the specific security level */
     if (!BTM_SetSecurityLevel (TRUE, SDP_SERVICE_NAME, BTM_SEC_SERVICE_SDP_SERVER,
                                SDP_SECURITY_LEVEL, SDP_PSM, 0, 0)) {
         SDP_TRACE_ERROR ("Security Registration for Client failed\n");
         return;
     }
-#endif
 
 #if defined(SDP_INITIAL_TRACE_LEVEL)
     sdp_cb.trace_level = SDP_INITIAL_TRACE_LEVEL;
@@ -207,13 +155,8 @@ void sdp_init (void)
 void sdp_deinit (void)
 {
     list_free(sdp_cb.server_db.p_record_list);
-#if SDP_DYNAMIC_MEMORY
-    osi_free(sdp_cb_ptr);
-    sdp_cb_ptr = NULL;
-#endif /* #if SDP_DYNAMIC_MEMORY */
 }
 
-#if (defined(SDP_DEBUG) && SDP_DEBUG == TRUE)
 /*******************************************************************************
 **
 ** Function         sdp_set_max_attr_list_size
@@ -233,7 +176,6 @@ UINT16 sdp_set_max_attr_list_size (UINT16 max_size)
 
     return sdp_cb.max_attr_list_size;
 }
-#endif
 
 /*******************************************************************************
 **
@@ -249,7 +191,6 @@ UINT16 sdp_set_max_attr_list_size (UINT16 max_size)
 static void sdp_connect_ind (BD_ADDR  bd_addr, UINT16 l2cap_cid, UINT16 psm, UINT8 l2cap_id)
 {
     UNUSED(psm);
-#if SDP_SERVER_ENABLED == TRUE
     tCONN_CB    *p_ccb;
 
     /* Allocate a new CCB. Return if none available. */
@@ -285,13 +226,8 @@ static void sdp_connect_ind (BD_ADDR  bd_addr, UINT16 l2cap_cid, UINT16 psm, UIN
     }
 
     SDP_TRACE_EVENT ("SDP - Rcvd L2CAP conn ind, sent config req, CID 0x%x\n", p_ccb->connection_id);
-#else   /* No server */
-    /* Reject the connection */
-    L2CA_ConnectRsp (bd_addr, l2cap_id, l2cap_cid, L2CAP_CONN_NO_PSM, 0);
-#endif
 }
 
-#if SDP_CLIENT_ENABLED == TRUE
 /*******************************************************************************
 **
 ** Function         sdp_connect_cfm
@@ -363,7 +299,6 @@ static void sdp_connect_cfm (UINT16 l2cap_cid, UINT16 result)
         sdpu_release_ccb (p_ccb);
     }
 }
-#endif  /* SDP_CLIENT_ENABLED == TRUE */
 
 
 /*******************************************************************************
@@ -487,12 +422,6 @@ static void sdp_config_cfm (UINT16 l2cap_cid, tL2CAP_CFG_INFO *p_cfg)
             } else
                 /* Start inactivity timer */
             {
-#if BT_SDP_BQB_INCLUDED
-                /* Change the timeout from 30s to 90s for BQB test */
-                if (s_sdp_bqb_inact_timeout_flag) {
-                    btu_start_timer(&p_ccb->timer_entry, BTU_TTYPE_SDP, SDP_BQB_INACT_TIMEOUT);
-                } else
-#endif /* BT_SDP_BQB_INCLUDED */
                 {
                     btu_start_timer(&p_ccb->timer_entry, BTU_TTYPE_SDP, SDP_INACT_TIMEOUT);
                 }
@@ -509,9 +438,7 @@ static void sdp_config_cfm (UINT16 l2cap_cid, tL2CAP_CFG_INFO *p_cfg)
             return;
         }
 
-#if SDP_CLIENT_ENABLED == TRUE
         sdp_disconnect(p_ccb, SDP_CFG_FAILED);
-#endif
     }
 }
 
@@ -540,7 +467,6 @@ static void sdp_disconnect_ind (UINT16 l2cap_cid, BOOLEAN ack_needed)
     }
 
     SDP_TRACE_EVENT ("SDP - Rcvd L2CAP disc, CID: 0x%x\n", l2cap_cid);
-#if SDP_CLIENT_ENABLED == TRUE
     /* Tell the user if he has a callback */
     if (p_ccb->p_cb) {
         (*p_ccb->p_cb) ((UINT16) ((p_ccb->con_state == SDP_STATE_CONNECTED) ?
@@ -550,7 +476,6 @@ static void sdp_disconnect_ind (UINT16 l2cap_cid, BOOLEAN ack_needed)
                                    SDP_SUCCESS : SDP_CONN_FAILED), p_ccb->user_data);
     }
 
-#endif
     sdpu_release_ccb (p_ccb);
 }
 
@@ -576,11 +501,6 @@ static void sdp_data_ind (UINT16 l2cap_cid, BT_HDR *p_msg)
     /* Find CCB based on CID */
     if ((p_ccb = sdpu_find_ccb_by_cid (l2cap_cid)) != NULL) {
         if (p_ccb->con_state == SDP_STATE_CONNECTED) {
-#if BT_SDP_BQB_INCLUDED
-            /* Skip the following code in BQB test when the flag is true, since the PDU is reserved and
-               function sdp_server_handle_client_req will return error (sdpu_build_n_send_error) */
-            if (!s_sdp_bqb_disable_flag)
-#endif /* BT_SDP_BQB_INCLUDED */
             {
                 if (p_ccb->con_flags & SDP_FLAGS_IS_ORIG) {
                     sdp_disc_server_rsp(p_ccb, p_msg);
@@ -600,7 +520,6 @@ static void sdp_data_ind (UINT16 l2cap_cid, BT_HDR *p_msg)
 }
 
 
-#if SDP_CLIENT_ENABLED == TRUE
 /*******************************************************************************
 **
 ** Function         sdp_conn_originate
@@ -658,46 +577,6 @@ tCONN_CB *sdp_conn_originate (UINT8 *p_bd_addr)
 *******************************************************************************/
 void sdp_disconnect (tCONN_CB *p_ccb, UINT16 reason)
 {
-#if (defined(SDP_BROWSE_PLUS) && SDP_BROWSE_PLUS == TRUE)
-    /* If we are browsing for multiple UUIDs ... */
-    if ((p_ccb->con_state == SDP_STATE_CONNECTED)
-            && (p_ccb->con_flags & SDP_FLAGS_IS_ORIG)
-            && ((reason == SDP_SUCCESS) || (reason == SDP_NO_RECS_MATCH))) {
-        /* If the browse found something, do no more searching */
-        if ((p_ccb->cur_uuid_idx == 0) && (p_ccb->p_db->p_first_rec)) {
-            p_ccb->cur_uuid_idx = p_ccb->p_db->num_uuid_filters;
-        }
-
-        while (++p_ccb->cur_uuid_idx < p_ccb->p_db->num_uuid_filters) {
-            /* Check we have not already found the UUID (maybe through browse) */
-            if ((p_ccb->p_db->uuid_filters[p_ccb->cur_uuid_idx].len == 2)
-                    && (SDP_FindServiceInDb (p_ccb->p_db,
-                                             p_ccb->p_db->uuid_filters[p_ccb->cur_uuid_idx].uu.uuid16,
-                                             NULL))) {
-                continue;
-            }
-
-            if ((p_ccb->p_db->uuid_filters[p_ccb->cur_uuid_idx].len > 2)
-                    && (SDP_FindServiceUUIDInDb (p_ccb->p_db,
-                                                 &p_ccb->p_db->uuid_filters[p_ccb->cur_uuid_idx], NULL))) {
-                continue;
-            }
-
-            p_ccb->cur_handle = 0;
-
-            SDP_TRACE_EVENT ("SDP - looking for for more,  CID: 0x%x\n",
-                             p_ccb->connection_id);
-
-            sdp_disc_connected (p_ccb);
-            return;
-        }
-    }
-
-    if ((reason == SDP_NO_RECS_MATCH) && (p_ccb->p_db->p_first_rec)) {
-        reason = SDP_SUCCESS;
-    }
-
-#endif
 
     SDP_TRACE_EVENT ("SDP - disconnect  CID: 0x%x\n", p_ccb->connection_id);
 
@@ -754,8 +633,6 @@ static void sdp_disconnect_cfm (UINT16 l2cap_cid, UINT16 result)
     sdpu_release_ccb (p_ccb);
 }
 
-#endif  /* SDP_CLIENT_ENABLED == TRUE */
-
 /*******************************************************************************
 **
 ** Function         sdp_conn_timeout
@@ -772,15 +649,12 @@ void sdp_conn_timeout (tCONN_CB *p_ccb)
                      p_ccb->con_state, p_ccb->connection_id);
 
     L2CA_DisconnectReq (p_ccb->connection_id);
-#if SDP_CLIENT_ENABLED == TRUE
     /* Tell the user if he has a callback */
     if (p_ccb->p_cb) {
         (*p_ccb->p_cb) (SDP_CONN_FAILED);
     } else if (p_ccb->p_cb2) {
         (*p_ccb->p_cb2) (SDP_CONN_FAILED, p_ccb->user_data);
     }
-#endif
     sdpu_release_ccb (p_ccb);
 }
 
-#endif  ///SDP_INCLUDED == TRUE

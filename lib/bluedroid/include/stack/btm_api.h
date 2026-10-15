@@ -29,13 +29,9 @@
 #include "common/bt_target.h"
 #include "stack/hcidefs.h"
 
-#if SDP_INCLUDED == TRUE
 #include "stack/sdp_api.h"
-#endif
 
-#if SMP_INCLUDED == TRUE
 #include "stack/smp_api.h"
-#endif
 /*****************************************************************************
 **  DEVICE CONTROL and COMMON
 *****************************************************************************/
@@ -193,25 +189,6 @@ typedef void (tBTM_BLE_VENDOR_HCI_EVT_CBACK) (UINT8 subevt_code, UINT8 param_len
 /*******************************
 **  Device Coexist status
 ********************************/
-#if (ESP_COEX_VSC_INCLUDED == TRUE)
-// coexist status for MESH
-#define BTM_COEX_BLE_ST_MESH_CONFIG        0x08
-#define BTM_COEX_BLE_ST_MESH_TRAFFIC       0x10
-#define BTM_COEX_BLE_ST_MESH_STANDBY       0x20
-// coexist status for A2DP
-#define BTM_COEX_BT_ST_A2DP_STREAMING      0x10
-#define BTM_COEX_BT_ST_A2DP_PAUSED         0x20
-
-// coexist operation
-#define BTM_COEX_OP_CLEAR                  0x00
-#define BTM_COEX_OP_SET                    0x01
-typedef UINT8 tBTM_COEX_OPERATION;
-
-typedef enum {
-    BTM_COEX_TYPE_BLE = 1,
-    BTM_COEX_TYPE_BT,
-} tBTM_COEX_TYPE;
-#endif
 
 /*****************************************************************************
 **  DEVICE DISCOVERY - Inquiry, Remote Name, Discovery, Class of Device
@@ -578,13 +555,6 @@ typedef UINT8 tBTM_EIR_SEARCH_RESULT;
 #define BTM_OOB_RAND_R_SIZE         BT_OOB_RAND_R_SIZE
 
 
-#if BLE_INCLUDED == TRUE
-#define BTM_BLE_SEC_NONE                0
-#define BTM_BLE_SEC_ENCRYPT             1 /* encrypt the link using current key */
-#define BTM_BLE_SEC_ENCRYPT_NO_MITM     2
-#define BTM_BLE_SEC_ENCRYPT_MITM        3
-typedef UINT8   tBTM_BLE_SEC_ACT;
-#endif
 /************************************************************************************************
 ** BTM Services MACROS handle array of UINT32 bits for more than 32 services
 *************************************************************************************************/
@@ -639,15 +609,6 @@ typedef struct {            /* contains the parameters passed to the inquiry fun
 #define BTM_INQ_RESULT_BR       0x01
 #define BTM_INQ_RESULT_BLE      0x02
 
-#if (BLE_INCLUDED == TRUE)
-#define BTM_BLE_EVT_CONN_ADV        0x00
-#define BTM_BLE_EVT_CONN_DIR_ADV    0x01
-#define BTM_BLE_EVT_DISC_ADV        0x02
-#define BTM_BLE_EVT_NON_CONN_ADV    0x03
-#define BTM_BLE_EVT_SCAN_RSP        0x04
-typedef UINT8 tBTM_BLE_EVT_TYPE;
-#endif
-
 /* These are the fields returned in each device's response to the inquiry.  It
 ** is returned in the results callback if registered.
 */
@@ -662,14 +623,6 @@ typedef struct {
     UINT32      eir_uuid[BTM_EIR_SERVICE_ARRAY_SIZE];
     BOOLEAN     eir_complete_list;
     tBT_DEVICE_TYPE         device_type;
-#if (BLE_INCLUDED == TRUE)
-    UINT8       inq_result_type;
-    UINT8       ble_addr_type;
-    tBTM_BLE_EVT_TYPE       ble_evt_type;
-    UINT8                   flag;
-    UINT8       adv_data_len;
-    UINT8       scan_rsp_len;
-#endif
 } tBTM_INQ_RESULTS;
 
 
@@ -682,12 +635,6 @@ typedef struct {
     BOOLEAN             appl_knows_rem_name;    /* set by application if it knows the remote name of the peer device.
                                                    This is later used by application to determine if remote name request is
                                                    required to be done. Having the flag here avoid duplicate store of inquiry results */
-#if ( BLE_INCLUDED == TRUE)
-    UINT16          remote_name_len;
-    tBTM_BD_NAME    remote_name;
-    UINT8           remote_name_state;
-    UINT8           remote_name_type;
-#endif
 
 } tBTM_INQ_INFO;
 
@@ -795,37 +742,6 @@ typedef struct {
     BD_ADDR     rem_bda;
 } tBTM_RSSI_RESULTS;
 
-#if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
-/* Structure returned with read ACL real RSSI event (in tBTM_CMPL_CB callback function)
-** in response to BTM_ReadAclRealRSSI call.
-*/
-typedef struct {
-    tBTM_STATUS status;
-    UINT8       hci_status;
-    INT8        rssi;
-    BD_ADDR     rem_bda;
-} tBTM_ACL_REAL_RSSI_RESULTS;
-
-/* Structure returned with read new connection transmit power level event (in tBTM_CMPL_CB callback function)
-** in response to BTM_ReadNewConnTxPwrLvl call.
-*/
-typedef struct {
-    tBTM_STATUS status;
-    UINT8       hci_status;
-    INT8        pwr_lvl_min;
-    INT8        pwr_lvl_max;
-} tBTM_READ_NEW_CONN_TX_PWR_LVL_RESULTS;
-
-/* Structure returned with write new connection transmit power level event (in tBTM_CMPL_CB callback function)
-** in response to BTM_WriteNewConnTxPwrLvl call.
-*/
-typedef struct {
-    tBTM_STATUS status;
-    UINT8       hci_status;
-} tBTM_WRITE_NEW_CONN_TX_PWR_LVL_RESULTS;
-#endif // #if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
-
-#if (CLASSIC_BT_INCLUDED == TRUE)
 /* BR/EDR tx power level type for inq/iscan/page/pscan control */
 typedef enum {
     BTM_TX_PWR_LVL_INQ = 0,
@@ -853,7 +769,6 @@ typedef struct {
     UINT8       hci_status;
     tBTM_TX_PWR_LVL_TYPE type;
 } tBTM_WRITE_TX_PWR_LVL_RESULTS;
-#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
 
 /* Structure returned with read channel map event (in tBTM_CMPL_CB callback function)
 ** in response to BTM_ReadChannelMap call.
@@ -919,14 +834,12 @@ typedef struct {
     UINT16      pkt_types;
 } tBTM_SET_ACL_PKT_TYPES_RESULTS;
 
-#if (ENC_KEY_SIZE_CTRL_MODE != ENC_KEY_SIZE_CTRL_MODE_NONE)
 /* Structure returned with set minimal encryption key size event (in tBTM_CMPL_CB callback function)
 ** in response to BTM_SetMinEncKeySize call.
 */
 typedef struct {
     UINT8 hci_status;
 } tBTM_SET_MIN_ENC_KEY_SIZE_RESULTS;
-#endif
 
 /* Structure returned with set BLE channels event (in tBTM_CMPL_CB callback function)
 ** in response to BTM_BleSetChannels call.
@@ -993,20 +906,12 @@ typedef struct {
     BD_NAME_PTR     p_bdn;          /* The device name */
     UINT8          *p_features;     /* pointer to the remote device's features page[0] (supported features page) */
     BOOLEAN         sc_downgrade;   /* Secure connection downgrade state. */
-#if BLE_INCLUDED == TRUE
-    UINT16          handle;         /* connection handle */
-    tBT_TRANSPORT   transport;      /* link is LE or not */
-#endif
 } tBTM_BL_CONN_DATA;
 
 /* the data type associated with BTM_BL_DISCN_EVT */
 typedef struct {
     tBTM_BL_EVENT   event;  /* The event reported. */
     BD_ADDR_PTR     p_bda;  /* The address of the disconnected device */
-#if BLE_INCLUDED == TRUE
-    UINT16          handle; /* disconnected connection handle */
-    tBT_TRANSPORT   transport; /* link is LE link or not */
-#endif
 } tBTM_BL_DISCN_DATA;
 
 /* Busy-Level shall have the inquiry_paging mask set when
@@ -1053,16 +958,9 @@ typedef void (tBTM_BL_CHANGE_CB) (tBTM_BL_EVENT_DATA *p_data);
 ** changes. First param is BD address, second is if added or removed.
 ** Registered through BTM_AclRegisterForChanges call.
 */
-#if BLE_INCLUDED == TRUE
-typedef void (tBTM_ACL_DB_CHANGE_CB) (BD_ADDR p_bda, DEV_CLASS p_dc,
-                                      BD_NAME p_bdn, UINT8 *features,
-                                      BOOLEAN is_new, UINT16 handle,
-                                      tBT_TRANSPORT transport);
-#else
 typedef void (tBTM_ACL_DB_CHANGE_CB) (BD_ADDR p_bda, DEV_CLASS p_dc,
                                       BD_NAME p_bdn, UINT8 *features,
                                       BOOLEAN is_new);
-#endif
 /*****************************************************************************
 **  SCO CHANNEL MANAGEMENT
 *****************************************************************************/
@@ -1616,9 +1514,7 @@ typedef UINT8 tBTM_AUTH_REQ;
 enum {
     BTM_OOB_NONE,
     BTM_OOB_PRESENT
-#if BTM_OOB_INCLUDED == TRUE
     , BTM_OOB_UNKNOWN
-#endif
 };
 typedef UINT8 tBTM_OOB_DATA;
 
@@ -1751,7 +1647,6 @@ typedef void (tBTM_BOND_CANCEL_CMPL_CALLBACK) (tBTM_STATUS result);
 /* LE related event and data structure
 */
 /* relate to ESP_LE_KEY_xxx in esp_gap_ble_api.h */
-#if (SMP_INCLUDED == TRUE)
 #define BTM_LE_IO_REQ_EVT       SMP_IO_CAP_REQ_EVT     /* received IO_CAPABILITY_REQUEST event */
 #define BTM_LE_SEC_REQUEST_EVT  SMP_SEC_REQUEST_EVT    /* security request event */
 #define BTM_LE_KEY_NOTIF_EVT    SMP_PASSKEY_NOTIF_EVT  /* received USER_PASSKEY_NOTIFY event */
@@ -1767,30 +1662,15 @@ typedef void (tBTM_BOND_CANCEL_CMPL_CALLBACK) (tBTM_STATUS result);
 #define BTM_LE_COMPLT_EVT       SMP_COMPLT_EVT         /* SMP complete event */
 #define BTM_LE_LAST_FROM_SMP    BTM_LE_BR_KEYS_REQ_EVT
 #define BTM_LE_KEY_EVT          BTM_LE_LAST_FROM_SMP + 1 /* KEY update event */
-#endif  ///SMP_INCLUDED == TRUE
 typedef UINT8 tBTM_LE_EVT;
 
-#if (BLE_INCLUDED == TRUE && SMP_INCLUDED == TRUE)
-#define BTM_LE_KEY_NONE           0
-#define BTM_LE_KEY_PENC      SMP_SEC_KEY_TYPE_ENC        /* encryption information of peer device */
-#define BTM_LE_KEY_PID       SMP_SEC_KEY_TYPE_ID         /* identity key of the peer device */
-#define BTM_LE_KEY_PCSRK     SMP_SEC_KEY_TYPE_CSRK      /* peer SRK */
-#define BTM_LE_KEY_PLK       SMP_SEC_KEY_TYPE_LK
-#define BTM_LE_KEY_LLK       (SMP_SEC_KEY_TYPE_LK << 4)
-#define BTM_LE_KEY_LENC      (SMP_SEC_KEY_TYPE_ENC << 4)  /* master role security information:div */
-#define BTM_LE_KEY_LID       (SMP_SEC_KEY_TYPE_ID << 4)   /* master device ID key */
-#define BTM_LE_KEY_LCSRK     (SMP_SEC_KEY_TYPE_CSRK << 4) /* local CSRK has been deliver to peer */
-#endif  ///BLE_INCLUDED == TRUE && SMP_INCLUDED == TRUE
 typedef UINT8 tBTM_LE_KEY_TYPE;
 
 /* relate to ESP_LE_AUTH_xxx in esp_gap_ble_api.h */
-#if (SMP_INCLUDED == TRUE)
 #define BTM_LE_AUTH_REQ_NO_BOND SMP_AUTH_NO_BOND   /* 0 */
 #define BTM_LE_AUTH_REQ_BOND    SMP_AUTH_GEN_BOND  /* 1 << 0 */
 #define BTM_LE_AUTH_REQ_MITM    SMP_AUTH_YN_BIT    /* 1 << 2 */
-#endif  ///SMP_INCLUDED == TRUE
 typedef UINT8 tBTM_LE_AUTH_REQ;
-#if (SMP_INCLUDED == TRUE)
 #define BTM_LE_SC_SUPPORT_BIT           SMP_SC_SUPPORT_BIT     /* (1 << 3) */
 #define BTM_LE_KP_SUPPORT_BIT           SMP_KP_SUPPORT_BIT     /* (1 << 4) */
 
@@ -1804,7 +1684,6 @@ typedef UINT8 tBTM_LE_AUTH_REQ;
 #define BTM_LE_SEC_NONE             SMP_SEC_NONE
 #define BTM_LE_SEC_UNAUTHENTICATE   SMP_SEC_UNAUTHENTICATE      /* 1 */
 #define BTM_LE_SEC_AUTHENTICATED    SMP_SEC_AUTHENTICATED       /* 4 */
-#endif  ///SMP_INCLUDED == TRUE
 typedef UINT8 tBTM_LE_SEC;
 
 
@@ -1816,17 +1695,6 @@ typedef struct {
     tBTM_LE_KEY_TYPE    init_keys;      /* keys to be distributed, bit mask */
     tBTM_LE_KEY_TYPE    resp_keys;      /* keys to be distributed, bit mask */
 } tBTM_LE_IO_REQ;
-
-#if BLE_INCLUDED == TRUE && SMP_INCLUDED == TRUE
-/* data type for tBTM_LE_COMPLT */
-typedef struct {
-    UINT8 reason;
-    UINT8 sec_level;
-    BOOLEAN is_pair_cancel;
-    BOOLEAN smp_over_br;
-    tSMP_AUTH_REQ auth_mode;
-} tBTM_LE_COMPLT;
-#endif
 
 /* BLE encryption keys */
 typedef struct {
@@ -1885,11 +1753,6 @@ typedef union {
     /* BTM_LE_NC_REQ_EVT */
     /* no callback data for BTM_LE_KEY_REQ_EVT */
     /* and BTM_LE_OOB_REQ_EVT  */
-#if BLE_INCLUDED == TRUE && SMP_INCLUDED == TRUE
-    tBTM_LE_COMPLT      complt;     /* BTM_LE_COMPLT_EVT      */
-    tSMP_OOB_DATA_TYPE  req_oob_type;
-    tSMP_LOC_OOB_DATA   local_oob_data;
-#endif
     tBTM_LE_KEY         key;
 } tBTM_LE_EVT_DATA;
 
@@ -1932,12 +1795,6 @@ typedef struct {
     tBTM_BOND_CANCEL_CMPL_CALLBACK *p_bond_cancel_cmpl_callback;
     tBTM_ENC_CHANGE_CALLBACK    *p_enc_change_callback;
     tBTM_SP_CALLBACK            *p_sp_callback;
-#if BLE_INCLUDED == TRUE
-#if SMP_INCLUDED == TRUE
-    tBTM_LE_CALLBACK            *p_le_callback;
-#endif
-    tBTM_LE_KEY_CALLBACK        *p_le_key_callback;
-#endif
 } tBTM_APPL_INFO;
 
 /* Callback function for when a link supervision timeout event occurs.
@@ -2257,9 +2114,6 @@ tBTM_STATUS BTM_VendorSpecificCommand(UINT16 opcode,
 **      BTM_NO_RESOURCES    Command not sent. No resources.
 **
 *******************************************************************************/
-#if (ESP_COEX_VSC_INCLUDED == TRUE)
-tBTM_STATUS BTM_ConfigCoexStatus(tBTM_COEX_OPERATION op, tBTM_COEX_TYPE type, UINT8 status);
-#endif
 
 /*******************************************************************************
 **
@@ -2272,7 +2126,6 @@ tBTM_STATUS BTM_ConfigCoexStatus(tBTM_COEX_OPERATION op, tBTM_COEX_TYPE type, UI
 **
 *******************************************************************************/
 //extern
-#if (CLASSIC_BT_INCLUDED == TRUE)
 UINT8 BTM_AllocateSCN(void);
 
 // btla-specific ++
@@ -2301,7 +2154,6 @@ BOOLEAN BTM_TryAllocateSCN(UINT8 scn);
 *******************************************************************************/
 //extern
 BOOLEAN BTM_FreeSCN(UINT8 scn);
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
 
 
 /*******************************************************************************
@@ -2372,9 +2224,7 @@ tBTM_STATUS BTM_SetAclPktTypes(BD_ADDR remote_bda, UINT16 pkt_types, tBTM_CMPL_C
 **
 *******************************************************************************/
 //extern
-#if (ENC_KEY_SIZE_CTRL_MODE != ENC_KEY_SIZE_CTRL_MODE_NONE)
 tBTM_STATUS BTM_SetMinEncKeySize(UINT8 key_size, tBTM_CMPL_CB *p_cb);
-#endif
 
 /*******************************************************************************
 **
@@ -2848,7 +2698,6 @@ tBTM_INQ_INFO *BTM_InqDbNext (tBTM_INQ_INFO *p_cur);
 //extern
 tBTM_STATUS  BTM_ClearInqDb (BD_ADDR p_bda);
 
-#if (CLASSIC_BT_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         BTM_ReadInquiryRspTxPower
@@ -2876,9 +2725,7 @@ tBTM_STATUS BTM_ReadInquiryRspTxPower (tBTM_CMPL_CB *p_cb);
 **
 *******************************************************************************/
 tBTM_STATUS BTM_WriteInquiryTxPower(INT8 tx_power, tBTM_CMPL_CB *p_cb);
-#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
 
-#if SDP_INCLUDED == TRUE
 /*******************************************************************************
 **
 ** Function         BTM_StartDiscovery
@@ -2945,7 +2792,6 @@ tSDP_DISC_REC *BTM_FindService (UINT16 service_uuid,
 //extern
 void BTM_SetDiscoveryParams (UINT16 num_uuid, tSDP_UUID *p_uuid_list,
                              UINT16 num_attr, UINT16 *p_attr_list);
-#endif /*SDP_INCLUDED*/
 
 /*****************************************************************************
 **  ACL CHANNEL MANAGEMENT FUNCTIONS
@@ -3084,55 +2930,6 @@ tBTM_STATUS BTM_SwitchRole (BD_ADDR remote_bd_addr,
 //extern
 tBTM_STATUS BTM_ReadRSSI (BD_ADDR remote_bda, tBT_TRANSPORT transport, tBTM_CMPL_CB *p_cb);
 
-#if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
-/*******************************************************************************
-**
-** Function         BTM_ReadAclRealRSSI
-**
-** Description      This function is called to read ACL real RSSI.
-**                  The RSSI of results are returned in the callback.
-**                  (tBTM_ACL_REAL_RSSI_RESULTS)
-**
-** Returns          BTM_CMD_STARTED if command issued to controller.
-**                  BTM_NO_RESOURCES if couldn't allocate memory to issue command
-**                  BTM_UNKNOWN_ADDR if no active link with bd addr specified
-**                  BTM_BUSY if command is already in progress
-**
-*******************************************************************************/
-tBTM_STATUS BTM_ReadAclRealRSSI(BD_ADDR remote_bda, tBTM_CMPL_CB *p_cb);
-
-/*******************************************************************************
-**
-** Function         BTM_ReadNewConnTxPwrLvl
-**
-** Description      This function is called to read new connection transmit power level.
-**                  The new connection transmit power level value returned in the callback.
-**                  (tBTM_READ_NEW_CONN_TX_PWR_LVL_RESULTS)
-**
-** Returns          BTM_CMD_STARTED if command issued to controller.
-**                  BTM_NO_RESOURCES if couldn't allocate memory to issue command
-**                  BTM_BUSY if command is already in progress
-**
-*******************************************************************************/
-tBTM_STATUS BTM_ReadNewConnTxPwrLvl(tBTM_CMPL_CB *p_cb);
-
-/*******************************************************************************
-**
-** Function         BTM_WriteNewConnTxPwrLvl
-**
-** Description      This function is called to write new connection transmit power level.
-**                  The new connection transmit power level value returned in the callback.
-**                  (tBTM_WRITE_NEW_CONN_TX_PWR_LVL_RESULTS)
-**
-** Returns          BTM_CMD_STARTED if command issued to controller.
-**                  BTM_NO_RESOURCES if couldn't allocate memory to issue command
-**                  BTM_BUSY if command is already in progress
-**
-*******************************************************************************/
-tBTM_STATUS BTM_WriteNewConnTxPwrLvl(INT8 pwr_lvl_min, INT8 pwr_lvl_max, tBTM_CMPL_CB *p_cb);
-#endif // #if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
-
-#if (CLASSIC_BT_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         BTM_ReadBredrTxPwrLvl
@@ -3164,7 +2961,6 @@ tBTM_STATUS BTM_ReadBredrTxPwrLvl(tBTM_TX_PWR_LVL_TYPE type, tBTM_CMPL_CB *p_cb)
 **
 *******************************************************************************/
 tBTM_STATUS BTM_WriteBredrTxPwrLvl(tBTM_TX_PWR_LVL_TYPE type, INT8 tx_power, tBTM_CMPL_CB *p_cb);
-#endif // (CLASSIC_BT_INCLUDED == TRUE)
 
 /*******************************************************************************
 **
@@ -3181,9 +2977,6 @@ tBTM_STATUS BTM_ReadChannelMap(BD_ADDR remote_bda, tBTM_CMPL_CB *p_cb);
 
 void BTM_BleGetWhiteListSize(uint16_t *length);
 
-#if (BLE_50_EXTEND_SYNC_EN == TRUE)
-void BTM_BleGetPeriodicAdvListSize(uint8_t *size);
-#endif //#if (BLE_50_EXTEND_SYNC_EN == TRUE)
 /*******************************************************************************
 **
 ** Function         BTM_ReadLinkQuality

@@ -33,7 +33,7 @@
 #define     BTA_GATT_INCLUDED     FALSE
 #endif
 
-#if ((BLE_INCLUDED == FALSE) && (BTA_GATT_INCLUDED == TRUE))
+#if (BTA_GATT_INCLUDED == TRUE)
 #undef BTA_GATT_INCLUDED
 #define BTA_GATT_INCLUDED        FALSE
 #endif

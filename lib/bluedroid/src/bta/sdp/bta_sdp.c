@@ -29,17 +29,11 @@
 #include "bta/bta_sdp_api.h"
 #include "bta_sdp_int.h"
 
-#if defined(BTA_SDP_INCLUDED) && (BTA_SDP_INCLUDED == TRUE)
-
 /*****************************************************************************
 ** Constants and types
 *****************************************************************************/
 
-#if BTA_DYNAMIC_MEMORY == FALSE
 tBTA_SDP_CB bta_sdp_cb;
-#else
-tBTA_SDP_CB *bta_sdp_cb_ptr;
-#endif
 
 /* state machine action enumeration list */
 #define BTA_SDP_NUM_ACTIONS  (BTA_SDP_MAX_INT_EVT & 0x00ff)
@@ -81,4 +75,3 @@ BOOLEAN bta_sdp_sm_execute(BT_HDR *p_msg)
     return (ret);
 }
 
-#endif /* #if defined(BTA_SDP_INCLUDED) && (BTA_SDP_INCLUDED == TRUE) */

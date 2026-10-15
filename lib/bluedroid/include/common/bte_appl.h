@@ -25,16 +25,6 @@
 #pragma once
 
 typedef struct {
-#if ((BLE_INCLUDED == TRUE) && (SMP_INCLUDED == TRUE))
-    UINT8   ble_auth_req;
-    UINT8   ble_io_cap;
-    UINT8   ble_init_key;
-    UINT8   ble_resp_key;
-    UINT8   ble_max_key_size;
-    UINT8   ble_min_key_size;
-    UINT8   ble_accept_auth_enable;
-    UINT8   oob_support;
-#endif
 
 } tBTE_APPL_CFG;
 

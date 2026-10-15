@@ -31,8 +31,6 @@
 #include "stack/a2d_api.h"
 #include "bta/bta_api.h"
 
-#if (BTA_AV_INCLUDED == TRUE)
-
 /*****************************************************************************
 **  Constants and data types
 *****************************************************************************/
@@ -512,8 +510,6 @@ typedef struct {
     BD_ADDR         bd_addr;
 } tBTA_AV_INCOMING;
 
-#if BTA_AV_CA_INCLUDED
-
 /* data associated with BTA_AV_CA_STATUS_EVT */
 typedef struct {
     BOOLEAN         connected;      /* whether Cover Art connection is connected */
@@ -528,8 +524,6 @@ typedef struct {
     UINT8           *p_data;        /* point to the data in p_hdr */
     BT_HDR          *p_hdr;         /* after data pass to application, free this packet */
 } tBTA_AV_CA_DATA;
-
-#endif
 
 /* union of data associated with AV callback */
 typedef union {
@@ -557,10 +551,8 @@ typedef union {
     tBTA_AV_DELAY       delay;
     tBTA_AV_SNK_PSC_CFG psc;
     tBTA_AV_INCOMING    incoming;
-#if BTA_AV_CA_INCLUDED
     tBTA_AV_CA_STATUS   ca_status;
     tBTA_AV_CA_DATA     ca_data;
-#endif
 } tBTA_AV;
 
 /* union of data associated with AV Media callback */
@@ -922,8 +914,6 @@ void BTA_AvMetaRsp(UINT8 rc_handle, UINT8 label, tBTA_AV_CODE rsp_code,
 *******************************************************************************/
 void BTA_AvMetaCmd(UINT8 rc_handle, UINT8 label, tBTA_AV_CMD cmd_code, BT_HDR *p_pkt);
 
-#if BTA_AV_CA_INCLUDED
-
 /*******************************************************************************
 **
 ** Function         BTA_AvCaOpen
@@ -961,12 +951,8 @@ void BTA_AvCaClose(UINT8 rc_handle);
 *******************************************************************************/
 void BTA_AvCaGet(UINT8 rc_handle, tBTA_AV_GET_TYPE type, UINT8 *image_handle, UINT8 *image_descriptor, UINT16 image_descriptor_len);
 
-#endif /* BTA_AV_CA_INCLUDED */
-
 #ifdef __cplusplus
 }
 #endif
-
-#endif  ///BTA_AV_INCLUDED == TRUE
 
 #endif /* BTA_AV_API_H */

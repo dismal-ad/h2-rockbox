@@ -38,8 +38,6 @@
 #include "btm_int.h"
 #include "stack/sdp_api.h"
 
-#if (SDP_INCLUDED == TRUE)
-
 // TODO:
 // Both the fact that the UUIDs are declared in multiple places, plus the fact
 // that there is a mess of UUID comparison and shortening methods will have to
@@ -635,4 +633,3 @@ void bta_sdp_disable(tBTA_SDP_MSG *p_data)
     }
 }
 
-#endif  ///SDP_INCLUDED == TRUE

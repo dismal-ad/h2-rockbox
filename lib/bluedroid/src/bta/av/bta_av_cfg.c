@@ -29,8 +29,6 @@
 #include "bta/bta_api.h"
 #include "bta_av_int.h"
 
-#if defined(BTA_AV_INCLUDED) && (BTA_AV_INCLUDED == TRUE)
-
 #ifndef BTA_AV_RC_PASS_RSP_CODE
 #define BTA_AV_RC_PASS_RSP_CODE     BTA_AV_RSP_NOT_IMPL
 #endif
@@ -63,13 +61,8 @@ const UINT16  bta_av_audio_flush_to[] = {
 
 /* Note: Android doesnt support AVRC_SUPF_TG_GROUP_NAVI  */
 /* Note: if AVRC_SUPF_TG_GROUP_NAVI is set, bta_av_cfg.avrc_group should be TRUE */
-#if AVRC_METADATA_INCLUDED == TRUE
 #define BTA_AV_RC_SNK_SUPF_TG       (AVRC_SUPF_TG_CAT2) /* TODO: | AVRC_SUPF_TG_APP_SETTINGS) */
 #define BTA_AV_RC_SRC_SUPF_TG       (AVRC_SUPF_TG_CAT1) /* TODO: | AVRC_SUPF_TG_APP_SETTINGS) */
-#else
-#define BTA_AV_RC_SNK_SUPF_TG       (AVRC_SUPF_TG_CAT2)
-#define BTA_AV_RC_SRC_SUPF_TG       (AVRC_SUPF_TG_CAT1)
-#endif
 
 /* the MTU for the AVRCP browsing channel */
 #ifndef BTA_AV_MAX_RC_BR_MTU
@@ -78,11 +71,7 @@ const UINT16  bta_av_audio_flush_to[] = {
 
 const tBTA_AV_CFG bta_av_cfg = {
     AVRC_CO_BROADCOM,       /* AVRCP Company ID */
-#if AVRC_METADATA_INCLUDED == TRUE
     512,                    /* AVRCP MTU at L2CAP for control channel */
-#else
-    48,                     /* AVRCP MTU at L2CAP for control channel */
-#endif
     BTA_AV_MAX_RC_BR_MTU,   /* AVRCP MTU at L2CAP for browsing channel */
     BTA_AV_RC_SNK_SUPF_CT,  /* AVRCP controller categories as SNK */
     BTA_AV_RC_SNK_SUPF_TG,  /* AVRCP target categories as SNK */
@@ -107,4 +96,3 @@ const tBTA_AV_CFG bta_av_cfg = {
 
 tBTA_AV_CFG *p_bta_av_cfg = (tBTA_AV_CFG *) &bta_av_cfg;
 
-#endif /* if defined(BTA_AV_INCLUDED) && (BTA_AV_INCLUDED == TRUE) */

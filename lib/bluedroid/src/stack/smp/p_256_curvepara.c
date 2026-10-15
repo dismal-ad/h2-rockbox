@@ -25,8 +25,6 @@
 #include <string.h>
 #include "common/bt_target.h"
 
-#if (SMP_CRYPTO_STACK_NATIVE == TRUE)
-
 #include "p_256_ecc_pp.h"
 
 void p_256_init_curve(UINT32 keyLength)
@@ -81,4 +79,3 @@ void p_256_init_curve(UINT32 keyLength)
     }
 }
 
-#endif /* SMP_CRYPTO_STACK_NATIVE == TRUE */

@@ -28,8 +28,6 @@
 #include "avrc_int.h"
 #include "osi/allocator.h"
 
-#if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE)
-
 /******************************************************************************
 **
 ** Function         avrc_vendor_msg
@@ -64,13 +62,8 @@ static BT_HDR   *avrc_vendor_msg(tAVRC_MSG_VENDOR *p_msg)
         return NULL;
     }
 
-#if AVRC_METADATA_INCLUDED == TRUE
     if ((AVRC_META_CMD_BUF_SIZE > AVRC_MIN_VENDOR_CMD_LEN + p_msg->vendor_len) &&
         ((p_cmd = (BT_HDR *) osi_malloc(AVRC_META_CMD_BUF_SIZE)) != NULL))
-#else
-    if ((AVRC_CMD_BUF_SIZE > (AVRC_MIN_VENDOR_CMD_LEN + p_msg->vendor_len)) &&
-        (p_cmd = (BT_HDR *) osi_malloc(AVRC_CMD_BUF_SIZE)) != NULL)
-#endif
     {
         p_cmd->offset   = AVCT_MSG_OFFSET;
         p_data          = (UINT8 *)(p_cmd + 1) + p_cmd->offset;
@@ -241,4 +234,3 @@ UINT16 AVRC_VendorRsp(UINT8  handle, UINT8  label, tAVRC_MSG_VENDOR *p_msg)
     }
 }
 
-#endif /* #if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE) */

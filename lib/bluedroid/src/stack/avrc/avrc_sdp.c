@@ -27,17 +27,9 @@
 #include "avrc_int.h"
 #include "osi/allocator.h"
 
-#if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE)
-
-#if AVRC_CA_INCLUDED == TRUE
 /* If Cover Art feature is enabled, set AVRCP version to 1.6 */
 #define SDP_AVRCP_1_6      TRUE
 #define SDP_AVRCP_1_5      FALSE
-#else
-/* Otherwise, set to 1.5 */
-#define SDP_AVRCP_1_6      FALSE
-#define SDP_AVRCP_1_5      TRUE
-#endif
 
 #ifndef SDP_AVCTP_1_4
 #define SDP_AVCTP_1_4      TRUE
@@ -46,11 +38,7 @@
 /*****************************************************************************
 **  Global data
 *****************************************************************************/
-#if AVRC_DYNAMIC_MEMORY == FALSE
 tAVRC_CB avrc_cb;
-#else
-tAVRC_CB *avrc_cb_ptr;
-#endif
 
 /* update AVRC_NUM_PROTO_ELEMS if this constant is changed */
 const tSDP_PROTOCOL_ELEM  avrc_proto_list [] = {
@@ -61,11 +49,7 @@ const tSDP_PROTOCOL_ELEM  avrc_proto_list [] = {
 #if (SDP_AVRCP_1_5 == TRUE || SDP_AVRCP_1_6 == TRUE)
     {UUID_PROTOCOL_AVCTP, 1, {AVCT_REV_1_3, 0}  }
 #else
-#if AVRC_METADATA_INCLUDED == TRUE
     {UUID_PROTOCOL_AVCTP, 1, {AVCT_REV_1_2, 0}  }
-#else
-    {UUID_PROTOCOL_AVCTP, 1, {AVCT_REV_1_0, 0}  }
-#endif
 #endif
 #endif
 };
@@ -289,11 +273,7 @@ UINT16 AVRC_AddRecord(UINT16 service_uuid, char *p_service_name, char *p_provide
     result &= SDP_AddProfileDescriptorList(sdp_handle, UUID_SERVCLASS_AV_REMOTE_CONTROL, AVRC_REV_1_6);
 #endif
 #else
-#if AVRC_METADATA_INCLUDED == TRUE
     result &= SDP_AddProfileDescriptorList(sdp_handle, UUID_SERVCLASS_AV_REMOTE_CONTROL, AVRC_REV_1_3);
-#else
-    result &= SDP_AddProfileDescriptorList(sdp_handle, UUID_SERVCLASS_AV_REMOTE_CONTROL, AVRC_REV_1_0);
-#endif
 #endif
 
     /* Check if browsing is supported */
@@ -302,13 +282,11 @@ UINT16 AVRC_AddRecord(UINT16 service_uuid, char *p_service_name, char *p_provide
     } else if (service_uuid == UUID_SERVCLASS_AV_REM_CTRL_TARGET && media_player_virtual_filesystem_supported) {
         supported_feature |= AVRC_SUPF_TG_BROWSE;
     }
-#if AVRC_CA_INCLUDED
     if (service_uuid == UUID_SERVCLASS_AV_REM_CTRL_CONTROL || service_uuid == UUID_SERVCLASS_AV_REMOTE_CONTROL) {
         supported_feature |= AVRC_SUPF_CT_COVER_ART_GIP;
         supported_feature |= AVRC_SUPF_CT_COVER_ART_GI;
         supported_feature |= AVRC_SUPF_CT_COVER_ART_GLT;
     }
-#endif
     /* add supported feature */
     p = temp;
     UINT16_TO_BE_STREAM(p, supported_feature);
@@ -380,12 +358,6 @@ UINT8 AVRC_SetTraceLevel (UINT8 new_level)
 *******************************************************************************/
 bt_status_t AVRC_Init(void)
 {
-#if AVRC_DYNAMIC_MEMORY
-    avrc_cb_ptr = (tAVRC_CB *)osi_malloc(sizeof(tAVRC_CB));
-    if (!avrc_cb_ptr) {
-        return BT_STATUS_NOMEM;
-    }
-#endif /* #if AVRC_DYNAMIC_MEMORY */
     memset(&avrc_cb, 0, sizeof(tAVRC_CB));
 
 #if defined(AVRC_INITIAL_TRACE_LEVEL)
@@ -409,12 +381,5 @@ bt_status_t AVRC_Init(void)
 *******************************************************************************/
 void AVRC_Deinit(void)
 {
-#if AVRC_DYNAMIC_MEMORY
-    if (avrc_cb_ptr){
-        osi_free(avrc_cb_ptr);
-        avrc_cb_ptr = NULL;
-    }
-#endif /* #if AVRC_DYNAMIC_MEMORY */
 }
 
-#endif /* #if (defined(AVRC_INCLUDED) && AVRC_INCLUDED == TRUE) */

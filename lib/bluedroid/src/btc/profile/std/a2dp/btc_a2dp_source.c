@@ -37,16 +37,11 @@
 #include "osi/future.h"
 #include <assert.h>
 
-#if (BTC_AV_SRC_INCLUDED == TRUE) && (BTC_AV_EXT_CODEC == FALSE)
-
 #include "sbc_encoder.h"
 
 /*****************************************************************************
  **  BQB global variables
  *****************************************************************************/
-#if A2D_SRC_BQB_INCLUDED
-bool a2dp_src_bqb_set_sbc_encoder_flag = FALSE;
-#endif /* A2D_SRC_BQB_INCLUDED */
 
 /*****************************************************************************
  **  Constants
@@ -185,12 +180,7 @@ static void btc_a2dp_source_encoder_init(void);
 
 static int btc_a2dp_source_state = BTC_A2DP_SOURCE_STATE_OFF;
 static esp_a2d_source_data_cb_t btc_aa_src_data_cb = NULL;
-#if A2D_DYNAMIC_MEMORY == FALSE
 static a2dp_source_local_param_t a2dp_source_local_param;
-#else
-static a2dp_source_local_param_t *a2dp_source_local_param_ptr;
-#define a2dp_source_local_param (*a2dp_source_local_param_ptr)
-#endif ///A2D_DYNAMIC_MEMORY == FALSE
 
 void btc_a2dp_src_reg_data_cb(esp_a2d_source_data_cb_t callback)
 {
@@ -278,14 +268,6 @@ bool btc_a2dp_source_startup(void)
         return false;
     }
 
-#if A2D_DYNAMIC_MEMORY == TRUE
-    if ((a2dp_source_local_param_ptr = (a2dp_source_local_param_t *)osi_malloc(sizeof(a2dp_source_local_param_t))) == NULL) {
-        APPL_TRACE_ERROR("%s malloc failed!", __func__);
-        return false;
-    }
-    memset((void *)a2dp_source_local_param_ptr, 0, sizeof(a2dp_source_local_param_t));
-#endif
-
     APPL_TRACE_EVENT("## A2DP SOURCE START MEDIA THREAD ##");
 
     a2dp_source_local_param.btc_aa_src_task_hdl = btc_get_current_thread();
@@ -302,11 +284,6 @@ error_exit:;
     APPL_TRACE_ERROR("%s unable to start up media thread\n", __func__);
     a2dp_source_local_param.btc_aa_src_task_hdl = NULL;
 
-#if A2D_DYNAMIC_MEMORY == TRUE
-    osi_free(a2dp_source_local_param_ptr);
-    a2dp_source_local_param_ptr = NULL;
-#endif
-
     return false;
 }
 
@@ -320,10 +297,6 @@ void btc_a2dp_source_shutdown(void)
 
     a2dp_source_local_param.btc_aa_src_task_hdl = NULL;
 
-#if A2D_DYNAMIC_MEMORY == TRUE
-    osi_free(a2dp_source_local_param_ptr);
-    a2dp_source_local_param_ptr = NULL;
-#endif
 }
 
 /*****************************************************************************
@@ -539,13 +512,7 @@ static BOOLEAN btc_a2dp_source_stop_audio_req(void)
      * the "cleanup() -> btc_a2dp_stop_media_task()" processing during
      * the shutdown of the Bluetooth stack.
      */
-#if 0
-    if (btc_aa_src_ctrl_queue != NULL) {
-#endif
         btc_a2dp_source_ctrl(BTC_MEDIA_STOP_AA_TX, NULL);
-#if 0
-    }
-#endif
     return TRUE;
 }
 
@@ -635,13 +602,7 @@ BOOLEAN btc_a2dp_source_tx_flush_req(void)
      * the "cleanup() -> btc_a2dp_stop_media_task()" processing during
      * the shutdown of the Bluetooth stack.
      */
-#if 0
-    if (btc_aa_src_ctrl_queue != NULL) {
-#endif
         btc_a2dp_source_ctrl(BTC_MEDIA_FLUSH_AA_TX, NULL);
-#if 0
-    }
-#endif
 
     return TRUE;
 }
@@ -658,12 +619,6 @@ BOOLEAN btc_a2dp_source_tx_flush_req(void)
 void btc_source_report_delay_value(UINT16 delay_value)
 {
     esp_a2d_cb_param_t param;
-
-#if A2D_DYNAMIC_MEMORY == TRUE
-    if (a2dp_source_local_param_ptr == NULL) {
-        return;
-    }
-#endif
 
     param.a2d_report_delay_value_stat.delay_value = delay_value;
 
@@ -993,27 +948,6 @@ static void btc_a2dp_source_enc_update(BT_HDR *p_msg)
     }
 }
 
-#if A2D_SRC_BQB_INCLUDED
-/*******************************************************************************
- **
- ** Function         btc_a2dp_source_bqb_sbc_encoder_set
- **
- ** Description      Set SBC encoder for bqb test cases A2DP/SRC/SET/BV-04-I and A2DP/SRC/SET/BV-06-I
- **
- ** Returns          void
- **
- *******************************************************************************/
-void btc_a2dp_source_bqb_sbc_encoder_set(void)
-{
-    a2dp_source_local_param.btc_aa_src_cb.encoder.s16NumOfSubBands = 8;
-    a2dp_source_local_param.btc_aa_src_cb.encoder.s16NumOfBlocks = 8;
-    a2dp_source_local_param.btc_aa_src_cb.encoder.s16AllocationMethod = SBC_LOUDNESS;
-    a2dp_source_local_param.btc_aa_src_cb.encoder.s16ChannelMode = SBC_MONO;
-    a2dp_source_local_param.btc_aa_src_cb.encoder.s16SamplingFreq = SBC_sf44100;
-    SBC_Encoder_Init(&(a2dp_source_local_param.btc_aa_src_cb.encoder));
-}
-#endif /* A2D_SRC_BQB_INCLUDED */
-
 /*******************************************************************************
  **
  ** Function         btc_a2dp_source_pcm2sbc_init
@@ -1096,11 +1030,6 @@ static void btc_a2dp_source_pcm2sbc_init(tBTC_MEDIA_INIT_AUDIO_FEEDING *p_feedin
         APPL_TRACE_DEBUG("%s no SBC reconfig needed", __FUNCTION__);
     }
 
-#if A2D_SRC_BQB_INCLUDED
-    if (a2dp_src_bqb_set_sbc_encoder_flag) {
-        btc_a2dp_source_bqb_sbc_encoder_set();
-    }
-#endif /* A2D_SRC_BQB_INCLUDED */
 }
 
 /*******************************************************************************
@@ -1540,7 +1469,6 @@ static void btc_a2dp_source_handle_timer(UNUSED_ATTR void *context)
 {
     log_tstamps_us("media task tx timer");
 
-#if (BTA_AV_INCLUDED == TRUE)
     if (btc_a2dp_source_state != BTC_A2DP_SOURCE_STATE_ON || g_a2dp_source_ongoing_deinit){
         return;
     }
@@ -1550,7 +1478,6 @@ static void btc_a2dp_source_handle_timer(UNUSED_ATTR void *context)
     } else {
         APPL_TRACE_WARNING("Media task Scheduled after Suspend");
     }
-#endif
 }
 
 /*******************************************************************************
@@ -1731,4 +1658,3 @@ BOOLEAN btc_a2dp_source_set_pref_mcc(tBTA_AV_HNDL hndl, tBTC_AV_CODEC_INFO *pref
     return bta_av_co_audio_set_pref_mcc(hndl, pref_mcc);
 }
 
-#endif /* (BTC_AV_SRC_INCLUDED == TRUE) && (BTC_AV_EXT_CODEC == FALSE) */

@@ -12,15 +12,8 @@
 #include "obex_tl.h"
 #include "obex_tl_l2cap.h"
 
-#if (OBEX_INCLUDED == TRUE)
-
-#if (RFCOMM_INCLUDED == TRUE)
 #define OBEX_BT_HDR_MIN_OFFSET      OBEX_TL_RFCOMM_BT_HDR_MIN_OFFSET        /* should set to max value of all transport layer */
 #define OBEX_BT_HDR_RESERVE_LEN     OBEX_TL_RFCOMM_BT_HDR_RESERVE_LEN       /* should set to max value of all transport layer */
-#else
-#define OBEX_BT_HDR_MIN_OFFSET      OBEX_TL_L2CAP_BT_HDR_OFFSET_MIN
-#define OBEX_BT_HDR_RESERVE_LEN     OBEX_TL_L2CAP_BT_HDR_RESERVE_LEN
-#endif
 
 #define OBEX_ROLE_CLIENT            0x01
 #define OBEX_ROLE_SERVER            0x02
@@ -59,12 +52,7 @@ typedef struct {
     UINT8           trace_level;                /* trace level */
 } tOBEX_CB;
 
-#if OBEX_DYNAMIC_MEMORY == FALSE
 extern tOBEX_CB obex_cb;
-#else
-extern tOBEX_CB *obex_cb_ptr;
-#define obex_cb (*obex_cb_ptr)
-#endif
 
 void obex_tl_l2cap_callback(tOBEX_TL_EVT evt, tOBEX_TL_MSG *msg);
 void obex_tl_rfcomm_callback(tOBEX_TL_EVT evt, tOBEX_TL_MSG *msg);
@@ -73,4 +61,3 @@ tOBEX_SCB *obex_allocate_scb(void);
 void obex_free_ccb(tOBEX_CCB *p_ccb);
 void obex_free_scb(tOBEX_SCB *p_scb);
 
-#endif /* #if (OBEX_INCLUDED == TRUE) */

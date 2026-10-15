@@ -19,17 +19,8 @@
 #include <ctype.h>
 
 #include "btc/btc_util.h"
-#if (BTA_AV_INCLUDED == TRUE)
 #include "bta/bta_av_api.h"
-#endif  ///BTA_AV_INCLUDED == TRUE
 
-#if (BTA_AG_INCLUDED == TRUE)
-#include "bta/bta_ag_api.h"
-#endif  ///BTA_AG_INCLUDED == TRUE
-
-#if (BTA_HH_INCLUDED == TRUE)
-#include "bta/bta_hh_api.h"
-#endif  ///BTA_HH_INCLUDED == TRUE
 #include "bta/bta_hd_api.h"
 #include "common/bt_defs.h"
 #include "stack/btm_api.h"
@@ -121,139 +112,6 @@ const char  *dump_rc_pdu(UINT8 pdu)
     }
 }
 #endif  ///BTA_AV_INCLUDED == TRUE
-
-#if (BTA_AG_INCLUDED == TRUE)
-const char* dump_hf_conn_state(UINT16 event)
-{
-    switch(event)
-    {
-        CASE_RETURN_STR(ESP_HF_CONNECTION_STATE_DISCONNECTED)
-        CASE_RETURN_STR(ESP_HF_CONNECTION_STATE_CONNECTING)
-        CASE_RETURN_STR(ESP_HF_CONNECTION_STATE_CONNECTED)
-        CASE_RETURN_STR(ESP_HF_CONNECTION_STATE_SLC_CONNECTED)
-        CASE_RETURN_STR(ESP_HF_CONNECTION_STATE_DISCONNECTING)
-        default:
-            return "UNKNOWN MSG ID";
-    }
-}
-
-const char* dump_hf_event(UINT16 event)
-{
-    switch(event)
-    {
-        CASE_RETURN_STR(BTA_AG_ENABLE_EVT)
-        CASE_RETURN_STR(BTA_AG_REGISTER_EVT)
-        CASE_RETURN_STR(BTA_AG_OPEN_EVT)
-        CASE_RETURN_STR(BTA_AG_CLOSE_EVT)
-        CASE_RETURN_STR(BTA_AG_CONN_EVT)
-        CASE_RETURN_STR(BTA_AG_AUDIO_OPEN_EVT)
-        CASE_RETURN_STR(BTA_AG_AUDIO_CLOSE_EVT)
-        CASE_RETURN_STR(BTA_AG_SPK_EVT)
-        CASE_RETURN_STR(BTA_AG_MIC_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_CKPD_EVT)
-        CASE_RETURN_STR(BTA_AG_DISABLE_EVT)
-#if (BTM_WBS_INCLUDED == TRUE)
-        CASE_RETURN_STR(BTA_AG_WBS_EVT)
-#endif
-        CASE_RETURN_STR(BTA_AG_AT_A_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_D_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_CHLD_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_CHUP_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_CIND_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_VTS_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_BINP_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_BLDN_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_BVRA_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_NREC_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_CNUM_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_BTRH_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_CLCC_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_COPS_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_UNAT_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_CBC_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_BAC_EVT)
-        CASE_RETURN_STR(BTA_AG_AT_BCS_EVT)
-
-        default:
-            return "UNKNOWN MSG ID";
-     }
-}
-
-const char* dump_hf_call_state(esp_hf_call_status_t  call_state)
-{
-    switch(call_state)
-    {
-        CASE_RETURN_STR(ESP_HF_CALL_STATUS_NO_CALLS)
-        CASE_RETURN_STR(ESP_HF_CALL_STATUS_CALL_IN_PROGRESS)
-        default:
-            return "UNKNOWN CALL STATE";
-    }
-}
-
-const char* dump_hf_call_setup_state(esp_hf_call_setup_status_t call_setup_state)
-{
-    switch(call_setup_state)
-    {
-        CASE_RETURN_STR(ESP_HF_CALL_SETUP_STATUS_IDLE)
-        CASE_RETURN_STR(ESP_HF_CALL_SETUP_STATUS_INCOMING)
-        CASE_RETURN_STR(ESP_HF_CALL_SETUP_STATUS_OUTGOING_DIALING)
-        CASE_RETURN_STR(ESP_HF_CALL_SETUP_STATUS_OUTGOING_ALERTING)
-        default:
-            return "UNKNOWN CALL SETUP STATE";
-    }
-}
-
-#endif // #if (BTA_AG_INCLUDED == TRUE)
-
-#if (BTA_HH_INCLUDED == TRUE)
-const char *dump_hh_event(uint16_t event)
-{
-    switch (event) {
-        CASE_RETURN_STR(BTA_HH_ENABLE_EVT)
-        CASE_RETURN_STR(BTA_HH_DISABLE_EVT)
-        CASE_RETURN_STR(BTA_HH_OPEN_EVT)
-        CASE_RETURN_STR(BTA_HH_CLOSE_EVT)
-        CASE_RETURN_STR(BTA_HH_GET_RPT_EVT)
-        CASE_RETURN_STR(BTA_HH_SET_RPT_EVT)
-        CASE_RETURN_STR(BTA_HH_GET_PROTO_EVT)
-        CASE_RETURN_STR(BTA_HH_SET_PROTO_EVT)
-        CASE_RETURN_STR(BTA_HH_GET_IDLE_EVT)
-        CASE_RETURN_STR(BTA_HH_SET_IDLE_EVT)
-        CASE_RETURN_STR(BTA_HH_GET_DSCP_EVT)
-        CASE_RETURN_STR(BTA_HH_ADD_DEV_EVT)
-        CASE_RETURN_STR(BTA_HH_RMV_DEV_EVT)
-        CASE_RETURN_STR(BTA_HH_VC_UNPLUG_EVT)
-        CASE_RETURN_STR(BTA_HH_DATA_EVT)
-        CASE_RETURN_STR(BTA_HH_API_ERR_EVT)
-        CASE_RETURN_STR(BTA_HH_UPDATE_SCPP_EVT)
-        CASE_RETURN_STR(BTA_HH_DATA_IND_EVT)
-    default:
-        return "UNKNOWN MSG ID";
-    }
-}
-#endif ///BTA_HH_INCLUDED
-
-#if BTA_HD_INCLUDED == TRUE
-const char* dump_hd_event(uint16_t event) {
-  switch (event) {
-    CASE_RETURN_STR(BTA_HD_ENABLE_EVT)
-    CASE_RETURN_STR(BTA_HD_DISABLE_EVT)
-    CASE_RETURN_STR(BTA_HD_REGISTER_APP_EVT)
-    CASE_RETURN_STR(BTA_HD_UNREGISTER_APP_EVT)
-    CASE_RETURN_STR(BTA_HD_OPEN_EVT)
-    CASE_RETURN_STR(BTA_HD_CLOSE_EVT)
-    CASE_RETURN_STR(BTA_HD_GET_REPORT_EVT)
-    CASE_RETURN_STR(BTA_HD_SET_REPORT_EVT)
-    CASE_RETURN_STR(BTA_HD_SET_PROTOCOL_EVT)
-    CASE_RETURN_STR(BTA_HD_INTR_DATA_EVT)
-    CASE_RETURN_STR(BTA_HD_VC_UNPLUG_EVT)
-    //CASE_RETURN_STR(BTA_HD_CONN_STATE_EVT)
-    CASE_RETURN_STR(BTA_HD_API_ERR_EVT)
-    default:
-      return "UNKNOWN MSG ID";
-  }
-}
-#endif ///BTA_HD_INCLUDED
 
 UINT32 devclass2uint(DEV_CLASS dev_class)
 {

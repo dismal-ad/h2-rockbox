@@ -30,14 +30,9 @@
 #include "bta/utl.h"
 #include "common/bt_defs.h"
 
-#if defined(BTA_AV_INCLUDED) && (BTA_AV_INCLUDED == TRUE)
 #include "bta_av_int.h"
 
-#if BTA_DYNAMIC_MEMORY == FALSE
 static tBTA_AV_SBC_UPS_CB bta_av_sbc_ups_cb;
-#else
-tBTA_AV_SBC_UPS_CB *bta_av_sbc_ups_cb_ptr;
-#endif
 
 /*******************************************************************************
 **
@@ -658,4 +653,3 @@ void bta_av_sbc_bld_hdr(BT_HDR *p_buf, UINT16 fr_per_pkt)
     A2D_BldSbcMplHdr(p, FALSE, FALSE, FALSE, (UINT8) fr_per_pkt);
 }
 
-#endif /* #if defined(BTA_AV_INCLUDED) && (BTA_AV_INCLUDED == TRUE) */

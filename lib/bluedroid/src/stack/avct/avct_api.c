@@ -33,14 +33,8 @@
 #include "avct_int.h"
 #include "osi/allocator.h"
 
-#if (defined(AVCT_INCLUDED) && AVCT_INCLUDED == TRUE)
-
 /* Control block for AVCT */
-#if AVCT_DYNAMIC_MEMORY == FALSE
 tAVCT_CB avct_cb;
-#else
-tAVCT_CB *avct_cb_ptr;
-#endif
 
 /*******************************************************************************
 **
@@ -71,19 +65,6 @@ void AVCT_Register(UINT16 mtu, UINT16 mtu_br, UINT8 sec_mask)
 
     /* initialize AVCTP data structures */
     memset(&avct_cb, 0, sizeof(tAVCT_CB));
-
-#if (AVCT_BROWSE_INCLUDED == TRUE)
-    /* Include the browsing channel which uses eFCR */
-    L2CA_Register(AVCT_BR_PSM, (tL2CAP_APPL_INFO *) &avct_l2c_br_appl);
-
-    BTM_SetSecurityLevel(TRUE, "", BTM_SEC_SERVICE_AVCTP_BROWSE, sec_mask, AVCT_BR_PSM, 0, 0);
-    BTM_SetSecurityLevel(FALSE, "", BTM_SEC_SERVICE_AVCTP_BROWSE, sec_mask, AVCT_BR_PSM, 0, 0);
-
-    if (mtu_br < AVCT_MIN_BROWSE_MTU) {
-        mtu_br = AVCT_MIN_BROWSE_MTU;
-    }
-    avct_cb.mtu_br = mtu_br;
-#endif
 
 #if defined(AVCT_INITIAL_TRACE_LEVEL)
     avct_cb.trace_level = AVCT_INITIAL_TRACE_LEVEL;
@@ -231,54 +212,9 @@ UINT16 AVCT_RemoveConn(UINT8 handle)
 *******************************************************************************/
 UINT16 AVCT_CreateBrowse (UINT8 handle, UINT8 role)
 {
-#if (AVCT_BROWSE_INCLUDED == TRUE)
-    UINT16      result = AVCT_SUCCESS;
-    tAVCT_CCB   *p_ccb;
-    tAVCT_BCB   *p_bcb;
-    int         index;
-
-    AVCT_TRACE_API("AVCT_CreateBrowse: %d", role);
-
-    /* map handle to ccb */
-    if ((p_ccb = avct_ccb_by_idx(handle)) == NULL) {
-        return AVCT_BAD_HANDLE;
-    } else {
-        /* mark this CCB as supporting browsing channel */
-        if ((p_ccb->allocated & AVCT_ALOC_BCB) == 0) {
-            p_ccb->allocated |= AVCT_ALOC_BCB;
-        }
-    }
-
-    /* if initiator connection */
-    if (role == AVCT_INT) {
-        /* the link control block must exist before this function is called as INT. */
-        if ((p_ccb->p_lcb == NULL) || (p_ccb->p_lcb->allocated == 0)) {
-            result = AVCT_NOT_OPEN;
-        } else {
-            /* find link; if none allocate a new one */
-            index = p_ccb->p_lcb->allocated;
-            if (index > AVCT_NUM_LINKS) {
-                result = AVCT_BAD_HANDLE;
-            } else {
-                p_bcb = &avct_cb.bcb[index - 1];
-                p_bcb->allocated = index;
-            }
-        }
-
-        if (result == AVCT_SUCCESS) {
-            /* bind bcb to ccb */
-            p_ccb->p_bcb = p_bcb;
-            AVCT_TRACE_DEBUG("ch_state: %d", p_bcb->ch_state);
-            avct_bcb_event(p_bcb, AVCT_LCB_UL_BIND_EVT, (tAVCT_LCB_EVT *) &p_ccb);
-        }
-    }
-
-    return result;
-#else
     UNUSED(handle);
     UNUSED(role);
     return AVCT_NO_RESOURCES;
-#endif
 }
 
 /*******************************************************************************
@@ -296,25 +232,8 @@ UINT16 AVCT_CreateBrowse (UINT8 handle, UINT8 role)
 *******************************************************************************/
 UINT16 AVCT_RemoveBrowse (UINT8 handle)
 {
-#if (AVCT_BROWSE_INCLUDED == TRUE)
-    UINT16              result = AVCT_SUCCESS;
-    tAVCT_CCB           *p_ccb;
-
-    AVCT_TRACE_API("AVCT_RemoveBrowse");
-
-    /* map handle to ccb */
-    if ((p_ccb = avct_ccb_by_idx(handle)) == NULL) {
-        result = AVCT_BAD_HANDLE;
-    } else if (p_ccb->p_bcb != NULL)
-        /* send unbind event to bcb */
-    {
-        avct_bcb_event(p_ccb->p_bcb, AVCT_LCB_UL_UNBIND_EVT, (tAVCT_LCB_EVT *) &p_ccb);
-    }
-    return result;
-#else
     UNUSED(handle);
     return AVCT_NO_RESOURCES;
-#endif
 }
 
 /*******************************************************************************
@@ -330,15 +249,7 @@ UINT16 AVCT_RemoveBrowse (UINT8 handle)
 UINT16 AVCT_GetBrowseMtu (UINT8 handle)
 {
     UINT16  peer_mtu = AVCT_MIN_BROWSE_MTU;
-#if (AVCT_BROWSE_INCLUDED == TRUE)
-    tAVCT_CCB           *p_ccb;
-
-    if ((p_ccb = avct_ccb_by_idx(handle)) != NULL && p_ccb->p_bcb != NULL) {
-        peer_mtu = p_ccb->p_bcb->peer_mtu;
-    }
-#else
     UNUSED(handle);
-#endif
     return peer_mtu;
 }
 
@@ -419,21 +330,6 @@ UINT16 AVCT_MsgReq(UINT8 handle, UINT8 label, UINT8 cr, BT_HDR *p_msg)
         ul_msg.label = label;
         ul_msg.cr = cr;
 
-#if (AVCT_BROWSE_INCLUDED == TRUE)
-        /* send msg event to bcb */
-        if (p_msg->layer_specific == AVCT_DATA_BROWSE) {
-            if (p_ccb->p_bcb == NULL && (p_ccb->allocated & AVCT_ALOC_BCB) == 0) {
-                /* BCB channel is not open and not allocated */
-                result = AVCT_BAD_HANDLE;
-                osi_free(p_msg);
-            } else {
-                p_ccb->p_bcb = avct_bcb_by_lcb(p_ccb->p_lcb);
-                avct_bcb_event(p_ccb->p_bcb, AVCT_LCB_UL_MSG_EVT, (tAVCT_LCB_EVT *) &ul_msg);
-            }
-        }
-        /* send msg event to lcb */
-        else
-#endif
         {
             avct_lcb_event(p_ccb->p_lcb, AVCT_LCB_UL_MSG_EVT, (tAVCT_LCB_EVT *) &ul_msg);
         }
@@ -441,4 +337,3 @@ UINT16 AVCT_MsgReq(UINT8 handle, UINT8 label, UINT8 cr, BT_HDR *p_msg)
     return result;
 }
 
-#endif /* #if (defined(AVCT_INCLUDED) && AVCT_INCLUDED == TRUE) */

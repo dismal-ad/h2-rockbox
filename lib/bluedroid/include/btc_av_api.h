@@ -22,7 +22,6 @@
 #include "stack/a2d_api.h"
 #include "stack/a2d_sbc.h"
 
-#if (BTC_AV_INCLUDED == TRUE)
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -190,7 +189,5 @@ typedef struct {
 #ifdef __cplusplus
 }
 #endif
-
-#endif  ///BTC_AV_INCLUDED == TRUE
 
 #endif /* __BTC_AV_API_H__ */

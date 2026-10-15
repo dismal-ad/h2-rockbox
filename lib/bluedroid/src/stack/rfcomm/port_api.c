@@ -35,7 +35,6 @@
 #include "osi/allocator.h"
 #include "osi/mutex.h"
 
-#if (defined RFCOMM_INCLUDED && RFCOMM_INCLUDED == TRUE)
 /* duration of break in 200ms units */
 #define PORT_BREAK_DURATION     1
 
@@ -825,78 +824,6 @@ int PORT_FlowControl (UINT16 handle, BOOLEAN enable)
     }
     return (PORT_SUCCESS);
 }
-
-#if 0 //Unused
-/*******************************************************************************
-**
-** Function         PORT_FlowControl_MaxCredit
-**
-** Description      This function directs a specified connection to pass
-**                  flow control message to the peer device.  Enable flag passed
-**                  shows if port can accept more data. It also sends max credit
-**                  when data flow enabled
-**
-** Parameters:      handle     - Handle returned in the RFCOMM_CreateConnection
-**                  enable     - enables data flow
-**
-*******************************************************************************/
-int PORT_FlowControl_MaxCredit (UINT16 handle, BOOLEAN enable)
-{
-    tPORT      *p_port;
-    BOOLEAN    old_fc;
-    UINT32     events;
-
-    RFCOMM_TRACE_API ("PORT_FlowControl() handle:%d enable: %d", handle, enable);
-
-    /* Check if handle is valid to avoid crashing */
-    if ((handle == 0) || (handle > MAX_RFC_PORTS)) {
-        return (PORT_BAD_HANDLE);
-    }
-
-    p_port = &rfc_cb.port.port[handle - 1];
-
-    if (!p_port->in_use || (p_port->state == PORT_STATE_CLOSED)) {
-        return (PORT_NOT_OPENED);
-    }
-
-    if (!p_port->rfc.p_mcb) {
-        return (PORT_NOT_OPENED);
-    }
-
-    p_port->rx.user_fc = !enable;
-
-    if (p_port->rfc.p_mcb->flow == PORT_FC_CREDIT) {
-        if (!p_port->rx.user_fc) {
-            port_flow_control_peer(p_port, TRUE, p_port->credit_rx);
-        }
-    } else {
-        old_fc = p_port->local_ctrl.fc;
-
-        /* FC is set if user is set or peer is set */
-        p_port->local_ctrl.fc = (p_port->rx.user_fc | p_port->rx.peer_fc);
-
-        if (p_port->local_ctrl.fc != old_fc) {
-            port_start_control (p_port);
-        }
-    }
-
-    /* Need to take care of the case when we could not deliver events */
-    /* to the application because we were flow controlled */
-    if (enable && (p_port->rx.queue_size != 0)) {
-        events = PORT_EV_RXCHAR;
-        if (p_port->rx_flag_ev_pending) {
-            p_port->rx_flag_ev_pending = FALSE;
-            events |= PORT_EV_RXFLAG;
-        }
-
-        events &= p_port->ev_mask;
-        if (p_port->p_callback && events) {
-            p_port->p_callback (events, p_port->inx);
-        }
-    }
-    return (PORT_SUCCESS);
-}
-#endif
 
 /*******************************************************************************
 **
@@ -1787,12 +1714,6 @@ int PORT_Test (UINT16 handle, UINT8 *p_data, UINT16 len)
 *******************************************************************************/
 bt_status_t RFCOMM_Init (void)
 {
-#if RFC_DYNAMIC_MEMORY == TRUE
-    rfc_cb_ptr = (tRFC_CB *)osi_malloc(sizeof(tRFC_CB));
-    if (rfc_cb_ptr == NULL) {
-        return BT_STATUS_NOMEM;
-    }
-#endif /* #if (RFC_DYNAMIC_MEMORY) */
     memset (&rfc_cb, 0, sizeof (tRFC_CB));  /* Init RFCOMM control block */
 
     rfc_cb.rfc.last_mux = MAX_BD_CONNECTIONS;
@@ -1819,12 +1740,6 @@ bt_status_t RFCOMM_Init (void)
 *******************************************************************************/
 void RFCOMM_Deinit(void)
 {
-#if RFC_DYNAMIC_MEMORY == TRUE
-    if (rfc_cb_ptr){
-        osi_free(rfc_cb_ptr);
-        rfc_cb_ptr = NULL;
-    }
-#endif
 }
 
 /*******************************************************************************
@@ -1879,4 +1794,3 @@ void PORT_SetL2capErtm (BOOLEAN enable_l2cap_ertm)
     rfc_cb.port.enable_l2cap_ertm = enable_l2cap_ertm;
 }
 
-#endif ///(defined RFCOMM_INCLUDED && RFCOMM_INCLUDED == TRUE)

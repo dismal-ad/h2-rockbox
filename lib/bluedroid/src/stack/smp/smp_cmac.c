@@ -25,22 +25,13 @@
 #include "common/bt_target.h"
 #include "osi/allocator.h"
 
-#if SMP_INCLUDED == TRUE
 //    #include <stdio.h>
 #include <string.h>
 
 #include "stack/btm_ble_api.h"
 #include "smp_int.h"
 #include "stack/hcimsgs.h"
-#if (SMP_CRYPTO_MBEDTLS == TRUE)
-#include "psa/crypto.h"
-#elif (SMP_CRYPTO_TINYCRYPT == TRUE)
-#include "tinycrypt/aes.h"
-#include "tinycrypt/cmac_mode.h"
-#include "tinycrypt/constants.h"
-#endif
 
-#if (SMP_CRYPTO_STACK_NATIVE == TRUE)
 typedef struct {
     UINT8               *text;
     UINT16              len;
@@ -54,22 +45,9 @@ const BT_OCTET16 const_Rb = {
     0x87, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
-#endif /* SMP_CRYPTO_STACK_NATIVE == TRUE */
 
 void print128(BT_OCTET16 x, const UINT8 *key_name)
 {
-#if SMP_DEBUG == TRUE && SMP_DEBUG_VERBOSE == TRUE
-    UINT8  *p = (UINT8 *)x;
-    UINT8  i;
-
-    SMP_TRACE_WARNING("%s(MSB ~ LSB) = ", key_name);
-
-    for (i = 0; i < 4; i ++) {
-        SMP_TRACE_WARNING("%02x %02x %02x %02x",
-                          p[BT_OCTET16_LEN - i * 4 - 1], p[BT_OCTET16_LEN - i * 4 - 2],
-                          p[BT_OCTET16_LEN - i * 4 - 3], p[BT_OCTET16_LEN - i * 4 - 4]);
-    }
-#endif
 }
 
 /*******************************************************************************
@@ -84,7 +62,6 @@ void print128(BT_OCTET16 x, const UINT8 *key_name)
 ** Returns          void
 **
 *******************************************************************************/
-#if (SMP_CRYPTO_STACK_NATIVE == TRUE)
 static void padding ( BT_OCTET16 dest, UINT8 length )
 {
     UINT8   i, *p = dest;
@@ -115,7 +92,6 @@ static void leftshift_onebit(UINT8 *input, UINT8 *output)
     }
     return;
 }
-#endif /* SMP_CRYPTO_STACK_NATIVE == TRUE */
 
 /*******************************************************************************
 **
@@ -126,7 +102,6 @@ static void leftshift_onebit(UINT8 *input, UINT8 *output)
 ** Returns          void
 **
 *******************************************************************************/
-#if (SMP_CRYPTO_STACK_NATIVE == TRUE)
 static void cmac_aes_cleanup(void)
 {
     if (cmac_cb.text != NULL) {
@@ -212,7 +187,6 @@ static void cmac_prepare_last_block (BT_OCTET16 k1, BT_OCTET16 k2)
         smp_xor_128(&cmac_cb.text[0], k2);
     }
 }
-#endif /* SMP_CRYPTO_STACK_NATIVE == TRUE */
 
 /*******************************************************************************
 **
@@ -223,7 +197,6 @@ static void cmac_prepare_last_block (BT_OCTET16 k1, BT_OCTET16 k2)
 ** Returns          void
 **
 *******************************************************************************/
-#if (SMP_CRYPTO_STACK_NATIVE == TRUE)
 static void cmac_subkey_cont(tSMP_ENC *p)
 {
     UINT8 k1[BT_OCTET16_LEN], k2[BT_OCTET16_LEN];
@@ -280,7 +253,6 @@ static BOOLEAN cmac_generate_subkey(BT_OCTET16 key)
 
     return ret;
 }
-#endif /* SMP_CRYPTO_STACK_NATIVE == TRUE */
 
 /*******************************************************************************
 **
@@ -304,175 +276,6 @@ BOOLEAN aes_cipher_msg_auth_code(BT_OCTET16 key, UINT8 *input, UINT16 length,
 
     SMP_TRACE_EVENT ("%s", __func__);
 
-#if (SMP_CRYPTO_MBEDTLS == TRUE)
-    {
-        /*
-         * PSA Crypto CMAC implementation.
-         * Bluedroid uses little-endian, PSA uses big-endian.
-         * We reverse the key and input, then reverse the output.
-         */
-        psa_status_t status;
-        psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
-        psa_key_id_t key_id = 0;
-        psa_mac_operation_t operation = PSA_MAC_OPERATION_INIT;
-        UINT8 key_be[BT_OCTET16_LEN];
-        UINT8 *input_be = NULL;
-        UINT8 mac_be[BT_OCTET16_LEN];
-        size_t mac_len = 0;
-
-        SMP_TRACE_DEBUG("AES128_CMAC (PSA) started, length = %d", length);
-
-        /* Convert key from little-endian to big-endian */
-        for (int i = 0; i < BT_OCTET16_LEN; i++) {
-            key_be[i] = key[BT_OCTET16_LEN - 1 - i];
-        }
-
-        /* Allocate and convert input from little-endian to big-endian */
-        if (length > 0) {
-            input_be = (UINT8 *)osi_malloc(length);
-            if (input_be == NULL) {
-                SMP_TRACE_ERROR("No resources for input_be");
-                return FALSE;
-            }
-            for (UINT16 i = 0; i < length; i++) {
-                input_be[i] = input[length - 1 - i];
-            }
-        }
-
-        /* Import the key */
-        psa_set_key_usage_flags(&key_attributes, PSA_KEY_USAGE_SIGN_MESSAGE);
-        psa_set_key_algorithm(&key_attributes, PSA_ALG_CMAC);
-        psa_set_key_type(&key_attributes, PSA_KEY_TYPE_AES);
-        psa_set_key_bits(&key_attributes, 128);
-
-        status = psa_import_key(&key_attributes, key_be, BT_OCTET16_LEN, &key_id);
-        psa_reset_key_attributes(&key_attributes);
-
-        if (status != PSA_SUCCESS) {
-            SMP_TRACE_ERROR("psa_import_key failed: %d", status);
-            if (input_be) osi_free(input_be);
-            return FALSE;
-        }
-
-        /* Setup MAC operation */
-        status = psa_mac_sign_setup(&operation, key_id, PSA_ALG_CMAC);
-        if (status != PSA_SUCCESS) {
-            SMP_TRACE_ERROR("psa_mac_sign_setup failed: %d", status);
-            psa_destroy_key(key_id);
-            if (input_be) osi_free(input_be);
-            return FALSE;
-        }
-
-        /* Update with input data */
-        if (length > 0 && input_be != NULL) {
-            status = psa_mac_update(&operation, input_be, length);
-            if (status != PSA_SUCCESS) {
-                SMP_TRACE_ERROR("psa_mac_update failed: %d", status);
-                psa_mac_abort(&operation);
-                psa_destroy_key(key_id);
-                osi_free(input_be);
-                return FALSE;
-            }
-            osi_free(input_be);
-        }
-
-        /* Finish and get MAC */
-        status = psa_mac_sign_finish(&operation, mac_be, sizeof(mac_be), &mac_len);
-        psa_destroy_key(key_id);
-
-        if (status != PSA_SUCCESS) {
-            SMP_TRACE_ERROR("psa_mac_sign_finish failed: %d", status);
-            psa_mac_abort(&operation);
-            return FALSE;
-        }
-
-        /* Convert MAC from big-endian to little-endian and truncate to tlen bytes */
-        for (UINT16 i = 0; i < tlen && i < BT_OCTET16_LEN; i++) {
-            p_signature[i] = mac_be[BT_OCTET16_LEN - 1 - i];
-        }
-
-        /* Clear sensitive data from stack */
-        memset(key_be, 0, sizeof(key_be));
-
-        ret = TRUE;
-    }
-#elif (SMP_CRYPTO_TINYCRYPT == TRUE)
-    {
-        /*
-         * TinyCrypt CMAC implementation.
-         * Bluedroid uses little-endian, TinyCrypt uses big-endian.
-         * We reverse the key and input, then reverse the output.
-         */
-        struct tc_aes_key_sched_struct sched;
-        struct tc_cmac_struct state;
-        UINT8 key_be[BT_OCTET16_LEN];
-        UINT8 *input_be = NULL;
-        UINT8 mac_be[BT_OCTET16_LEN];
-
-        SMP_TRACE_DEBUG("AES128_CMAC (TinyCrypt) started, length = %d", length);
-
-        /* Convert key from little-endian to big-endian */
-        for (int i = 0; i < BT_OCTET16_LEN; i++) {
-            key_be[i] = key[BT_OCTET16_LEN - 1 - i];
-        }
-
-        /* Setup CMAC */
-        if (tc_cmac_setup(&state, key_be, &sched) == TC_CRYPTO_FAIL) {
-            SMP_TRACE_ERROR("tc_cmac_setup failed");
-            memset(key_be, 0, sizeof(key_be));
-            memset(&sched, 0, sizeof(sched));
-            return FALSE;
-        }
-
-        /* Allocate and convert input from little-endian to big-endian */
-        if (length > 0) {
-            input_be = (UINT8 *)osi_malloc(length);
-            if (input_be == NULL) {
-                SMP_TRACE_ERROR("No resources for input_be");
-                tc_cmac_erase(&state);
-                memset(key_be, 0, sizeof(key_be));
-                memset(&sched, 0, sizeof(sched));
-                return FALSE;
-            }
-            for (UINT16 i = 0; i < length; i++) {
-                input_be[i] = input[length - 1 - i];
-            }
-
-            /* Update CMAC with input data */
-            if (tc_cmac_update(&state, input_be, length) == TC_CRYPTO_FAIL) {
-                SMP_TRACE_ERROR("tc_cmac_update failed");
-                osi_free(input_be);
-                tc_cmac_erase(&state);
-                memset(key_be, 0, sizeof(key_be));
-                memset(&sched, 0, sizeof(sched));
-                return FALSE;
-            }
-            osi_free(input_be);
-        }
-
-        /* Finalize CMAC */
-        if (tc_cmac_final(mac_be, &state) == TC_CRYPTO_FAIL) {
-            SMP_TRACE_ERROR("tc_cmac_final failed");
-            tc_cmac_erase(&state);
-            memset(key_be, 0, sizeof(key_be));
-            memset(&sched, 0, sizeof(sched));
-            return FALSE;
-        }
-
-        /* Convert MAC from big-endian to little-endian and truncate to tlen bytes */
-        for (UINT16 i = 0; i < tlen && i < BT_OCTET16_LEN; i++) {
-            p_signature[i] = mac_be[BT_OCTET16_LEN - 1 - i];
-        }
-
-        /* Clear sensitive data from stack */
-        tc_cmac_erase(&state);
-        memset(key_be, 0, sizeof(key_be));
-        memset(mac_be, 0, sizeof(mac_be));
-        memset(&sched, 0, sizeof(sched));
-
-        ret = TRUE;
-    }
-#else
     {
         UINT16  len, diff;
         UINT16  n = (length + BT_OCTET16_LEN - 1) / BT_OCTET16_LEN;
@@ -509,54 +312,7 @@ BOOLEAN aes_cipher_msg_auth_code(BT_OCTET16 key, UINT8 *input, UINT16 length,
             SMP_TRACE_ERROR("No resources");
         }
     }
-#endif /* SMP_CRYPTO_MBEDTLS */
 
     return ret;
 }
 
-#if 0 /* testing code, sample data from spec */
-void test_cmac_cback(UINT8 *p_mac, UINT16 tlen)
-{
-    SMP_TRACE_EVENT ("test_cmac_cback ");
-    SMP_TRACE_ERROR("test_cmac_cback");
-}
-
-void test_cmac(void)
-{
-    SMP_TRACE_EVENT ("test_cmac ");
-    UINT8 M[64] = {
-        0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96,
-        0xe9, 0x3d, 0x7e, 0x11, 0x73, 0x93, 0x17, 0x2a,
-        0xae, 0x2d, 0x8a, 0x57, 0x1e, 0x03, 0xac, 0x9c,
-        0x9e, 0xb7, 0x6f, 0xac, 0x45, 0xaf, 0x8e, 0x51,
-        0x30, 0xc8, 0x1c, 0x46, 0xa3, 0x5c, 0xe4, 0x11,
-        0xe5, 0xfb, 0xc1, 0x19, 0x1a, 0x0a, 0x52, 0xef,
-        0xf6, 0x9f, 0x24, 0x45, 0xdf, 0x4f, 0x9b, 0x17,
-        0xad, 0x2b, 0x41, 0x7b, 0xe6, 0x6c, 0x37, 0x10
-    };
-
-    UINT8 key[16] = {
-        0x3c, 0x4f, 0xcf, 0x09, 0x88, 0x15, 0xf7, 0xab,
-        0xa6, 0xd2, 0xae, 0x28, 0x16, 0x15, 0x7e, 0x2b
-    };
-    UINT8 i = 0, tmp;
-    UINT16 len;
-
-    len = 64;
-
-    for (i = 0; i < len / 2; i ++) {
-        tmp = M[i];
-        M[i] = M[len - 1 - i];
-        M[len - 1 - i] = tmp;
-    }
-
-
-    memset(&cmac_cb, 0, sizeof(tCMAC_CB));
-
-    SMP_TRACE_WARNING("\n Example 1: len = %d\n", len);
-
-    aes_cipher_msg_auth_code(key, M, len, 128, test_cmac_cback, 0);
-
-}
-#endif
-#endif

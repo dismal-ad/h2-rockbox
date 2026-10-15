@@ -18,8 +18,6 @@
 
 #include "common/bt_target.h"
 
-#if SMP_INCLUDED == TRUE
-
 #include <string.h>
 #include "smp_int.h"
 
@@ -163,73 +161,7 @@ enum {
     SMP_SM_NO_ACTION
 };
 
-#if (BLE_INCLUDED == TRUE)
-static const tSMP_ACT smp_sm_action[SMP_SM_NO_ACTION] = {
-    smp_proc_sec_req,
-    smp_send_pair_req,
-    smp_send_pair_rsp,
-    smp_send_confirm,
-    smp_send_pair_fail,
-    smp_send_rand,
-    smp_send_enc_info,
-    smp_send_id_info,
-    smp_send_ltk_reply,
-    smp_proc_pair_cmd,
-    smp_proc_pair_fail,
-    smp_proc_confirm,
-    smp_proc_rand,
-    smp_proc_enc_info,
-    smp_proc_master_id,
-    smp_proc_id_info,
-    smp_proc_id_addr,
-    smp_proc_srk_info,
-    smp_proc_sec_grant,
-    smp_proc_sl_key,
-    smp_proc_compare,
-    smp_process_io_response,
-    smp_generate_compare,
-    smp_generate_srand_mrand_confirm,
-    smp_generate_stk,
-    smp_key_distribution,
-    smp_start_enc,
-    smp_pairing_cmpl,
-    smp_decide_association_model,
-    smp_send_app_cback,
-    smp_check_auth_req,
-    smp_pair_terminate,
-    smp_enc_cmpl,
-    smp_proc_discard,
-    smp_create_private_key,
-    smp_use_oob_private_key,
-    smp_send_pair_public_key,
-    smp_process_pairing_public_key,
-    smp_both_have_public_keys,
-    smp_start_secure_connection_phase1,
-    smp_process_local_nonce,
-    smp_send_commitment,
-    smp_process_pairing_commitment,
-    smp_process_peer_nonce,
-    smp_calculate_local_dhkey_check,
-    smp_send_dhkey_check,
-    smp_process_dhkey_check,
-    smp_calculate_peer_dhkey_check,
-    smp_match_dhkey_checks,
-    smp_calculate_numeric_comparison_display_number,
-    smp_move_to_secure_connections_phase2,
-    smp_phase_2_dhkey_checks_are_present,
-    smp_wait_for_both_public_keys,
-    smp_start_passkey_verification,
-    smp_send_keypress_notification,
-    smp_process_keypress_notification,
-    smp_process_secure_connection_oob_data,
-    smp_set_local_oob_keys,
-    smp_set_local_oob_random_commitment,
-    smp_idle_terminate,
-    smp_fast_conn_param
-};
-#else
 static const tSMP_ACT smp_sm_action[SMP_SM_NO_ACTION] = {NULL};
-#endif  ///BLE_INCLUDED == TRUE
 
 /************ SMP Master FSM State/Event Indirection Table **************/
 static const UINT8 smp_master_entry_map[][SMP_STATE_MAX] = {
@@ -678,11 +610,7 @@ static const tSMP_ENTRY_TBL smp_entry_table[] = {
     smp_slave_entry_map
 };
 
-#if SMP_DYNAMIC_MEMORY == FALSE
 tSMP_CB  smp_cb;
-#else
-tSMP_CB  *smp_cb_ptr;
-#endif
 #define SMP_ALL_TBL_MASK        0x80
 
 /*******************************************************************************
@@ -809,4 +737,3 @@ const char *smp_get_event_name(tSMP_EVENT event)
     return p_str;
 }
 
-#endif

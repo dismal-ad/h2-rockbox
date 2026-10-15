@@ -40,76 +40,11 @@
 /********************************************************************************/
 /*              L O C A L    F U N C T I O N     P R O T O T Y P E S            */
 /********************************************************************************/
-#if (CLASSIC_BT_INCLUDED == TRUE)
 static void process_l2cap_cmd (tL2C_LCB *p_lcb, UINT8 *p, UINT16 pkt_len);
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
 /********************************************************************************/
 /*                 G L O B A L      L 2 C A P       D A T A                     */
 /********************************************************************************/
-#if L2C_DYNAMIC_MEMORY == FALSE
 tL2C_CB l2cb;
-#else
-tL2C_CB *l2c_cb_ptr;
-#endif
-
-#if BT_CLASSIC_BQB_INCLUDED
-static BOOLEAN s_l2cap_bqb_bad_cmd_len_rej_flag = FALSE;
-#endif /* BT_CLASSIC_BQB_INCLUDED */
-
-#if 0 //Unused
-/*******************************************************************************
-**
-** Function         l2c_bcst_msg
-**
-** Description
-**
-** Returns          void
-**
-*******************************************************************************/
-void l2c_bcst_msg( BT_HDR *p_buf, UINT16 psm )
-{
-    UINT8       *p;
-
-    /* Ensure we have enough space in the buffer for the L2CAP and HCI headers */
-    if (p_buf->offset < L2CAP_BCST_MIN_OFFSET) {
-        L2CAP_TRACE_ERROR ("L2CAP - cannot send buffer, offset: %d", p_buf->offset);
-        osi_free (p_buf);
-        return;
-    }
-
-    /* Step back some bytes to add the headers */
-    p_buf->offset -= (HCI_DATA_PREAMBLE_SIZE + L2CAP_PKT_OVERHEAD + L2CAP_BCST_OVERHEAD);
-    p_buf->len    += L2CAP_PKT_OVERHEAD + L2CAP_BCST_OVERHEAD;
-
-    /* Set the pointer to the beginning of the data */
-    p = (UINT8 *)(p_buf + 1) + p_buf->offset;
-
-    /* First, the HCI transport header */
-    UINT16_TO_STREAM (p, 0x0050 | (L2CAP_PKT_START << 12) | (2 << 14));
-
-    uint16_t acl_data_size = controller_get_interface()->get_acl_data_size_classic();
-    /* The HCI transport will segment the buffers. */
-    if (p_buf->len > acl_data_size) {
-        UINT16_TO_STREAM (p, acl_data_size);
-    } else {
-        UINT16_TO_STREAM (p, p_buf->len);
-    }
-
-    /* Now the L2CAP header */
-    UINT16_TO_STREAM (p, p_buf->len - L2CAP_PKT_OVERHEAD);
-    UINT16_TO_STREAM (p, L2CAP_CONNECTIONLESS_CID);
-    UINT16_TO_STREAM (p, psm);
-
-    p_buf->len += HCI_DATA_PREAMBLE_SIZE;
-
-    if (p_buf->len <= controller_get_interface()->get_acl_packet_size_classic()) {
-        //counter_add("l2cap.ch2.tx.bytes", p_buf->len);
-        //counter_add("l2cap.ch2.tx.pkts", 1);
-
-        bte_main_hci_send(p_buf, BT_EVT_TO_LM_HCI_ACL);
-    }
-}
-#endif
 
 /*******************************************************************************
 **
@@ -121,12 +56,6 @@ void l2c_bcst_msg( BT_HDR *p_buf, UINT16 psm )
 ** Returns      void
 **
 *******************************************************************************/
-#if BT_CLASSIC_BQB_INCLUDED
-void l2cap_bqb_bad_cmd_len_rej_ctrl(BOOLEAN enable)
-{
-    s_l2cap_bqb_bad_cmd_len_rej_flag = enable;
-}
-#endif /* BT_CLASSIC_BQB_INCLUDED */
 
 
 /*******************************************************************************
@@ -207,14 +136,6 @@ void l2c_rcv_acl_data (BT_HDR *p_msg)
     STREAM_TO_UINT16 (l2cap_len, p);
     STREAM_TO_UINT16 (rcv_cid, p);
 
-#if BLE_INCLUDED == TRUE
-    /* for BLE channel, always notify connection when ACL data received on the link */
-    if (p_lcb && p_lcb->transport == BT_TRANSPORT_LE && p_lcb->link_state != LST_DISCONNECTING)
-        /* only process fixed channel data as channel open indication when link is not in disconnecting mode */
-    {
-        l2cble_notify_le_connection(p_lcb->remote_bd_addr);
-    }
-#endif
     L2CAP_TRACE_DEBUG ("L2CAP - rcv_cid CID: 0x%04x\n", rcv_cid);
     /* Find the CCB for this CID */
     if (rcv_cid >= L2CAP_BASE_APPL_CID) {
@@ -246,9 +167,7 @@ void l2c_rcv_acl_data (BT_HDR *p_msg)
     if (rcv_cid == L2CAP_SIGNALLING_CID) {
         //counter_add("l2cap.sig.rx.bytes", l2cap_len);
         //counter_add("l2cap.sig.rx.pkts", 1);
-#if (CLASSIC_BT_INCLUDED == TRUE)
         process_l2cap_cmd (p_lcb, p, l2cap_len);
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
         osi_free (p_msg);
     } else if (rcv_cid == L2CAP_CONNECTIONLESS_CID) {
         //counter_add("l2cap.ch2.rx.bytes", l2cap_len);
@@ -259,25 +178,10 @@ void l2c_rcv_acl_data (BT_HDR *p_msg)
 #endif
         L2CAP_TRACE_DEBUG( "GOT CONNECTIONLESS DATA PSM:%d", psm ) ;
 
-#if (L2CAP_UCD_INCLUDED == TRUE)
-        /* if it is not broadcast, check UCD registration */
-        if ( l2c_ucd_check_rx_pkts( p_lcb, p_msg ) ) {
-            /* nothing to do */
-        } else
-#endif
         {
             osi_free (p_msg);
         }
     }
-#if (BLE_INCLUDED == TRUE)
-    else if (rcv_cid == L2CAP_BLE_SIGNALLING_CID) {
-        //counter_add("l2cap.ble.rx.bytes", l2cap_len);
-        //counter_add("l2cap.ble.rx.pkts", 1);
-        l2cble_process_sig_cmd (p_lcb, p, l2cap_len);
-        osi_free (p_msg);
-    }
-#endif
-#if (L2CAP_NUM_FIXED_CHNLS > 0)
     else if ((rcv_cid >= L2CAP_FIRST_FIXED_CHNL) && (rcv_cid <= L2CAP_LAST_FIXED_CHNL) &&
              (l2cb.fixed_reg[rcv_cid - L2CAP_FIRST_FIXED_CHNL].pL2CA_FixedData_Cb != NULL) ) {
         //counter_add("l2cap.fix.rx.bytes", l2cap_len);
@@ -290,9 +194,7 @@ void l2c_rcv_acl_data (BT_HDR *p_msg)
             p_ccb = p_lcb->p_fixed_ccbs[rcv_cid - L2CAP_FIRST_FIXED_CHNL];
 
             if (p_ccb->peer_cfg.fcr.mode != L2CAP_FCR_BASIC_MODE) {
-#if (CLASSIC_BT_INCLUDED == TRUE)
                 l2c_fcr_proc_pdu (p_ccb, p_msg);
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
             } else {
                 (*l2cb.fixed_reg[rcv_cid - L2CAP_FIRST_FIXED_CHNL].pL2CA_FixedData_Cb)
                 (rcv_cid, p_lcb->remote_bd_addr, p_msg);
@@ -301,7 +203,6 @@ void l2c_rcv_acl_data (BT_HDR *p_msg)
             osi_free (p_msg);
         }
     }
-#endif
 
     else {
         //counter_add("l2cap.dyn.rx.bytes", l2cap_len);
@@ -317,9 +218,6 @@ void l2c_rcv_acl_data (BT_HDR *p_msg)
                     /* we have received credits more than max coc credits,
                      * so disconnecting the Le Coc Channel
                      */
-#if (BLE_INCLUDED == TRUE)
-                    l2cble_send_peer_disc_req (p_ccb);
-#endif  ///BLE_INCLUDED == TRUE
                 } else {
                     p_ccb->peer_conn_cfg.credits += credit;
                     l2c_link_check_send_pkts (p_ccb->p_lcb, NULL, NULL);
@@ -327,15 +225,11 @@ void l2c_rcv_acl_data (BT_HDR *p_msg)
             }
             /* Basic mode packets go straight to the state machine */
             if (p_ccb->peer_cfg.fcr.mode == L2CAP_FCR_BASIC_MODE) {
-#if (CLASSIC_BT_INCLUDED == TRUE)
                 l2c_csm_execute (p_ccb, L2CEVT_L2CAP_DATA, p_msg);
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
             } else {
                 /* eRTM or streaming mode, so we need to validate states first */
                 if ((p_ccb->chnl_state == CST_OPEN) || (p_ccb->chnl_state == CST_CONFIG)) {
-#if (CLASSIC_BT_INCLUDED == TRUE)
                     l2c_fcr_proc_pdu (p_ccb, p_msg);
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
                 } else {
                     osi_free (p_msg);
                 }
@@ -354,7 +248,6 @@ void l2c_rcv_acl_data (BT_HDR *p_msg)
 ** Returns          void
 **
 *******************************************************************************/
-#if (CLASSIC_BT_INCLUDED == TRUE)
 static void process_l2cap_cmd (tL2C_LCB *p_lcb, UINT8 *p, UINT16 pkt_len)
 {
     UINT8           *p_pkt_end, *p_next_cmd, *p_cfg_end, *p_cfg_start;
@@ -368,13 +261,6 @@ static void process_l2cap_cmd (tL2C_LCB *p_lcb, UINT8 *p, UINT16 pkt_len)
     UINT16          cfg_rej_len, cmd_len;
     UINT16          result;
     tL2C_CONN_INFO  ci;
-
-#if (defined BLE_INCLUDED && BLE_INCLUDED == TRUE)
-    /* if l2cap command received in CID 1 on top of an LE link, ignore this command */
-    if (p_lcb->transport == BT_TRANSPORT_LE) {
-        return;
-    }
-#endif
 
     /* Reject the packet if it exceeds the default Signalling Channel MTU */
     if (pkt_len > L2CAP_DEFAULT_MTU) {
@@ -483,12 +369,6 @@ static void process_l2cap_cmd (tL2C_LCB *p_lcb, UINT8 *p, UINT16 pkt_len)
             p_ccb->remote_cid = rcid;
 
             l2c_csm_execute(p_ccb, L2CEVT_L2CAP_CONNECT_REQ, &con_info);
-#if BT_CLASSIC_BQB_INCLUDED
-            // L2CAP/COS/CED/BI-02-C
-            if (s_l2cap_bqb_bad_cmd_len_rej_flag) {
-                l2cu_send_peer_cmd_reject (p_lcb, L2CAP_CMD_REJ_NOT_UNDERSTOOD, id, 0, 0);
-            }
-#endif /* BT_CLASSIC_BQB_INCLUDED */
             break;
 
         case L2CAP_CMD_CONN_RSP:
@@ -754,18 +634,15 @@ static void process_l2cap_cmd (tL2C_LCB *p_lcb, UINT8 *p, UINT16 pkt_len)
                     && (result == L2CAP_INFO_RESP_RESULT_SUCCESS) ) {
                 STREAM_TO_UINT32( p_lcb->peer_ext_fea, p );
 
-#if (L2CAP_NUM_FIXED_CHNLS > 0)
                 if (p_lcb->peer_ext_fea & L2CAP_EXTFEA_FIXED_CHNLS) {
                     l2cu_send_peer_info_req (p_lcb, L2CAP_FIXED_CHANNELS_INFO_TYPE);
                     break;
                 } else {
                     l2cu_process_fixed_chnl_resp (p_lcb);
                 }
-#endif
             }
 
 
-#if (L2CAP_NUM_FIXED_CHNLS > 0)
             if (info_type == L2CAP_FIXED_CHANNELS_INFO_TYPE) {
                 if (result == L2CAP_INFO_RESP_RESULT_SUCCESS) {
                     memcpy (p_lcb->peer_chnl_mask, p, L2CAP_FIXED_CHNL_ARRAY_SIZE);
@@ -773,14 +650,6 @@ static void process_l2cap_cmd (tL2C_LCB *p_lcb, UINT8 *p, UINT16 pkt_len)
 
                 l2cu_process_fixed_chnl_resp (p_lcb);
             }
-#endif
-#if (L2CAP_UCD_INCLUDED == TRUE)
-            else if (info_type == L2CAP_CONNLESS_MTU_INFO_TYPE) {
-                if (result == L2CAP_INFO_RESP_RESULT_SUCCESS) {
-                    STREAM_TO_UINT16 (p_lcb->ucd_mtu, p);
-                }
-            }
-#endif
 
             ci.status = HCI_SUCCESS;
             memcpy (ci.bd_addr, p_lcb->remote_bd_addr, sizeof(BD_ADDR));
@@ -798,7 +667,6 @@ static void process_l2cap_cmd (tL2C_LCB *p_lcb, UINT8 *p, UINT16 pkt_len)
 
     UNUSED(rej_mtu);
 }
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
 
 
 /*******************************************************************************
@@ -855,14 +723,9 @@ void l2c_process_held_packets(BOOLEAN timed_out)
 *******************************************************************************/
 void l2c_init (void)
 {
-#if L2C_DYNAMIC_MEMORY
-    l2c_cb_ptr = (tL2C_CB *)osi_malloc(sizeof(tL2C_CB));
-#endif /* #if L2C_DYNAMIC_MEMORY */
     memset (&l2cb, 0, sizeof (tL2C_CB));
-#if (CLASSIC_BT_INCLUDED == TRUE)
     /* the psm is increased by 2 before being used */
     l2cb.dyn_psm = 0xFFF;
-#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
 
     l2cb.p_ccb_pool = list_new(osi_free_func);
     if (l2cb.p_ccb_pool == NULL) {
@@ -873,19 +736,15 @@ void l2c_init (void)
         L2CAP_TRACE_ERROR("%s unable to allocate memory for L2CAP Link control block", __func__);
     }
 
-#if (L2CAP_NON_FLUSHABLE_PB_INCLUDED == TRUE)
     /* it will be set to L2CAP_PKT_START_NON_FLUSHABLE if controller supports */
     l2cb.non_flushable_pbf = L2CAP_PKT_START << L2CAP_PKT_TYPE_SHIFT;
-#endif
 
 
-#if (CLASSIC_BT_INCLUDED == TRUE)
 #ifdef L2CAP_DESIRED_LINK_ROLE
     l2cb.desire_role      = L2CAP_DESIRED_LINK_ROLE;
 #else
     l2cb.desire_role      = HCI_ROLE_SLAVE;
 #endif
-#endif // (CLASSIC_BT_INCLUDED == TRUE)
     /* Set the default idle timeout */
     l2cb.idle_timeout = L2CAP_LINK_INACTIVITY_TOUT;
 
@@ -895,28 +754,12 @@ void l2c_init (void)
     l2cb.l2cap_trace_level = BT_TRACE_LEVEL_NONE;    /* No traces */
 #endif
 
-#if L2CAP_CONFORMANCE_TESTING == TRUE
-    /* Conformance testing needs a dynamic response */
-    l2cb.test_info_resp = L2CAP_EXTFEA_SUPPORTED_MASK;
-#endif
-
     /* Number of ACL buffers to use for high priority channel */
-#if (defined(L2CAP_HIGH_PRI_CHAN_QUOTA_IS_CONFIGURABLE) && (L2CAP_HIGH_PRI_CHAN_QUOTA_IS_CONFIGURABLE == TRUE))
-    l2cb.high_pri_min_xmit_quota = L2CAP_HIGH_PRI_MIN_XMIT_QUOTA;
-#endif
-
-#if BLE_INCLUDED == TRUE
-    l2cb.l2c_ble_fixed_chnls_mask =
-        L2CAP_FIXED_CHNL_ATT_BIT | L2CAP_FIXED_CHNL_BLE_SIG_BIT | L2CAP_FIXED_CHNL_SMP_BIT;
-#endif
 
     l2cb.rcv_pending_q = list_new(NULL);
     if (l2cb.rcv_pending_q == NULL) {
         L2CAP_TRACE_ERROR("%s unable to allocate memory for link layer control block", __func__);
     }
-#if BLE_INCLUDED == TRUE
-    l2ble_update_att_acl_pkt_num(L2CA_BUFF_INI, NULL);
-#endif
 }
 void l2c_free_p_lcb_pool(void)
 {
@@ -952,12 +795,6 @@ void l2c_free(void)
     l2cb.rcv_pending_q = NULL;
     l2c_free_p_lcb_pool();
     l2c_free_p_ccb_pool();
-#if L2C_DYNAMIC_MEMORY
-    FREE_AND_RESET(l2c_cb_ptr);
-#endif
-#if BLE_INCLUDED == TRUE
-    l2ble_update_att_acl_pkt_num(L2CA_BUFF_DEINIT, NULL);
-#endif
 }
 
 /*******************************************************************************
@@ -976,7 +813,6 @@ void l2c_process_timeout (TIMER_LIST_ENT *p_tle)
     case BTU_TTYPE_L2CAP_LINK:
         l2c_link_timeout ((tL2C_LCB *)p_tle->param);
         break;
-#if (CLASSIC_BT_INCLUDED == TRUE)
     case BTU_TTYPE_L2CAP_CHNL:
         l2c_csm_execute (((tL2C_CCB *)p_tle->param), L2CEVT_TIMEOUT, NULL);
         break;
@@ -984,7 +820,6 @@ void l2c_process_timeout (TIMER_LIST_ENT *p_tle)
     case BTU_TTYPE_L2CAP_FCR_ACK:
         l2c_csm_execute (((tL2C_CCB *)p_tle->param), L2CEVT_ACK_TIMEOUT, NULL);
         break;
-#endif  ///CLASSIC_BT_INCLUDED == TRUE
     case BTU_TTYPE_L2CAP_HOLD:
         /* Update the timeouts in the hold queue */
         l2c_process_held_packets(TRUE);
@@ -994,15 +829,6 @@ void l2c_process_timeout (TIMER_LIST_ENT *p_tle)
         l2c_info_timeout((tL2C_LCB *)p_tle->param);
         break;
     case BTU_TTYPE_L2CAP_UPDA_CONN_PARAMS: {
-#if (BLE_INCLUDED == TRUE)
-        UINT8 status = HCI_ERR_HOST_TIMEOUT;
-        tL2C_LCB *p_lcb = (tL2C_LCB *)p_tle->param;
-        if (p_lcb){
-            p_lcb->conn_update_mask &= ~L2C_BLE_UPDATE_PENDING;
-            p_lcb->conn_update_mask &= ~L2C_BLE_UPDATE_PARAM_FULL;
-            l2c_send_update_conn_params_cb(p_lcb, status);
-        }
-#endif  ///BLE_INCLUDED == TRUE
         break;
     }
     }
@@ -1019,7 +845,6 @@ void l2c_process_timeout (TIMER_LIST_ENT *p_tle)
 **                  L2CAP_DW_FAILED, if error
 **
 *******************************************************************************/
-#if (CLASSIC_BT_INCLUDED == TRUE)
 UINT8 l2c_data_write (UINT16 cid, BT_HDR *p_data, UINT16 flags)
 {
     tL2C_CCB        *p_ccb;
@@ -1064,4 +889,3 @@ UINT8 l2c_data_write (UINT16 cid, BT_HDR *p_data, UINT16 flags)
     }
     return (L2CAP_DW_SUCCESS);
 }
-#endif  ///CLASSIC_BT_INCLUDED == TRUE

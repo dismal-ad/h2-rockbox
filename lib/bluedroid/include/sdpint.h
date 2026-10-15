@@ -31,16 +31,12 @@
 #include "stack/l2c_api.h"
 #include "osi/list.h"
 
-#if (SDP_INCLUDED == TRUE)
 /* Continuation length - we use a 2-byte offset */
 #define SDP_CONTINUATION_LEN        2
 #define SDP_MAX_CONTINUATION_LEN    16          /* As per the spec */
 
 /* Timeout definitions. */
 #define SDP_INACT_TIMEOUT           30          /* Inactivity timeout */
-#if BT_SDP_BQB_INCLUDED
-#define SDP_BQB_INACT_TIMEOUT       90          /* Inactivity timeout for BQB test */
-#endif /* BT_SDP_BQB_INCLUDED */
 
 /* Define the Out-Flow default values. */
 #define  SDP_OFLOW_QOS_FLAG                 0
@@ -147,7 +143,6 @@ enum {
     SDP_IS_ATTR_SEARCH,
 };
 
-#if SDP_SERVER_ENABLED == TRUE
 /* Continuation information for the SDP server response */
 typedef struct {
     UINT16            next_attr_index; /* attr index for next continuation response */
@@ -156,7 +151,6 @@ typedef struct {
     BOOLEAN           last_attr_seq_desc_sent; /* whether attr seq length has been sent previously */
     UINT16            attr_offset; /* offset within the attr to keep trak of partial attributes in the responses */
 } tSDP_CONT_INFO;
-#endif  /* SDP_SERVER_ENABLED == TRUE */
 
 /* Define the SDP Connection Control Block */
 typedef struct {
@@ -178,7 +172,6 @@ typedef struct {
     UINT16            list_len;                 /* length of the response in the GKI buffer */
     UINT8             *rsp_list;                /* pointer to GKI buffer holding response */
 
-#if SDP_CLIENT_ENABLED == TRUE
     tSDP_DISCOVERY_DB *p_db;                    /* Database to save info into   */
     tSDP_DISC_CMPL_CB *p_cb;                    /* Callback for discovery done  */
     tSDP_DISC_CMPL_CB2 *p_cb2;                   /* Callback for discovery done piggy back with the user data */
@@ -188,9 +181,6 @@ typedef struct {
     UINT16            cur_handle;               /* Current handle being processed */
     UINT16            transaction_id;
     UINT16            disconnect_reason;        /* Disconnect reason            */
-#if (defined(SDP_BROWSE_PLUS) && SDP_BROWSE_PLUS == TRUE)
-    UINT16            cur_uuid_idx;
-#endif
 
 #define SDP_DISC_WAIT_CONN          0
 #define SDP_DISC_WAIT_HANDLES       1
@@ -200,12 +190,9 @@ typedef struct {
 
     UINT8             disc_state;
     UINT8             is_attr_search;
-#endif  /* SDP_CLIENT_ENABLED == TRUE */
 
-#if SDP_SERVER_ENABLED == TRUE
     UINT16            cont_offset;              /* Continuation state data in the server response */
     tSDP_CONT_INFO    cont_info;                /* structure to hold continuation information for the server response */
-#endif  /* SDP_SERVER_ENABLED == TRUE */
 
 } tCONN_CB;
 
@@ -214,9 +201,7 @@ typedef struct {
 typedef struct {
     tL2CAP_CFG_INFO   l2cap_my_cfg;             /* My L2CAP config     */
     tCONN_CB          ccb[SDP_MAX_CONNECTIONS];
-#if SDP_SERVER_ENABLED == TRUE
     tSDP_DB           server_db;
-#endif
     tL2CAP_APPL_INFO  reg_info;                 /* L2CAP Registration info */
     UINT16            max_attr_list_size;       /* Max attribute list size to use   */
     UINT16            max_recs_per_search;      /* Max records we want per seaarch  */
@@ -227,12 +212,7 @@ typedef struct {
 extern "C" {
 #endif
 /* Global SDP data */
-#if SDP_DYNAMIC_MEMORY == FALSE
 extern tSDP_CB  sdp_cb;
-#else
-extern tSDP_CB *sdp_cb_ptr;
-#define sdp_cb (*sdp_cb_ptr)
-#endif
 
 #ifdef __cplusplus
 }
@@ -243,9 +223,7 @@ extern void     sdp_init (void);
 extern void     sdp_deinit (void);
 extern void     sdp_disconnect (tCONN_CB *p_ccb, UINT16 reason);
 
-#if (defined(SDP_DEBUG) && SDP_DEBUG == TRUE)
 extern UINT16 sdp_set_max_attr_list_size (UINT16 max_size);
-#endif
 
 /* Functions provided by sdp_conn.c
 */
@@ -298,22 +276,11 @@ extern tSDP_ATTRIBUTE *sdp_db_find_attr_in_rec (tSDP_RECORD *p_rec, UINT16 start
 
 /* Functions provided by sdp_server.c
 */
-#if SDP_SERVER_ENABLED == TRUE
 extern void     sdp_server_handle_client_req (tCONN_CB *p_ccb, BT_HDR *p_msg);
-#else
-#define sdp_server_handle_client_req(p_ccb, p_msg)
-#endif
 
 /* Functions provided by sdp_discovery.c
 */
-#if SDP_CLIENT_ENABLED == TRUE
 extern void sdp_disc_connected (tCONN_CB *p_ccb);
 extern void sdp_disc_server_rsp (tCONN_CB *p_ccb, BT_HDR *p_msg);
-#else
-#define sdp_disc_connected(p_ccb)
-#define sdp_disc_server_rsp(p_ccb, p_msg)
-#endif
-
-#endif  ///SDP_INCLUDED == TRUE
 
 #endif

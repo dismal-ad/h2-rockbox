@@ -44,7 +44,6 @@
 /********************************************************************************/
 /*              L O C A L    F U N C T I O N     P R O T O T Y P E S            */
 /********************************************************************************/
-#if SDP_CLIENT_ENABLED == TRUE
 static void          process_service_search_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT8 *p_reply_end);
 static void          process_service_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT8 *p_reply_end);
 static void          process_service_search_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT8 *p_reply_end);
@@ -135,11 +134,7 @@ static void sdp_snd_service_search_req(tCONN_CB *p_ccb, UINT8 cont_len, UINT8 *p
     p += 2;
 
     /* Build the UID sequence. */
-#if (defined(SDP_BROWSE_PLUS) && SDP_BROWSE_PLUS == TRUE)
-    p = sdpu_build_uuid_seq (p, 1, &p_ccb->p_db->uuid_filters[p_ccb->cur_uuid_idx]);
-#else
     p = sdpu_build_uuid_seq (p, p_ccb->p_db->num_uuid_filters, p_ccb->p_db->uuid_filters);
-#endif
 
     /* Set max service record count */
     UINT16_TO_BE_STREAM (p, sdp_cb.max_recs_per_search);
@@ -346,7 +341,6 @@ static void process_service_search_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT8 *
 ** Returns          void
 **
 *******************************************************************************/
-#if (SDP_RAW_DATA_INCLUDED == TRUE)
 static void sdp_copy_raw_data (tCONN_CB *p_ccb, BOOLEAN offset)
 {
     unsigned int    cpy_len;
@@ -399,7 +393,6 @@ static void sdp_copy_raw_data (tCONN_CB *p_ccb, BOOLEAN offset)
         }
     }
 }
-#endif
 
 /*******************************************************************************
 **
@@ -481,10 +474,8 @@ static void process_service_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT8 *p_
             cont_request_needed = TRUE;
         } else {
 
-#if (SDP_RAW_DATA_INCLUDED == TRUE)
             SDP_TRACE_WARNING("process_service_attr_rsp\n");
             sdp_copy_raw_data (p_ccb, FALSE);
-#endif
 
             /* Save the response in the database. Stop on any error */
             if (!save_attr_seq (p_ccb, &p_ccb->rsp_list[0], &p_ccb->rsp_list[p_ccb->list_len])) {
@@ -668,11 +659,7 @@ static void process_service_search_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UI
         p += 2;
 
         /* Build the UID sequence. */
-#if (defined(SDP_BROWSE_PLUS) && SDP_BROWSE_PLUS == TRUE)
-        p = sdpu_build_uuid_seq (p, 1, &p_ccb->p_db->uuid_filters[p_ccb->cur_uuid_idx]);
-#else
         p = sdpu_build_uuid_seq (p, p_ccb->p_db->num_uuid_filters, p_ccb->p_db->uuid_filters);
-#endif
 
         /* Max attribute byte count */
         UINT16_TO_BE_STREAM (p, sdp_cb.max_attr_list_size);
@@ -715,10 +702,8 @@ static void process_service_search_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UI
     /* We now have the full response, which is a sequence of sequences */
     /*******************************************************************/
 
-#if (SDP_RAW_DATA_INCLUDED == TRUE)
     SDP_TRACE_DEBUG("process_service_search_attr_rsp\n");
     sdp_copy_raw_data (p_ccb, TRUE);
-#endif
 
     p = &p_ccb->rsp_list[0];
 
@@ -1093,4 +1078,3 @@ static UINT8 *add_attr (UINT8 *p, UINT8 *p_end, tSDP_DISCOVERY_DB *p_db, tSDP_DI
     return (p);
 }
 
-#endif  /* CLIENT_ENABLED == TRUE */

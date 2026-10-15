@@ -25,8 +25,6 @@
 #include <string.h>
 #include "common/bt_target.h"
 
-#if (SMP_CRYPTO_STACK_NATIVE == TRUE)
-
 #include "p_256_ecc_pp.h"
 #include "p_256_multprecision.h"
 
@@ -649,4 +647,3 @@ void multiprecision_inv_mod(DWORD *aminus, DWORD *u, uint32_t keyLength)
     }
 }
 
-#endif /* SMP_CRYPTO_STACK_NATIVE == TRUE */

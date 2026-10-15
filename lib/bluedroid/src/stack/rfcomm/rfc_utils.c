@@ -39,7 +39,6 @@
 
 #include <string.h>
 
-#if (defined RFCOMM_INCLUDED && RFCOMM_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         rfc_calc_fcs
@@ -507,4 +506,3 @@ void rfc_check_send_cmd(tRFC_MCB *p_mcb, BT_HDR *p_buf)
 }
 
 
-#endif ///(defined RFCOMM_INCLUDED && RFCOMM_INCLUDED == TRUE)

@@ -26,7 +26,6 @@
 
 #define CASE_RETURN_STR(const) case const: return #const;
 
-#if (SMP_INCLUDED == TRUE)
 #if (!CONFIG_BT_STACK_NO_LOG)
 static const char *interop_feature_string(const interop_feature_t feature)
 {
@@ -59,4 +58,3 @@ bool interop_match(const interop_feature_t feature, const bt_bdaddr_t *addr)
 
     return false;
 }
-#endif  ///SMP_INCLUDED == TRUE

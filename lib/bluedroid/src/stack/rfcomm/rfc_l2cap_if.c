@@ -35,7 +35,6 @@
 #include "osi/allocator.h"
 #include "osi/mutex.h"
 #include "osi/alarm.h"
-#if (defined RFCOMM_INCLUDED && RFCOMM_INCLUDED == TRUE)
 
 static tL2CAP_ERTM_INFO rfc_l2c_etm_opt =
 {
@@ -429,4 +428,3 @@ void rfc_save_lcid_mcb (tRFC_MCB *p_mcb, UINT16 lcid)
     rfc_cb.rfc.p_rfc_lcid_mcb[lcid - L2CAP_BASE_APPL_CID] = p_mcb;
 }
 
-#endif ///(defined RFCOMM_INCLUDED && RFCOMM_INCLUDED == TRUE)

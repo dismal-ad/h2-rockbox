@@ -17514,3 +17514,31 @@
     *: "Cover Flow"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_NEWUI_USB_CONNECTED
+  desc: new UI: USB screen, the player is connected to a computer
+  user: core
+  <source>
+    *: "Connected"
+  </source>
+  <dest>
+    *: "Connected"
+  </dest>
+  <voice>
+    *: "Connected"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_USB_EJECT
+  desc: new UI: USB screen, below Connected
+  user: core
+  <source>
+    *: "Eject before disconnecting"
+  </source>
+  <dest>
+    *: "Eject before disconnecting"
+  </dest>
+  <voice>
+    *: "Eject before disconnecting"
+  </voice>
+</phrase>

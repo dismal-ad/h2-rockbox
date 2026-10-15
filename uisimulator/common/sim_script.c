@@ -26,6 +26,7 @@
  *   press <button> [ms]     press and release (held 60 ms by default)
  *   hold <button> <ms>      press, hold, release
  *   wheel fwd|back [n]      n scroll wheel ticks, 40 ms apart
+ *   usb in|out              plug or unplug USB
  *   shot <name>             write the screen to $RB_SHOTDIR/<name>.png
  *   quit                    exit the simulator
  *
@@ -47,6 +48,7 @@
 #include "backlight.h"
 #include "powermgmt.h"
 #include "sim_script.h"
+#include "sim_tasks.h"
 
 /* host stdio, not the simulator's virtual disk */
 #undef fopen
@@ -239,6 +241,10 @@ static void script_thread(void)
                 tick_wheel(b);
                 wait_ms(40);
             }
+        }
+        else if (!strcmp(cmd, "usb") && fields >= 2)
+        {
+            sim_trigger_usb(!strcmp(arg, "in"));
         }
         else if (!strcmp(cmd, "shot") && fields >= 2)
         {

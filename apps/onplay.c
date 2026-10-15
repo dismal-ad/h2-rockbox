@@ -220,7 +220,7 @@ MENUITEM_FUNCTION(playing_time_item, 0, ID2P(LANG_PLAYING_TIME),
 MAKE_ONPLAYMENU( wps_playlist_menu, ID2P(LANG_CURRENT_PLAYLIST),
                  NULL, Icon_Playlist,
                  &wps_view_cur_playlist_item, &playlist_save_item,
-                 &search_playlist_item, &reshuffle_item, &playing_time_item
+                 &search_playlist_item, &reshuffle_item
                );
 
 /* argument for add_to_playlist (for use by menu callbacks) */
@@ -1007,9 +1007,23 @@ MENUITEM_FUNCTION(list_viewers_item, 0, ID2P(LANG_ONPLAY_OPEN_WITH),
 MENUITEM_FUNCTION_W_PARAM(properties_item, 0, ID2P(LANG_PROPERTIES),
                   onplay_load_plugin, (void *)"properties",
                   clipboard_callback, Icon_NOICON);
-MENUITEM_FUNCTION_W_PARAM(track_info_item, 0, ID2P(LANG_MENU_SHOW_ID3_INFO),
-                  onplay_load_plugin, (void *)"properties",
-                  clipboard_callback, Icon_NOICON);
+/* a file's tags, with the track info screen */
+static bool show_file_track_info(void)
+{
+    static struct mp3entry id3;
+    if (!prepare_database_sel(NULL))
+        return false;
+    int fd = open(selected_file.path, O_RDONLY);
+    if (fd < 0)
+        return false;
+    bool ok = get_metadata(&id3, fd, selected_file.path);
+    close(fd);
+    if (ok && browse_id3(&id3, 0, 0, NULL, 1, NULL))
+        onplay_result = ONPLAY_RELOAD_DIR;
+    return false;
+}
+MENUITEM_FUNCTION(track_info_item, 0, ID2P(LANG_MENU_SHOW_ID3_INFO),
+                  show_file_track_info, clipboard_callback, Icon_NOICON);
 MENUITEM_FUNCTION_W_PARAM(pictureflow_item, 0, ID2P(LANG_ONPLAY_PICTUREFLOW),
                   onplay_load_plugin, (void *)"pictureflow",
                   clipboard_callback, Icon_NOICON);
@@ -1232,9 +1246,8 @@ MAKE_ONPLAYMENU( tree_onplay_menu, ID2P(LANG_ONPLAY_MENU_TITLE),
            &view_playlist_item, &tree_playlist_menu, &cat_playlist_menu,
            &rename_file_item, &clipboard_cut_item, &clipboard_copy_item,
            &clipboard_paste_item, &delete_file_item, &delete_dir_item,
-           &list_viewers_item, &create_dir_item, &properties_item, &track_info_item,
+           &create_dir_item, &track_info_item,
            &reveal_item,
-           &pictureflow_item,
            &set_backdrop_item,
            &add_to_faves_item, &set_as_dir_menu, &file_menu, &sort_playlists,
          );

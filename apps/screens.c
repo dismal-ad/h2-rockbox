@@ -786,8 +786,11 @@ bool browse_id3_ex(struct mp3entry *id3, struct playlist_info *playlist,
     info.playlist_amount = playlist_amount;
     bool ret = false;
     int curr_activity = get_current_activity();
+    /* the playing track's info follows playback; a file's (new UI's
+       context menu) does not */
     bool is_curr_track_info = curr_activity != ACTIVITY_PLUGIN &&
-                              curr_activity != ACTIVITY_PLAYLISTVIEWER;
+                              curr_activity != ACTIVITY_PLAYLISTVIEWER &&
+                              id3 == audio_current_track();
     if (is_curr_track_info)
         push_current_activity(ACTIVITY_ID3SCREEN);
 refresh_info:
@@ -825,7 +828,12 @@ refresh_info:
                 if (view_text)
                     view_text(title_and_text[0], title_and_text[1]);
                 else
-                    plugin_load(VIEWERS_DIR"/view_text.rock", title_and_text);
+                {
+                    /* the whole value in a panel until a key is pressed */
+                    splashf(0, "%s\n%s", title_and_text[0], title_and_text[1]);
+                    action_wait_for_release();
+                    get_action(CONTEXT_STD, TIMEOUT_BLOCK);
+                }
                 gui_synclist_set_title(&id3_lists, str(LANG_TRACK_INFO), NOICON);
                 gui_synclist_draw(&id3_lists);
                 continue;

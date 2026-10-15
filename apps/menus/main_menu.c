@@ -110,22 +110,6 @@ MAKE_MENU(manage_settings, ID2P(LANG_MANAGE_MENU), NULL, Icon_Config,
 /***********************************/
 /*      INFO MENU                  */
 
-static int show_credits(void)
-{
-    if (plugin_load(VIEWERS_DIR "/credits.rock", NULL) != PLUGIN_OK)
-        show_info();
-    return 0;
-}
-
-static int show_legal(void)
-{
-    if (plugin_load(VIEWERS_DIR "/text_viewer.rock", ROCKBOX_DIR "/docs/COPYING.txt") != PLUGIN_OK)
-        show_info();
-    if (plugin_load(VIEWERS_DIR "/text_viewer.rock", ROCKBOX_DIR "/docs/LICENSES.txt") != PLUGIN_OK)
-        show_info();
-    return 0;
-}
-
 #define SIZE_FMT "%s %s"
 struct info_data
 {
@@ -418,8 +402,6 @@ int time_screen(void* ignored);
 MENUITEM_FUNCTION(timedate_item, MENU_FUNC_CHECK_RETVAL, ID2P(LANG_TIME_MENU),
                   time_screen,  NULL, Icon_Menu_setting );
 
-MENUITEM_FUNCTION(show_credits_item, 0, ID2P(LANG_CREDITS),
-                  show_credits, NULL, Icon_NOICON);
 
 MENUITEM_FUNCTION(show_runtime_item, 0, ID2P(LANG_RUNNING_TIME),
                   view_runtime, NULL, Icon_NOICON);
@@ -427,23 +409,11 @@ MENUITEM_FUNCTION(show_runtime_item, 0, ID2P(LANG_RUNNING_TIME),
 MENUITEM_FUNCTION(debug_menu_item, 0, ID2P(LANG_DEBUG),
                   debug_menu, NULL, Icon_NOICON);
 
-MENUITEM_FUNCTION(show_legal_item, 0, ID2P(LANG_LEGAL_NOTICES),
-                  show_legal, NULL, Icon_NOICON);
 
 MAKE_MENU(info_menu, ID2P(LANG_SYSTEM), 0, Icon_System_menu,
-          &show_info_item, &show_credits_item,
-          &show_runtime_item, &show_legal_item, &debug_menu_item);
+          &show_info_item, &show_runtime_item, &debug_menu_item);
 /*      INFO MENU                  */
 /***********************************/
-
-static int main_menu_config(void)
-{
-    plugin_load(PLUGIN_APPS_DIR "/main_menu_config.rock", NULL);
-    return 0;
-}
-
-MENUITEM_FUNCTION(main_menu_config_item, 0, ID2P(LANG_MAIN_MENU),
-                  main_menu_config, NULL, Icon_Rockbox);
 
 /***********************************/
 /*    MAIN MENU                    */
@@ -457,7 +427,6 @@ MAKE_MENU(main_menu_, ID2P(LANG_SETTINGS), NULL,
         &playback_settings,
         &settings_menu_item, &theme_menu,
         &timedate_item,
-        &main_menu_config_item,
         &manage_settings,
         );
 /*    MAIN MENU                    */

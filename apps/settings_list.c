@@ -585,12 +585,9 @@ static const int wps_context_menu_default =
     HK_CTX_SET(0, HOTKEY_VIEW_PLAYLIST) /* hotkey*/
   | HK_CTX_SET(1, HOTKEY_SHOW_TRACK_INFO)
   | HK_CTX_SET(2, HOTKEY_SHOW_IN_FILES)
-#ifdef HAVE_PITCHCONTROL
-  | HK_CTX_SET(3, HOTKEY_PITCHSCREEN)
-#else
-  | HK_CTX_SET(3, HOTKEY_DELETE)
-#endif
-  | HK_CTX_SET(4, HOTKEY_ALBUMART);
+  /* new UI: no plugins, so no pitch screen or album art viewer */
+  | HK_CTX_SET(3, HOTKEY_OFF)
+  | HK_CTX_SET(4, HOTKEY_OFF);
 
 static const int tree_hotkey_default = HOTKEY_OFF;
 

@@ -112,7 +112,8 @@ static const char *bt_get_name(int item, void *data, char *buf, size_t len)
 
     if (lang >= 0) {
         size_t n = strlen(buf);
-        snprintf(buf + n, len - n, " (%s)", str(lang));
+        /* the list shows what follows a TAB in grey on the right */
+        snprintf(buf + n, len - n, "\t%s", str(lang));
     }
     return buf;
 }

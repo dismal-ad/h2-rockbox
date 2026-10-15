@@ -97,6 +97,7 @@ tagcache.c
 bluetooth/bluetooth.c
 menus/bluetooth_menu.c
 #endif
+newui/ui_draw.c
 newui/ui_font.c
 newui/ui_time.c
 newui/ui_gallery.c

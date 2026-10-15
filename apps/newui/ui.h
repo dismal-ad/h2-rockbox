@@ -60,6 +60,23 @@ void ui_font_init(void);
 /* Rockbox font id for one of the UI fonts */
 int ui_font(enum ui_font f);
 
+/* --- drawing (ui_draw.c); coordinates relative to the current viewport --- */
+
+void ui_blend_pixel(int x, int y, unsigned color, int alpha); /* alpha 0..256 */
+void ui_fill_rect(int x, int y, int w, int h, unsigned color);
+void ui_fill_round_rect(int x, int y, int w, int h, int r, unsigned color);
+void ui_stroke_round_rect(int x, int y, int w, int h, int r, int stroke,
+                          unsigned color);
+void ui_fill_triangle_right(int x, int y, int w, int h, unsigned color);
+int ui_text_width(int font, const char *text);
+/* Transparent text, shortened with an ellipsis to max_w (0: no limit);
+ * align -1 left, 0 centre, 1 right within max_w. Returns the drawn width. */
+int ui_text(int x, int y, int font, unsigned color, const char *text,
+            int max_w, int align);
+/* Same, vertically centred in the band [y, y + h) */
+int ui_text_vcenter(int x, int y, int h, int font, unsigned color,
+                    const char *text, int max_w, int align);
+
 /* --- time (ui_time.c) --- */
 
 /* Free-running microsecond counter for measuring frame times */

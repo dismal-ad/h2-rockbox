@@ -94,6 +94,43 @@ static void page_fonts(void)
     lcd_drawrect(150 + 5 * 22, y + 8, 18, 30); /* outline the near-black swatch */
 }
 
+static void page_shapes(void)
+{
+    int f = ui_font(UI_FONT_BODY);
+
+    /* Minimal selection card and Classic accent bar, as list rows */
+    int y = UI_STATUS_H + 2;
+    ui_fill_round_rect(6, y + 1, LCD_WIDTH - 12, UI_ROW_H - 2, 6, UI_COL_SEL);
+    ui_text_vcenter(UI_MARGIN, y, UI_ROW_H, f, UI_COL_SEL_TEXT, "Minimal selection", 0, -1);
+    y += UI_ROW_H;
+    ui_fill_rect(0, y, LCD_WIDTH, UI_ROW_H, UI_COL_ACCENT);
+    ui_text_vcenter(UI_MARGIN, y, UI_ROW_H, f, UI_COL_TEXT, "Classic selection", 0, -1);
+    y += UI_ROW_H;
+    ui_text_vcenter(UI_MARGIN, y, UI_ROW_H, f, UI_COL_TEXT,
+                    "A very long album title that will not fit on one row of the list",
+                    LCD_WIDTH - 2 * UI_MARGIN, -1);
+    y += UI_ROW_H;
+    ui_text_vcenter(UI_MARGIN, y, UI_ROW_H, f, UI_COL_TEXT, "Value on the right", 0, -1);
+    ui_text_vcenter(UI_MARGIN, y, UI_ROW_H, f, UI_COL_TEXT2, "On",
+                    LCD_WIDTH - 2 * UI_MARGIN, 1);
+    y += UI_ROW_H + 6;
+
+    /* shapes: art placeholder, outline, play glyph, battery */
+    ui_fill_round_rect(UI_MARGIN, y, 64, 64, 10, UI_COL_TRACK);
+    ui_stroke_round_rect(UI_MARGIN + 76, y, 64, 64, 10, 2, UI_COL_TEXT2);
+    ui_fill_triangle_right(UI_MARGIN + 160, y + 16, 28, 32, UI_COL_TEXT);
+    ui_fill_rect(UI_MARGIN + 196, y + 16, 9, 32, UI_COL_TEXT);
+    ui_fill_rect(UI_MARGIN + 212, y + 16, 9, 32, UI_COL_TEXT);
+    ui_stroke_round_rect(UI_MARGIN + 234, y + 20, 44, 22, 5, 2, UI_COL_TEXT);
+    ui_fill_round_rect(UI_MARGIN + 278, y + 26, 4, 10, 2, UI_COL_TEXT);
+    ui_fill_round_rect(UI_MARGIN + 238, y + 24, 26, 14, 2, UI_COL_TEXT);
+
+    /* progress line with times */
+    y += 74;
+    ui_fill_rect(UI_MARGIN, y, LCD_WIDTH - 2 * UI_MARGIN, 4, UI_COL_TRACK);
+    ui_fill_rect(UI_MARGIN, y, 110, 4, UI_COL_SEL);
+}
+
 /* Average time of one frame of 'draw' followed by a full lcd_update */
 static uint32_t time_frames(void (*draw)(int), bool update, int frames)
 {
@@ -154,7 +191,7 @@ static void page_speed(void)
 
     lcd_set_background(UI_COL_BG);
     lcd_clear_display();
-    title("Drawing speed (full screen)", 1, 2);
+    title("Drawing speed (full screen)", 2, 3);
     int y = UI_STATUS_H + 8;
     for (int i = 0; i < 3; i++)
     {
@@ -175,7 +212,7 @@ static void page_speed(void)
 
 bool ui_gallery(void)
 {
-    enum { PAGES = 2 };
+    enum { PAGES = 3 };
     int page = 0;
     bool usb = false, redraw = true;
 
@@ -195,6 +232,11 @@ bool ui_gallery(void)
             {
                 title("Fonts and colours", 0, PAGES);
                 page_fonts();
+            }
+            else if (page == 1)
+            {
+                title("Shapes and rows", 1, PAGES);
+                page_shapes();
             }
             else
             {

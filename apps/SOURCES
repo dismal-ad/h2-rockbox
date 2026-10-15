@@ -97,4 +97,7 @@ tagcache.c
 bluetooth/bluetooth.c
 menus/bluetooth_menu.c
 #endif
+newui/ui_font.c
+newui/ui_time.c
+newui/ui_gallery.c
 keymaps/keymap-erosq.c

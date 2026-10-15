@@ -96,6 +96,7 @@
 #if defined(HAVE_BLUETOOTH)
 #include "bluetooth/bluetooth.h"
 #endif
+#include "newui/ui.h"
 
 #define SCREEN_MAX_CHARS (LCD_WIDTH / SYSFONT_WIDTH)
 
@@ -1271,6 +1272,7 @@ static const struct {
     unsigned char *desc; /* string or ID */
     bool (*function) (void); /* return true if USB was connected */
 } menuitems[] = {
+        { "New UI gallery", ui_gallery },
         { "View OS stacks", dbg_os },
 #ifdef __linux__
         { "View CPU stats", dbg_cpuinfo },

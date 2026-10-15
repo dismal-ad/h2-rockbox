@@ -70,6 +70,11 @@ typedef const char *list_get_value(int selected_item, void * data,
 typedef bool list_get_art_row(int selected_item, void * data,
                               const fb_data **thumb, char *line2,
                               size_t line2_len);
+/* optional header (new UI) drawn in place of the title: a cover (*thumb, or
+ * NULL for the placeholder), the title and a grey second line; it is
+ * UI_ART_ROW_H tall. False draws the plain title row. */
+typedef bool list_get_header(void * data, const fb_data **thumb,
+                             char *line2, size_t line2_len);
 /*
  * Text callback
  *  - selected_item : an integer that tells the number of the item to display
@@ -179,6 +184,7 @@ struct gui_synclist
     list_item_drills *callback_item_drills;
     list_get_value *callback_get_item_value;
     list_get_art_row *callback_get_art_row;
+    list_get_header *callback_get_header;
     list_get_name *callback_get_item_name;
     list_speak_item *callback_speak_item;
     list_draw_item *callback_draw_item;
@@ -212,6 +218,7 @@ extern void gui_synclist_set_icon_callback(struct gui_synclist * lists, list_get
 extern void gui_synclist_set_drills_callback(struct gui_synclist * lists, list_item_drills drills_callback);
 extern void gui_synclist_set_value_callback(struct gui_synclist * lists, list_get_value value_callback);
 extern void gui_synclist_set_art_callback(struct gui_synclist * lists, list_get_art_row art_callback);
+extern void gui_synclist_set_header_callback(struct gui_synclist * lists, list_get_header header_callback);
 extern void gui_synclist_set_voice_callback(struct gui_synclist * lists, list_speak_item voice_callback);
 extern void gui_synclist_set_viewport_defaults(struct viewport *vp, enum screen_type screen);
 extern void gui_synclist_set_color_callback(struct gui_synclist * lists, list_get_color color_callback);

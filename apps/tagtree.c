@@ -2862,37 +2862,30 @@ bool tagtree_is_album_list(struct tree_context *c)
            csi->tagorder[c->currextra] == tag_album;
 }
 
-/* For row 'id' of an album list: the path of one of the album's tracks and
- * its album artist (or artist). False for other rows ("All tracks"...).
- * Looked-up albums are remembered, as the list asks on every redraw. */
-bool tagtree_album_track(struct tree_context *c, int id, char *path,
-                         size_t path_len, char *artist, size_t artist_len)
+/* One track of the album with tag seek 'seek': its path, its album artist
+ * (or artist) and year. Looked-up albums are remembered, as lists ask on
+ * every redraw. */
+static bool album_info(int seek, char *path, size_t path_len,
+                       char *artist, size_t artist_len, int *year)
 {
     #define ALBUM_CACHE 32
     static struct {
         int seek;           /* album tag seek, 0: unused */
         unsigned age;
         bool found;
+        int year;
         char path[MAX_PATH];
         char artist[64];
     } cache[ALBUM_CACHE];
     static unsigned album_clock;
 
-    if (!tagtree_is_album_list(c))
-        return false;
-    struct tagentry *e = tagtree_get_entry(c, id);
-    if (!e || e->newtable != TABLE_NAVIBROWSE || e->extraseek <= 0)
-        return false;
-
     int slot = 0;
     for (int i = 0; i < ALBUM_CACHE; i++)
     {
-        if (cache[i].seek == e->extraseek)
+        if (cache[i].seek == seek)
         {
-            cache[i].age = ++album_clock;
-            strmemccpy(path, cache[i].path, path_len);
-            strmemccpy(artist, cache[i].artist, artist_len);
-            return cache[i].found;
+            slot = i;
+            goto found;
         }
         if (cache[i].age < cache[slot].age)
             slot = i;
@@ -2900,14 +2893,16 @@ bool tagtree_album_track(struct tree_context *c, int id, char *path,
 
     /* not known yet: search the database */
     struct tagcache_search tcs;
-    bool found = false;
+    cache[slot].found = false;
+    cache[slot].year = 0;
     cache[slot].path[0] = cache[slot].artist[0] = '\0';
     if (tagcache_search(&tcs, tag_filename))
     {
-        tagcache_search_add_filter(&tcs, tag_album, e->extraseek);
+        tagcache_search_add_filter(&tcs, tag_album, seek);
         if (tagcache_get_next(&tcs, cache[slot].path, sizeof(cache[slot].path)))
         {
-            found = true;
+            cache[slot].found = true;
+            cache[slot].year = tagcache_get_numeric(&tcs, tag_year);
             char *a = cache[slot].artist;
             if (!tagcache_retrieve(&tcs, tcs.idx_id, tag_albumartist, a, sizeof(cache[slot].artist))
                 || !*a || !strcmp(a, UNTAGGED))
@@ -2919,12 +2914,53 @@ bool tagtree_album_track(struct tree_context *c, int id, char *path,
         }
         tagcache_search_finish(&tcs);
     }
-    cache[slot].seek = e->extraseek;
+    cache[slot].seek = seek;
+found:
     cache[slot].age = ++album_clock;
-    cache[slot].found = found;
     strmemccpy(path, cache[slot].path, path_len);
     strmemccpy(artist, cache[slot].artist, artist_len);
-    return found;
+    if (year)
+        *year = cache[slot].year;
+    return cache[slot].found;
+}
+
+/* For row 'id' of an album list: the path of one of the album's tracks and
+ * its album artist (or artist). False for other rows. */
+bool tagtree_album_track(struct tree_context *c, int id, char *path,
+                         size_t path_len, char *artist, size_t artist_len)
+{
+    if (!tagtree_is_album_list(c))
+        return false;
+    struct tagentry *e = tagtree_get_entry(c, id);
+    if (!e || e->newtable != TABLE_NAVIBROWSE || e->extraseek <= 0)
+        return false;
+    return album_info(e->extraseek, path, path_len, artist, artist_len, NULL);
+}
+
+/* For the tracks of one album: the path of one of them, and
+ * "artist · year · N songs". False for other lists. */
+bool tagtree_album_header(struct tree_context *c, char *path, size_t path_len,
+                          char *line2, size_t line2_len)
+{
+    int level = c->currextra;
+    if (c->currtable != TABLE_NAVIBROWSE || level < 1 ||
+        csi->tagorder[level] != tag_title ||
+        csi->tagorder[level - 1] != tag_album)
+        return false;
+
+    char artist[64];
+    int year;
+    if (!album_info(csi->result_seek[level - 1], path, path_len,
+                    artist, sizeof(artist), &year))
+        return false;
+
+    /* "artist<TAB>year · N songs": the list keeps the right part whole */
+    char yearbuf[16] = "";
+    if (year > 0)
+        snprintf(yearbuf, sizeof(yearbuf), "%d \xc2\xb7 ", year);
+    snprintf(line2, line2_len, "%s\t%s%d %s", artist, yearbuf,
+             c->filesindir, c->filesindir == 1 ? "song" : "songs");
+    return true;
 }
 
 int tagtree_get_icon(struct tree_context* c)

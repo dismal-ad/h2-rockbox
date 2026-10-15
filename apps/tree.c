@@ -205,6 +205,18 @@ static bool tree_album_art_row(int selected_item, void * data,
     return true;
 }
 
+/* the tracks of one album in the database browser: header with its cover */
+static bool tree_album_header(void * data, const fb_data **thumb,
+                              char *line2, size_t line2_len)
+{
+    struct tree_context * local_tc=(struct tree_context *)data;
+    char path[MAX_PATH];
+    if (!tagtree_album_header(local_tc, path, sizeof(path), line2, line2_len))
+        return false;
+    *thumb = ui_thumb_get(path);
+    return true;
+}
+
 static bool tree_item_drills(int selected_item, void * data)
 {
     struct tree_context * local_tc=(struct tree_context *)data;
@@ -515,6 +527,13 @@ static int update_dir(void)
     gui_synclist_set_drills_callback(list, tree_item_drills);
     if (id3db && tagtree_is_album_list(&tc))
         gui_synclist_set_art_callback(list, tree_album_art_row);
+    if (id3db)
+    {
+        const fb_data *thumb;
+        char line2[8];
+        if (tree_album_header(&tc, &thumb, line2, sizeof(line2)))
+            gui_synclist_set_header_callback(list, tree_album_header);
+    }
     if(!id3db || global_settings.talk_menu)
     {
         gui_synclist_set_voice_callback(list, &tree_voice_cb);

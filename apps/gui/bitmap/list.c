@@ -56,6 +56,7 @@ int gui_list_get_item_offset(struct gui_synclist * gui_list, int item_width,
                              struct viewport *vp);
 bool list_display_title(struct gui_synclist *list, enum screen_type screen);
 int list_get_nb_lines(struct gui_synclist *list, enum screen_type screen);
+int list_title_height(struct gui_synclist *list);
 
 void gui_synclist_scroll_stop(struct gui_synclist *lists)
 {
@@ -88,7 +89,7 @@ static bool item_drills(enum themable_icons icon)
 
 /* A row with a cover on the left, the name and a grey second line */
 static void draw_art_row(struct viewport *vp, int y, int row_h,
-                         const char *name, const char *line2,
+                         const char *name, char *line2,
                          const fb_data *thumb, bool selected, bool drills,
                          int text_right, bool scrollbar)
 {
@@ -113,8 +114,18 @@ static void draw_art_row(struct viewport *vp, int y, int row_h,
     {
         int top = y + (row_h - font_get(row)->height - font_get(body)->height) / 2;
         ui_text(tx, top, row, UI_COL_TEXT, name, tw, -1);
-        ui_text(tx, top + font_get(row)->height, body,
-                selected ? UI_COL_TEXT : UI_COL_TEXT2, line2, tw, -1);
+        /* a TAB splits the second line: the part after it stays whole,
+         * on the right */
+        unsigned col2 = selected ? UI_COL_TEXT : UI_COL_TEXT2;
+        int y2 = top + font_get(row)->height, lw = tw;
+        char *tab = strchr(line2, '\t');
+        if (tab)
+        {
+            *tab++ = '\0';
+            lw -= ui_text_width(body, tab) + UI_GAP;
+            ui_text(tx, y2, body, col2, tab, tw, 1);
+        }
+        ui_text(tx, y2, body, col2, line2, lw, -1);
     }
     else
         ui_text_vcenter(tx, y, row_h, row, UI_COL_TEXT, name, tw, -1);
@@ -127,6 +138,16 @@ static void draw_art_row(struct viewport *vp, int y, int row_h,
 static void draw_title(struct screen *display, struct gui_synclist *list,
                        struct viewport *vp, int row_h)
 {
+    const fb_data *thumb = NULL;
+    char line2[96];
+    if (list->callback_get_header &&
+        list->callback_get_header(list->data, &thumb, line2, sizeof(line2)))
+    {
+        draw_art_row(vp, 0, row_h, list->title, line2, thumb, false, false,
+                     vp->width - UI_MARGIN, false);
+        ui_fill_rect(0, row_h - 1, vp->width, 1, UI_COL_TRACK);
+        return;
+    }
     ui_text_vcenter(UI_MARGIN, 0, row_h, ui_font(UI_FONT_TITLE), UI_COL_TEXT,
                     list->title, vp->width - 2 * UI_MARGIN, -1);
     ui_fill_rect(0, row_h - 1, vp->width, 1, UI_COL_TRACK);
@@ -150,9 +171,10 @@ void list_draw(struct screen *display, struct gui_synclist *list)
     *vp = *parent;
     if (list_display_title(list, screen))
     {
-        draw_title(display, list, parent, UI_ROW_H);
-        vp->y += UI_ROW_H;
-        vp->height -= UI_ROW_H;
+        const int title_h = list_title_height(list);
+        draw_title(display, list, parent, title_h);
+        vp->y += title_h;
+        vp->height -= title_h;
     }
 
     const int nb_lines = list_get_nb_lines(list, screen);

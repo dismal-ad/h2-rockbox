@@ -45,6 +45,8 @@ int tagtree_get_attr(struct tree_context* c);
 bool tagtree_is_album_list(struct tree_context *c);
 bool tagtree_album_track(struct tree_context *c, int id, char *path,
                          size_t path_len, char *artist, size_t artist_len);
+bool tagtree_album_header(struct tree_context *c, char *path, size_t path_len,
+                          char *line2, size_t line2_len);
 int tagtree_get_icon(struct tree_context* c);
 int tagtree_get_filename(struct tree_context* c, char *buf, int buflen);
 int tagtree_get_custom_action(struct tree_context* c);

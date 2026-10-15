@@ -97,14 +97,20 @@ bool list_display_title(struct gui_synclist *list, enum screen_type screen)
         list_nb_lines(list, screen) > 2;
 }
 
+int list_title_height(struct gui_synclist *list)
+{
+    return list->callback_get_header ? UI_ART_ROW_H : UI_ROW_H;
+}
+
 int list_get_nb_lines(struct gui_synclist *list, enum screen_type screen)
 {
     int lines = skinlist_get_line_count(screen, list);
     if (lines < 0)
     {
-        /* the title row is always UI_ROW_H, even when rows are taller */
+        /* the title row is UI_ROW_H (a header UI_ART_ROW_H), whatever
+         * the rows' height */
         if (list_display_title(list, screen))
-            lines = (list->parent[screen]->height - UI_ROW_H) /
+            lines = (list->parent[screen]->height - list_title_height(list)) /
                     list->line_height[screen];
         else
             lines = list_nb_lines(list, screen);
@@ -158,6 +164,7 @@ void gui_synclist_init(struct gui_synclist * gui_list,
     gui_list->callback_item_drills = NULL;
     gui_list->callback_get_item_value = NULL;
     gui_list->callback_get_art_row = NULL;
+    gui_list->callback_get_header = NULL;
     gui_list->nb_items = 0;
     gui_list->selected_item = 0;
     gui_synclist_init_display_settings(gui_list);
@@ -475,6 +482,12 @@ void gui_synclist_set_art_callback(struct gui_synclist * lists,
     lists->callback_get_art_row = art_callback;
     FOR_NB_SCREENS(i)
         list_init_item_height(lists, i);
+}
+
+void gui_synclist_set_header_callback(struct gui_synclist * lists,
+                                      list_get_header header_callback)
+{
+    lists->callback_get_header = header_callback;
 }
 
 void gui_synclist_set_voice_callback(struct gui_synclist * lists,

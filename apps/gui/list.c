@@ -113,7 +113,7 @@ void list_init_item_height(struct gui_synclist *list, enum screen_type screen)
 {
     /* the new UI's row height; never less than the font needs */
     struct viewport *vp = list->parent[screen];
-    int line_height = font_get(vp->font)->height + 6;
+    int line_height = font_get(vp->font)->height + 4;
     list->line_height[screen] = MAX(line_height, UI_ROW_H);
 }
 

@@ -47,11 +47,11 @@
 /* --- fonts (ui_font.c) --- */
 
 enum ui_font {
-    UI_FONT_SMALL,  /* 13: times, counts, status bar */
-    UI_FONT_BODY,   /* 17: secondary text (artist, album, setting values) */
-    UI_FONT_ROW,    /* 17 semibold: list rows (also the default UI font) */
-    UI_FONT_TITLE,  /* 20 semibold: titles */
-    UI_FONT_BIG,    /* 40 semibold, ASCII: fast-scroll letter, volume */
+    UI_FONT_SMALL,  /* 14: times, counts, status bar */
+    UI_FONT_BODY,   /* 18: secondary text (artist, album, setting values) */
+    UI_FONT_ROW,    /* 20 bold: list rows (also the default UI font) */
+    UI_FONT_TITLE,  /* 22 bold: titles */
+    UI_FONT_BIG,    /* 40 bold, ASCII: fast-scroll letter, volume */
     UI_FONT_COUNT
 };
 

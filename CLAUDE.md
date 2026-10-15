@@ -92,9 +92,21 @@ through `bde005189c` (Thiago Lugli's manager/menu/settings), cherry-picked with
   upstream's DMA UART TX driver (`af9a81f5f6`), which their branch predates.
   That driver keeps one set of state for all UARTs, so only one UART can be in
   use at a time.
-- Cost: firmware text +425 KB, `rockbox.zip` 2.4 → 2.7 MB. Most of Bluedroid
-  sits behind its own feature switches (`sdkconfig.h`, BLE/GATT/other
-  profiles), which are candidates for the same dead-code carving.
+- Bluedroid was carved to this configuration (commit "bluedroid: remove code
+  this configuration never builds"): conditionals that are constant across the
+  firmware, simulator and `BT_DEBUG` builds were resolved and 159 unused files
+  deleted, 202k -> 99k code lines with identical object code. Its six config
+  headers (`sdkconfig.h`, `bt_user_config.h`, `bluedroid_user_config.h`,
+  `bt_target.h`, `dyn_mem.h`, `bt_common.h`) were left as is; to enable a
+  disabled Bluedroid feature, restore the code from before that commit.
+- Cost: firmware text +425 KB, `rockbox.zip` 2.4 -> 2.7 MB.
+- Tested on the owner's H2 (hw4): Bluetooth audio works.
+
+## Tools
+
+`../newui-tools/` (outside the repo): `ifeval.py` (per-build #if
+evaluation), `macrovals.py` (resolve macro values per build), `prune.py`
+(find unused files). Their docstrings explain usage.
 
 ## UI overhaul: decisions
 

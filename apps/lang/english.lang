@@ -17556,3 +17556,45 @@
     *: "Press Power or double-press Centre to unlock"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_NEWUI_KBD_DONE
+  desc: new UI: keyboard item that accepts the text
+  user: core
+  <source>
+    *: "Done"
+  </source>
+  <dest>
+    *: "Done"
+  </dest>
+  <voice>
+    *: "Done"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_KBD_SPACE
+  desc: new UI: keyboard item that adds a space
+  user: core
+  <source>
+    *: "Space"
+  </source>
+  <dest>
+    *: "Space"
+  </dest>
+  <voice>
+    *: "Space"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_KBD_HINT
+  desc: new UI: keyboard, the keys
+  user: core
+  <source>
+    *: "Centre add · Back delete · Hold Centre done"
+  </source>
+  <dest>
+    *: "Centre add · Back delete · Hold Centre done"
+  </dest>
+  <voice>
+    *: "Centre add · Back delete · Hold Centre done"
+  </voice>
+</phrase>

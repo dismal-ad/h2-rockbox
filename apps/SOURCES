@@ -73,7 +73,6 @@ gui/backdrop.c
 
 recorder/bmp.c
 recorder/icons.c
-recorder/keyboard.c
 recorder/peakmeter.c
 recorder/resize.c
 recorder/jpeg_load.c
@@ -110,4 +109,5 @@ newui/ui_thumb.c
 newui/scr_coverflow.c
 newui/ui_popup.c
 newui/scr_lock.c
+newui/ui_keyboard.c
 keymaps/keymap-erosq.c

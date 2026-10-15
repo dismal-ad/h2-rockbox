@@ -2,6 +2,7 @@
 
 lcd-common.c
 sim_tasks.c
+sim_script.c
 fmradio.c
 backlight-sim.c
 powermgmt-sim.c

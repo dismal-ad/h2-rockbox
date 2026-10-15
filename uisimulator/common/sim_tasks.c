@@ -29,6 +29,7 @@
 #include "usb.h"
 #include "mv.h"
 #include "ata_idle_notify.h"
+#include "sim_script.h"
 
 #ifdef WIN32
 #include <windows.h>
@@ -128,6 +129,8 @@ void sim_tasks_init(void)
 
     create_thread(sim_thread, sim_thread_stack, sizeof(sim_thread_stack), 0,
                   sim_thread_name IF_PRIO(,PRIORITY_BACKGROUND) IF_COP(,CPU));
+
+    sim_script_init();
 }
 
 void sim_trigger_screendump(void)

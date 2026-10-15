@@ -509,8 +509,12 @@ static void button_event(int key, bool pressed)
 }
 int button_read_device(void)
 {
-
+#ifdef SIMULATOR
+    extern int sim_script_buttons;
+    return btn | sim_script_buttons;
+#else
     return btn;
+#endif
 }
 
 void button_init_device(void)

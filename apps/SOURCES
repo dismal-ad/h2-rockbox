@@ -103,4 +103,6 @@ newui/ui_time.c
 newui/ui_gallery.c
 newui/ui_status.c
 newui/ui_wheel.c
+newui/ui_art.c
+newui/scr_home.c
 keymaps/keymap-erosq.c

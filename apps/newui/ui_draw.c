@@ -132,6 +132,25 @@ void ui_stroke_round_rect(int x, int y, int w, int h, int r, int stroke,
         }
 }
 
+/* Rounds the corners of an already drawn rectangle by painting the outside
+ * of each corner in the background colour (anti-aliased) */
+void ui_round_corners(int x, int y, int w, int h, int r, unsigned bg)
+{
+    if (r > w / 2) r = w / 2;
+    if (r > h / 2) r = h / 2;
+    for (int cy = 0; cy < r; cy++)
+        for (int cx = 0; cx < r; cx++)
+        {
+            int a = 256 - corner_coverage(cx, cy, r, r);
+            if (a <= 0)
+                continue;
+            ui_blend_pixel(x + cx,         y + cy,         bg, a);
+            ui_blend_pixel(x + w - 1 - cx, y + cy,         bg, a);
+            ui_blend_pixel(x + cx,         y + h - 1 - cy, bg, a);
+            ui_blend_pixel(x + w - 1 - cx, y + h - 1 - cy, bg, a);
+        }
+}
+
 /* Filled triangle pointing right (play glyph) inside w x h */
 void ui_fill_triangle_right(int x, int y, int w, int h, unsigned color)
 {

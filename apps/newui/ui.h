@@ -70,6 +70,8 @@ void ui_fill_round_rect(int x, int y, int w, int h, int r, unsigned color);
 void ui_stroke_round_rect(int x, int y, int w, int h, int r, int stroke,
                           unsigned color);
 void ui_fill_triangle_right(int x, int y, int w, int h, unsigned color);
+/* Rounds the corners of what is drawn at x,y,w,h, painting outside them in bg */
+void ui_round_corners(int x, int y, int w, int h, int r, unsigned bg);
 int ui_text_width(int font, const char *text);
 /* Transparent text, shortened with an ellipsis to max_w (0: no limit);
  * align -1 left, 0 centre, 1 right within max_w. Returns the drawn width. */
@@ -78,6 +80,26 @@ int ui_text(int x, int y, int font, unsigned color, const char *text,
 /* Same, vertically centred in the band [y, y + h) */
 int ui_text_vcenter(int x, int y, int h, int font, unsigned color,
                     const char *text, int max_w, int align);
+
+/* --- album art (ui_art.c) --- */
+
+#define UI_ART_MAX 160 /* largest cover size decoded */
+
+struct bitmap;
+/* The playing track's cover scaled to fit size x size (aspect kept), or
+ * NULL when nothing plays or it has no art. Cached until the track or the
+ * size changes. */
+const struct bitmap *ui_art_current(int size);
+/* Draws a cover centred in the size x size square, corners rounded */
+void ui_art_draw(const struct bitmap *bm, int x, int y, int size, int radius);
+/* The no-art placeholder: a dark rounded square with a note */
+void ui_art_placeholder(int x, int y, int size, int radius);
+
+/* --- screens --- */
+
+/* Home (scr_home.c). Returns the root menu screen to open (GO_TO_*),
+ * or MENU_ATTACHED_USB. *selected keeps the row between visits. */
+int ui_home(int *selected);
 
 /* --- status bar (ui_status.c) --- */
 

@@ -17486,3 +17486,17 @@
     bluetooth: "Off, select to turn on"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_NEWUI_MUSIC
+  desc: new UI: Home entry that opens the music library (database)
+  user: core
+  <source>
+    *: "Music"
+  </source>
+  <dest>
+    *: "Music"
+  </dest>
+  <voice>
+    *: "Music"
+  </voice>
+</phrase>

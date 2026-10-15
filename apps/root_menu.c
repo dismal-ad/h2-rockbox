@@ -25,6 +25,7 @@
 #include "appevents.h"
 #include "menu.h"
 #include "root_menu.h"
+#include "newui/ui.h"
 #include "lang.h"
 #include "settings.h"
 #include "screens.h"
@@ -813,6 +814,7 @@ void root_menu(void)
     int previous_browser = global_status.last_browser;
     int selected = 0;
     int shortcut_origin = GO_TO_ROOT;
+    static int home_selected = 0;
 
     push_current_activity(ACTIVITY_MAINMENU);
     next_screen = root_menu_setup_screens();
@@ -832,7 +834,8 @@ void root_menu(void)
                  * button to be handled by HOST instead of rockbox */
                 ignore_back_button_stub(true);
 
-                next_screen = do_menu(&root_menu_, &selected, NULL, false);
+                /* the new UI's Home replaces the root menu list */
+                next_screen = ui_home(&home_selected);
 
                 ignore_back_button_stub(false);
 

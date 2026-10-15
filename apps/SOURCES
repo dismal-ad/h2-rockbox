@@ -17,7 +17,6 @@ menus/theme_menu.c
 menus/plugin_menu.c
 menus/eq_menu.c
 buffering.c
-voice_thread.c
 rbcodec_helpers.c
 menus/main_menu.c
 menus/playback_menu.c
@@ -26,7 +25,6 @@ menus/settings_menu.c
 menus/sound_menu.c
 menus/time_menu.c
 misc.c
-open_plugin.c
 onplay.c
 playlist.c
 playlist_catalog.c
@@ -39,7 +37,6 @@ settings_list.c
 shortcuts.c
 status.c
 cuesheet.c
-talk.c
 tree.c
 tagtree.c
 filetree.c

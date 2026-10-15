@@ -217,25 +217,6 @@ static void parse_riff_format(unsigned char* buf, int fmtsize, struct wave_fmt *
         /* SubFormat */
         fmt->formattag = buf[24] | (buf[25] << 8);
     }
-
-    /* Check for ATRAC3 stream */
-    if (fmt->formattag == WAVE_FORMAT_ATRAC3)
-    {
-        int jsflag = 0;
-        if(id3->bitrate == 66 || id3->bitrate == 94)
-            jsflag = 1;
-
-        id3->codectype = AFMT_OMA_ATRAC3;
-        id3->bytesperframe = fmt->blockalign;
-        
-        /* Store the extradata for the codec */
-        AV_WL16(&id3->id3v2buf[0],  1);             // always 1
-        AV_WL32(&id3->id3v2buf[2],  id3->frequency);// samples rate
-        AV_WL16(&id3->id3v2buf[6],  jsflag);        // coding mode
-        AV_WL16(&id3->id3v2buf[8],  jsflag);        // coding mode
-        AV_WL16(&id3->id3v2buf[10], 1);             // always 1
-        AV_WL16(&id3->id3v2buf[12], 0);             // always 0
-    }
 }
 
 static void parse_list_chunk(int fd, struct mp3entry* id3, int chunksize, bool is_64)

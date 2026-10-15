@@ -25,6 +25,9 @@
 #ifndef __TALK_H__
 #define __TALK_H__
 
+/* Voice (spoken menus) support has been removed from this tree: the
+ * talk API is kept as no-op stubs so callers compile unchanged. */
+
 #include <stdbool.h>
 #include <inttypes.h>
 #include "time.h"
@@ -105,61 +108,58 @@ enum talk_buffer_policies {
 
 /* This sets the actual policy. Call this before core_alloc_maximum() to
  * get the desired outcome */
-void talk_buffer_set_policy(int policy);
+static inline void talk_buffer_set_policy(int policy) { (void)policy; }
 
 /* publish these strings, so they're stored only once (better than #define) */
-extern const char* const dir_thumbnail_name; /* "_dirname.talk" */
-extern const char* const file_thumbnail_ext; /* ".talk" for file voicing */
+#define dir_thumbnail_name "_dirname.talk"
+#define file_thumbnail_ext ".talk"
 
-void talk_init(void);
-int talk_get_bufsize(void); /* get the loaded voice file size */
-size_t talkbuf_init(char* bufstart);
-bool is_voice_queued(void); /* Are there more voice clips to be spoken? */
-int talk_id(int32_t id, bool enqueue); /* play a voice ID from voicefont */
+static inline void talk_init(void) { }
+static inline int talk_get_bufsize(void) { return 0; }
+static inline size_t talkbuf_init(char* bufstart) { (void)bufstart; return 0; }
+static inline bool is_voice_queued(void) { return false; }
+static inline int talk_id(int32_t id, bool enqueue) { (void)id; (void)enqueue; return -1; }
 /* play a thumbnail from file */
-int talk_file(const char *root, const char *dir, const char *file,
-              const char *ext, const long *prefix_ids, bool enqueue);
+static inline int talk_file(const char *root, const char *dir, const char *file, const char *ext, const long *prefix_ids, bool enqueue) { (void)root; (void)dir; (void)file; (void)ext; (void)prefix_ids; (void)enqueue; return -1; }
 /* play file's thumbnail or spell name */
-int talk_file_or_spell(const char *dirname, const char* filename,
-                       const long *prefix_ids, bool enqueue);
+static inline int talk_file_or_spell(const char *dirname, const char* filename, const long *prefix_ids, bool enqueue) { (void)dirname; (void)filename; (void)prefix_ids; (void)enqueue; return -1; }
 
 /* play dir's thumbnail or spell name */
-int talk_dir_or_spell(const char* filename,
-                      const long *prefix_ids, bool enqueue);
+static inline int talk_dir_or_spell(const char* filename, const long *prefix_ids, bool enqueue) { (void)filename; (void)prefix_ids; (void)enqueue; return -1; }
 
 /* play thumbnails for each components of full path, or spell */
-int talk_fullpath(const char* path, bool enqueue);
-int talk_number(long n, bool enqueue); /* say a number */
-int talk_value(long n, int unit, bool enqueue); /* say a numeric value */
-int talk_value_decimal(long n, int unit, int decimals, bool enqueue);
-int talk_spell(const char* spell, bool enqueue); /* spell a string */
-void talk_setting(const void *global_settings_variable); /* read a setting */
-void talk_disable(bool disable); /* temporarily disable (or re-enable) talking (temporarily, not persisted) */
-void talk_force_shutup(void); /* kill voice unconditionally */
-void talk_shutup(void); /* Interrupt voice, as when enqueue is false */
+static inline int talk_fullpath(const char* path, bool enqueue) { (void)path; (void)enqueue; return -1; }
+static inline int talk_number(long n, bool enqueue) { (void)n; (void)enqueue; return -1; }
+static inline int talk_value(long n, int unit, bool enqueue) { (void)n; (void)unit; (void)enqueue; return -1; }
+static inline int talk_value_decimal(long n, int unit, int decimals, bool enqueue) { (void)n; (void)unit; (void)decimals; (void)enqueue; return -1; }
+static inline int talk_spell(const char* spell, bool enqueue) { (void)spell; (void)enqueue; return -1; }
+static inline void talk_setting(const void *global_settings_variable) { (void)global_settings_variable; }
+static inline void talk_disable(bool disable) { (void)disable; }
+static inline void talk_force_shutup(void) { }
+static inline void talk_shutup(void) { }
 
 /* helper function for speaking fractional numbers */
-void talk_fractional(char *tbuf, int value, int unit);
+static inline void talk_fractional(char *tbuf, int value, int unit) { (void)tbuf; (void)value; (void)unit; }
 
-void talk_time(const struct tm *tm, bool enqueue);
-void talk_date(const struct tm *tm, bool enqueue);
+static inline void talk_time(const struct tm *tm, bool enqueue) { (void)tm; (void)enqueue; }
+static inline void talk_date(const struct tm *tm, bool enqueue) { (void)tm; (void)enqueue; }
 
 #ifdef HAVE_MULTIVOLUME
-int talk_volume_id(int volume);
+static inline int talk_volume_id(int volume) { (void)volume; return 0; }
 #endif
 
 /* speaks hr, min, sec, ms; unit_idx is lowest or base unit of the time value */
-int talk_time_intervals(long time, int unit_idx, bool enqueue);
+static inline int talk_time_intervals(long time, int unit_idx, bool enqueue) { (void)time; (void)unit_idx; (void)enqueue; return -1; }
 
 /* This (otherwise invalid) ID signals the end of the array. */
 #define TALK_FINAL_ID LANG_LAST_INDEX_IN_ARRAY
 #define TALK_FINAL_ID_VOICEONLY LANG_LAST_VOICEONLY_INDEX_IN_ARRAY
 /* Enqueue next utterance even if enqueue parameter is false: don't
    interrupt the current utterance. */
-void talk_force_enqueue_next(void);
+static inline void talk_force_enqueue_next(void) { }
 
 /* speaks one or more IDs (from an array)). */
-int talk_idarray(const long *idarray, bool enqueue);
+static inline int talk_idarray(const long *idarray, bool enqueue) { (void)idarray; (void)enqueue; return -1; }
 /* This makes an initializer for the array of IDs and takes care to
    put the final sentinel element at the end. */
 #define TALK_IDARRAY(ids...) ((long[]){ids,TALK_FINAL_ID})
@@ -196,8 +196,8 @@ struct talk_debug_data {
     enum talk_status status;
 };
 
-void talk_announce_voice_invalid(void);
+static inline void talk_announce_voice_invalid(void) { }
 
-bool talk_get_debug_data(struct talk_debug_data *data);
+static inline bool talk_get_debug_data(struct talk_debug_data *data) { (void)data; return false; }
 
 #endif /* __TALK_H__ */

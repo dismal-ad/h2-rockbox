@@ -353,11 +353,6 @@ static int asf_parse_header(int fd, struct mp3entry* id3,
                             wfx->audiostream = flags&0x7f;
                             /* Correct codectype to redirect playback to the proper .codec */
                             id3->codectype = AFMT_WMAPRO;
-                        } else if (wfx->codec_id == ASF_CODEC_ID_WMAVOICE) {
-                            read(fd, wfx->data, wfx->datalen);
-                            lseek(fd,current.size - 24 - 72 - wfx->datalen,SEEK_CUR);
-                            wfx->audiostream = flags&0x7f;
-                            id3->codectype = AFMT_WMAVOICE;
                         } else if (wfx->codec_id == ASF_CODEC_ID_MP3) {
                             lseek(fd,current.size - 24 - 72,SEEK_CUR);
                             wfx->audiostream = flags&0x7f;

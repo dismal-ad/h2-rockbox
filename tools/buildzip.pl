@@ -487,13 +487,6 @@ sub buildzip {
     # copy the already built lng files
     glob_copy('apps/lang/*.lng', "$temp_dir/langs/");
     glob_copy('apps/lang/*.zip', "$temp_dir/langs/");
-    # Copy over the Invalid Language fallback stuff
-    glob_copy("$ROOT/apps/lang/Invalid*.talk", "$temp_dir/langs/");
-
-    # Copy over any generated voice/talk clips
-    glob_copy('Invalid*.talk', "$temp_dir/langs/");
-    glob_copy('*.lng.talk', "$temp_dir/langs/");
-    glob_copy('*.voice', "$temp_dir/langs/");
 
     # finally, bundle map files for debug
     glob_mkdir("$temp_dir/debug");

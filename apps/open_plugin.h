@@ -78,14 +78,20 @@ inline static void open_plugin_get_hash(const char *key, uint32_t *hash)
 }
 
 #ifndef PLUGIN
-struct open_plugin_entry_t* open_plugin_get_entry(void);
-uint32_t open_plugin_add_path(const char *key, const char *plugin, const char *parameter);
-int open_plugin_load_entry(const char *key);
-void open_plugin_browse(const char *key);
-int open_plugin_run(const char *key);
-void open_plugin_cache_flush(void); /* flush to disk */
-void open_plugin_import(const char *cfg_file);
-void open_plugin_export(int cfg_fd);
+/* Plugins are not supported in this tree: the open-plugin store is a no-op. */
+static inline struct open_plugin_entry_t* open_plugin_get_entry(void)
+{
+    static struct open_plugin_entry_t empty_entry;
+    return &empty_entry;
+}
+static inline uint32_t open_plugin_add_path(const char *key, const char *plugin, const char *parameter)
+    { (void)key; (void)plugin; (void)parameter; return 0; }
+static inline int open_plugin_load_entry(const char *key) { (void)key; return OPEN_PLUGIN_NOT_FOUND; }
+static inline void open_plugin_browse(const char *key) { (void)key; }
+static inline int open_plugin_run(const char *key) { (void)key; return -1; /* PLUGIN_ERROR */ }
+static inline void open_plugin_cache_flush(void) { }
+static inline void open_plugin_import(const char *cfg_file) { (void)cfg_file; }
+static inline void open_plugin_export(int cfg_fd) { (void)cfg_fd; }
 #endif
 
 #endif /*ndef __PCTOOL__ */

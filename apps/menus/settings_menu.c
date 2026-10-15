@@ -536,52 +536,6 @@ MAKE_MENU(autoresume_menu, ID2P(LANG_AUTORESUME),
 /*    AUTORESUME MENU              */
 /***********************************/
 
-/***********************************/
-/*    VOICE MENU                   */
-static int talk_callback(int action,
-                         const struct menu_item_ex *this_item,
-                         struct gui_synclist *this_list);
-
-MENUITEM_SETTING(talk_menu_item, &global_settings.talk_menu, NULL);
-MENUITEM_SETTING(talk_dir_item, &global_settings.talk_dir, NULL);
-MENUITEM_SETTING(talk_dir_clip_item, &global_settings.talk_dir_clip, talk_callback);
-MENUITEM_SETTING(talk_file_item, &global_settings.talk_file, NULL);
-MENUITEM_SETTING(talk_file_clip_item, &global_settings.talk_file_clip, talk_callback);
-static int talk_callback(int action,
-                         const struct menu_item_ex *this_item,
-                         struct gui_synclist *this_list)
-{
-    (void)this_list;
-    static int oldval = 0;
-    switch (action)
-    {
-        case ACTION_ENTER_MENUITEM:
-            oldval = global_settings.talk_file_clip;
-            break;
-        case ACTION_EXIT_MENUITEM:
-            audio_set_crossfade(global_settings.crossfade);
-            if (this_item == &talk_dir_clip_item)
-                break;
-            if (!oldval && global_settings.talk_file_clip)
-            {
-                /* force reload if newly talking thumbnails,
-                because the clip presence is cached only if enabled */
-                reload_directory();
-            }
-            break;
-    }
-    return action;
-}
-MENUITEM_SETTING(talk_filetype_item, &global_settings.talk_filetype, NULL);
-MENUITEM_SETTING(talk_battery_level_item,
-                 &global_settings.talk_battery_level, NULL);
-MENUITEM_SETTING(talk_mixer_amp_item, &global_settings.talk_mixer_amp, NULL);
-MAKE_MENU(voice_settings_menu, ID2P(LANG_VOICE), 0, Icon_Voice,
-          &talk_menu_item, &talk_dir_item, &talk_dir_clip_item,
-          &talk_file_item, &talk_file_clip_item, &talk_filetype_item,
-          &talk_battery_level_item, &talk_mixer_amp_item);
-/*    VOICE MENU                   */
-/***********************************/
 
 /*    WPS_CONTEXT_MENU          */
 /***********************************/
@@ -691,7 +645,7 @@ MAKE_MENU(settings_menu_item, ID2P(LANG_GENERAL_SETTINGS), 0,
           &startup_shutdown_menu,
           &bookmark_settings_menu,
           &autoresume_menu,
-          &browse_langs, &voice_settings_menu,
+          &browse_langs,
           );
 /*    SETTINGS MENU                */
 /***********************************/

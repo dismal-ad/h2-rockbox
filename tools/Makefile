@@ -8,15 +8,14 @@
 CFLAGS := -Os -Wall -Wextra
 LDFLAGS :=
 
-.PHONY: rbspeexenc
 
 CLEANALL := scramble descramble iriver bmp2rb rdf2binary convbdf \
     generate_rocklatin mkboot ipod_fw codepages mi4 gigabeat lngdump \
-    telechips gigabeats creative hmac-sha1 rbspeexenc mkzenboot mk500boot \
-    convttf wavtrim voicefont reggen
+    telechips gigabeats creative hmac-sha1 mkzenboot mk500boot \
+    convttf reggen
 
 all: scramble descramble rdf2binary mkboot mkzenboot convbdf codepages \
-	rbspeexenc voicefont mk500boot
+	mk500boot
 
 scramble: scramble.o iriver.o mi4.o gigabeat.o gigabeats.o telechips.o \
 	iaudio_bl_flash.o creative.o hmac-sha1.o rkw.o
@@ -70,15 +69,6 @@ convbdf: convbdf.c
 codepages: codepages.c codepage_tables.c
 	$(SILENT)$(CC) $(CFLAGS) $+ -o $@
 
-rbspeexenc:
-	$(SILENT)$(MAKE) -C rbspeex
-
-wavtrim: wavtrim.c
-	$(SILENT)$(CC) $(CFLAGS) $+ -o $@
-
-voicefont: voicefont.c
-	$(SILENT)$(CC) $(CFLAGS) $+ -o $@
-
 usb_benchmark: usb_benchmark.c
 	$(SILENT)$(CC) $(CFLAGS) $+ -lusb -o $@
 
@@ -91,4 +81,3 @@ clean:
 	@echo "Cleaning tools"
 	$(SILENT)rm -f $(CLEANALL) $(shell for f in $(CLEANALL) ; do \
 	    echo $$f.exe $$f.o $$f.obj ; done) *.ajf *~
-	$(SILENT)$(MAKE) -C rbspeex clean

@@ -52,7 +52,7 @@ RBINFO = $(BUILDDIR)/rockbox-info.txt
 
 .PHONY: all clean tags zip tools manual bin build info langs
 
-ifeq (,$(filter clean veryclean reconf tags voice voicetools manual manual-pdf manual-html manual-zhtml manual-txt manual-ztxt manual-zip manual-7zip help fontzip ,$(MAKECMDGOALS)))
+ifeq (,$(filter clean veryclean reconf tags manual manual-pdf manual-html manual-zhtml manual-txt manual-ztxt manual-zip manual-7zip help fontzip ,$(MAKECMDGOALS)))
 # none of the above
 DEPFILE = $(BUILDDIR)/make.dep
 
@@ -258,18 +258,18 @@ $(LINKROM): $(ROMLDS)
 
 # Note: make sure -Wl,--gc-sections comes before -T in the linker options.
 # Having the latter first caused crashes on (at least) mini2g.
-$(BUILDDIR)/rockbox.elf : $$(OBJ) $(FIRMLIB) $(VOICESPEEXLIB) $(CORE_LIBS) $$(LINKRAM)
+$(BUILDDIR)/rockbox.elf : $$(OBJ) $(FIRMLIB) $(CORE_LIBS) $$(LINKRAM)
 	$(call PRINTS,LD $(@F))$(CC) $(GCCOPTS) -nostdlib -o $@ $(OBJ) \
 		-L$(BUILDDIR)/firmware \
-		-L$(RBCODEC_BLD)/codecs $(call a2lnk, $(VOICESPEEXLIB)) \
+		-L$(RBCODEC_BLD)/codecs \
 		-L$(BUILDDIR)/lib $(call a2lnk, $(CORE_LIBS)) \
 		-lgcc $(CORE_LDOPTS) -T$(LINKRAM) \
 		-Wl,-Map,$(BUILDDIR)/rockbox.map
 
-$(BUILDDIR)/rombox.elf : $$(OBJ) $(FIRMLIB) $(VOICESPEEXLIB) $(CORE_LIBS) $$(LINKROM)
+$(BUILDDIR)/rombox.elf : $$(OBJ) $(FIRMLIB) $(CORE_LIBS) $$(LINKROM)
 	$(call PRINTS,LD $(@F))$(CC) $(GCCOPTS) -nostdlib -o $@ $(OBJ) \
 		-L$(BUILDDIR)/firmware \
-		-L$(RBCODEC_BLD)/codecs $(call a2lnk, $(VOICESPEEXLIB)) \
+		-L$(RBCODEC_BLD)/codecs \
 		-L$(BUILDDIR)/lib $(call a2lnk, $(CORE_LIBS)) \
 		-lgcc $(CORE_LDOPTS) -T$(LINKROM) \
 		-Wl,-Map,$(BUILDDIR)/rombox.map
@@ -297,9 +297,6 @@ $(BUILDDIR)/rombox.iriver: $(BUILDDIR)/rombox.bin $(MKFIRMWARE_TOOL)
 endif # !APP_TYPE
 endif # !bootloader
 
-
-voicetools:
-	$(SILENT)$(MAKE) -C $(TOOLSDIR) CC=$(HOSTCC) AR=$(HOSTAR) rbspeexenc voicefont wavtrim
 
 tags:
 	$(SILENT)rm -f TAGS
@@ -392,27 +389,6 @@ manual-zip:
 manual-7zip:
 	$(SILENT)$(MAKE) -C $(MANUALDIR) OBJDIR=$(BUILDDIR)/manual manual-7zip
 
-ifdef TTS_ENGINE
-
-voice: voicetools $(BUILDDIR)/apps/genlang-features
-	$(SILENT)if [ -z "$$POOL" ] ; then \
-		export POOL="$(BUILDDIR)/voice-pool" ; \
-	fi;\
-	mkdir -p $${POOL} ;\
-	for lang in `echo $(VOICELANGUAGE) |sed "s/,/ /g"`; do $(TOOLSDIR)/voice.pl -V -l=$$lang -t=$(MODELNAME):`cat $(BUILDDIR)/apps/genlang-features` -i=$(TARGET_ID) -e="$(ENCODER)" -E="$(ENC_OPTS)" -s=$(TTS_ENGINE) -S="$(TTS_OPTS)"; done
-
-talkclips: voicetools
-	$(SILENT)if [ -z '$(TALKDIR)' ] ; then \
-		echo "Must specify TALKDIR"; \
-	else \
-		for lang in `echo $(VOICELANGUAGE) |sed "s/,/ /g"`; do $(TOOLSDIR)/voice.pl -C -l=$$lang -e="$(ENCODER)" -E="$(ENC_OPTS)" -s=$(TTS_ENGINE) -S="$(TTS_OPTS)" $(FORCE) "$(TALKDIR)" ; done \
-	fi
-
-talkclips-force: FORCE=-F
-talkclips-force: talkclips
-
-endif
-
 # only simulators get a 'make install'
 ifneq (,$(findstring sdl,$(APP_TYPE)))
 simext1:
@@ -463,10 +439,6 @@ help:
 	@echo "mapzip         - creates rockbox-maps.zip with all .map files"
 	@echo "elfzip         - creates rockbox-elfs.zip with all .elf files"
 	@echo "tools          - builds the tools only"
-	@echo "voice          - creates the voice clips (voice builds only)"
-	@echo "voicetools     - builds the voice tools only"
-	@echo "talkclips      - builds talkclips for everything under \$$TALKDIR, skipping existing clips"
-	@echo "talkclips-force - builds talkclips for everything under \$$TALKDIR, overwriting all existing clips"
 	@echo "install        - installs your build (at \$$PREFIX, defaults to simdisk/ for simulators (no fonts))"
 	@echo "fullinstall    - installs your build (like install, but with fonts)"
 	@echo "symlinkinstall - like fullinstall, but with links instead of copying files. (Good for developing on simulator)"

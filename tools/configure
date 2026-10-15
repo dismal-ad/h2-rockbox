@@ -976,7 +976,7 @@ whichadvanced () {
     interact=1
     echo ""
     printf "Enter your developer options (press only enter when done)\n\
-(D)EBUG, (L)ogf, Boot(c)hart, (S)imulator, (P)rofiling, (V)oice, (U)SB Serial,\n\
+(D)EBUG, (L)ogf, Boot(c)hart, (S)imulator, (P)rofiling, (U)SB Serial,\n\
 (W)in32 crosscompile, Win(6)4 crosscompile, (T)est plugins, (O)mit plugins, \n\
 S(m)all C lib, Logf to Ser(i)al port, LTO Build(X), (E)rror on warnings"
     printf ":"
@@ -1039,10 +1039,6 @@ S(m)all C lib, Logf to Ser(i)al port, LTO Build(X), (E)rror on warnings"
           profile="yes"
         fi
         ;;
-      [Vv])
-        echo "Voice build selected"
-        voice="yes"
-        ;;
       [Uu])
         echo "USB Serial support enabled"
         use_usb_serial="#define USB_ENABLE_SERIAL"
@@ -1086,20 +1082,6 @@ S(m)all C lib, Logf to Ser(i)al port, LTO Build(X), (E)rror on warnings"
   done
   echo "done"
 
-  if [ "yes" = "$voice" ]; then
-    # Ask about languages to build
-    picklang
-    voicelanguage=`whichlang`
-    echo "Voice language set to $voicelanguage"
-
-    # Configure encoder and TTS engine for each language
-    for thislang in `echo $voicelanguage | sed 's/,/ /g'`; do
-      voiceconfig "$thislang"
-    done
-    if [ -z "$POOL" ] ; then
-	echo " \$POOL is not set, will use <builddir>/voice-pool by default"
-    fi
-  fi
   if [ "yes" = "$use_debug" ]; then
     debug="-DDEBUG"
     GCCOPTS="$GCCOPTS -g -DDEBUG"
@@ -1122,308 +1104,6 @@ S(m)all C lib, Logf to Ser(i)al port, LTO Build(X), (E)rror on warnings"
     extradefines="$extradefines -DRB_PROFILE"
     PROFILE_OPTS="-finstrument-functions"
   fi
-}
-
-# Configure voice settings
-voiceconfig () {
-    thislang=$1
-    if [ ! "$ARG_TTS" ]; then
-        echo "Building $thislang voice for $modelname. Select options"
-        echo ""
-    fi
-
-    if [ -n "`findtool flite`" ]; then
-        FLITE="F(l)ite "
-        FLITE_OPTS=""
-        DEFAULT_TTS="flite"
-        DEFAULT_TTS_OPTS=$FLITE_OPTS
-        DEFAULT_CHOICE="l"
-    fi
-    if [ -n "`findtool espeak`" ]; then
-        ESPEAK="(e)Speak "
-        ESPEAK_OPTS=""
-        DEFAULT_TTS="espeak"
-        DEFAULT_TTS_OPTS=$ESPEAK_OPTS
-        DEFAULT_CHOICE="e"
-    fi
-    if [ -n "`findtool espeak-ng`" ]; then
-        ESPEAK="(e)Speak-ng "
-        ESPEAK_OPTS=""
-        DEFAULT_TTS="espeak-ng"
-        DEFAULT_TTS_OPTS=$ESPEAK_OPTS
-        DEFAULT_CHOICE="e"
-    fi
-    if [ -n "`findtool festival`" ]; then
-        FESTIVAL="(F)estival "
-        FESTIVAL_OPTS=""
-        DEFAULT_TTS="festival"
-        DEFAULT_TTS_OPTS=$FESTIVAL_OPTS
-        DEFAULT_CHOICE="f"
-    fi
-    if [ -n "`findtool mimic`" ]; then
-        MIMIC="(M)imic "
-        MIMIC_OPTS=""
-        DEFAULT_TTS="mimic"
-        DEFAULT_TTS_OPTS=$MIMIC_OPTS
-        DEFAULT_CHOICE="M"
-    fi
-    if [ -n "`findtool swift`" ]; then
-        SWIFT="S(w)ift "
-        SWIFT_OPTS=""
-        DEFAULT_TTS="swift"
-        DEFAULT_TTS_OPTS=$SWIFT_OPTS
-        DEFAULT_CHOICE="w"
-    fi
-    # Allow SAPI if Windows is in use
-    if [ -n "`findtool winver`" ]; then
-        SAPI="(S)API "
-        SAPI_OPTS=""
-        DEFAULT_TTS="sapi"
-        DEFAULT_TTS_OPTS=$SAPI_OPTS
-        DEFAULT_CHOICE="S"
-    fi
-    if [ -n "`findtool gtts-cli`" ]; then
-        GTTS="(g)tts "
-        GTTS_OPTS=""
-        DEFAULT_TTS="gtts"
-        DEFAULT_TTS_OPTS=$GTTS_OPTS
-        DEFAULT_CHOICE="g"
-    fi
-    if [ -n "`findtool piper`" ]; then
-        PIPER="(p)iper "
-        PIPER_OPTS=""
-        DEFAULT_TTS="piper"
-        DEFAULT_TTS_OPTS=$PIPER_OPTS
-        DEFAULT_CHOICE="p"
-    fi
-    if [ -n "`findtool rbspeak`" ]; then
-        RBSPEAK="(O)ther "
-        RBSPEAK_OPTS=""
-        DEFAULT_TTS="rbspeak"
-        DEFAULT_TTS_OPTS=$RBSPEAK_OPTS
-        DEFAULT_CHOICE="O"
-    fi
-
-    if [ "$FESTIVAL" = "$FLITE" ] && [ "$FLITE" = "$ESPEAK" ] && [ "$ESPEAK" = "$SAPI" ] && [ "$SAPI" = "$MIMIC" ] && [ "$MIMIC" = "$SWIFT" ] && [ "$SWIFT" = "$GTTS" ] && [ "$GTTS" = "$PIPER" ] && [ "$PIPER" = "$RBSPEAK" ] ; then
-        echo "You need Festival, eSpeak, Mimic, Flite, piper, gtts, or rbspeak in your path, or SAPI available to build voice files"
-        exit 3
-    fi
-
-    if [ "$ARG_TTS" ]; then
-        option=$ARG_TTS
-    else
-        echo "TTS engine to use: ${FLITE}${FESTIVAL}${ESPEAK}${MIMIC}${SAPI}${SWIFT}${GTTS}${RBSPEAK}${PIPER}(${DEFAULT_CHOICE})?"
-        option=`input`
-        if [ -z "$option" ]; then option=${DEFAULT_CHOICE}; fi
-        advopts="$advopts --tts=$option"
-    fi
-    case "$option" in
-        [Ll]|flite)
-        TTS_ENGINE="flite"
-        TTS_OPTS=$FLITE_OPTS
-        ;;
-        [Ee]|espeak)
-        TTS_ENGINE="espeak"
-        TTS_OPTS=$ESPEAK_OPTS
-        ;;
-        [Ff]|festival)
-        TTS_ENGINE="festival"
-        TTS_OPTS=$FESTIVAL_OPTS
-        ;;
-        [Mm]|mimic)
-        TTS_ENGINE="mimic"
-        TTS_OPTS=$MIMIC_OPTS
-        ;;
-        [Ss]|sapi)
-        TTS_ENGINE="sapi"
-        TTS_OPTS=$SAPI_OPTS
-        ;;
-	[Ww]|swift)
-        TTS_ENGINE="swift"
-        TTS_OPTS=$SWIFT_OPTS
-	;;
-	[Gg]|gtts)
-        TTS_ENGINE="gtts"
-        TTS_OPTS=$GTTS_OPTS
-	;;
-	[Pp]|piper)
-        TTS_ENGINE="piper"
-        TTS_OPTS=$PIPER_OPTS
-	;;
-	[Oo]|rbspeak)
-        TTS_ENGINE="rbspeak"
-        TTS_OPTS=$RBSPEAK_OPTS
-	;;
-        *)
-        TTS_ENGINE=$DEFAULT_TTS
-        TTS_OPTS=$DEFAULT_TTS_OPTS
-    esac
-    echo "Using $TTS_ENGINE for TTS"
-
-    # Select which voice to use for Festival
-    if [ "$TTS_ENGINE" = "festival" ]; then
-        voicelist=`echo "(voice.list)"|festival -i 2>/dev/null |tr "\n" " "|sed -e 's/.*festival> (\(.*\)) festival>/\1/'|sort`
-        for voice in $voicelist; do
-            TTS_FESTIVAL_VOICE="$voice" # Default choice
-            break
-        done
-        if [ "$ARG_VOICE" ]; then
-            CHOICE=$ARG_VOICE
-        else
-            i=1
-            for voice in $voicelist; do
-                printf "%3d. %s\n" "$i" "$voice"
-                i=`expr $i + 1`
-            done
-            printf "Please select which Festival voice to use (default is $TTS_FESTIVAL_VOICE): "
-            CHOICE=`input`
-        fi
-        i=1
-        for voice in $voicelist; do
-            if [ "$i" = "$CHOICE" -o "$voice" = "$CHOICE" ]; then
-                TTS_FESTIVAL_VOICE="$voice"
-            fi
-            i=`expr $i + 1`
-        done
-        advopts="$advopts --voice=$CHOICE"
-        echo "Festival voice set to $TTS_FESTIVAL_VOICE"
-        echo "(voice_$TTS_FESTIVAL_VOICE)" > festival-prolog.scm
-    elif [ "$TTS_ENGINE" = "piper" ]; then
-	if [ -z "$PIPER_MODEL_DIR" ]; then
-	    echo "Please set PIPER_MODEL_DIR!";
-	    exit 1
-	fi
-	models=`(cd $PIPER_MODEL_DIR ; ls -1 *onnx)`
-	for model in $models; do
-	    PIPER_MODEL="$model"  # Default
-	    break;
-        done
-        if [ "$ARG_VOICE" ]; then
-            CHOICE=$ARG_VOICE
-        else
-	    i=1
-	    for model in $models; do
-		printf "%3d. %s\n" "$i" "$model"
-                i=`expr $i + 1`
-            done
-            printf "Please select which piper model to use (default is $PIPER_MODEL): "
-            CHOICE=`input`
-	fi
-        i=1
-        for model in $models; do
-            if [ "$i" = "$CHOICE" -o "$model" = "$CHOICE" ]; then
-                PIPER_MODEL="$model"
-		break;
-            fi
-            i=`expr $i + 1`
-        done
-
-	TTS_OPTS="$TTS_OPTS --model $PIPER_MODEL_DIR/$PIPER_MODEL"
-        advopts="$advopts --voice=$PIPER_MODEL"
-        echo "Piper model set to $PIPER_MODEL"
-    elif [ "$TTS_ENGINE" = "mimic" ]; then
-	voicelist=`mimic -lv | cut -d':' -f2`
-        for voice in $voicelist; do
-            TTS_MIMIC_VOICE="$voice" # Default choice
-            break
-        done
-        if [ "$ARG_VOICE" ]; then
-            CHOICE=$ARG_VOICE
-        else
-            i=1
-            for voice in $voicelist; do
-                printf "%3d. %s\n" "$i" "$voice"
-                i=`expr $i + 1`
-            done
-            printf "Please select which Mimic voice to use (default is $TTS_MIMIC_VOICE): "
-            CHOICE=`input`
-        fi
-        i=1
-        for voice in $voicelist; do
-            if [ "$i" = "$CHOICE" -o "$voice" = "$CHOICE" ]; then
-                TTS_MIMIC_VOICE="$voice"
-		break
-            fi
-            i=`expr $i + 1`
-        done
-        advopts="$advopts --voice=$CHOICE"
-        echo "Mimic voice set to $TTS_MIMIC_VOICE"
-	TTS_OPTS="$TTS_OPTS -voice $TTS_MIMIC_VOICE"
-    elif [ "$TTS_ENGINE" = "espeak" ] ; then
-	if [ -n "`findtool espeak-ng`" ] ; then
-	    TTS_ENGINE="espeak-ng"
-	fi
-    fi
-
-    # Read custom tts options from command line
-    if [ "$ARG_TTSOPTS" ]; then
-        TTS_OPTS="$ARG_TTSOPTS"
-        echo "$TTS_ENGINE options set to $TTS_OPTS"
-    fi
-
-    ENCODER="rbspeexenc"
-    ENC_OPTS="-q 7 -c 10"
-
-    echo "Using $ENCODER for encoding voice clips"
-
-    # Read custom encoder options from command line
-    if [ "$ARG_ENCOPTS" ]; then
-        ENC_OPTS="$ARG_ENCOPTS"
-        echo "$ENCODER options set to $ENC_OPTS"
-    fi
-
-    TEMPDIR="${pwd}"
-    if [ -n "`findtool cygpath`" ]; then
-        TEMPDIR=`cygpath . -a -w`
-    fi
-}
-
-picklang() {
-    # figure out which languages that are around
-    for file in $rootdir/apps/lang/*.lang; do
-        clean=`basename $file .lang`
-        langs="$langs $clean"
-    done
-
-    if [ "$ARG_LANG" ]; then
-        pick=$ARG_LANG
-    else
-        echo "Select a number for the language to use (default is english)"
-        # FIXME The multiple-language feature is currently broken
-        # echo "You may enter a comma-separated list of languages to build"
-
-        num=1
-        for one in $langs; do
-            echo "$num. $one"
-            num=`expr $num + 1`
-        done
-        pick=`input`
-        advopts="$advopts --language=$pick"
-    fi
-}
-
-whichlang() {
-    output=""
-    # Allow the user to pass a comma-separated list of langauges
-    for thispick in `echo $pick | sed 's/,/ /g'`; do
-        num=1
-        for one in $langs; do
-            # Accept both the language number and name
-            if [ "$num" = "$thispick" ] || [ "$thispick" = "$one" ]; then
-                if [ "$output" = "" ]; then
-                    output=$one
-                else
-                    output=$output,$one
-                fi
-            fi
-            num=`expr $num + 1`
-        done
-    done
-    if [ -z "$output" ]; then
-      # pick a default
-      output="english"
-    fi
-    echo $output
 }
 
 help() {
@@ -1456,19 +1136,6 @@ help() {
 
     --lcdheight=Y     Sets the height of the LCD. Used only for application
                       targets.
-
-    --language=LANG   Set the language used for voice generation (used only if
-                      TYPE is AV).
-
-    --tts=ENGINE      Set the TTS engine used for voice generation (used only
-                      if TYPE is AV).
-
-    --voice=VOICE     Set voice to use with selected TTS (used only if TYPE is
-                      AV).
-
-    --ttsopts=OPTS    Set TTS engine manual options (used only if TYPE is AV).
-
-    --encopts=OPTS    Set encoder manual options (used only if ATYPE is AV).
 
     --rbdir=dir       Use alternative rockbox directory (default: ${rbdir}).
                       This is useful for having multiple alternate builds on
@@ -1504,15 +1171,10 @@ EOF
 }
 
 ARG_CCACHE=
-ARG_ENCOPTS=
-ARG_LANG=
 ARG_RAM=
 ARG_RBDIR=
 ARG_TARGET=
-ARG_TTS=
-ARG_TTSOPTS=
 ARG_TYPE=
-ARG_VOICE=
 ARG_ARM_THUMB=
 ARG_PREFIX="$PREFIX"
 ARG_THREAD_SUPPORT=
@@ -1526,17 +1188,12 @@ for arg in "$@"; do
 	case "$arg" in
 		--ccache)     ARG_CCACHE=1;;
 		--no-ccache)  ARG_CCACHE=0;;
-		--encopts=*)  ARG_ENCOPTS=`echo "$arg" | cut -d = -f 2`;;
-		--language=*) ARG_LANG=`echo "$arg" | cut -d = -f 2`;;
 		--lcdwidth=*) ARG_LCDWIDTH=`echo "$arg" | cut -d = -f 2`;;
 		--lcdheight=*) ARG_LCDHEIGHT=`echo "$arg" | cut -d = -f 2`;;
 		--ram=*)      ARG_RAM=`echo "$arg" | cut -d = -f 2`;;
 		--rbdir=*)    ARG_RBDIR=`echo "$arg" | cut -d = -f 2`;;
 		--target=*)   ARG_TARGET=`echo "$arg" | cut -d = -f 2`;;
-		--tts=*)      ARG_TTS=`echo "$arg" | cut -d = -f 2`;;
-		--ttsopts=*)  ARG_TTSOPTS=`echo "$arg" | cut -d = -f 2`;;
 		--type=*)     ARG_TYPE=`echo "$arg" | cut -d = -f 2`;;
-		--voice=*)    ARG_VOICE=`echo "$arg" | cut -d = -f 2`;;
 		--plugins=*)  ARG_PLUGINS=`echo "$arg" | cut -d = -f 2`;;
 		--thumb)      ARG_ARM_THUMB=1;;
 		--no-thumb)   ARG_ARM_THUMB=0;;
@@ -2282,8 +1939,6 @@ if test -n "$t_cpu"; then
   GCCOPTS="$GCCOPTS"
 fi
 
-voicetoolset="rbspeexenc voicefont wavtrim"
-
 if test "$apps" = "apps"; then
   # only when we build "real" apps we build the .lng files
   buildlangs="langs"
@@ -2301,7 +1956,6 @@ fi
 cmdline=`echo $cmdline | sed -e s,--target=[a-zA-Z_0-9]\*,,g \
                             -e s,--ram=[0-9]\*,,g \
                             -e s,--rbdir=[./a-zA-Z0-9]\*,,g \
-                            -e s,--voice=[-_./a-zA-Z0-9]\*,,g \
                             -e s,--type=[a-zA-Z0-9]\*,,g`
 cmdline="$cmdline --target=\$(MODELNAME) --ram=\$(MEMORYSIZE) --rbdir=\$(RBDIR) --type=$btype$advopts"
 
@@ -2357,7 +2011,6 @@ export MANUFACTURER=${t_manufacturer}
 export OBJDIR=${pwd}
 export BUILDDIR=${pwd}
 export RBCODEC_BLD=${pwd}/lib/rbcodec
-export VOICELANGUAGE=${voicelanguage}
 export MEMORYSIZE=${memory}
 ifeq (\$(SOURCE_DATE_EPOCH),)
 export BUILDDATE:=\$(shell date -u +'-DYEAR=%Y -DMONTH=%m -DDAY=%d')
@@ -2401,10 +2054,6 @@ export GCCVER=${gccver}
 export GCCNUM=${gccnum}
 export UNAME=${uname}
 export MANUALDEV=${manualdev}
-export TTS_OPTS=${TTS_OPTS}
-export TTS_ENGINE=${TTS_ENGINE}
-export ENC_OPTS=${ENC_OPTS}
-export ENCODER=${ENCODER}
 export USE_ELF=${USE_ELF}
 export PLUGIN_USE_ELF=${PLUGIN_USE_ELF}
 export RBDIR=${rbdir}

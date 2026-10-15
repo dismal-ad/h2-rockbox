@@ -45,42 +45,20 @@ endif
 
 # the codec libraries
 include $(RBCODECLIB_DIR)/codecs/demac/libdemac.make
-include $(RBCODECLIB_DIR)/codecs/liba52/liba52.make
 include $(RBCODECLIB_DIR)/codecs/libalac/libalac.make
-include $(RBCODECLIB_DIR)/codecs/libasap/libasap.make
 include $(RBCODECLIB_DIR)/codecs/libasf/libasf.make
-include $(RBCODECLIB_DIR)/codecs/libayumi/libayumi.make
 include $(RBCODECLIB_DIR)/codecs/libfaad/libfaad.make
 include $(RBCODECLIB_DIR)/codecs/libffmpegFLAC/libffmpegFLAC.make
 include $(RBCODECLIB_DIR)/codecs/libm4a/libm4a.make
 include $(RBCODECLIB_DIR)/codecs/libmad/libmad.make
-include $(RBCODECLIB_DIR)/codecs/libmusepack/libmusepack.make
-include $(RBCODECLIB_DIR)/codecs/libspc/libspc.make
-include $(RBCODECLIB_DIR)/codecs/libspeex/libspeex.make
 include $(RBCODECLIB_DIR)/codecs/libtremor/libtremor.make
 include $(RBCODECLIB_DIR)/codecs/libwavpack/libwavpack.make
 include $(RBCODECLIB_DIR)/codecs/libwma/libwma.make
 include $(RBCODECLIB_DIR)/codecs/libwmapro/libwmapro.make
-include $(RBCODECLIB_DIR)/codecs/libcook/libcook.make
-include $(RBCODECLIB_DIR)/codecs/librm/librm.make
-include $(RBCODECLIB_DIR)/codecs/libatrac/libatrac.make
 include $(RBCODECLIB_DIR)/codecs/libpcm/libpcm.make
-include $(RBCODECLIB_DIR)/codecs/libtta/libtta.make
-include $(RBCODECLIB_DIR)/codecs/libgme/libay.make
-include $(RBCODECLIB_DIR)/codecs/libgme/libgbs.make
-include $(RBCODECLIB_DIR)/codecs/libgme/libhes.make
-include $(RBCODECLIB_DIR)/codecs/libgme/libnsf.make
-include $(RBCODECLIB_DIR)/codecs/libgme/libsgc.make
-include $(RBCODECLIB_DIR)/codecs/libgme/libvgm.make
-include $(RBCODECLIB_DIR)/codecs/libgme/libkss.make
-include $(RBCODECLIB_DIR)/codecs/libgme/libemu2413.make
 include $(RBCODECLIB_DIR)/codecs/libopus/libopus.make
-ifneq ($(MEMORYSIZE),2)
-include $(RBCODECLIB_DIR)/codecs/cRSID/cRSID.make
-endif
 
 ifeq ($(shell expr $(GCCNUM) \> 600),1)
-$(MUSEPACKLIB): CODECFLAGS += -Wno-shift-negative-value
 $(WMALIB): CODECFLAGS += -Wno-shift-negative-value
 endif
 
@@ -88,79 +66,25 @@ ifndef DEBUG
 # set CODECFLAGS per codec lib, since gcc takes the last -Ox and the last
 # in a -ffoo -fno-foo pair, there is no need to filter them out
 $(CODECLIB) : CODECFLAGS += -O1
-$(A52LIB) : CODECFLAGS += -O1
 $(ALACLIB) : CODECFLAGS += -O1
-$(ASAPLIB) : CODECFLAGS += -O1
 $(ASFLIB) : CODECFLAGS += -O2
-$(ATRACLIB) : CODECFLAGS += -O1
-$(AYLIB) : CODECFLAGS += -O2
-$(AYUMILIB) : CODECFLAGS += -O3
-$(COOKLIB): CODECFLAGS += -O1
 $(DEMACLIB) : CODECFLAGS += -O3
 $(FAADLIB) : CODECFLAGS += -O2
 $(FFMPEGFLACLIB) : CODECFLAGS += -O2
-$(GBSLIB) : CODECFLAGS +=  -O2
-$(HESLIB) : CODECFLAGS +=  -O2
-$(KSSLIB) : CODECFLAGS +=  -O2
 $(M4ALIB) : CODECFLAGS += -O3
 $(MADLIB) : CODECFLAGS += -O2
-$(MUSEPACKLIB) : CODECFLAGS += -O1
-$(NSFLIB) : CODECFLAGS +=  -O2
 $(OPUSLIB) : CODECFLAGS +=  -O2
 $(PCMSLIB) : CODECFLAGS += -O1
-$(RMLIB) : CODECFLAGS += -O3
-$(SGCLIB) : CODECFLAGS +=  -O2
-$(SPCLIB) : CODECFLAGS +=  -O1
-$(SPEEXLIB) : CODECFLAGS += -O2
 $(TREMORLIB) : CODECFLAGS += -O2
-$(TTALIB) : CODECFLAGS += -O2
-$(VGMLIB) : CODECFLAGS +=  -O2
-$(EMU2413LIB) : CODECFLAGS +=  -O3
 $(WAVPACKLIB) : CODECFLAGS += -O1
 $(WMALIB) : CODECFLAGS += -O2
 $(WMAPROLIB) : CODECFLAGS += -O1
-$(WMAVOICELIB) : CODECFLAGS += -O1
-$(CRSID) : CODECFLAGS += -O3
 
 # fine-tuning of CODECFLAGS per cpu arch
-ifeq ($(ARCH),arch_arm)
-  # redo per arm generation
-  $(ALACLIB) : CODECFLAGS += -O2
-  $(AYLIB) : CODECFLAGS +=  -O1
-  $(EMU2413LIB) : CODECFLAGS +=  -O3
-  $(GBSLIB) : CODECFLAGS +=  -O1
-  $(HESLIB) : CODECFLAGS +=  -O1
-  $(KSSLIB) : CODECFLAGS +=  -O1
-  $(MADLIB) : CODECFLAGS += -O1
-  $(NSFLIB) : CODECFLAGS +=  -O1
-  $(SPEEXLIB) : CODECFLAGS += -O2
-  $(SGCLIB) : CODECFLAGS +=  -O1
-  $(VGMLIB) : CODECFLAGS +=  -O1
-  $(WAVPACKLIB) : CODECFLAGS += -O3
-  ifneq (,$(findstring ctru, $(MODELNAME)))
-    # segfault with -O1
-    $(SPCLIB) : CODECFLAGS += -O2
-  endif
-else ifeq ($(ARCH),arch_m68k)
-  $(CODECLIB) : CODECFLAGS += -O2
-  $(A52LIB) : CODECFLAGS += -O2
-  $(ASFLIB) : CODECFLAGS += -O3
-  $(ATRACLIB) : CODECFLAGS += -O2
-  $(COOKLIB): CODECFLAGS += -O2
-  $(DEMACLIB) : CODECFLAGS += -O2
-  $(FFMPEGFLACLIB) : CODECFLAGS += -Os
-  $(SPCLIB) : CODECFLAGS +=  -O3
-  $(WMAPROLIB) : CODECFLAGS += -O3
-  $(WMAVOICELIB) : CODECFLAGS += -O2
-else ifeq ($(ARCH),arch_mips)
+ifeq ($(ARCH),arch_mips)
   $(OPUSLIB) : CODECFLAGS += -fno-strict-aliasing
 endif
 
-ifeq ($(MEMORYSIZE),2)
-  $(CODECLIB) : CODECFLAGS += -Os
-  $(ASFLIB) : CODECFLAGS += -Os
-  $(WMALIB) : CODECFLAGS += -Os
-endif
 endif #ifndef DEBUG
 
 ifndef APP_TYPE
@@ -179,13 +103,9 @@ $(CODECLINK_LDS): $(CODEC_LDS) $(CONFIGFILE)
 	$(call preprocess2file, $<, $@, -DCODEC)
 
 # codec/library dependencies
-$(CODECDIR)/spc.codec : $(CODECDIR)/libspc.a
 $(CODECDIR)/mpa.codec : $(CODECDIR)/libmad.a $(CODECDIR)/libasf.a
-$(CODECDIR)/a52.codec : $(CODECDIR)/liba52.a
 $(CODECDIR)/flac.codec : $(CODECDIR)/libffmpegFLAC.a
 $(CODECDIR)/vorbis.codec : $(CODECDIR)/libtremor.a $(TLSFLIB) $(SETJMPLIB)
-$(CODECDIR)/speex.codec : $(CODECDIR)/libspeex.a
-$(CODECDIR)/mpc.codec : $(CODECDIR)/libmusepack.a
 $(CODECDIR)/wavpack.codec : $(CODECDIR)/libwavpack.a
 $(CODECDIR)/alac.codec : $(CODECDIR)/libalac.a $(CODECDIR)/libm4a.a
 $(CODECDIR)/aac.codec : $(CODECDIR)/libfaad.a $(CODECDIR)/libm4a.a
@@ -195,29 +115,13 @@ $(CODECDIR)/ape.codec : $(CODECDIR)/libdemac.a
 $(CODECDIR)/wma.codec : $(CODECDIR)/libwma.a $(CODECDIR)/libasf.a
 $(CODECDIR)/wmapro.codec : $(CODECDIR)/libwmapro.a $(CODECDIR)/libasf.a
 $(CODECDIR)/wavpack_enc.codec: $(CODECDIR)/libwavpack.a
-$(CODECDIR)/asap.codec : $(CODECDIR)/libasap.a
-$(CODECDIR)/cook.codec : $(CODECDIR)/libcook.a $(CODECDIR)/librm.a
-$(CODECDIR)/raac.codec : $(CODECDIR)/libfaad.a $(CODECDIR)/librm.a
-$(CODECDIR)/a52_rm.codec : $(CODECDIR)/liba52.a $(CODECDIR)/librm.a
-$(CODECDIR)/atrac3_rm.codec : $(CODECDIR)/libatrac.a $(CODECDIR)/librm.a
-$(CODECDIR)/atrac3_oma.codec : $(CODECDIR)/libatrac.a
 $(CODECDIR)/aiff.codec : $(CODECDIR)/libpcm.a
 $(CODECDIR)/wav.codec : $(CODECDIR)/libpcm.a
 $(CODECDIR)/smaf.codec : $(CODECDIR)/libpcm.a
 $(CODECDIR)/au.codec : $(CODECDIR)/libpcm.a
 $(CODECDIR)/vox.codec : $(CODECDIR)/libpcm.a
 $(CODECDIR)/wav64.codec : $(CODECDIR)/libpcm.a
-$(CODECDIR)/tta.codec : $(CODECDIR)/libtta.a
-$(CODECDIR)/ay.codec : $(CODECDIR)/libay.a
-$(CODECDIR)/vtx.codec : $(CODECDIR)/libayumi.a
-$(CODECDIR)/gbs.codec : $(CODECDIR)/libgbs.a
-$(CODECDIR)/hes.codec : $(CODECDIR)/libhes.a
-$(CODECDIR)/nsf.codec : $(CODECDIR)/libnsf.a $(CODECDIR)/libemu2413.a
-$(CODECDIR)/sgc.codec : $(CODECDIR)/libsgc.a $(CODECDIR)/libemu2413.a
-$(CODECDIR)/vgm.codec : $(CODECDIR)/libvgm.a $(CODECDIR)/libemu2413.a
-$(CODECDIR)/kss.codec : $(CODECDIR)/libkss.a $(CODECDIR)/libemu2413.a
 $(CODECDIR)/opus.codec : $(CODECDIR)/libopus.a $(TLSFLIB)
-$(CODECDIR)/sid.codec : $(CODECDIR)/cRSID.a
 $(CODECDIR)/aac_bsf.codec : $(CODECDIR)/libfaad.a
 
 $(CODECS): $(CODEC_LIBS) # this must be last in codec dependency list

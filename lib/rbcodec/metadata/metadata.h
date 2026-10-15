@@ -43,54 +43,18 @@ enum
     AFMT_PCM_WAV,      /* Uncompressed PCM in a WAV file */
     AFMT_OGG_VORBIS,   /* Ogg Vorbis */
     AFMT_FLAC,         /* FLAC */
-    AFMT_MPC_SV7,      /* Musepack SV7 */
-    AFMT_A52,          /* A/52 (aka AC3) audio */
     AFMT_WAVPACK,      /* WavPack */
     AFMT_MP4_ALAC,     /* Apple Lossless Audio Codec */
     AFMT_MP4_AAC,      /* Advanced Audio Coding (AAC) in M4A container */
     AFMT_SHN,          /* Shorten */
-    AFMT_SID,          /* SID File Format */
-    AFMT_ADX,          /* ADX File Format */
-    AFMT_NSF,          /* NESM (NES Sound Format) */
-    AFMT_SPEEX,        /* Ogg Speex speech */
-    AFMT_SPC,          /* SPC700 save state */
     AFMT_APE,          /* Monkey's Audio (APE) */
     AFMT_WMA,          /* WMAV1/V2 in ASF */
     AFMT_WMAPRO,       /* WMA Professional in ASF */
-    AFMT_MOD,          /* Amiga MOD File Format */
-    AFMT_SAP,          /* Atari 8Bit SAP Format */
-    AFMT_RM_COOK,      /* Cook in RM/RA */
-    AFMT_RM_AAC,       /* AAC in RM/RA */
-    AFMT_RM_AC3,       /* AC3 in RM/RA */
-    AFMT_RM_ATRAC3,    /* ATRAC3 in RM/RA */
-    AFMT_CMC,          /* Atari 8bit cmc format */
-    AFMT_CM3,          /* Atari 8bit cm3 format */
-    AFMT_CMR,          /* Atari 8bit cmr format */
-    AFMT_CMS,          /* Atari 8bit cms format */
-    AFMT_DMC,          /* Atari 8bit dmc format */
-    AFMT_DLT,          /* Atari 8bit dlt format */
-    AFMT_MPT,          /* Atari 8bit mpt format */
-    AFMT_MPD,          /* Atari 8bit mpd format */
-    AFMT_RMT,          /* Atari 8bit rmt format */
-    AFMT_TMC,          /* Atari 8bit tmc format */
-    AFMT_TM8,          /* Atari 8bit tm8 format */
-    AFMT_TM2,          /* Atari 8bit tm2 format */
-    AFMT_OMA_ATRAC3,   /* Atrac3 in Sony OMA container */
     AFMT_SMAF,         /* SMAF */
     AFMT_AU,           /* Sun Audio file */
     AFMT_VOX,          /* VOX */
     AFMT_WAVE64,       /* Wave64 */
-    AFMT_TTA,          /* True Audio */
-    AFMT_WMAVOICE,     /* WMA Voice in ASF */
-    AFMT_MPC_SV8,      /* Musepack SV8 */
     AFMT_MP4_AAC_HE,   /* Advanced Audio Coding (AAC-HE) in M4A container */
-    AFMT_AY,             /* AY (ZX Spectrum, Amstrad CPC Sound Format) */
-    AFMT_VTX,            /* VTX (ZX Spectrum Sound Format) */
-    AFMT_GBS,          /* GBS (Game Boy Sound Format) */
-    AFMT_HES,          /* HES (Hudson Entertainment System Sound Format) */
-    AFMT_SGC,          /* SGC (Sega Master System, Game Gear, Coleco Vision Sound Format) */
-    AFMT_VGM,         /* VGM (Video Game Music Format) */
-    AFMT_KSS,          /* KSS (MSX computer KSS Music File) */
     AFMT_OPUS,         /* Opus (see http://www.opus-codec.org ) */
     AFMT_AAC_BSF,
     AFMT_DSD,

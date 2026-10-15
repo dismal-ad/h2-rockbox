@@ -54,18 +54,6 @@ int get_ogg_format_and_move_to_comments(int fd, unsigned char *buf)
         }
         return AFMT_OGG_VORBIS;
     }
-    else if (memcmp(&buf[28], "Speex   ", 8) == 0)
-    {
-        uint32_t header_size = get_long_le(&buf[60]);
-
-        /* Comments are in second Ogg page (byte 108 onwards for Speex) */
-        if (lseek(fd, 28 + header_size, SEEK_SET) < 0)
-        {
-            return AFMT_UNKNOWN;
-        }
-
-        return AFMT_SPEEX;
-    }
     else if (memcmp(&buf[28], "OpusHead", 8) == 0)
     {
         /* Comments are in second Ogg page (byte 108 onwards for Speex) */
@@ -119,10 +107,6 @@ bool get_ogg_metadata(int fd, struct mp3entry* id3)
         case AFMT_OGG_VORBIS:
             id3->frequency = get_long_le(&buf[40]);
             id3->vbr = true;
-            break;
-        case AFMT_SPEEX:
-            id3->frequency = get_slong(&buf[64]);
-            id3->vbr = get_long_le(&buf[88]);
             break;
         case AFMT_OPUS:
             id3->frequency = 48000;

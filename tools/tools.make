@@ -20,8 +20,6 @@ $(TOOLSDIR)/rdf2binary:	$(TOOLSDIR)/rdf2binary.c
 $(TOOLSDIR)/convbdf: $(TOOLSDIR)/convbdf.c
 $(TOOLSDIR)/codepages: $(TOOLSDIR)/codepages.c $(TOOLSDIR)/codepage_tables.c
 $(TOOLSDIR)/mkboot: $(TOOLSDIR)/mkboot.c
-$(TOOLSDIR)/wavtrim: $(TOOLSDIR)/wavtrim.c
-$(TOOLSDIR)/voicefont: $(TOOLSDIR)/voicefont.c
 
 $(TOOLSDIR)/iaudio_bl_flash.c $(TOOLSDIR)/iaudio_bl_flash.h: $(TOOLSDIR)/iaudio_bl_flash.bmp $(TOOLSDIR)/bmp2rb
 	$(call PRINTS,BMP2RB $(@F))

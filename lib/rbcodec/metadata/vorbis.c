@@ -239,7 +239,7 @@ bool ogg_file_init(struct ogg_file* file, int fd, int type, int remaining)
     memset(file, 0, sizeof(*file));
     file->fd = fd;
     
-    if (type == AFMT_OGG_VORBIS || type == AFMT_SPEEX || type == AFMT_OPUS)
+    if (type == AFMT_OGG_VORBIS || type == AFMT_OPUS)
     {
         if (!file_read_page_header(file))
         {

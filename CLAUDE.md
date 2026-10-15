@@ -110,6 +110,10 @@ evaluation), `macrovals.py` (resolve macro values per build), `prune.py`
 
 ## UI overhaul: decisions
 
+The full plan (screens, layouts at 320×240, phases, risks) is in
+`docs/newui/PLAN.md`.
+
+
 1. **Code-drawn UI, no themes.** The new UI is drawn directly in C. The skin
    engine is to be removed **once the new screens replace it** (the current
    UI still depends on it): `apps/gui/skin_engine/`, `lib/skin_parser/`,

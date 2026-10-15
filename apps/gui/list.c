@@ -102,9 +102,12 @@ int list_get_nb_lines(struct gui_synclist *list, enum screen_type screen)
     int lines = skinlist_get_line_count(screen, list);
     if (lines < 0)
     {
-        lines = list_nb_lines(list, screen);
+        /* the title row is always UI_ROW_H, even when rows are taller */
         if (list_display_title(list, screen))
-            lines -= 1;
+            lines = (list->parent[screen]->height - UI_ROW_H) /
+                    list->line_height[screen];
+        else
+            lines = list_nb_lines(list, screen);
     }
     return lines;
 }
@@ -114,7 +117,8 @@ void list_init_item_height(struct gui_synclist *list, enum screen_type screen)
     /* the new UI's row height; never less than the font needs */
     struct viewport *vp = list->parent[screen];
     int line_height = font_get(vp->font)->height + 4;
-    list->line_height[screen] = MAX(line_height, UI_ROW_H);
+    list->line_height[screen] = MAX(line_height,
+                    list->callback_get_art_row ? UI_ART_ROW_H : UI_ROW_H);
 }
 
 static void gui_synclist_init_display_settings(struct gui_synclist * list)
@@ -153,6 +157,7 @@ void gui_synclist_init(struct gui_synclist * gui_list,
     gui_list->callback_draw_item = NULL;
     gui_list->callback_item_drills = NULL;
     gui_list->callback_get_item_value = NULL;
+    gui_list->callback_get_art_row = NULL;
     gui_list->nb_items = 0;
     gui_list->selected_item = 0;
     gui_synclist_init_display_settings(gui_list);
@@ -462,6 +467,14 @@ void gui_synclist_set_value_callback(struct gui_synclist * lists,
                                      list_get_value value_callback)
 {
     lists->callback_get_item_value = value_callback;
+}
+
+void gui_synclist_set_art_callback(struct gui_synclist * lists,
+                                   list_get_art_row art_callback)
+{
+    lists->callback_get_art_row = art_callback;
+    FOR_NB_SCREENS(i)
+        list_init_item_height(lists, i);
 }
 
 void gui_synclist_set_voice_callback(struct gui_synclist * lists,

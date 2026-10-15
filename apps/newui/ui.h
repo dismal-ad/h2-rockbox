@@ -95,6 +95,17 @@ const struct bitmap *ui_art_current(int size);
 void ui_art_draw(const struct bitmap *bm, int x, int y, int size, int radius);
 /* The no-art placeholder: a dark rounded square with a note */
 void ui_art_placeholder(int x, int y, int size, int radius);
+struct mp3entry;
+/* Decodes id3's cover into out (size x size, centred on black); invalidates
+ * the cached current art. False if there is none. */
+bool ui_art_decode_to(const struct mp3entry *id3, int size, fb_data *out);
+
+/* --- thumbnails (ui_thumb.c) --- */
+
+#define UI_THUMB 46 /* cover size in list rows */
+/* The cover of the album of track_path at UI_THUMB size, or NULL. Cached in
+ * RAM and in /.rockbox/newui/thumbs, so each album is decoded once. */
+const fb_data *ui_thumb_get(const char *track_path);
 
 /* --- screens --- */
 

@@ -103,6 +103,23 @@ const struct bitmap *ui_art_current(int size)
     return art_valid ? &art_bm : NULL;
 }
 
+bool ui_art_decode_to(const struct mp3entry *id3, int size, fb_data *out)
+{
+    /* shares the decode buffer with the current track's art */
+    art_key[0] = '\0';
+    art_valid = false;
+    if (size > UI_ART_MAX || !decode(id3, size))
+        return false;
+    for (int i = 0; i < size * size; i++)
+        out[i] = FB_SCALARPACK(UI_COL_BG);
+    int ox = (size - art_bm.width) / 2, oy = (size - art_bm.height) / 2;
+    const fb_data *src = (const fb_data *)art_bm.data;
+    for (int y = 0; y < art_bm.height; y++)
+        memcpy(&out[(oy + y) * size + ox], &src[y * art_bm.width],
+               art_bm.width * sizeof(fb_data));
+    return true;
+}
+
 void ui_art_draw(const struct bitmap *bm, int x, int y, int size, int radius)
 {
     /* centre the (aspect-kept) image in the size x size square */

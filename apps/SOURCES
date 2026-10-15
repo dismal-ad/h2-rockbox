@@ -106,4 +106,5 @@ newui/ui_wheel.c
 newui/ui_art.c
 newui/scr_home.c
 newui/scr_np.c
+newui/ui_thumb.c
 keymaps/keymap-erosq.c

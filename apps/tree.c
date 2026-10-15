@@ -32,6 +32,7 @@
 #include "kernel.h"
 #include "usb.h"
 #include "tree.h"
+#include "newui/ui.h"
 #include "audio.h"
 #include "playlist.h"
 #include "menu.h"
@@ -188,6 +189,20 @@ static enum themable_icons tree_get_fileicon(int selected_item, void * data)
 
         return filetype_get_icon(entry->attr);
     }
+}
+
+/* album lists in the database browser: cover, album, artist (new UI) */
+static bool tree_album_art_row(int selected_item, void * data,
+                               const fb_data **thumb, char *line2,
+                               size_t line2_len)
+{
+    struct tree_context * local_tc=(struct tree_context *)data;
+    char path[MAX_PATH];
+    if (!tagtree_album_track(local_tc, selected_item, path, sizeof(path),
+                             line2, line2_len))
+        return false;
+    *thumb = ui_thumb_get(path);
+    return true;
 }
 
 static bool tree_item_drills(int selected_item, void * data)
@@ -498,6 +513,8 @@ static int update_dir(void)
     gui_synclist_set_icon_callback(list,
                             global_settings.show_icons?tree_get_fileicon:NULL);
     gui_synclist_set_drills_callback(list, tree_item_drills);
+    if (id3db && tagtree_is_album_list(&tc))
+        gui_synclist_set_art_callback(list, tree_album_art_row);
     if(!id3db || global_settings.talk_menu)
     {
         gui_synclist_set_voice_callback(list, &tree_voice_cb);

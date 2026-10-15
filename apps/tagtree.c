@@ -1703,7 +1703,9 @@ static int retrieve_entries(struct tree_context *c, int offset, bool init)
     tree_lock_cache(c);
     struct tagentry *dptr = core_get_data(c->cache.entries_handle);
 
-    if (tag != tag_title && tag != tag_filename)
+    /* No special entries in album lists: the new UI draws them with covers,
+     * and All tracks / Random are on the levels above */
+    if (tag != tag_title && tag != tag_filename && tag != tag_album)
     {
         bool show_album_sorted = (tag == tag_album);
         int show_album_sorted_offset = (show_album_sorted ? 1 : 0);
@@ -2850,6 +2852,79 @@ int tagtree_get_attr(struct tree_context* c)
     }
 
     return attr;
+}
+
+/* The new UI shows album lists with covers: is the current level a list
+ * of albums? */
+bool tagtree_is_album_list(struct tree_context *c)
+{
+    return c->currtable == TABLE_NAVIBROWSE &&
+           csi->tagorder[c->currextra] == tag_album;
+}
+
+/* For row 'id' of an album list: the path of one of the album's tracks and
+ * its album artist (or artist). False for other rows ("All tracks"...).
+ * Looked-up albums are remembered, as the list asks on every redraw. */
+bool tagtree_album_track(struct tree_context *c, int id, char *path,
+                         size_t path_len, char *artist, size_t artist_len)
+{
+    #define ALBUM_CACHE 32
+    static struct {
+        int seek;           /* album tag seek, 0: unused */
+        unsigned age;
+        bool found;
+        char path[MAX_PATH];
+        char artist[64];
+    } cache[ALBUM_CACHE];
+    static unsigned album_clock;
+
+    if (!tagtree_is_album_list(c))
+        return false;
+    struct tagentry *e = tagtree_get_entry(c, id);
+    if (!e || e->newtable != TABLE_NAVIBROWSE || e->extraseek <= 0)
+        return false;
+
+    int slot = 0;
+    for (int i = 0; i < ALBUM_CACHE; i++)
+    {
+        if (cache[i].seek == e->extraseek)
+        {
+            cache[i].age = ++album_clock;
+            strmemccpy(path, cache[i].path, path_len);
+            strmemccpy(artist, cache[i].artist, artist_len);
+            return cache[i].found;
+        }
+        if (cache[i].age < cache[slot].age)
+            slot = i;
+    }
+
+    /* not known yet: search the database */
+    struct tagcache_search tcs;
+    bool found = false;
+    cache[slot].path[0] = cache[slot].artist[0] = '\0';
+    if (tagcache_search(&tcs, tag_filename))
+    {
+        tagcache_search_add_filter(&tcs, tag_album, e->extraseek);
+        if (tagcache_get_next(&tcs, cache[slot].path, sizeof(cache[slot].path)))
+        {
+            found = true;
+            char *a = cache[slot].artist;
+            if (!tagcache_retrieve(&tcs, tcs.idx_id, tag_albumartist, a, sizeof(cache[slot].artist))
+                || !*a || !strcmp(a, UNTAGGED))
+            {
+                if (!tagcache_retrieve(&tcs, tcs.idx_id, tag_artist, a, sizeof(cache[slot].artist))
+                    || !strcmp(a, UNTAGGED))
+                    *a = '\0';
+            }
+        }
+        tagcache_search_finish(&tcs);
+    }
+    cache[slot].seek = e->extraseek;
+    cache[slot].age = ++album_clock;
+    cache[slot].found = found;
+    strmemccpy(path, cache[slot].path, path_len);
+    strmemccpy(artist, cache[slot].artist, artist_len);
+    return found;
 }
 
 int tagtree_get_icon(struct tree_context* c)

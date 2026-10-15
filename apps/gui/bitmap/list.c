@@ -86,6 +86,44 @@ static bool item_drills(enum themable_icons icon)
            icon == Icon_Folder;
 }
 
+/* A row with a cover on the left, the name and a grey second line */
+static void draw_art_row(struct viewport *vp, int y, int row_h,
+                         const char *name, const char *line2,
+                         const fb_data *thumb, bool selected, bool drills,
+                         int text_right, bool scrollbar)
+{
+    const int ax = UI_MARGIN, ay = y + (row_h - UI_THUMB) / 2;
+    const int tx = ax + UI_THUMB + 10;
+    const int tw = text_right - tx - (drills ? CHEVRON_SPACE : 0);
+    unsigned bg = selected ? UI_COL_ACCENT : UI_COL_BG;
+
+    if (selected)
+        ui_fill_rect(0, y, vp->width - (scrollbar ? SCROLLBAR_W + 3 : 0),
+                     row_h, UI_COL_ACCENT);
+    if (thumb)
+    {
+        lcd_bitmap(thumb, ax, ay, UI_THUMB, UI_THUMB);
+        ui_round_corners(ax, ay, UI_THUMB, UI_THUMB, 6, bg);
+    }
+    else
+        ui_art_placeholder(ax, ay, UI_THUMB, 6);
+
+    int row = ui_font(UI_FONT_ROW), body = ui_font(UI_FONT_BODY);
+    if (line2[0])
+    {
+        int top = y + (row_h - font_get(row)->height - font_get(body)->height) / 2;
+        ui_text(tx, top, row, UI_COL_TEXT, name, tw, -1);
+        ui_text(tx, top + font_get(row)->height, body,
+                selected ? UI_COL_TEXT : UI_COL_TEXT2, line2, tw, -1);
+    }
+    else
+        ui_text_vcenter(tx, y, row_h, row, UI_COL_TEXT, name, tw, -1);
+
+    if (drills)
+        ui_text_vcenter(text_right - 7, y, row_h, row,
+                        selected ? UI_COL_TEXT : UI_COL_TEXT2, CHEVRON, 0, -1);
+}
+
 static void draw_title(struct screen *display, struct gui_synclist *list,
                        struct viewport *vp, int row_h)
 {
@@ -112,9 +150,9 @@ void list_draw(struct screen *display, struct gui_synclist *list)
     *vp = *parent;
     if (list_display_title(list, screen))
     {
-        draw_title(display, list, parent, row_h);
-        vp->y += row_h;
-        vp->height -= row_h;
+        draw_title(display, list, parent, UI_ROW_H);
+        vp->y += UI_ROW_H;
+        vp->height -= UI_ROW_H;
     }
 
     const int nb_lines = list_get_nb_lines(list, screen);
@@ -148,6 +186,19 @@ void list_draw(struct screen *display, struct gui_synclist *list)
         const int y = (i - start) * row_h;
         const int text_x = UI_MARGIN + indent * TAB_INDENT;
         int text_w = text_right - text_x - (drills ? CHEVRON_SPACE : 0);
+
+        /* a row with a cover: art, name, second line (album lists) */
+        const fb_data *thumb = NULL;
+        char line2[64] = "";
+        if (list->callback_get_art_row &&
+            list->callback_get_art_row(i, list->data, &thumb, line2, sizeof(line2)))
+        {
+            if (selected)
+                strmemccpy(sel_name, name, sizeof(sel_name));
+            draw_art_row(vp, y, row_h, name, line2, thumb, selected, drills,
+                         text_right, scrollbar);
+            continue;
+        }
 
         /* a value on the right takes up to half of the row: from the
            list's value callback, or the text after a TAB in the name */

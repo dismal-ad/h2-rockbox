@@ -77,6 +77,22 @@ int ui_text(int x, int y, int font, unsigned color, const char *text,
 int ui_text_vcenter(int x, int y, int h, int font, unsigned color,
                     const char *text, int max_w, int align);
 
+/* --- status bar (ui_status.c) --- */
+
+struct tm;
+struct ui_status {
+    int playmode;          /* enum playmode (status.h) */
+    bool keylock;
+    const struct tm *time; /* NULL: no clock */
+    bool clock_24h;
+    int battery;           /* percent, -1 unknown */
+    bool battery_visible;  /* false while blinking off (low battery) */
+    bool charging;
+    int bluetooth;         /* 0 off, 1 on but not connected, 2 connected */
+};
+/* Draws the bar into the current viewport (UI_STATUS_H high) */
+void ui_status_draw(const struct ui_status *st);
+
 /* --- time (ui_time.c) --- */
 
 /* Free-running microsecond counter for measuring frame times */

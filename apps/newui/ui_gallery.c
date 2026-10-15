@@ -31,6 +31,8 @@
 #include "misc.h"
 #include "viewport.h"
 #include "screens.h"
+#include "status.h"
+#include "timefuncs.h"
 #include "ui.h"
 
 #define UTF8_EMDASH   "\xe2\x80\x94"
@@ -131,6 +133,44 @@ static void page_shapes(void)
     ui_fill_rect(UI_MARGIN, y, 110, 4, UI_COL_SEL);
 }
 
+static void page_status(void)
+{
+    static struct tm t = { .tm_hour = 14, .tm_min = 41, .tm_year = 126,
+                           .tm_mon = 9, .tm_mday = 15 };
+    struct ui_status st[] = {
+        { .playmode = STATUS_PLAY,  .time = &t, .clock_24h = true,
+          .battery = 80, .battery_visible = true, .bluetooth = 2 },
+        { .playmode = STATUS_PAUSE, .time = &t, .clock_24h = false,
+          .battery = 45, .battery_visible = true, .charging = true },
+        { .playmode = STATUS_FASTFORWARD, .keylock = true, .time = &t,
+          .clock_24h = false, .battery = 9, .battery_visible = true,
+          .bluetooth = 1 },
+        { .playmode = STATUS_STOP, .time = NULL, .battery = -1,
+          .battery_visible = true },
+        { .playmode = STATUS_FASTBACKWARD, .time = &t, .clock_24h = true,
+          .battery = 100, .battery_visible = true },
+    };
+    static const char * const notes[] = {
+        "Playing, 24 h, Bluetooth connected",
+        "Paused, 12 h, charging",
+        "Seeking, locked, low battery, Bluetooth on",
+        "Stopped, no clock, battery unknown",
+        "Rewinding, full battery",
+    };
+    for (int i = 0; i < 5; i++)
+    {
+        struct viewport vp;
+        viewport_set_defaults(&vp, SCREEN_MAIN);
+        vp.x = 0; vp.y = UI_STATUS_H + 4 + i * 42;
+        vp.width = LCD_WIDTH; vp.height = UI_STATUS_H;
+        struct viewport *last = lcd_set_viewport(&vp);
+        ui_status_draw(&st[i]);
+        lcd_set_viewport(last);
+        ui_text(UI_MARGIN, vp.y + UI_STATUS_H, ui_font(UI_FONT_SMALL),
+                UI_COL_MUTED, notes[i], 0, -1);
+    }
+}
+
 /* Average time of one frame of 'draw' followed by a full lcd_update */
 static uint32_t time_frames(void (*draw)(int), bool update, int frames)
 {
@@ -191,7 +231,7 @@ static void page_speed(void)
 
     lcd_set_background(UI_COL_BG);
     lcd_clear_display();
-    title("Drawing speed (full screen)", 2, 3);
+    title("Drawing speed (full screen)", 3, 4);
     int y = UI_STATUS_H + 8;
     for (int i = 0; i < 3; i++)
     {
@@ -212,7 +252,7 @@ static void page_speed(void)
 
 bool ui_gallery(void)
 {
-    enum { PAGES = 3 };
+    enum { PAGES = 4 };
     int page = 0;
     bool usb = false, redraw = true;
 
@@ -237,6 +277,11 @@ bool ui_gallery(void)
             {
                 title("Shapes and rows", 1, PAGES);
                 page_shapes();
+            }
+            else if (page == 2)
+            {
+                title("Status bar", 2, PAGES);
+                page_status();
             }
             else
             {

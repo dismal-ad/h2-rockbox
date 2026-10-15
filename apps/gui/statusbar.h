@@ -44,6 +44,9 @@ struct status_info {
     bool keylockremote;
 #endif
     bool led; /* disk LED simulation in the status bar */
+#ifdef HAVE_BLUETOOTH
+    int bluetooth; /* 0 off, 1 on, 2 connected */
+#endif
 
 };
 

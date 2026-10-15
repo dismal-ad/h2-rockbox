@@ -24,25 +24,6 @@
 #include "system.h"
 #include "kernel.h"
 
-#if (CONFIG_LED == LED_REAL)
-
-#define LED_ON  or_b(0x40, &PBDRL)
-#define LED_OFF and_b(~0x40, &PBDRL)
-
-void led(bool on)
-{
-    if ( on )
-    {
-        LED_ON;
-    }
-    else
-    {
-        LED_OFF;
-    }
-}
-
-#elif (CONFIG_LED == LED_VIRTUAL)
-
 static bool current;
 static long last_on; /* timestamp of switching off */
 
@@ -61,10 +42,3 @@ bool led_read(int delayticks) /* read by status bar update */
     return (current || TIME_BEFORE(current_tick, last_on+delayticks));
 }
 
-#else
-
-void led(bool on)
-{
-    (void)on;
-}
-#endif /* CONFIG_LED, HAVE_REMOTE_LCD */

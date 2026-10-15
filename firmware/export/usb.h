@@ -105,9 +105,6 @@ enum
     USB_EXTRACTED = 0,       /* Event+State */
     USB_INSERTED,            /* Event+State */
     USB_POWERED,             /* State - transitional indicator if no host */
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    USB_REENABLE,            /* Event */
-#endif
 #ifdef HAVE_USBSTACK
     USB_TRANSFER_COMPLETION, /* Event */
     USB_NOTIFY_SET_ADDR,     /* Event */
@@ -271,14 +268,6 @@ void usb_set_audio(int value);
 
 /* true while host-PCM (USB-DAC) playback is active */
 bool usb_audio_get_active(void);
-#endif
-
-#if defined(USB_ENABLE_STORAGE) && defined(HAVE_MULTIDRIVE)
-/* when the target has several drives, decide whether mass storage should
- * skip the first drive. This is useful when the second drive is a SD card
- * and the host only supports access to the first USB drive (this is very common
- * in car tuners and USB speakers) */
-void usb_set_skip_first_drive(bool skip);
 #endif
 
 #if !defined(SIMULATOR)

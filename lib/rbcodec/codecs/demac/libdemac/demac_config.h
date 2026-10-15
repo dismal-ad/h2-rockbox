@@ -42,42 +42,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA
 
 #define FILTER256_IRAM
 
-#if CONFIG_CPU == PP5002
-/* Code and data IRAM for speed (PP5002 has a broken cache), not enough IRAM
- * for the insane filter buffer. Reciprocal table for division in IRAM. */
-#define ICODE_SECTION_DEMAC_ARM   .icode
-#define ICODE_ATTR_DEMAC          ICODE_ATTR
-#define ICONST_ATTR_DEMAC         ICONST_ATTR
-#define IBSS_ATTR_DEMAC           IBSS_ATTR
-#define IBSS_ATTR_DEMAC_INSANEBUF
-
-#elif CONFIG_CPU == PP5020
-/* Code and small data in DRAM for speed (PP5020 IRAM isn't completely single
- * cycle). Insane filter buffer not in IRAM in favour of reciprocal table for
- * divison. Decoded data buffers should be in IRAM (defined by the caller). */
-#define ICODE_SECTION_DEMAC_ARM   .text
-#define ICODE_ATTR_DEMAC
-#define ICONST_ATTR_DEMAC
-#define IBSS_ATTR_DEMAC
-#define IBSS_ATTR_DEMAC_INSANEBUF
-
-#elif CONFIG_CPU == PP5022
-/* Code in DRAM, data in IRAM. Insane filter buffer not in IRAM in favour of
- * reciprocal table for divison */
-#define ICODE_SECTION_DEMAC_ARM   .text
-#define ICODE_ATTR_DEMAC
-#define ICONST_ATTR_DEMAC         ICONST_ATTR
-#define IBSS_ATTR_DEMAC           IBSS_ATTR
-#define IBSS_ATTR_DEMAC_INSANEBUF
-
-#else
 /* Code in DRAM, data in IRAM, including insane filter buffer. */
 #define ICODE_SECTION_DEMAC_ARM   .text
 #define ICODE_ATTR_DEMAC
 #define ICONST_ATTR_DEMAC         ICONST_ATTR
 #define IBSS_ATTR_DEMAC           IBSS_ATTR
 #define IBSS_ATTR_DEMAC_INSANEBUF IBSS_ATTR
-#endif
 
 #else /* !ROCKBOX */
 

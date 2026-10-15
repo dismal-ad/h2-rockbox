@@ -205,9 +205,6 @@ static void button_tick(void)
                                     || btn == RC_POWEROFF_BUTTON
 #endif
                                     ) &&
-#if CONFIG_CHARGING && !defined(HAVE_POWEROFF_WHILE_CHARGING)
-                                !charger_inserted() &&
-#endif
                                 repeat_count > POWEROFF_COUNT)
                         {
                             /* Tell the main thread that it's time to
@@ -298,13 +295,6 @@ void button_init(void)
     /* Start polling last */
     tick_add_task(button_tick);
 }
-
-#ifdef BUTTON_DRIVER_CLOSE
-void button_close(void)
-{
-    tick_remove_task(button_tick);
-}
-#endif /* BUTTON_DRIVER_CLOSE */
 
 void set_backlight_filter_keypress(bool value)
 {

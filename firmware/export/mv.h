@@ -65,28 +65,8 @@ typedef unsigned long sector_t;
  */
 #define DEFAULT_VOL_DEC "Volume"
 
-#if (CONFIG_STORAGE & STORAGE_ATA)
-#define ATA_VOL_DEC     "HDD"
-#endif
-#if (CONFIG_STORAGE & STORAGE_MMC)
-#define MMC_VOL_DEC     "MMC"
-#endif
 #if (CONFIG_STORAGE & STORAGE_SD)
 #define SD_VOL_DEC      "microSD"
-#endif
-#if (CONFIG_STORAGE & STORAGE_NAND)
-#define NAND_VOL_DEC    "NAND"
-#endif
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-#define RAMDISK_VOL_DEC "RAMDisk"
-#endif
-#if (CONFIG_STORAGE & STORAGE_USB)
-#define USB_VOL_DEC "USB"
-#endif
-#if (CONFIG_STORAGE & STORAGE_HOSTFS)
-#ifndef HOSTFS_VOL_DEC /* overridable */
-#define HOSTFS_VOL_DEC  DEFAULT_VOL_DEC
-#endif
 #endif
 
 /* Characters that delimit a volume specifier at any root point in the path.

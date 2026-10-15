@@ -29,13 +29,7 @@
 
 struct screen;
 
-#if CONFIG_CHARGING || defined(SIMULATOR)
 void charging_splash(void);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-int mmc_remove_request(void);
-#endif
 
 bool set_time_screen(const char* title, struct tm *tm, bool set_date);
 

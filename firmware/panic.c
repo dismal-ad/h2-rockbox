@@ -98,18 +98,6 @@ void panicf( const char *fmt, ...)
     lcd_update();
     DEBUGF("%s", panic_buf);
 
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-    if (cpu_boost_lock())
-    {
-        set_cpu_frequency(0);
-        cpu_boost_unlock();
-    }
-#endif /* HAVE_ADJUSTABLE_CPU_FREQ */
-
-#ifdef HAVE_ATA_POWER_OFF
-    ide_power_enable(false);
-#endif
-
     system_exception_wait(); /* if this returns, try to reboot */
     system_reboot();
     while (1);       /* halt */

@@ -31,68 +31,6 @@
 static struct event_queue button_queue SHAREDBSS_ATTR;
 static intptr_t button_data; /* data value from last message dequeued */
 
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-static bool button_boosted = false;
-static long button_unboost_tick;
-#define BUTTON_UNBOOST_TMO HZ
-
-static void button_boost(bool state)
-{
-    if (state)
-    {
-        /* update the unboost time each button_boost(true) call */
-        button_unboost_tick = current_tick + BUTTON_UNBOOST_TMO;
-
-        if (!button_boosted)
-        {
-            button_boosted = true;
-            cpu_boost(true);
-        }
-    }
-    else if (button_boosted && TIME_AFTER(current_tick, button_unboost_tick))
-    {
-        button_boosted = false;
-        cpu_boost(false);
-    }
-}
-
-static void button_queue_wait(struct queue_event *evp, int timeout)
-{
-    /* Loop once after wait time if boosted in order to unboost and wait the
-       full remaining time */
-    do
-    {
-        int ticks = timeout;
-
-        if (ticks == TIMEOUT_NOBLOCK)
-            ;
-        else if (ticks > 0)
-        {
-            if (button_boosted && ticks > BUTTON_UNBOOST_TMO)
-                ticks = BUTTON_UNBOOST_TMO;
-
-            timeout -= ticks;
-        }
-        else if (button_boosted) /* TIMEOUT_BLOCK (ticks < 0) */
-        {
-            ticks = BUTTON_UNBOOST_TMO;
-        }
-
-        queue_wait_w_tmo(&button_queue, evp, ticks);
-        if (evp->id != SYS_TIMEOUT)
-        {
-            /* GUI boost build gets immediate kick, otherwise at least 3
-               messages had to be there */
-            if (queue_count(&button_queue) >= 2)
-                button_boost(true);
-
-            break;
-        }
-        button_boost(false);
-    }
-    while (timeout);
-}
-#else /* ndef HAVE_ADJUSTABLE_CPU_FREQ */
 static inline void button_queue_wait(struct queue_event *evp, int timeout)
 {
 #if defined(__APPLE__) && (CONFIG_PLATFORM & PLATFORM_SDL)
@@ -122,7 +60,6 @@ static inline void button_queue_wait(struct queue_event *evp, int timeout)
 #endif
 #endif
 }
-#endif /* HAVE_ADJUSTABLE_CPU_FREQ */
 
 void button_queue_post(long id, intptr_t data)
 {

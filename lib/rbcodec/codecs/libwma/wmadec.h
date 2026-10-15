@@ -52,20 +52,10 @@
 #define LSP_POW_BITS 7
 
 
-#if (CONFIG_CPU == PP5022) || (CONFIG_CPU == PP5024) || \
-    (CONFIG_CPU == MCF5250) || (CONFIG_CPU == S5L8702)
-/* PP5022/24 and MCF5250 have 128KB of IRAM. 80KB are allocated for codecs */
-#define IBSS_ATTR_WMA_LARGE_IRAM IBSS_ATTR
-#define IBSS_ATTR_WMA_XL_IRAM
-#define ICONST_ATTR_WMA_XL_IRAM
-
-#else
 /* other PP's and MCF5249 have 96KB of IRAM */
 #define IBSS_ATTR_WMA_LARGE_IRAM
 #define IBSS_ATTR_WMA_XL_IRAM
 #define ICONST_ATTR_WMA_XL_IRAM
-
-#endif
 
 
 #define VLCBITS 7       /*7 is the lowest without glitching*/

@@ -31,7 +31,6 @@
 #define STORAGE_SD_NUM      2
 #define STORAGE_NAND_NUM    3
 #define STORAGE_RAMDISK_NUM 4
-#define STORAGE_USB_NUM     5
 #define STORAGE_HOSTFS_NUM  6
 #define STORAGE_NUM_TYPES   7
 
@@ -40,19 +39,10 @@
 #define STORAGE_SD          (1 << STORAGE_SD_NUM)
 #define STORAGE_NAND        (1 << STORAGE_NAND_NUM)
 #define STORAGE_RAMDISK     (1 << STORAGE_RAMDISK_NUM)
-#define STORAGE_USB         (1 << STORAGE_USB_NUM)
  /* meant for APPLICATION targets (implicit for SIMULATOR) */
 #define STORAGE_HOSTFS      (1 << STORAGE_HOSTFS_NUM)
 
 /* CONFIG_TUNER (note these are combineable bit-flags) */
-#define TEA5767    0x02 /* Philips */
-#define LV24020LP  0x04 /* Sanyo */
-#define SI4700     0x08 /* Silicon Labs */
-#define TEA5760    0x10 /* Philips */
-#define LV240000   0x20 /* Sanyo */
-#define IPOD_REMOTE_TUNER   0x40 /* Apple */
-#define RDA5802    0x80 /* RDA Microelectronics */
-#define STFM1000   0x100 /* Sigmatel */
 
 /* CONFIG_CPU */
 #define MCF5249      5249
@@ -82,7 +72,6 @@
 #define RK27XX       2700
 #define X1000        1000
 #define STM32H743   32743
-#define N10480H     10480
 
 /* platforms
  * bit fields to allow PLATFORM_HOSTED to be OR'ed e.g. with a
@@ -95,75 +84,9 @@
 #define PLATFORM_GAME_CONSOLE (1<<4)
 
 /* CONFIG_KEYPAD */
-#define IRIVER_H100_PAD     4
-#define IRIVER_H300_PAD     5
-#define IAUDIO_X5M5_PAD     6
-#define IPOD_4G_PAD         7
-#define IPOD_3G_PAD         8
-#define IPOD_1G2G_PAD       9
-#define GIGABEAT_PAD       11
-#define IRIVER_H10_PAD     12
-#define SANSA_E200_PAD     13
-#define SANSA_C200_PAD     14
-#define MROBE100_PAD       17
-#define MROBE500_PAD       18
-#define GIGABEAT_S_PAD     19
-#define COWON_D2_PAD        22
-#define IAUDIO_M3_PAD      23
-#define SANSA_M200_PAD     25
-#define PHILIPS_SA9200_PAD 27
-#define PHILIPS_HDD1630_PAD 29
-#define ONDAVX747_PAD      31
-#define ONDAVX767_PAD      32
-#define SANSA_CLIP_PAD     35
-#define SANSA_FUZE_PAD     36
-#define SAMSUNG_YH820_PAD  38
-#define ONDAVX777_PAD      39
-#define PHILIPS_HDD6330_PAD 42
-#define PBELL_VIBE500_PAD 43
-#define MPIO_HD200_PAD     44
-#define ANDROID_PAD        45
-#define SDL_PAD            46
-#define MPIO_HD300_PAD     47
-#define SANSA_FUZEPLUS_PAD 48
-#define RK27XX_GENERIC_PAD 49
-#define HM60X_PAD          50
-#define HM801_PAD          51
-#define SANSA_CONNECT_PAD  52
-#define SAMSUNG_YPR0_PAD   53
-#define CREATIVE_ZENXFI2_PAD 54
-#define CREATIVE_ZENXFI3_PAD 55
-#define MA_PAD            56
-#define SONY_NWZ_PAD       57
-#define CREATIVE_ZEN_PAD   58
-#define CREATIVE_ZENV_PAD  59
-#define IHIFI_PAD          60
-#define SAMSUNG_YPR1_PAD   61
-#define SAMSUNG_YH92X_PAD  62
-#define DX50_PAD           63
-#define SONY_NWZA860_PAD   64 /* The NWZ-A860 is too different (touchscreen) */
-#define AGPTEK_ROCKER_PAD  65
-#define XDUOO_X3_PAD       66
-#define IHIFI_770_PAD      67
-#define IHIFI_800_PAD      68
-#define XDUOO_X3II_PAD     69
-#define XDUOO_X20_PAD      70
-#define FIIO_M3K_LINUX_PAD 71
 #define EROSQ_PAD          72
-#define FIIO_M3K_PAD       73
-#define SHANLING_Q1_PAD    74
-#define ECHO_R1_PAD        75
-#define SURFANS_F28_PAD    76
-#define RG_NANO_PAD        77
-#define N3DS_PAD           78
-#define HIBY_R3PROII_PAD   79
-#define HIDIZS_AP80MAX_PAD 80
 
 /* CONFIG_REMOTE_KEYPAD */
-#define H100_REMOTE   1
-#define H300_REMOTE   2
-#define IAUDIO_REMOTE 3
-#define MROBE_REMOTE  4
 
 /* CONFIG_BACKLIGHT_FADING */
 /* No fading capabilities at all (yet) */
@@ -186,17 +109,11 @@
 /* CONFIG_CHARGING */
 
 /* Generic types */
-#define CHARGING_SIMPLE  1 /* Simple, hardware controlled charging
-                            * (CPU cannot read charger state but may read
-                            *  when power is plugged-in). */
 #define CHARGING_MONITOR 2 /* Hardware controlled charging with monitoring
                             * (CPU is able to read HW charging state and
                             *  when power is plugged-in). */
 
 /* Mostly target-specific code in the /target tree */
-#define CHARGING_TARGET  3 /* Any algorithm - usually software controlled
-                            * charging or specific programming is required to
-                            * use the charging hardware. */
 
 /* CONFIG_BATTERY_MEASURE bits */
 /* If both VOLTAGE_MEASURE and PERCENTAGE_MEASURE are defined,
@@ -206,82 +123,13 @@
                                * Usually native ports */
 #define PERCENTAGE_MEASURE  2 /* Target can report remaining capacity in %
                                * Usually application/hosted ports */
-#define TIME_MEASURE        4 /* Target can report remaining time estimation
-                                 Usually application ports, and only
-                                 if the estimation is better that ours
-                                 (which it probably is) */
 #define CURRENT_MEASURE     8 /* Target can report battery charge and/or
                                * discharge current */
 /* CONFIG_LCD */
-#define LCD_SSD1815   1 /* as used by Sansa M200 and others */
-#define LCD_S1D15E06  3 /* as used by iRiver H100 series */
-#define LCD_H300      4 /* as used by iRiver H300 series, exact model name is
-                           unknown at the time of this writing */
-#define LCD_X5        5 /* as used by iAudio X5 series, exact model name is
-                          unknown at the time of this writing */
-#define LCD_IPODCOLOR 6 /* as used by iPod Color/Photo */
-#define LCD_IPODNANO  7 /* as used by iPod Nano */
-#define LCD_IPODVIDEO 8 /* as used by iPod Video */
-#define LCD_IPOD2BPP  9 /* as used by all fullsize greyscale iPods */
-#define LCD_IPODMINI 10 /* as used by iPod Mini g1/g2 */
-#define LCD_GIGABEAT 12
-#define LCD_H10_20GB 13 /* as used by iriver H10 20Gb */
-#define LCD_H10_5GB  14 /* as used by iriver H10 5Gb */
-#define LCD_C200     17 /* as used by Sandisk Sansa c200 */
-#define LCD_MROBE500 18 /* as used by Olympus M:Robe 500i */
-#define LCD_MROBE100 19 /* as used by Olympus M:Robe 100 */
-#define LCD_TL0350A  23 /* as used by the iAudio M3 remote, treated as main LCD */
-#define LCD_COWOND2  24 /* as used by Cowon D2 - LTV250QV, TCC7801 driver */
-#define LCD_SA9200   25 /* as used by the Philips SA9200 */
-#define LCD_S6B33B2  26 /* as used by the Samsumg YH820 */
-#define LCD_HDD1630  27 /* as used by the Philips HDD1630 */
-#define LCD_ONDAVX747 29 /* as used by the Onda VX747 */
-#define LCD_ONDAVX767 30 /* as used by the Onda VX767 */
-#define LCD_SSD1303   31 /* as used by the Sansa Clip */
-#define LCD_FUZE      32 /* as used by the Sansa Fuze */
-#define LCD_YH925     34 /* as used by Samsung YH-925 (similar to the H10 20GB) */
-#define LCD_VIEW      35 /* as used by the Sansa View */
-#define LCD_NANO2G    36 /* as used by the iPod Nano 2nd Generation */
-#define LCD_HDD6330   38 /* as used by the Philips HDD6330 */
-#define LCD_VIBE500   39 /* as used by the Packard Bell Vibe 500 */
-#define LCD_IPOD6GNANO3G4G   40 /* as used by the iPod Classic, Nano 3G and Nano 4G */
-#define LCD_FUZEPLUS  41
-#define LCD_SPFD5420A 42 /* rk27xx */
-#define LCD_CLIPZIP   43 /* as used by the Sandisk Sansa Clip Zip */
-#define LCD_HX8340B   44 /* as used by the HiFiMAN HM-601/HM-602/HM-801 */
-#define LCD_CONNECT   45 /* as used by the Sandisk Sansa Connect */
-#define LCD_GIGABEATS 46
-#define LCD_YPR0      47
-#define LCD_CREATIVEZXFI2 48 /* as used by the Creative Zen X-Fi2 */
-#define LCD_CREATIVEZXFI3 49 /* as used by the Creative Zen X-Fi3 */
-#define LCD_ILI9342   50 /* as used by HiFi E.T MA9/MA8 */
-#define LCD_NWZE370   51 /* as used by Sony NWZ-E370 series */
-#define LCD_NWZE360   52 /* as used by Sony NWZ-E360 series */
-#define LCD_CREATIVEZEN  55 /* as used by the Creative ZEN (X-Fi) (LMS250GF03-001(S6D0139)) */
-#define LCD_CREATIVEZENMOZAIC 56 /* as used by the Creative ZEN Mozaic (FGD0801) */
-#define LCD_ILI9342C   57 /* another type of lcd used by HiFi E.T MA9/MA8 */
-#define LCD_CREATIVEZENV  58 /* as used by the Creative Zen V (Plus) */
-#define LCD_IHIFI         60 /* as used by IHIFI 760/960 */
-#define LCD_CREATIVEZENXFISTYLE 61 /* as used by Creative Zen X-Fi Style */
-#define LCD_SAMSUNGYPR1   62 /* as used by Samsung YP-R1 */
-#define LCD_NWZ_LINUX   63 /* as used in the Linux-based NWZ series */
-#define LCD_INGENIC_LINUX 64
-#define LCD_XDUOOX3       65 /* as used by the xDuoo X3 */
-#define LCD_IHIFI770      66 /* as used by IHIFI 770 */
-#define LCD_IHIFI770C     67 /* as used by IHIFI 770C */
-#define LCD_IHIFI800      68 /* as used by IHIFI 800 */
-#define LCD_FIIOM3K       69 /* as used by the FiiO M3K */
-#define LCD_SHANLING_Q1   70 /* as used by the Shanling Q1 */
 #define LCD_EROSQ         71 /* as used by the ErosQ (native) */
-#define LCD_ECHO_R1       72 /* ILI9342, as used by the Echo R1 */
 
 /* LCD_PIXELFORMAT */
-#define HORIZONTAL_PACKING 1
-#define VERTICAL_PACKING 2
-#define HORIZONTAL_INTERLEAVED 3
-#define VERTICAL_INTERLEAVED 4
 #define RGB565 565
-#define RGB565SWAPPED 3553
 #define RGB888 888
 #define XRGB8888 8888
 
@@ -297,72 +145,26 @@
 /* CONFIG_I2C */
 #define I2C_NONE     0 /* For targets that do not use I2C - as the
 Lyre prototype 1 */
-#define I2C_COLDFIRE 3 /* Coldfire style */
-#define I2C_PP5002   4 /* PP5002 style */
-#define I2C_PP5020   5 /* PP5020 style */
-#define I2C_S3C2440  7
-#define I2C_PP5024   8 /* PP5024 style */
-#define I2C_IMX31L   9
-#define I2C_TCC780X 11
-#define I2C_DM320   12 /* DM320 style */
-#define I2C_S5L8700 13
-#define I2C_JZ47XX  14 /* Ingenic Jz47XX style */
-#define I2C_AS3525  15
-#define I2C_S5L8702 16 /* Same as S5L8700, but with two channels */
-#define I2C_IMX233  17
-#define I2C_RK27XX  18
-#define I2C_X1000   19
 
 /* CONFIG_LED */
-#define LED_REAL     1 /* SW controlled LED (Archos recorders, player) */
 #define LED_VIRTUAL  2 /* Virtual LED (icon) (Archos Ondio) */
 /* else                   HW controlled LED (iRiver H1x0) */
 
 /* CONFIG_NAND */
-#define NAND_TCC     2
-#define NAND_SAMSUNG 3
-#define NAND_CC      4 /* ChinaChip */
 #define NAND_RK27XX  5
-#define NAND_IMX233  6
 
 /* CONFIG_RK27XX_FTL: the on-flash format of an rk27xx target's NAND. A
  * target that does not define it builds only the FTL scheme finder. */
 #define RK27XX_FTL_SCHEME_A 1 /* ftl-scheme-a.c: zone tables, remap logs */
-#define RK27XX_FTL_SCHEME_B 2 /* ftl-scheme-b.c: self-describing blocks */
 
 /* CONFIG_RTC */
-#define RTC_HOSTED   1 /* Generic hosted */
-#define RTC_PCF50605 2 /* iPod 3G, 4G & Mini */
-#define RTC_PCF50606 3 /* iriver H300 */
-#define RTC_S3C2440  4
-#define RTC_E8564    5 /* iriver H10 */
 #define RTC_AS3514   6 /* Sandisk Sansa series */
-#define RTC_DS1339_DS3231   7 /* h1x0 RTC mod */
-#define RTC_IMX31L   8
-#define RTC_RX5X348AB 9
-#define RTC_TCC780X  11
-#define RTC_MR100  12
 #define RTC_MC13783  13 /* Freescale MC13783 PMIC */
-#define RTC_S5L8700  14
-#define RTC_S35390A  15
-#define RTC_JZ4740   16 /* Ingenic Jz4740 */
-#define RTC_NANO2G   17 /* This seems to be a PCF5063x */
-#define RTC_D2       18 /* Either PCF50606 or PCF50635 */
-#define RTC_S35380A  19
-#define RTC_IMX233   20
-#define RTC_STM41T62 21 /* ST M41T62 */
-#define RTC_JZ4760   22 /* Ingenic Jz4760 */
 #define RTC_X1000    23 /* Ingenic X1000 */
-#define RTC_CONNECT  24 /* Sansa Connect AVR */
-#define RTC_NANO3G   25 /* Dialog Semiconductor D1671 ??? */
-#define RTC_NANO4G   26 /* Dialog Semiconductor D1759 ??? */
-#define RTC_STM32H743 27
 
 /* USB On-the-go */
 #define USBOTG_M66591   6591 /* M:Robe 500 */
-#define USBOTG_ISP1362  1362 /* iriver H300 */
 #define USBOTG_ISP1583  1583 /* Creative Zen Vision:M */
-#define USBOTG_M5636    5636 /* iAudio X5 */
 #define USBOTG_ARC      5020 /* PortalPlayer 502x and IMX233 */
 #define USBOTG_JZ4740   4740 /* Ingenic Jz4740/Jz4732 */
 #define USBOTG_JZ4760   4760 /* Ingenic Jz4760/Jz4760B */
@@ -378,7 +180,6 @@ Lyre prototype 1 */
 
 /* CONFIG_BUFLIB_BACKEND */
 #define BUFLIB_BACKEND_MEMPOOL      0 /* Default memory pool backed buflib */
-#define BUFLIB_BACKEND_MALLOC       1 /* malloc() buflib (for debugging) */
 
 /* CONFIG_BINFMT */
 #define BINFMT_ROCK                 0 /* Rockbox ".rock" format */
@@ -839,7 +640,6 @@ Lyre prototype 1 */
 #define HAVE_SCHEDULER_BOOSTCTRL
 #endif /* PLATFORM_NATIVE */
 
-
 #ifdef HAVE_USBSTACK
 #if CONFIG_USBOTG == USBOTG_ARC
 #define USB_STATUS_BY_EVENT
@@ -1018,7 +818,6 @@ Lyre prototype 1 */
  * only while main() runs), otherwise things may go wild,
  * from crashes to freezes to exploding daps.
  */
-
 
 #if defined(__APPLE__) && defined(__MACH__)
     #define INIT_ATTR __attribute__((section ("__INIT,.init")))

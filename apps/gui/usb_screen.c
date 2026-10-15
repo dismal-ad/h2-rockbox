@@ -41,10 +41,6 @@
 
 #include "bitmaps/usblogo.h"
 
-#if (CONFIG_STORAGE & STORAGE_MMC)
-#include "ata_mmc.h"
-#endif
-
 struct usb_screen_vps_t
 {
     struct viewport parent;
@@ -70,9 +66,6 @@ static void draw_usb_keypad_mode(struct viewport *title)
 
 static void handle_usb_events(struct viewport *title)
 {
-#if (CONFIG_STORAGE & STORAGE_MMC) && !defined(SIMULATOR)
-    int next_update = 0;
-#endif /* STORAGE_MMC */
     int button;
 
     /* Don't return until we get SYS_USB_DISCONNECTED */
@@ -101,15 +94,6 @@ static void handle_usb_events(struct viewport *title)
             reset_runtime();
 
 /* USB-MMC bridge can report activity */
-#if (CONFIG_STORAGE & STORAGE_MMC) && !defined(SIMULATOR)
-        if(TIME_AFTER(current_tick,next_update))
-        {
-            if(usb_inserted()) {
-                led(mmc_usb_active(HZ));
-            }
-            next_update=current_tick+HZ/2;
-        }
-#endif /* STORAGE_MMC */
     }
 }
 

@@ -546,9 +546,6 @@ int resize_on_load(struct bitmap *bm, bool dither, struct dim *src,
     }
 
     struct scaler_context ctx;
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-    cpu_boost(true);
-#endif
     ctx.store_part = store_part;
     ctx.args = args;
 #if MAX_SC_STACK_ALLOC
@@ -599,9 +596,6 @@ int resize_on_load(struct bitmap *bm, bool dither, struct dim *src,
         ctx.v_o_val = (dh - 1) * v_div;
         ret = scale_v_linear(rset, &ctx);
     }
-#endif
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-    cpu_boost(false);
 #endif
     if (!ret)
         return 0;

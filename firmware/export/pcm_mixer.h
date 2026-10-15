@@ -28,14 +28,7 @@
 /** Simple config **/
 
 /* Length of PCM frames (always) */
-#if CONFIG_CPU == PP5002
-/* There's far less time to do mixing because HW FIFOs are short */
-#define MIX_FRAME_SAMPLES 64
-#elif (CONFIG_CPU == JZ4760B) || (CONFIG_CPU == JZ4732)
-/* These MIPS32r1 targets have a very high interrupt latency, which
-   unfortunately causes a lot of audio underruns under even moderate load */
-#define MIX_FRAME_SAMPLES 2048
-#elif (CONFIG_PLATFORM & PLATFORM_HOSTED)
+#if   (CONFIG_PLATFORM & PLATFORM_HOSTED)
 /* Hosted targets need larger buffers for decent performance due to
    OS locking/scheduling overhead */
 #define MIX_FRAME_SAMPLES 1024
@@ -61,9 +54,7 @@ enum pcm_mixer_channel
     PCM_MIXER_CHAN_USBAUDIO,
 #endif
     PCM_MIXER_CHAN_VOICE,
-#ifndef HAVE_HARDWARE_BEEP
     PCM_MIXER_CHAN_BEEP,
-#endif
     /* Add new channel indexes above this line */
     PCM_MIXER_NUM_CHANNELS,
 };

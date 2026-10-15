@@ -156,9 +156,7 @@ struct screen screens[NB_SCREENS] =
         .pixel_format=LCD_PIXELFORMAT,
         .getcharwidth=screen_helper_getcharwidth,
         .getcharheight=screen_helper_getcharheight,
-#if (CONFIG_LED == LED_VIRTUAL)
         .has_disk_led=false,
-#endif
         .set_drawmode=&screen_helper_set_drawmode,
         .init_viewport=&lcd_init_viewport,
         .set_viewport=&lcd_set_viewport,

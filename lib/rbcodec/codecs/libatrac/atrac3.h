@@ -22,17 +22,10 @@
 #include "../librm/rm.h"
 #include "codeclib.h"
 
-#if (CONFIG_CPU == PP5022) || (CONFIG_CPU == PP5024) || (CONFIG_CPU == MCF5250)
-/* PP5022/24, MCF5250 and S5L87xx have larger IRAM */
-#define IBSS_ATTR_LARGE_IRAM    IBSS_ATTR
-#define ICODE_ATTR_LARGE_IRAM   ICODE_ATTR
-#define ICONST_ATTR_LARGE_IRAM  ICONST_ATTR
-#else
 /* other CPUs IRAM is not large enough */
 #define IBSS_ATTR_LARGE_IRAM
 #define ICODE_ATTR_LARGE_IRAM
 #define ICONST_ATTR_LARGE_IRAM
-#endif
 
 /* The decoder works on samples with two fractional bits, s15.2. The last
  * stage of the synthesis filter is scaled up by this many more bits, so the

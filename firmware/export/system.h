@@ -40,25 +40,6 @@ extern void system_init(void);
 
 extern long cpu_frequency;
 
-#if defined(HAVE_ADJUSTABLE_CPU_FREQ) \
-        && defined(ROCKBOX_HAS_LOGF) && (NUM_CORES == 1)
-#define CPU_BOOST_LOGGING
-#endif
-
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-#define FREQ cpu_frequency
-void set_cpu_frequency(long frequency);
-#ifdef CPU_BOOST_LOGGING
-char * cpu_boost_log_getlog_first(void);
-char * cpu_boost_log_getlog_next(void);
-int cpu_boost_log_getcount(void);
-void cpu_boost_(bool on_off, char* location, int line);
-#else
-void cpu_boost(bool on_off);
-#endif
-void cpu_idle_mode(bool on_off);
-int get_cpu_boost_counter(void);
-#else /* ndef HAVE_ADJUSTABLE_CPU_FREQ */
 #ifndef FREQ
 #define FREQ CPU_FREQ
 #endif
@@ -68,7 +49,6 @@ int get_cpu_boost_counter(void);
 #define cpu_idle_mode(on_off)
 #define get_cpu_boost_counter()
 #define get_cpu_boost_tracker()
-#endif /* HAVE_ADJUSTABLE_CPU_FREQ */
 
 #ifdef CPU_BOOST_LOGGING
 #define cpu_boost(on_off) cpu_boost_(on_off,__FILE__,  __LINE__)
@@ -214,17 +194,6 @@ enum {
 #ifndef CPU_MODE_THREAD_CONTEXT
 #define CPU_MODE_THREAD_CONTEXT 0
 #endif
-
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-#ifndef CPU_BOOST_LOCK_DEFINED
-#define CPU_BOOST_LOCK_DEFINED
-/* Compatibility defauls */
-static inline bool cpu_boost_lock(void)
-    { return true; }
-static inline void cpu_boost_unlock(void)
-    { }
-#endif /* CPU_BOOST_LOCK */
-#endif /* HAVE_ADJUSTABLE_CPU_FREQ */
 
 #ifndef BIT_N
 #define BIT_N(n) (1U << (n))

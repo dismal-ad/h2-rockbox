@@ -32,9 +32,7 @@ linuxboot.c
 #ifdef RB_PROFILE
 profile.c
 #endif /* RB_PROFILE */
-#if !defined(MI4_FORMAT)
 common/rb-loader.c
-#endif
 rolo.c
 timer.c
 debug.c
@@ -154,10 +152,7 @@ screendump.c
 drivers/lcd-16bit.c
 common/diacritic.c
 
-#if (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_SETTING) \
-    || (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_HW_REG)
 backlight-sw-fading.c
-#endif /* CONFIG_BACKLIGHT_FADING */
 
 /* Misc. */
 drivers/led.c
@@ -172,23 +167,8 @@ drivers/audio/dac3550a.c
 
 /* Storage */
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
-#if (CONFIG_STORAGE & STORAGE_NAND) && (CONFIG_NAND == NAND_TCC)
-target/arm/ata-nand-telechips.c
-#endif
-#if (CONFIG_STORAGE & STORAGE_NAND) && (CONFIG_NAND == NAND_SAMSUNG)
-target/arm/s5l8700/ata-nand-s5l8700.c
-#endif
-#if (CONFIG_STORAGE & STORAGE_NAND) && (CONFIG_NAND == NAND_RK27XX)
-target/arm/rk27xx/ata-nand-rk27xx.c
-#endif
-#if (CONFIG_STORAGE & STORAGE_ATA) && !defined(IPOD_6G)
-drivers/ata.c
-#endif
 #if (CONFIG_STORAGE & STORAGE_SD)
 drivers/sd.c
-#endif
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-drivers/ramdisk.c
 #endif
 storage.c
 #if (CONFIG_STORAGE & STORAGE_MMC) || (CONFIG_STORAGE & STORAGE_SD)
@@ -197,12 +177,6 @@ sdmmc.c
 #endif /* PLATFORM_NATIVE */
 
 /* EEPROM */
-#ifdef HAVE_EEPROM
-drivers/eeprom_24cxx.c
-#ifdef HAVE_EEPROM_SETTINGS
-eeprom_settings.c
-#endif /* HAVE_EEPROM_SETTINGS */
-#endif /* HAVE_EEPROM */
 
 /* RTC */
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
@@ -248,9 +222,7 @@ drivers/audio/es9018k2m.c
 target/mips/exception-mips.S
 target/mips/mmu-mips.c
 target/mips/system-mips.c
-#if CONFIG_CPU==JZ4732 || CONFIG_CPU==JZ4760B
-target/mips/ingenic_jz47xx/crt0.S
-#elif CONFIG_CPU==X1000
+#if   CONFIG_CPU==X1000
 target/mips/ingenic_x1000/crt0.S
 #endif
 
@@ -268,38 +240,6 @@ drivers/i2c.c
 /* target code */
 
 /* LCD driver */
-#if   CONFIG_LCD == LCD_SSD1303
-target/arm/as3525/lcd-ssd1303.c
-#elif CONFIG_LCD == LCD_SSD1815
-target/arm/lcd-ssd1815.c
-#elif CONFIG_LCD == LCD_HX8340B
-target/arm/rk27xx/lcd-hifiman.c
-#elif CONFIG_LCD == LCD_C200
-target/arm/lcd-c200_c200v2.c
-#elif CONFIG_LCD == LCD_FUZE
-target/arm/as3525/lcd-fuze.c
-#elif CONFIG_LCD == LCD_IPODCOLOR || CONFIG_LCD == LCD_IPODNANO
-target/arm/ipod/lcd-color_nano.c
-#elif CONFIG_LCD == LCD_IPODMINI || CONFIG_LCD == LCD_IPOD2BPP
-target/arm/ipod/lcd-gray.c
-#elif CONFIG_LCD == LCD_GIGABEATS
-target/arm/imx31/gigabeat-s/lcd-gigabeat-s.c
-#elif CONFIG_LCD == LCD_GIGABEAT
-target/arm/s3c2440/lcd-s3c2440.c
-#elif CONFIG_LCD == LCD_ILI9342 || CONFIG_LCD == LCD_ILI9342C
-target/arm/rk27xx/ma/lcd-ma.c
-#elif CONFIG_LCD == LCD_IHIFI
-target/arm/rk27xx/ihifi/lcd-ihifi.c
-#elif CONFIG_LCD == LCD_IHIFI770
-target/arm/rk27xx/ihifi2/lcd-ihifi770.c
-#elif CONFIG_LCD == LCD_IHIFI770C
-target/arm/rk27xx/ihifi2/lcd-ihifi770c.c
-#elif CONFIG_LCD == LCD_IHIFI800
-target/arm/rk27xx/ihifi2/lcd-ihifi800.c
-#elif CONFIG_LCD == LCD_IPOD6GNANO3G4G
-target/arm/s5l8702/lcd-s5l8702.c
-target/arm/s5l8702/lcd-asm-s5l8702.S
-#endif
 
 /* USB Stack */
 #if defined(HAVE_USBSTACK)
@@ -316,134 +256,13 @@ usbstack/usb_audio.c
 #ifdef USB_ENABLE_HID
 usbstack/usb_hid.c
 #endif
-#if CONFIG_USBOTG == USBOTG_M66591
-drivers/m66591.c
-#elif CONFIG_USBOTG == USBOTG_ARC
-target/arm/usb-drv-arc.c
-#elif CONFIG_USBOTG == USBOTG_AS3525
-target/arm/as3525/usb-drv-as3525.c
-#elif CONFIG_USBOTG == USBOTG_S3C6400X
-target/arm/usb-s3c6400x.c
-#elif CONFIG_USBOTG == USBOTG_DESIGNWARE
+#if   CONFIG_USBOTG == USBOTG_DESIGNWARE
 drivers/usb-designware.c
-#elif CONFIG_USBOTG == USBOTG_ISP1583
-drivers/isp1583.c
-#elif CONFIG_USBOTG == USBOTG_RK27XX
-target/arm/rk27xx/usb-drv-rk27xx.c
 #endif
 #else /* !defined(HAVE_USBSTACK) */
-#if CONFIG_USBOTG == USBOTG_ISP1362
-drivers/isp1362.c
-#elif CONFIG_USBOTG == USBOTG_M5636
-drivers/m5636.c
-#elif CONFIG_USBOTG == USBOTG_ARC
-target/arm/usb-drv-arc.c
-#endif
 #endif /* !defined(HAVE_USBSTACK) */
 
 /* Other Random Hardware */
-
-#if CONFIG_I2C == I2C_PP5020
-target/arm/pp/adc-pp5020.c
-
-#elif CONFIG_I2C == I2C_PP5002
-target/arm/ipod/adc-ipod-pcf.c
-
-#elif CONFIG_I2C == I2C_S3C2440
-target/arm/s3c2440/adc-s3c2440.c
-
-#elif CONFIG_I2C == I2C_S5L8700
-target/arm/s5l8700/adc-s5l8700.c
-
-#endif /* CONFIG_I2C */
-
-#if CONFIG_CPU == S5L8700 || CONFIG_CPU == S5L8701
-target/arm/s5l8700/kernel-s5l8700.c
-target/arm/s5l8700/system-s5l8700.c
-target/arm/s5l8700/dma-s5l8700.c
-target/arm/s5l8700/wmcodec-s5l8700.c
-target/arm/s5l8700/timer-s5l8700.c
-target/arm/s5l8700/pcm-s5l8700.c
-target/arm/s5l8700/debug-s5l8700.c
-#endif /* S5L8700 || S5L8701 */
-
-#if CONFIG_CPU == S3C2440
-target/arm/s3c2440/debug-s3c2440.c
-target/arm/s3c2440/kernel-s3c2440.c
-target/arm/s3c2440/system-s3c2440.c
-target/arm/s3c2440/gigabeat-fx/timer-meg-fx.c
-#endif /* CONFIG_CPU == S3C2440 */
-
-#if CONFIG_CPU == DM320
-target/arm/tms320dm320/debug-dm320.c
-target/arm/tms320dm320/dsp-dm320.c
-target/arm/tms320dm320/i2c-dm320.c
-target/arm/tms320dm320/kernel-dm320.c
-target/arm/tms320dm320/spi-dm320.c
-target/arm/tms320dm320/system-dm320.c
-target/arm/tms320dm320/timer-dm320.c
-target/arm/tms320dm320/uart-dm320.c
-#endif /* CONFIG_CPU == DM320 */
-
-#if CONFIG_CPU == RK27XX
-target/arm/rk27xx/audio-rk27xx.c
-target/arm/rk27xx/kernel-rk27xx.c
-target/arm/rk27xx/system-rk27xx.c
-target/arm/rk27xx/backlight-rk27xx.c
-target/arm/rk27xx/adc-rk27xx.c
-target/arm/rk27xx/sd-rk27xx.c
-#if CONFIG_NAND == NAND_RK27XX
-#if (CONFIG_STORAGE & STORAGE_NAND)
-target/arm/rk27xx/flash-rk27xx.c
-target/arm/rk27xx/nand-rk27xx.c
-target/arm/rk27xx/ftl-rk27xx.c
-#else
-/* no FTL scheme configured: only the finder (debug menu) */
-target/arm/rk27xx/flash-rk27xx.c
-target/arm/rk27xx/nand-rk27xx.c
-target/arm/rk27xx/ftl-probe-rk27xx.c
-#endif
-#endif
-target/arm/rk27xx/usb-rk27xx.c
-target/arm/rk27xx/lcdif-rk27xx.c
-target/arm/rk27xx/rkw-loader.c
-target/arm/rk27xx/timer-rk27xx.c
-target/arm/rk27xx/rolo_restart.S
-target/arm/rk27xx/pcm-rk27xx.c
-target/arm/rk27xx/debug-rk27xx.c
-#endif
-
-#if CONFIG_CPU == JZ4732
-target/mips/ingenic_jz47xx/ata-nand-jz4740.c
-target/mips/ingenic_jz47xx/ata-sd-jz4740.c
-target/mips/ingenic_jz47xx/debug-jz4740.c
-target/mips/ingenic_jz47xx/fmradio-i2c-jz4740.c
-target/mips/ingenic_jz47xx/kernel-jz4740.c
-target/mips/ingenic_jz47xx/i2c-jz4740.c
-target/mips/ingenic_jz47xx/lcd-jz4740.c
-target/mips/ingenic_jz47xx/system-jz4740.c
-target/mips/ingenic_jz47xx/usb-jz4740.c
-target/mips/ingenic_jz47xx/timer-jz4740.c
-target/mips/ingenic_jz47xx/codec-jz4740.c
-target/mips/ingenic_jz47xx/pcm-jz4740.c
-drivers/nand_id.c
-#endif /* CONFIG_CPU == JZ4732 */
-
-#if CONFIG_CPU == JZ4760B
-target/mips/ingenic_jz47xx/dma_acc-jz4760.c
-target/mips/ingenic_jz47xx/ata-nand-jz4760.c
-target/mips/ingenic_jz47xx/ata-sd-jz4760.c
-target/mips/ingenic_jz47xx/debug-jz4760.c
-target/mips/ingenic_jz47xx/kernel-jz4760.c
-target/mips/ingenic_jz47xx/i2c-jz4760.c
-target/mips/ingenic_jz47xx/lcd-jz4760.c
-target/mips/ingenic_jz47xx/system-jz4760.c
-target/mips/ingenic_jz47xx/timer-jz4760.c
-target/mips/ingenic_jz47xx/usb-jz4760.c
-target/mips/ingenic_jz47xx/codec-jz4760.c
-target/mips/ingenic_jz47xx/pcm-jz4760.c
-drivers/nand_id.c
-#endif /* CONFIG_CPU == JZ4760B */
 
 #if CONFIG_CPU == X1000
 target/mips/ingenic_x1000/aic-x1000.c
@@ -478,48 +297,6 @@ target/mips/ingenic_x1000/erosqnative/lcd-erosqnative.c
 target/mips/ingenic_x1000/erosqnative/power-erosqnative.c
 target/mips/ingenic_x1000/sdmmc-x1000-common.c
 target/mips/ingenic/spl-nand-ingenic.c
-
-#if CONFIG_CPU == STM32H743
-target/arm/stm32/crt0-stm32h7.S
-target/arm/stm32/vectors-stm32h7.S
-target/arm/stm32/debug-stm32h7.c
-target/arm/stm32/gpio-stm32h7.c
-target/arm/stm32/i2c-stm32h7.c
-target/arm/stm32/sdmmc-stm32h7.c
-target/arm/stm32/spi-stm32h7.c
-target/arm/stm32/system-stm32h7.c
-target/arm/stm32/timer-stm32h7.c
-#if defined(HAVE_USBSTACK)
-target/arm/stm32/usb-stm32h7.c
-#endif
-#endif
-
-#if (CONFIG_PLATFORM & PLATFORM_ANDROID)
-target/hosted/kernel-unix.c
-target/hosted/filesystem-unix.c
-target/hosted/lc-unix.c
-target/hosted/android/lcd-android.c
-target/hosted/android/button-android.c
-#ifdef DEBUG
-target/hosted/android/debug-android.c
-#endif
-target/hosted/android/pcm-android.c
-target/hosted/android/powermgmt-android.c
-target/hosted/android/system-android.c
-target/hosted/android/telephony-android.c
-target/hosted/android/android-codec.c
-#endif
-
-#if (CONFIG_PLATFORM & PLATFORM_GAME_CONSOLE)
-target/hosted/game_console/kernel-console.c
-target/hosted/game_console/thread-console.c
-target/hosted/game_console/timer-console.c
-target/hosted/game_console/lib/sys_atomic.c
-target/hosted/game_console/lib/sys_file_common.c
-target/hosted/game_console/lib/sys_timer_common.c
-target/hosted/game_console/lib/bfile/bfile-rwmutex.c
-target/hosted/game_console/lib/sys_cond_generic.c
-#endif
 
 #else /* defined(SIMULATOR) */
 
@@ -559,7 +336,7 @@ kernel/queue.c
 kernel/semaphore.c
 #ifdef HAVE_SDL_THREADS
 target/hosted/sdl/thread-sdl.c
-#elif !(CONFIG_PLATFORM & PLATFORM_GAME_CONSOLE)
+#else
 kernel/thread.c
 #endif
 kernel/thread-common.c

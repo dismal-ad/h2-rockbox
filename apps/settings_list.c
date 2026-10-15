@@ -49,9 +49,6 @@
 #include "rbunicode.h"
 #include "peakmeter.h"
 #include "menus/eq_menu.h"
-#ifdef IPOD_ACCESSORY_PROTOCOL
-#include "iap.h"
-#endif
 #include "statusbar.h"
 
 #include "onplay.h"
@@ -340,11 +337,7 @@ static const char graphic_numeric[] = "graphic,numeric";
 
 #define DEFAULT_BACKDROP    BACKDROP_DIR "/cabbiev2.bmp"
 
-#if (CONFIG_PLATFORM & PLATFORM_ANDROID)
-#define DEFAULT_TAGCACHE_SCAN_PATHS "/sdcard"
-#else
 #define DEFAULT_TAGCACHE_SCAN_PATHS "/"
-#endif
 
 #ifdef SIMULATOR
 #define DEFAULT_BACKLIGHT_TIMEOUT 0
@@ -961,14 +954,12 @@ const struct settings_list settings[] = {
                     off_on, UNIT_SEC, formatter_time_unit_0_is_always,
                     getlang_time_unit_0_is_always, backlight_set_timeout,
                     23, timeout_sec_common),
-#if CONFIG_CHARGING
     TABLE_SETTING_LIST(F_TIME_SETTING | F_ALLOW_ARBITRARY_VALS,
                     backlight_timeout_plugged, LANG_BACKLIGHT_ON_WHEN_CHARGING,
                     DEFAULT_BACKLIGHT_TIMEOUT, "backlight timeout plugged",
                     off_on, UNIT_SEC, formatter_time_unit_0_is_always,
                     getlang_time_unit_0_is_always, backlight_set_timeout_plugged,
                     23, timeout_sec_common),
-#endif
     /* display */
      CHOICE_SETTING(F_TEMPVAR|F_THEMESETTING, cursor_style, LANG_INVERT_CURSOR,
                     3, "selector type",
@@ -1011,11 +1002,7 @@ const struct settings_list settings[] = {
                 set_poweroff_timeout),
     INT_SETTING(F_BANFROMQS, max_files_in_playlist,
                 LANG_MAX_FILES_IN_PLAYLIST,
-#if CONFIG_CPU == PP5002 || CONFIG_CPU == PP5020 || CONFIG_CPU == PP5022
-                  /** Slow CPU benefits greatly from building smaller playlists
-                  On the iPod Mini 2nd gen, creating a playlist of 2000 entries takes around 10 seconds */
-                  2000,
-#elif MEMORYSIZE > 1
+#if   MEMORYSIZE > 1
                   10000,
 #else
                   400,
@@ -1037,19 +1024,11 @@ const struct settings_list settings[] = {
                        NULL, NULL, NULL),
 /* use this setting for user code even if there's no exchangable battery
  * support enabled */
-#if CONFIG_CHARGING
     OFFON_SETTING(0, car_adapter_mode,
                   LANG_CAR_ADAPTER_MODE, false, "car adapter mode", NULL),
     INT_SETTING_NOWRAP(0, car_adapter_mode_delay, LANG_CAR_ADAPTER_MODE_DELAY,
                 5, "delay before resume", UNIT_SEC, 5, 30, 5,
                 NULL, NULL, NULL),
-#endif
-#ifdef IPOD_ACCESSORY_PROTOCOL
-    CHOICE_SETTING(0, serial_bitrate, LANG_SERIAL_BITRATE, 0, "serial bitrate",
-                   "auto,9600,19200,38400,57600", iap_bitrate_set, 5, ID2P(LANG_SERIAL_BITRATE_AUTO),
-           ID2P(LANG_SERIAL_BITRATE_9600),ID2P(LANG_SERIAL_BITRATE_19200),
-           ID2P(LANG_SERIAL_BITRATE_38400),ID2P(LANG_SERIAL_BITRATE_57600)),
-#endif
     /* tuner */
 
     OFFON_SETTING(0, bl_filter_first_keypress,
@@ -1637,10 +1616,6 @@ const struct settings_list settings[] = {
                   qs_is_changed, qs_set_default),
    OFFON_SETTING(0, shortcuts_replaces_qs, LANG_USE_SHORTCUTS_INSTEAD_OF_QS,
                   false, "shortcuts instead of quickscreen", NULL),
-#ifdef HAVE_SPEAKER
-    CHOICE_SETTING(0, speaker_mode, LANG_ENABLE_SPEAKER, 0, "speaker mode",
-                   "on,off,auto", audio_enable_speaker, 3, ID2P(LANG_OFF), ID2P(LANG_ON), ID2P(LANG_AUTO)),
-#endif /* HAVE_SPEAKER */
     OFFON_SETTING(0, prevent_skip, LANG_PREVENT_SKIPPING, false, "prevent track skip", NULL),
     OFFON_SETTING(0, rewind_across_tracks, LANG_REWIND_ACROSS_TRACKS, false, "rewind across tracks", NULL),
 #ifdef HAVE_PITCHCONTROL
@@ -1654,30 +1629,16 @@ const struct settings_list settings[] = {
     OFFON_SETTING(0, usb_hid, LANG_USB_HID, true, "usb hid", usb_set_hid),
     CHOICE_SETTING(0, usb_keypad_mode, LANG_USB_KEYPAD_MODE, 0,
             "usb keypad mode", "multimedia,presentation,browser"
-#ifdef HAVE_USB_HID_MOUSE
-            ",mouse"
-#endif
             , NULL,
-#ifdef HAVE_USB_HID_MOUSE
-            4,
-#else
             3,
-#endif
             ID2P(LANG_MULTIMEDIA_MODE), ID2P(LANG_PRESENTATION_MODE),
             ID2P(LANG_BROWSER_MODE)
-#ifdef HAVE_USB_HID_MOUSE
-            , ID2P(LANG_MOUSE_MODE)
-#endif
     ), /* CHOICE_SETTING( usb_keypad_mode ) */
 #endif
 
 #if defined(USB_ENABLE_AUDIO)
     CHOICE_SETTING(0, usb_audio, LANG_USB_DAC, 0, "usb-dac", "never,always,while_charge_only,while_mass_storage", usb_set_audio, 4,
         ID2P(LANG_NEVER), ID2P(LANG_ALWAYS), ID2P(LANG_WHILE_USB_CHARGE_ONLY), ID2P(LANG_WHILE_MASS_STORAGE_USB_ONLY)),
-#endif
-
-#if defined(USB_ENABLE_STORAGE) && defined(HAVE_MULTIDRIVE)
-    OFFON_SETTING(0, usb_skip_first_drive, LANG_USB_SKIP_FIRST_DRIVE, false, "usb skip first drive", usb_set_skip_first_drive),
 #endif
 
     /* Customizable list */

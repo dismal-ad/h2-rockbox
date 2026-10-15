@@ -50,9 +50,7 @@
 #include "statusbar-skinned.h"
 #include "panic.h"
 
-#if CONFIG_CHARGING
 #include "power.h"
-#endif
 
 #include "scrollbar.h"
 #include "peakmeter.h"
@@ -228,13 +226,6 @@ static const struct plugin_api rockbox_api = {
 #if MEMORYSIZE > 2
     lcd_blit_yuv,
 #endif /* MEMORYSIZE > 2 */
-#if defined(HAVE_LCD_MODES) && (HAVE_LCD_MODES & LCD_MODE_PAL256)
-    lcd_blit_pal256,
-    lcd_pal256_update_pal,
-#endif
-#if defined(HAVE_LCD_MODES)
-    lcd_set_mode,
-#endif
     button_queue_post,
     bidi_l2v,
     is_diacritic,
@@ -271,9 +262,7 @@ static const struct plugin_api rockbox_api = {
     backlight_set_timeout,
     backlight_set_brightness,
 
-#if CONFIG_CHARGING
     backlight_set_timeout_plugged,
-#endif
 
     /* list */
     gui_synclist_init,
@@ -411,13 +400,6 @@ static const struct plugin_api rockbox_api = {
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
     &cpu_frequency,
 
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-#ifdef CPU_BOOST_LOGGING
-    cpu_boost_,
-#else
-    cpu_boost,
-#endif
-#endif /* HAVE_ADJUSTABLE_CPU_FREQ */
 #endif /* PLATFORM_NATIVE */
 #ifdef HAVE_SCHEDULER_BOOSTCTRL
     trigger_cpu_boost,
@@ -657,12 +639,8 @@ static const struct plugin_api rockbox_api = {
     battery_time,
     battery_voltage,
     battery_current,
-#if CONFIG_CHARGING
     charger_inserted,
-# if CONFIG_CHARGING >= CHARGING_MONITOR
     charging_state,
-# endif
-#endif
 
     /* usb */
     usb_inserted,
@@ -707,11 +685,6 @@ static const struct plugin_api rockbox_api = {
     read_jpeg_file,
     read_jpeg_fd,
     screen_dump_set_hook,
-
-#ifdef HAVE_WHEEL_POSITION
-    wheel_status,
-    wheel_send_events,
-#endif
 
     /*plugin*/
     plugin_open,

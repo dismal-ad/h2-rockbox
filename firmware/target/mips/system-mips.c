@@ -102,18 +102,6 @@ static void exception_dump(void* frame, unsigned long epc,
     lcd_update();
     backlight_hw_on();
 
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-    if (cpu_boost_lock())
-    {
-        set_cpu_frequency(0);
-        cpu_boost_unlock();
-    }
-#endif
-
-#ifdef HAVE_ATA_POWER_OFF
-    ide_power_enable(false);
-#endif
-
     system_exception_wait();
     system_reboot();
     while(1);

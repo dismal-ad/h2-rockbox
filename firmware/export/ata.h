@@ -40,9 +40,6 @@ void ata_close(void);
 int ata_read_sectors(IF_MD(int drive,) sector_t start, int count, void* buf);
 int ata_write_sectors(IF_MD(int drive,) sector_t start, int count, const void* buf);
 void ata_spin(void);
-#if (CONFIG_LED == LED_REAL)
-void ata_set_led_enabled(bool enabled);
-#endif
 unsigned short* ata_get_identify(void);
 
 #ifdef STORAGE_GET_INFO

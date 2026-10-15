@@ -59,9 +59,6 @@
 #if (CONFIG_STORAGE & STORAGE_MMC) || (CONFIG_STORAGE & STORAGE_SD)
 #include "sdmmc.h"
 #endif
-#if (CONFIG_STORAGE & STORAGE_ATA)
-#include "ata.h"
-#endif
 #endif /* CONFIG_PLATFORM & PLATFORM_NATIVE */
 #include "power.h"
 
@@ -94,10 +91,6 @@
 #include "rbpaths.h"
 #include "pathfuncs.h"
 #include "rb-loader.h"
-#endif
-
-#if defined(IPOD_ACCESSORY_PROTOCOL)
-#include "iap.h"
 #endif
 
 #define SCREEN_MAX_CHARS (LCD_WIDTH / SYSFONT_WIDTH)
@@ -501,57 +494,6 @@ static bool dbg_partitions(void)
 }
 #endif /* PLATFORM_NATIVE */
 
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-static bool dbg_cpufreq(void)
-{
-    int line;
-    int button;
-    int x = 0;
-    bool done = false;
-
-    lcd_setfont(FONT_SYSFIXED);
-    lcd_clear_display();
-
-    while(!done)
-    {
-        line = 0;
-
-        int temp = FREQ / 1000;
-        lcd_putsf(x, line++, "Frequency: %ld.%ld MHz", temp / 1000, temp % 1000);
-        lcd_putsf(x, line++, "boost_counter: %d", get_cpu_boost_counter());
-
-        lcd_update();
-        button = get_action(CONTEXT_STD,HZ/10);
-
-        switch(button)
-        {
-            case ACTION_STD_PREV:
-                cpu_boost(true);
-                break;
-
-            case ACTION_STD_NEXT:
-                cpu_boost(false);
-                break;
-            case ACTION_STD_MENU:
-                x--;
-                break;
-            case ACTION_STD_OK:
-                x = 0;
-                while (get_cpu_boost_counter() > 0)
-                    cpu_boost(false);
-                set_cpu_frequency(CPUFREQ_DEFAULT);
-                break;
-
-            case ACTION_STD_CANCEL:
-                done = true;;
-        }
-        lcd_clear_display();
-    }
-    lcd_setfont(FONT_UI);
-    return false;
-}
-#endif /* HAVE_ADJUSTABLE_CPU_FREQ */
-
 #if !defined(SIMULATOR)
 /*
  * view_battery() shows a automatically scaled graph of the battery voltage
@@ -647,12 +589,8 @@ static bool view_battery(void)
                 break;
 
             case 1: /* status: */
-#if CONFIG_CHARGING >= CHARGING_MONITOR
                 lcd_putsf(0, 0, "Pwr status: %s",
                          charging_state() ? "charging" : "discharging");
-#else
-                lcd_putsf(0, 0, "Pwr status: %s", "unknown");
-#endif
                 battery_read_info(&y, &z);
                 if (y > 0)
                     lcd_putsf(0, 1, "%s: %d.%03d V (%d %%)", "Battery", y / 1000, y % 1000, z);
@@ -662,14 +600,12 @@ static bool view_battery(void)
                 y = (adc_read(ADC_EXT_POWER) * EXT_SCALE_FACTOR) / 1000;
                 lcd_putsf(0, 2, "%s: %d.%03d V", "External", y / 1000, y % 1000);
 #endif
-#if CONFIG_CHARGING
                 lcd_putsf(0, 3, "Charger: %s",
                          charger_inserted() ? "present" : "absent");
 #if defined(HAVE_USBSTACK) && defined(HAVE_USB_CHARGING_ENABLE)
                 lcd_putsf(0, 4, "USB current limit: %d mA",
                           usb_charging_maxcurrent());
 #endif /* HAVE_USB_CHARGING_ENABLE */
-#endif /* CONFIG_CHARGING */
                 break;
             case 2: /* voltage deltas: */
                 lcd_puts(0, 0, "Voltage deltas:");
@@ -726,9 +662,7 @@ static bool view_battery(void)
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
 #if (CONFIG_STORAGE & STORAGE_MMC) || (CONFIG_STORAGE & STORAGE_SD)
 
-#if (CONFIG_STORAGE & STORAGE_MMC)
-#define CARDTYPE "MMC"
-#elif (CONFIG_STORAGE & STORAGE_SD)
+#if   (CONFIG_STORAGE & STORAGE_SD)
 #define CARDTYPE "microSD"
 #endif
 
@@ -744,10 +678,6 @@ static int disk_callback(int btn, struct gui_synclist *lists)
     static const unsigned char i_vmax[] = { 1, 5, 10, 25, 35, 45, 80, 200 };
     static const unsigned char * const kbit_units[] = { "kBit/s", "MBit/s", "GBit/s" };
     static const unsigned char * const nsec_units[] = { "ns", "µs", "ms" };
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    static const char * const mmc_spec_vers[] = { "1.0-1.2", "1.4", "2.0-2.2",
-        "3.1-3.31", "4.0" };
-#endif
 
     if ((btn == ACTION_STD_OK) || (btn == SYS_FS_CHANGED) || (btn == ACTION_REDRAW))
     {
@@ -773,18 +703,12 @@ static int disk_callback(int btn, struct gui_synclist *lists)
 #if (CONFIG_STORAGE & STORAGE_SD)
                     (int) card_extract_bits(card->cid, 11, 4),
                     (int) card_extract_bits(card->cid, 19, 8) + 2000
-#elif (CONFIG_STORAGE & STORAGE_MMC)
-                    (int) card_extract_bits(card->cid, 15, 4),
-                    (int) card_extract_bits(card->cid, 11, 4) + 1997
 #endif
                     );
             simplelist_addline(
 #if (CONFIG_STORAGE & STORAGE_SD)
                     "Ser#: 0x%08lx",
                     card_extract_bits(card->cid, 55, 32)
-#elif (CONFIG_STORAGE & STORAGE_MMC)
-                    "Ser#: 0x%04lx",
-                    card_extract_bits(card->cid, 47, 16)
 #endif
                     );
 
@@ -794,19 +718,9 @@ static int disk_callback(int btn, struct gui_synclist *lists)
                     (int) card_extract_bits(card->cid, 127, 8),
                     (int) card_extract_bits(card->cid, 119, 8),
                     (int) card_extract_bits(card->cid, 111, 8)
-#elif (CONFIG_STORAGE & STORAGE_MMC)
-                    "O=%04x",
-                    (int) card_extract_bits(card->cid, 127, 8),
-                    (int) card_extract_bits(card->cid, 119, 16)
 #endif
                     );
 
-#if (CONFIG_STORAGE & STORAGE_MMC)
-            int temp = card_extract_bits(card->csd, 125, 4);
-            simplelist_addline(
-                     "MMC v%s", temp < 5 ?
-                            mmc_spec_vers[temp] : "?.?");
-#endif
             simplelist_addline(
                     "Blocks: 0x%08lx", card->numblocks);
             output_dyn_value(pbuf, sizeof pbuf, card->speed / 1000,
@@ -888,137 +802,6 @@ static int disk_callback(int btn, struct gui_synclist *lists)
     }
     return btn;
 }
-#elif  (CONFIG_STORAGE & STORAGE_ATA)
-static int disk_callback(int btn, struct gui_synclist *lists)
-{
-    static const char atanums[] = { " 0 1 2 3 4 5 6" };
-
-    (void)lists;
-    int i;
-    char buf[128];
-    unsigned short* identify_info = ata_get_identify();
-    bool timing_info_present = false;
-    (void)btn;
-
-    simplelist_reset_lines();
-
-    for (i=0; i < 20; i++)
-        ((unsigned short*)buf)[i]=htobe16(identify_info[i+27]);
-    buf[40]=0;
-    /* kill trailing space */
-    for (i=39; i && buf[i]==' '; i--)
-        buf[i] = 0;
-    simplelist_addline("Model: %s", buf);
-    for (i=0; i < 10; i++)
-        ((unsigned short*)buf)[i]=htobe16(identify_info[i+10]);
-    buf[20]=0;
-    /* kill trailing space */
-    for (i=19; i && buf[i]==' '; i--)
-        buf[i] = 0;
-    simplelist_addline("Serial number: %s", buf);
-    for (i=0; i < 4; i++)
-        ((unsigned short*)buf)[i]=htobe16(identify_info[i+23]);
-    buf[8]=0;
-    simplelist_addline(
-             "Firmware: %s", buf);
-
-    uint64_t total_sectors = (identify_info[61] << 16) | identify_info[60];
-
-    uint32_t sector_size;
-
-    /* Logical sector size > 512B ? */
-    if ((identify_info[106] & 0xd000) == 0x5000) /* B14, B12 */
-        sector_size = (identify_info[117] | (identify_info[118] << 16)) * 2;
-    else
-        sector_size = 512;
-
-    total_sectors *= sector_size;   /* Convert to bytes */
-    total_sectors /= (1024 * 1024); /* Convert to MB */
-
-    simplelist_addline("Size: %lu MB", (unsigned long)total_sectors);
-    simplelist_addline("Logical sector size: %lu B", sector_size);
-
-    if((identify_info[106] & 0xe000) == 0x6000) /* B14, B13 */
-        sector_size *= BIT_N(identify_info[106] & 0x000f);
-    simplelist_addline(
-            "Physical sector size: %lu B", sector_size);
-
-#ifndef HAVE_MULTIVOLUME
-    // XXX this needs to be fixed for multi-volume setups
-    sector_t free;
-    volume_size( IF_MV(0,) NULL, &free );
-    simplelist_addline(
-            "Free: %lu MB", (unsigned long)(free / 1024));
-#endif
-
-    simplelist_addline("SSD detected: %s", ata_disk_isssd() ? "yes" : "no");
-    simplelist_addline(
-             "Spinup time: %d ms", storage_spinup_time() * (1000/HZ));
-    i = identify_info[82] & (1<<3);
-    simplelist_addline(
-             "Power mgmt: %s", i ? "enabled" : "unsupported");
-    i = identify_info[83] & (1<<3);
-    simplelist_addline(
-             "Adv Power mgmt: %s", i ? "enabled" : "unsupported");
-    i = identify_info[83] & (1<<9);
-    simplelist_addline(
-             "Noise mgmt: %s", i ? "enabled" : "unsupported");
-    i = identify_info[85] & (1<<0);
-    simplelist_addline(
-             "SMART: %s", i ? "enabled" : "unsupported");
-    simplelist_addline(
-             "Flush cache: %s", identify_info[83] & (1<<13) ? "extended" : identify_info[83] & (1<<12) ? "standard" : identify_info[80] >= (1<<5) ? "ATA-5" : "unsupported");
-    i = identify_info[82] & (1<<6);
-    simplelist_addline(
-             "Read-ahead: %s", i ? "enabled" : "unsupported");
-    timing_info_present = identify_info[53] & (1<<1);
-    if(timing_info_present) {
-        simplelist_addline(
-                 "PIO modes: 0 1 2%.*s%.*s",
-                 (identify_info[64] & (1<<0)) << 1, &atanums[3*2],
-                 (identify_info[64] & (1<<1))     , &atanums[4*2]);
-    }
-    else {
-        simplelist_setline(
-                 "No PIO mode info");
-    }
-    timing_info_present = identify_info[53] & (1<<1);
-    if(timing_info_present) {
-        simplelist_addline(
-                 "Cycle times %dns/%dns",
-                 identify_info[67],
-                 identify_info[68] );
-    } else {
-        simplelist_setline(
-                 "No timing info");
-    }
-
-    timing_info_present = identify_info[53] & (1<<1);
-    if(timing_info_present) {
-        i = identify_info[49] & (1<<11);
-        simplelist_addline(
-            "IORDY support: %s", i ? "yes" : "no");
-        i = identify_info[49] & (1<<10);
-        simplelist_addline(
-                "IORDY disable: %s", i ? "yes" : "no");
-    } else {
-        simplelist_setline("No timing info");
-    }
-    simplelist_addline(
-             "Cluster size: %d bytes", volume_get_cluster_size(IF_MV(0)));
-    i = identify_info[83] & (1 << 2);
-    simplelist_addline(
-            "CFA compatible: %s", i ? "yes" : "no");
-    i = identify_info[0] & (1 << 6);
-    simplelist_addline(
-            "Fixed device: %s", i ? "yes" : "no");
-    i = identify_info[0] & (1 << 7);
-    simplelist_addline(
-            "Removeable media: %s", i ? "yes" : "no");
-
-    return btn;
-}
-
 #else /* No SD, MMC or ATA */
 static int disk_callback(int btn, struct gui_synclist *lists)
 {
@@ -1037,29 +820,6 @@ static int disk_callback(int btn, struct gui_synclist *lists)
     simplelist_addline(
              "Cluster size: %d bytes", volume_get_cluster_size(IF_MV(0)));
     return btn;
-}
-#endif
-
-#if  (CONFIG_STORAGE & STORAGE_ATA)
-static bool dbg_identify_info(void)
-{
-    int fd = creat("/identify_info.bin", 0666);
-    if(fd >= 0)
-    {
-        const unsigned short *identify_info = ata_get_identify();
-#ifdef ROCKBOX_LITTLE_ENDIAN
-        /* this is a pointer to a driver buffer so we can't modify it */
-        for (int i = 0; i < ATA_IDENTIFY_WORDS; ++i)
-        {
-            unsigned short word = swap16(identify_info[i]);
-            write(fd, &word, 2);
-        }
-#else
-        write(fd, identify_info, ATA_IDENTIFY_WORDS*2);
-#endif
-        close(fd);
-    }
-    return false;
 }
 #endif
 
@@ -1217,65 +977,6 @@ static bool dbg_tagcache_info(void)
     return simplelist_show_list(&info);
 }
 
-#if   CONFIG_CPU == AS3525v2 || CONFIG_CPU == AS3525
-static bool dbg_save_roms(void)
-{
-    int fd = creat("/rom.bin", 0666);
-    if(fd >= 0)
-    {
-        write(fd, (void *)0x80000000, 0x20000);
-        close(fd);
-    }
-
-    return false;
-}
-#elif CONFIG_CPU == IMX31L
-bool __dbg_dvfs_dptc(void);
-static bool dbg_save_roms(void)
-{
-    int fd = creat("/flash_rom_A0000000-A01FFFFF.bin", 0666);
-    if (fd >= 0)
-    {
-        write(fd, (void*)0xa0000000, FLASH_SIZE);
-        close(fd);
-    }
-
-    return false;
-}
-#elif CONFIG_CPU == RK27XX
-static bool dbg_save_roms(void)
-{
-    char buf[0x200];
-
-    int fd = creat("/rom.bin", 0666);
-    if(fd < 0)
-        return false;
-
-    for(int addr = 0; addr < 0x2000; addr += sizeof(buf))
-    {
-        int old_irq = disable_irq_save();
-
-        /* map rom at 0 */
-        SCU_REMAP = 0;
-        commit_discard_idcache();
-
-        /* copy rom */
-        memcpy((void *)buf, (void *)addr, sizeof(buf));
-
-        /* map iram back at 0 */
-        SCU_REMAP = 0xdeadbeef;
-        commit_discard_idcache();
-
-        restore_irq(old_irq);
-
-        write(fd, (void *)buf, sizeof(buf));
-    }
-    close(fd);
-
-    return false;
-}
-#endif /* CPU */
-
 #ifndef SIMULATOR
 #endif /* !SIMULATOR */
 
@@ -1297,42 +998,6 @@ static bool dbg_metadatalog(void)
     return false;
 }
 
-#if defined(HAVE_EEPROM) && !defined(HAVE_EEPROM_SETTINGS)
-static bool dbg_write_eeprom(void)
-{
-    int fd = open("/internal_eeprom.bin", O_RDONLY);
-
-    if (fd >= 0)
-    {
-        char buf[EEPROM_SIZE];
-        int rc = read(fd, buf, EEPROM_SIZE);
-
-        if(rc == EEPROM_SIZE)
-        {
-            int old_irq_level = disable_irq_save();
-
-            int err = eeprom_24cxx_write(0, buf, sizeof buf);
-            if (err)
-                splashf(HZ*3, "Eeprom write failure (%d)", err);
-            else
-                splash(HZ*3, "Eeprom written successfully");
-
-            restore_irq(old_irq_level);
-        }
-        else
-        {
-            splashf(HZ*3, "File read error (%d)",rc);
-        }
-        close(fd);
-    }
-    else
-    {
-        splash(HZ*3, "Failed to open 'internal_eeprom.bin'");
-    }
-
-    return false;
-}
-#endif /* defined(HAVE_EEPROM) && !defined(HAVE_EEPROM_SETTINGS) */
 #ifdef CPU_BOOST_LOGGING
 static bool cpu_boost_log(void)
 {
@@ -1516,31 +1181,6 @@ static bool dbg_usb_audio(void)
 #endif /* USB_ENABLE_AUDIO */
 #endif /* HAVE_USBSTACK */
 
-#if CONFIG_USBOTG == USBOTG_ISP1583
-extern int dbg_usb_num_items(void);
-extern const char* dbg_usb_item(int selected_item, void *data,
-                                char *buffer, size_t buffer_len);
-
-static int isp1583_action_callback(int action, struct gui_synclist *lists)
-{
-    (void)lists;
-    if (action == ACTION_NONE)
-        action = ACTION_REDRAW;
-    return action;
-}
-
-static bool dbg_isp1583(void)
-{
-    struct simplelist_info isp1583;
-    isp1583.scroll_all = true;
-    simplelist_info_init(&isp1583, "ISP1583", dbg_usb_num_items(), NULL);
-    isp1583.timeout = HZ/100;
-    isp1583.get_name = dbg_usb_item;
-    isp1583.action_callback = isp1583_action_callback;
-    return simplelist_show_list(&isp1583);
-}
-#endif
-
 #if !defined(SIMULATOR)
 static bool dbg_boot_data(void)
 {
@@ -1610,65 +1250,6 @@ static bool dbg_device_data(void)
 }
 
 
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE) && defined(CONFIG_NAND) \
-    && (CONFIG_NAND == NAND_RK27XX) \
-    && !(CONFIG_STORAGE & STORAGE_NAND)
-#include "ftl-probe-rk27xx.h"
-
-/* The target does not know its NAND's FTL scheme yet: show what the
- * finder sees, for the user to report */
-static bool dbg_ftl_scheme(void)
-{
-    struct ftl_probe p;
-    struct simplelist_info info;
-
-    ftl_probe(&p);
-    simplelist_info_init(&info, "FTL scheme", 0, NULL);
-    simplelist_reset_lines();
-    simplelist_addline("Scheme: %s", ftl_probe_scheme_name(p.scheme));
-    if (p.flash_error)
-    {
-        simplelist_addline("No usable NAND (%d)", p.flash_error);
-    }
-    else
-    {
-        simplelist_addline("Chip: %lu blocks", (unsigned long)p.blocks);
-        simplelist_addline("%u planes, %u/%u sec", p.planes, p.sec_per_page,
-                           p.sec_per_block);
-        if (p.idb_boot_blocks)
-        {
-            simplelist_addline("IDB: %u blk %u+%u MB", p.idb_boot_blocks,
-                               p.idb_sys_mb, p.idb_data_mb);
-            if (p.idb_rk27)
-                simplelist_addline("IDB: RK27, ECC t=%u", p.idb_ecc_t);
-            else
-                simplelist_addline("IDB: early layout");
-        }
-        else
-            simplelist_addline("IDB: none");
-        simplelist_addline("Scanned %u blocks, t=%u", p.scanned, p.scan_ecc_t);
-        simplelist_addline("Erased %u, bad ECC %u", p.erased, p.unreadable);
-        simplelist_addline("A: %u logs, %u used", p.a_logs, p.a_blocks);
-        simplelist_addline("B: %u tables at %u", p.b_tables,
-                           p.b_tables ? p.first_b_table : 0);
-        simplelist_addline("B: %u cache, %u data", p.b_cache, p.b_data);
-        if (p.b_other)
-            simplelist_addline("B: %u other, %04x", p.b_other, p.first_b_other);
-        if (p.other)
-            simplelist_addline("Other: %u, %u %02x%02x%02x", p.other,
-                               p.first_other, p.first_other_meta[0],
-                               p.first_other_meta[1], p.first_other_meta[2]);
-    }
-    return simplelist_show_list(&info);
-}
-#endif
-
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE) && defined(CONFIG_NAND) \
-    && (CONFIG_NAND == NAND_RK27XX) \
-    && (CONFIG_STORAGE & STORAGE_NAND)
-#include "ftl-target.h"
-#endif
-
 #ifdef FTL_SYS_ON_USB
 /* The NAND's hidden SYS volume, shown to a USB host in place of USER for
  * one connection */
@@ -1686,18 +1267,6 @@ static const struct {
     unsigned char *desc; /* string or ID */
     bool (*function) (void); /* return true if USB was connected */
 } menuitems[] = {
-#if (CONFIG_CPU == IMX31L) || (CONFIG_CPU == AS3525v2) || (CONFIG_CPU == AS3525) || (CONFIG_CPU == RK27XX)
-        { "Dump ROM contents", dbg_save_roms },
-#endif
-#if ((CONFIG_CPU == S3C2440) || (CONFIG_CPU == IMX31L) || (CONFIG_CPU == AS3525) || (CONFIG_CPU == DM320)) || (CONFIG_CPU == AS3525v2) || (CONFIG_CPU == RK27XX) || (CONFIG_CPU == JZ4760B)
-        { "View I/O ports", dbg_ports },
-#endif
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-        { "CPU frequency", dbg_cpufreq },
-#endif
-#if CONFIG_CPU == IMX31L
-        { "DVFS/DPTC", __dbg_dvfs_dptc },
-#endif
         { "View OS stacks", dbg_os },
 #ifdef __linux__
         { "View CPU stats", dbg_cpuinfo },
@@ -1710,11 +1279,6 @@ static const struct {
 #if ((CONFIG_PLATFORM & PLATFORM_NATIVE) || defined(SONY_NWZ_LINUX)) && !defined(SIMULATOR)
         { "View HW info", dbg_hw_info },
 #endif
-#if (CONFIG_PLATFORM & PLATFORM_NATIVE) && defined(CONFIG_NAND) \
-    && (CONFIG_NAND == NAND_RK27XX) \
-    && !(CONFIG_STORAGE & STORAGE_NAND)
-        { "View FTL scheme", dbg_ftl_scheme },
-#endif
 #ifdef FTL_SYS_ON_USB
         { "NAND SYS on next USB", dbg_nand_sys_usb },
 #endif
@@ -1723,9 +1287,6 @@ static const struct {
 #endif
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
         { "View disk info", dbg_disk_info },
-#if (CONFIG_STORAGE & STORAGE_ATA)
-        { "Dump ATA identify info", dbg_identify_info},
-#endif
 #endif
         { "Metadata log", dbg_metadatalog },
 #ifdef HAVE_DIRCACHE
@@ -1740,12 +1301,6 @@ static const struct {
         { "View buflib allocs", dbg_buflib_allocs },
 #endif
 #ifndef SIMULATOR
-#endif
-#if defined(HAVE_EEPROM) && !defined(HAVE_EEPROM_SETTINGS)
-        { "Write back EEPROM", dbg_write_eeprom },
-#endif
-#if CONFIG_USBOTG == USBOTG_ISP1583
-        { "View ISP1583 info", dbg_isp1583 },
 #endif
 #ifdef ROCKBOX_HAS_LOGF
         {"Show Log File", logfdisplay },
@@ -1762,9 +1317,6 @@ static const struct {
 #ifdef CPU_BOOST_LOGGING
         {"Show cpu_boost log",cpu_boost_log},
         {"Dump cpu_boost log",cpu_boost_log_dump},
-#endif
-#if defined(IPOD_ACCESSORY_PROTOCOL)
-        {"Debug IAP", dbg_iap },
 #endif
         {"Talk engine stats", dbg_talk },
 #if !defined(SIMULATOR)

@@ -264,29 +264,12 @@ int volume_partition(int volume)
     return 0;
 }
 
-#if (CONFIG_STORAGE & STORAGE_MMC)
-bool mmc_touched(void)
-{
-    return hostfs_present(1);
-}
-#endif
-
 #ifdef CONFIG_STORAGE_MULTI
 int hostfs_driver_type(int drive)
 {
     /* Hack alert */
-#if (CONFIG_STORAGE & STORAGE_ATA)
- #define SIMEXT1_TYPE_NUM   STORAGE_ATA_NUM
-#elif (CONFIG_STORAGE & STORAGE_SD)
+#if   (CONFIG_STORAGE & STORAGE_SD)
  #define SIMEXT1_TYPE_NUM   STORAGE_SD_NUM
-#elif (CONFIG_STORAGE & STORAGE_MMC)
- #define SIMEXT1_TYPE_NUM   STORAGE_MMC_NUM
-#elif (CONFIG_STORAGE & STORAGE_NAND)
- #define SIMEXT1_TYPE_NUM   STORAGE_NAND_NUM
-#elif (CONFIG_STORAGE & STORAGE_RAMDISK)
- #define SIMEXT1_TYPE_NUM   STORAGE_RAMDISK_NUM
-#elif (CONFIG_STORAGE & STORAGE_USB)
- #define SIMEXT1_TYPE_NUM   STORAGE_USB_NUM
 #else
 #error Unknown storage driver
 #endif /* CONFIG_STORAGE */

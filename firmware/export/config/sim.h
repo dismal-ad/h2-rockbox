@@ -4,18 +4,12 @@
 #undef CONFIG_CPU
 #define CONFIG_CPU 0
 
-#undef HAVE_FMADC
 
-#undef NEED_ATA_POWER_BATT_MEASURE
 
 #undef CONFIG_I2C
 
-#undef HAVE_PCM_DMA_ADDRESS
-#undef HAVE_PCM_REC_DMA_ADDRESS
 
-#undef FLASH_SIZE
 
-#undef HAVE_ATA_POWER_OFF
 
 #undef CONFIG_LCD
 #define CONFIG_LCD 0
@@ -24,14 +18,11 @@
 
 #undef CONFIG_LED
 
-#undef ROM_START
 
-#undef AMS_OF_SIZE
 
 #undef HAVE_HOTSWAP_STORAGE_AS_MAIN
 #undef HAVE_STORAGE_FLUSH
 
-#undef CONFIG_NAND
 
 #if defined(CONFIG_CHARGING) && CONFIG_CHARGING > CHARGING_MONITOR
 #undef CONFIG_CHARGING
@@ -42,50 +33,33 @@
  * Effectively disable battery smoothing, our simulated charge/ discharge
  * cycle is way too fast for it otherwise
  */
-#undef BATT_AVE_SAMPLES
 #define BATT_AVE_SAMPLES 1
 
 #undef CONFIG_USBOTG
 
-#undef USB_HANDLED_BY_OF
 
 #undef HAVE_USBSTACK
 #undef USB_VENDOR_ID
 #undef USB_PRODUCT_ID
-#undef USB_NUM_ENDPOINTS
-#undef HAVE_USB_HID_MOUSE
 
-#undef HAVE_ADJUSTABLE_CPU_FREQ
 
-#undef MI4_FORMAT
 #undef BOOTFILE_EXT
 #undef BOOTFILE
 #undef BOOTDIR
 
-#undef BOOTLOADER_ENTRYPOINT
 
-#undef FLASH_ENTRYPOINT
 
-#undef FLASH_MAGIC
 
-#undef HAVE_EEPROM
-#undef HAVE_EEPROM_SETTINGS
 
-#undef HAVE_HARDWARE_BEEP
 
 #undef HAVE_POWEROFF_WHILE_CHARGING
 
 #undef INCLUDE_TIMEOUT_API
 
-#undef IPOD_ACCESSORY_PROTOCOL
 
-#undef HAVE_WHEEL_POSITION
 
-#undef HAVE_LCD_MODES
 
-#undef HAVE_SPEAKER
 
-#undef BUTTON_DRIVER_CLOSE
 
 #if defined(CONFIG_BACKLIGHT_FADING)
 #if     (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_HW_REG)

@@ -62,47 +62,12 @@
     #define SPC_NOECHO 0
 #endif
 
-#if   (CONFIG_CPU == MCF5250)
 #define IBSS_ATTR_SPC               IBSS_ATTR
 #define ICODE_ATTR_SPC              ICODE_ATTR
 #define ICONST_ATTR_SPC             ICONST_ATTR
 #define IDATA_ATTR_SPC              IDATA_ATTR
 /* Not enough IRAM available to move further data to it. */
 #define IBSS_ATTR_SPC_LARGE_IRAM
-
-#elif (CONFIG_CPU == PP5020)
-/* spc is slower on PP5020 when moving data to IRAM. */
-#define IBSS_ATTR_SPC
-#define ICODE_ATTR_SPC
-#define ICONST_ATTR_SPC
-#define IDATA_ATTR_SPC
-/* Not enough IRAM available to move further data to it. */
-#define IBSS_ATTR_SPC_LARGE_IRAM
-
-#elif (CONFIG_CPU == PP5022) || (CONFIG_CPU == PP5024) || (CONFIG_CPU == S5L8702)
-#define IBSS_ATTR_SPC               IBSS_ATTR
-#define ICODE_ATTR_SPC              ICODE_ATTR
-#define ICONST_ATTR_SPC             ICONST_ATTR
-#define IDATA_ATTR_SPC              IDATA_ATTR
-/* Not enough IRAM available to move further data to it. */
-#define IBSS_ATTR_SPC_LARGE_IRAM
-
-#elif (CONFIG_CPU == S5L8700) || (CONFIG_CPU == S5L8701)
-#define IBSS_ATTR_SPC               IBSS_ATTR
-#define ICODE_ATTR_SPC              ICODE_ATTR
-#define ICONST_ATTR_SPC             ICONST_ATTR
-#define IDATA_ATTR_SPC              IDATA_ATTR
-/* Very large IRAM. Move even more data to it. */
-#define IBSS_ATTR_SPC_LARGE_IRAM    IBSS_ATTR
-
-#else
-#define IBSS_ATTR_SPC               IBSS_ATTR
-#define ICODE_ATTR_SPC              ICODE_ATTR
-#define ICONST_ATTR_SPC             ICONST_ATTR
-#define IDATA_ATTR_SPC              IDATA_ATTR
-/* Not enough IRAM available to move further data to it. */
-#define IBSS_ATTR_SPC_LARGE_IRAM
-#endif
 
 #if SPC_DUAL_CORE
     #undef SHAREDBSS_ATTR

@@ -33,10 +33,8 @@
 #define BATT_DISCHARGE_STEP ((BATT_MAXMVOLT - BATT_MINMVOLT) / 100)
 /* Number of millivolts to charge the battery every second */
 #define BATT_CHARGE_STEP (BATT_DISCHARGE_STEP * 2)
-#if CONFIG_CHARGING >= CHARGING_MONITOR
 /* Number of seconds to externally power before discharging again */
 #define POWER_AFTER_CHARGE_TICKS (8 * HZ)
-#endif
 
 static bool charging = false;
 static unsigned int batt_millivolts = BATT_MAXMVOLT;
@@ -50,17 +48,14 @@ static void battery_status_update(void)
 {
     /* Delay next battery update until tick */
     static long update_after_tick = 0;
-#if CONFIG_CHARGING >= CHARGING_MONITOR
     /* When greater than 0, the tick to unplug the external power at */
     static unsigned int ext_power_until_tick = 0;
-#endif
 
     if(TIME_BEFORE(current_tick, update_after_tick))
         return;
 
     update_after_tick = current_tick + HZ;
 
-#if CONFIG_CHARGING >= CHARGING_MONITOR
     /* Handle period of being externally powered */
     if (ext_power_until_tick > 0) {
         if (TIME_AFTER(current_tick, ext_power_until_tick)) {
@@ -70,28 +65,20 @@ static void battery_status_update(void)
         }
         return;
     }
-#endif
 
     if (charging) {
         batt_millivolts += BATT_CHARGE_STEP;
         if (batt_millivolts >= BATT_MAXMVOLT) {
             charging = false;
-#if CONFIG_CHARGING >= CHARGING_MONITOR
             /* Keep external power until tick */
             ext_power_until_tick = current_tick + POWER_AFTER_CHARGE_TICKS;
-#elif CONFIG_CHARGING
-            /* Pretend the charger was disconnected */
-            charger_input_state = CHARGER_UNPLUGGED;
-#endif
         }
     } else {
         batt_millivolts -= BATT_DISCHARGE_STEP;
         if (batt_millivolts <= BATT_MINMVOLT) {
             charging = true;
-#if CONFIG_CHARGING
             /* Pretend the charger was connected */
             charger_input_state = CHARGER_PLUGGED;
-#endif
         }
     }
 
@@ -122,7 +109,6 @@ int _battery_level(void)
     return batt_percent;
 }
 
-#if CONFIG_CHARGING
 unsigned int power_input_status(void)
 {
     unsigned int status = charger_input_state >= CHARGER_PLUGGED
@@ -135,5 +121,4 @@ bool charging_state(void)
 {
     return charging;
 }
-#endif
 

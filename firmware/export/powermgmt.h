@@ -28,27 +28,22 @@
 enum charge_state_type
 {
     /* sorted by increasing charging current (do not change!) */
-#if CONFIG_CHARGING >= CHARGING_MONITOR
     CHARGE_STATE_DISABLED = -2, /* Disable charger use (safety measure) */
     CHARGE_STATE_ERROR = -1,    /* Some error occurred that should not allow
                                    turning on the charger again by software
                                    without user intervention (ie. replug) */
-#endif
     DISCHARGING = 0,
-#if CONFIG_CHARGING >= CHARGING_MONITOR
     TRICKLE,         /* For NiCd, battery maintenence phase */
                      /* For LiIon, low-current precharge phase */
     TOPOFF,          /* For NiCd, waiting for dead zone */
                      /* For LiIon, constant voltage phase */
     CHARGING,        /* For NiCd, main charge phase */
                      /* For LiIon, constant current phase */
-#endif
 };
 
 /* tells what the charger is doing */
 extern enum charge_state_type charge_state;
 
-#if CONFIG_CHARGING
 /*
  * Flag that the charger has been plugged in/removed: this is set for exactly
  * one time through the power loop when the charger has been plugged in.
@@ -67,18 +62,11 @@ extern enum charger_input_state_type charger_input_state;
 /* Power input status saved on the power thread each loop */
 extern unsigned int power_thread_inputs;
 
-#endif /* CONFIG_CHARGING */
-
 enum shutdown_type
 {
     SHUTDOWN_POWER_OFF,
     SHUTDOWN_REBOOT,
 };
-
-#if CONFIG_CHARGING == CHARGING_TARGET
-/* Include target-specific definitions */
-#include "powermgmt-target.h"
-#endif
 
 /* Start up power management thread */
 void powermgmt_init(void) INIT_ATTR;
@@ -110,9 +98,7 @@ struct battery_tables_t {
     unsigned short * const disksafe;
     unsigned short * const shutoff;
     unsigned short * const discharge;
-#if CONFIG_CHARGING
     unsigned short * const charge;
-#endif
     const unsigned short elems;
     bool isdefault;
 };
@@ -129,12 +115,6 @@ int _battery_level(void); /* percent */
 int _battery_time(void); /* minutes */
 int _battery_voltage(void); /* voltage in millivolts */
 int _battery_current(void); /* (dis)charge current in milliamps */
-
-#if CONFIG_CHARGING >= CHARGING_TARGET
-void powermgmt_init_target(void);
-void charging_algorithm_close(void);
-void charging_algorithm_step(void);
-#endif
 
 
 /* read unfiltered battery info */

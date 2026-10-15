@@ -85,9 +85,7 @@ static int selectivebacklight_set_mask(void* param)
                                        {ID2P(LANG_ACTION_SEEK), SEL_ACTION_SEEK},
                                        {ID2P(LANG_ACTION_SKIP), SEL_ACTION_SKIP},
                      {ID2P(LANG_ACTION_DISABLE_UNMAPPED), SEL_ACTION_NOUNMAPPED}
-#if CONFIG_CHARGING
                         ,{ID2P(LANG_ACTION_DISABLE_EXT_POWER), SEL_ACTION_NOEXT}
-#endif
                                             };
 
             mask = mask_select(mask, ID2P(LANG_BACKLIGHT_SELECTIVE)
@@ -106,10 +104,8 @@ static int selectivebacklight_set_mask(void* param)
 /***********************************/
 /*    LCD MENU                     */
 MENUITEM_SETTING(backlight_timeout, &global_settings.backlight_timeout, NULL);
-#if CONFIG_CHARGING
 MENUITEM_SETTING(backlight_timeout_plugged,
                 &global_settings.backlight_timeout_plugged, NULL);
-#endif
 
 MENUITEM_SETTING(backlight_on_button_hold,
                 &global_settings.backlight_on_button_hold, NULL);
@@ -138,9 +134,7 @@ MENUITEM_SETTING(brightness_item, &global_settings.brightness, NULL);
 MAKE_MENU(lcd_settings,ID2P(LANG_LCD_MENU),
             NULL, Icon_Display_menu
             ,&backlight_timeout
-# if CONFIG_CHARGING
             ,&backlight_timeout_plugged
-# endif
             ,&backlight_on_button_hold
             ,&caption_backlight
             ,&backlight_fade_in, &backlight_fade_out

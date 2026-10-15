@@ -33,9 +33,7 @@ struct status_info {
     int volume;
     int playmode;
     int repeat;
-#if CONFIG_CHARGING
     bool inserted;
-#endif
 #ifdef HAVE_USB_POWER
     bool usb_inserted;
 #endif
@@ -45,9 +43,7 @@ struct status_info {
 #ifdef HAS_REMOTE_BUTTON_HOLD
     bool keylockremote;
 #endif
-#if (CONFIG_LED == LED_VIRTUAL)
     bool led; /* disk LED simulation in the status bar */
-#endif
 
 };
 

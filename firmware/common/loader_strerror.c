@@ -40,14 +40,6 @@ char *loader_strerror(enum error_t error)
         return "File too big";
     case EINVALID_FORMAT:
         return "Invalid file format";
-#if defined(MI4_FORMAT)
-    case EREAD_HEADER_FAILED:
-        return "Can't read mi4 header";
-    case EKEY_NOT_FOUND:
-        return "Can't find crypt key";
-    case EDECRYPT_FAILED:
-        return "Decryption failed";
-#endif
     default:
         return "Unknown error";
     }

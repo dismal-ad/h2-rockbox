@@ -62,10 +62,6 @@ intptr_t button_get_data(void);
 
 bool headphones_inserted(void);
 bool lineout_inserted(void);
-#ifdef HAVE_WHEEL_POSITION
-int wheel_status(void);
-void wheel_send_events(bool send);
-#endif
 
 #define BUTTON_NONE         0x00000000
 

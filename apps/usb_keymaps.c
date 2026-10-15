@@ -106,65 +106,11 @@ static const hid_key_mapping_t hid_key_mapping_browser = {
     }
 };
 
-#ifdef HAVE_USB_HID_MOUSE
-static const hid_key_mapping_t hid_key_mapping_mouse = {
-    LANG_MOUSE_MODE,
-    CONTEXT_USB_HID_MODE_MOUSE,
-    HID_USAGE_PAGE_GENERIC_DESKTOP_CONTROLS,
-    {
-        /* Cursor move up */
-        { ACTION_USB_HID_MOUSE_UP,                HID_MOUSE_UP },
-        { ACTION_USB_HID_MOUSE_UP_REP,            HID_MOUSE_UP_REP },
-        { ACTION_USB_HID_MOUSE_LDRAG_UP,          HID_MOUSE_LDRAG_UP },
-        { ACTION_USB_HID_MOUSE_LDRAG_UP_REP,      HID_MOUSE_LDRAG_UP_REP },
-        { ACTION_USB_HID_MOUSE_RDRAG_UP,          HID_MOUSE_RDRAG_UP },
-        { ACTION_USB_HID_MOUSE_RDRAG_UP_REP,      HID_MOUSE_RDRAG_UP_REP },
-        /* Cursor move down */
-        { ACTION_USB_HID_MOUSE_DOWN,              HID_MOUSE_DOWN },
-        { ACTION_USB_HID_MOUSE_DOWN_REP,          HID_MOUSE_DOWN_REP },
-        { ACTION_USB_HID_MOUSE_LDRAG_DOWN,        HID_MOUSE_LDRAG_DOWN },
-        { ACTION_USB_HID_MOUSE_LDRAG_DOWN_REP,    HID_MOUSE_LDRAG_DOWN_REP },
-        { ACTION_USB_HID_MOUSE_RDRAG_DOWN,        HID_MOUSE_RDRAG_DOWN },
-        { ACTION_USB_HID_MOUSE_RDRAG_DOWN_REP,    HID_MOUSE_RDRAG_DOWN_REP },
-        /* Cursor move left */
-        { ACTION_USB_HID_MOUSE_LEFT,              HID_MOUSE_LEFT },
-        { ACTION_USB_HID_MOUSE_LEFT_REP,          HID_MOUSE_LEFT_REP },
-        { ACTION_USB_HID_MOUSE_LDRAG_LEFT,        HID_MOUSE_LDRAG_LEFT },
-        { ACTION_USB_HID_MOUSE_LDRAG_LEFT_REP,    HID_MOUSE_LDRAG_LEFT_REP },
-        { ACTION_USB_HID_MOUSE_RDRAG_LEFT,        HID_MOUSE_RDRAG_LEFT },
-        { ACTION_USB_HID_MOUSE_RDRAG_LEFT_REP,    HID_MOUSE_RDRAG_LEFT_REP },
-        /* Cursor move right */
-        { ACTION_USB_HID_MOUSE_RIGHT,             HID_MOUSE_RIGHT },
-        { ACTION_USB_HID_MOUSE_RIGHT_REP,         HID_MOUSE_RIGHT_REP },
-        { ACTION_USB_HID_MOUSE_LDRAG_RIGHT,       HID_MOUSE_LDRAG_RIGHT },
-        { ACTION_USB_HID_MOUSE_LDRAG_RIGHT_REP,   HID_MOUSE_LDRAG_RIGHT_REP },
-        { ACTION_USB_HID_MOUSE_RDRAG_RIGHT,       HID_MOUSE_RDRAG_RIGHT },
-        { ACTION_USB_HID_MOUSE_RDRAG_RIGHT_REP,   HID_MOUSE_RDRAG_RIGHT_REP },
-        /* Mouse button left-click */
-        { ACTION_USB_HID_MOUSE_BUTTON_LEFT,       HID_MOUSE_BUTTON_LEFT },
-        { ACTION_USB_HID_MOUSE_BUTTON_LEFT_REL,   HID_MOUSE_BUTTON_LEFT_REL },
-        /* Mouse button right-click */
-        { ACTION_USB_HID_MOUSE_BUTTON_RIGHT,      HID_MOUSE_BUTTON_RIGHT },
-        { ACTION_USB_HID_MOUSE_BUTTON_RIGHT_REL,  HID_MOUSE_BUTTON_RIGHT_REL },
-        /* Mouse wheel scroll up */
-        { ACTION_USB_HID_MOUSE_WHEEL_SCROLL_UP,   HID_MOUSE_SCROLL_UP },
-        /* Mouse wheel scroll down */
-        { ACTION_USB_HID_MOUSE_WHEEL_SCROLL_DOWN, HID_MOUSE_SCROLL_DOWN },
-        { 0,                                     0 },
-    }
-};
-
-#define USB_KEYPAD_MODE_MOUSE 3 /* Value of the mouse setting (hard-coded) */
-#endif /* HAVE_USB_HID_MOUSE */
-
 static const hid_key_mapping_t *hid_key_mappings[] =
 {
     &hid_key_mapping_multimedia,
     &hid_key_mapping_presentation,
     &hid_key_mapping_browser,
-#ifdef HAVE_USB_HID_MOUSE
-    &hid_key_mapping_mouse,
-#endif
 };
 
 extern int usb_keypad_mode;

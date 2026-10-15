@@ -193,11 +193,6 @@ void dircache_dump(void);
 /** Misc. stuff **/
 void dircache_dcfile_init(struct dircache_file *dcfilep);
 
-#ifdef HAVE_EEPROM_SETTINGS
-int dircache_load(void);
-int dircache_save(void);
-#endif /* HAVE_EEPROM_SETTINGS */
-
 void dircache_init(size_t last_size) INIT_ATTR;
 
 #else /* !HAVE_DIRCACHE */

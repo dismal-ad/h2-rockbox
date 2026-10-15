@@ -195,19 +195,8 @@ enum { AUTORESUME_NEXTTRACK_NEVER = 0, AUTORESUME_NEXTTRACK_ALWAYS,
 */
 
 #define VIRT_SIZE 0xFFFF /* more than enough for our string ID range */
-#if   CONFIG_CPU==DM320 || CONFIG_CPU == RK27XX
-/* 4K of IRAM at 0x0 */
-#define VIRT_PTR ((unsigned char*)0x4000)
-#elif (CONFIG_CPU == S3C2440) || (CONFIG_CPU==IMX31L)
-/* up to 64MB of DRAM at 0x0 */
-#define VIRT_PTR ((unsigned char*)0x4000000)
-#elif CONFIG_CPU == STM32H743
-/* 64k ITCM at 0x0 */
-#define VIRT_PTR ((unsigned char*)0x10000)
-#else
 /* offset from 0x0 slightly */
 #define VIRT_PTR ((unsigned char*)sizeof(char*))
-#endif
 
 /* form a "virtual pointer" out of a language ID */
 #define ID2P(id) (VIRT_PTR + id)
@@ -528,9 +517,7 @@ struct user_settings
                                 0=always, or time in seconds */
     bool caption_backlight; /* turn on backlight at end and start of track */
     bool bl_filter_first_keypress;   /* filter first keypress when dark? */
-#if CONFIG_CHARGING
     int backlight_timeout_plugged;
-#endif
     bool bt_selective_softlock_actions;
     int bt_selective_softlock_actions_mask;
     bool bl_selective_actions; /* backlight disable on some actions */
@@ -542,13 +529,6 @@ struct user_settings
     bool backlight_fade_out;
     int brightness;
 
-#ifdef IPOD_ACCESSORY_PROTOCOL
-    int serial_bitrate; /* 0=auto 1=9600 2=19200 3=38400 4=57600 */
-#endif
-
-#ifdef HAVE_SPEAKER
-    int speaker_mode; /* 0: off, 1: on, 2: auto (only if headphone detection) */
-#endif /* HAVE_SPEAKER */
     bool prevent_skip;
 
 #ifdef HAVE_PITCHCONTROL
@@ -567,10 +547,6 @@ struct user_settings
 
 #if defined(USB_ENABLE_AUDIO)
     int usb_audio;
-#endif
-
-#if defined(USB_ENABLE_STORAGE) && defined(HAVE_MULTIDRIVE)
-    bool usb_skip_first_drive;
 #endif
 
     unsigned char ui_vp_config[64]; /* viewport string for the lists */

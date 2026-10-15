@@ -338,15 +338,6 @@ struct ramcache_header {
     struct index_entry indices[0]; /* Master index file content */
 };
 
-#ifdef HAVE_EEPROM_SETTINGS
-struct statefile_header {
-    int32_t magic;                /* Statefile version number */
-    struct master_header mh;      /* Header from the master index */
-    struct ramcache_header *hdr;  /* Old load address of hdr for relocation */
-    struct tagcache_stat tc_stat;
-};
-#endif /* HAVE_EEPROM_SETTINGS */
-
 /* In-RAM ramcache structure (not persisted) */
 static struct tcramcache
 {
@@ -3410,10 +3401,6 @@ static bool commit(void)
     /* Fully initialize existing headers (if any) before going further. */
     tc_stat.ready = check_all_headers();
 
-#ifdef HAVE_EEPROM_SETTINGS
-    remove_db_file(TAGCACHE_STATEFILE);
-#endif
-
     /* At first be sure to unload the ramcache! */
 #ifdef HAVE_TC_RAMCACHE
     tc_stat.ramcache = false;
@@ -4334,99 +4321,6 @@ static bool allocate_tagcache(void)
     return true;
 }
 
-#ifdef HAVE_EEPROM_SETTINGS
-static bool tagcache_dumpload(void)
-{
-    struct statefile_header shdr;
-    int fd, rc, handle;
-
-    tcramcache.handle = 0;
-    tcramcache.hdr = NULL;
-
-    fd = open_db_fd(TAGCACHE_STATEFILE, O_RDONLY);
-    if (fd < 0)
-    {
-        logf("no tagcache statedump");
-        return false;
-    }
-
-    /* Check the statefile memory placement */
-    rc = read(fd, &shdr, sizeof(struct statefile_header));
-    if (rc != sizeof(struct statefile_header)
-        || shdr.magic != TAGCACHE_STATEFILE_MAGIC
-        || shdr.mh.tch.magic != TAGCACHE_MAGIC)
-    {
-        logf("incorrect statefile");
-        close(fd);
-        return false;
-    }
-
-    /* Lets allocate real memory and load it */
-    handle = core_alloc_ex(shdr.tc_stat.ramcache_allocated, &ops);
-    if (handle <= 0)
-    {
-        logf("alloc failure");
-        return false;
-    }
-
-    tcramcache.handle = handle;
-    tcrc_buffer_lock();
-    tcramcache.hdr = core_get_data(handle);
-    rc = read(fd, tcramcache.hdr, shdr.tc_stat.ramcache_allocated);
-    tcrc_buffer_unlock();
-
-    close(fd);
-
-    if (rc != shdr.tc_stat.ramcache_allocated)
-    {
-        logf("read failure!");
-        core_free(handle);
-        return false;
-    }
-
-    tc_stat = shdr.tc_stat;
-
-    /* Now fix the pointers */
-    fix_ramcache(shdr.hdr, tcramcache.hdr);
-
-    /* Load the tagcache master header (should match the actual DB file header). */
-    memcpy(&current_tcmh, &shdr.mh, sizeof current_tcmh);
-
-    return true;
-}
-
-static bool tagcache_dumpsave(void)
-{
-    struct statefile_header shdr;
-    int fd;
-
-    if (!tc_stat.ramcache)
-        return false;
-
-    fd = open_db_fd(TAGCACHE_STATEFILE, O_WRONLY | O_CREAT | O_TRUNC);
-    if (fd < 0)
-    {
-        logf("failed to create a statedump");
-        return false;
-    }
-
-    /* Create the header */
-    shdr.magic = TAGCACHE_STATEFILE_MAGIC;
-    shdr.hdr = tcramcache.hdr;
-    memcpy(&shdr.mh, &current_tcmh, sizeof current_tcmh);
-    memcpy(&shdr.tc_stat, &tc_stat, sizeof tc_stat);
-    write(fd, &shdr, sizeof shdr);
-
-    /* And dump the data too */
-    tcrc_buffer_lock();
-    write(fd, tcramcache.hdr, tc_stat.ramcache_allocated);
-    tcrc_buffer_unlock();
-    close(fd);
-
-    return true;
-}
-#endif /* HAVE_EEPROM_SETTINGS */
-
 static bool load_tagcache(void)
 {
     /* DEBUG: After tagcache commit and dircache rebuild, hdr-sturcture
@@ -5151,15 +5045,6 @@ static void tagcache_thread(void)
     }
 
 #ifdef HAVE_TC_RAMCACHE
-#ifdef HAVE_EEPROM_SETTINGS
-    if (firmware_settings.initialized && firmware_settings.disk_clean
-        && global_settings.tagcache_ram)
-    {
-        check_done = tagcache_dumpload();
-    }
-
-    remove_db_file(TAGCACHE_STATEFILE);
-#endif /* HAVE_EEPROM_SETTINGS */
 
     /* Allocate space for the tagcache if found on disk. */
     if (global_settings.tagcache_ram && !tc_stat.ramcache)
@@ -5268,10 +5153,6 @@ void tagcache_shutdown(void)
     /* Flush the command queue. */
     run_command_queue(true);
 
-#if defined(HAVE_EEPROM_SETTINGS) && defined(HAVE_TC_RAMCACHE)
-    if (tc_stat.ramcache)
-        tagcache_dumpsave();
-#endif
 }
 
 void tagcache_remove_statefile(void)

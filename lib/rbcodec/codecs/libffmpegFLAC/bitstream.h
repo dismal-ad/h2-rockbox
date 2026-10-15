@@ -18,22 +18,12 @@
   #define ICODE_ATTR
 #endif
 
-#if (CONFIG_CPU == MCF5250) || (CONFIG_CPU == PP5022) || \
-    (CONFIG_CPU == PP5024)
-#define ICODE_ATTR_FLAC ICODE_ATTR
-#define IBSS_ATTR_FLAC  IBSS_ATTR
-/* Enough IRAM to move additional data to it. */
-#define IBSS_ATTR_FLAC_LARGE_IRAM   IBSS_ATTR
-#define IBSS_ATTR_FLAC_XLARGE_IRAM
-#define IBSS_ATTR_FLAC_XXLARGE_IRAM
-#else
 #define ICODE_ATTR_FLAC ICODE_ATTR
 #define IBSS_ATTR_FLAC  IBSS_ATTR
 /* Not enough IRAM available. */
 #define IBSS_ATTR_FLAC_LARGE_IRAM
 #define IBSS_ATTR_FLAC_XLARGE_IRAM
 #define IBSS_ATTR_FLAC_XXLARGE_IRAM
-#endif
 
 #if (ARCH == ARCH_M68K) || (MEMORYSIZE <= 2)
 #define MAX_BLOCKSIZE 4608

@@ -52,9 +52,7 @@
 #endif
 
 #if defined(HAVE_MULTIDRIVE) || defined(HAVE_SPECIAL_DIRS)
-#if (CONFIG_PLATFORM & PLATFORM_ANDROID)
-static const char rbhome[] = "/sdcard";
-#elif (CONFIG_PLATFORM & PLATFORM_SDL) \
+#if   (CONFIG_PLATFORM & PLATFORM_SDL) \
         && !defined(__PCTOOL__)
 static const char *rbhome;
 #elif defined(PIVOT_ROOT)
@@ -123,11 +121,6 @@ void paths_init(void)
 {
 #ifdef HAVE_SPECIAL_DIRS
     /* make sure $HOME/.config/rockbox.org exists, it's needed for config.cfg */
-#if (CONFIG_PLATFORM & PLATFORM_ANDROID)
-    os_mkdir("/sdcard/rockbox" __MKDIR_MODE_ARG);
-    os_mkdir("/sdcard/rockbox/rocks.data" __MKDIR_MODE_ARG);
-    os_mkdir("/sdcard/rockbox/eqs" __MKDIR_MODE_ARG);
-#else
     char config_dir[MAX_PATH];
 
     const char *home = getenv("RBROOT");
@@ -150,7 +143,6 @@ void paths_init(void)
     /* Plugin data directory */
     snprintf(config_dir, sizeof(config_dir), "%s/.config/rockbox.org/rocks.data", home);
     os_mkdir(config_dir __MKDIR_MODE_ARG);
-#endif
 #endif /* HAVE_SPECIAL_DIRS */
 #ifdef HAVE_MULTIDRIVE
     startup_rbhome();
@@ -169,14 +161,9 @@ static const char* _get_user_file_path(const char *path,
     pos += ROCKBOX_DIR_LEN;
     while (*pos == PATH_SEPCH) pos++;
 
-#if (CONFIG_PLATFORM & PLATFORM_ANDROID)
-    if (path_append(buf, "/sdcard/rockbox", pos, bufsize) >= bufsize)
-        return NULL;
-#else
     if (path_append(buf, rbhome, ".config/rockbox.org", bufsize) >= bufsize ||
         path_append(buf, PA_SEP_SOFT, pos, bufsize) >= bufsize)
         return NULL;
-#endif
 
     /* always return the replacement buffer (pointing to $HOME) if
      * write access is needed */

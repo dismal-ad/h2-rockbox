@@ -32,21 +32,9 @@ pitchscreen
 multivolume
 #endif
 
-#if defined(HAVE_MULTIDRIVE) && defined(USB_ENABLE_STORAGE)
-multidrive_usb
-#endif
-
 quickscreen
 
 rtc
-
-#if defined(IPOD_ACCESSORY_PROTOCOL)
-serial_port
-#endif
-
-#if defined(HAVE_SPEAKER)
-speaker
-#endif
 
 swcodec
 
@@ -56,11 +44,9 @@ tagcache
 tc_ramcache
 #endif
 
-#if CONFIG_CHARGING
 charging
 #if defined(HAVE_USB_CHARGING_ENABLE)
 usb_charging_enable
-#endif
 #endif
 
 /* This should be AUDIOHW_HAVE_FILTER_ROLL_OFF but that is only defined later */
@@ -104,9 +90,6 @@ usbstack
 
 #if defined(USB_ENABLE_HID)
 usb_hid
-#if defined(HAVE_USB_HID_MOUSE)
-usb_hid_mouse
-#endif
 #endif
 
 #if MEMORYSIZE <= 2

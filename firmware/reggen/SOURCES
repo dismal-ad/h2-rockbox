@@ -1,3 +1,0 @@
-#if CONFIG_CPU == STM32H743
-stm32h743.regs
-#endif

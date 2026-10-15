@@ -757,12 +757,7 @@ static int load_plugin_screen(char *key)
 
 static void ignore_back_button_stub(bool ignore)
 {
-#if (CONFIG_PLATFORM&PLATFORM_ANDROID)
-    /* BACK button to be handled by Android instead of rockbox */
-    android_ignore_back_button(ignore);
-#else
     (void) ignore;
-#endif
 }
 
 static int root_menu_setup_screens(void)

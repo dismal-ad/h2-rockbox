@@ -27,11 +27,7 @@
 #define FP_ONE_VOLUME FP_ONE_GAIN
 
 // IRAM configuration
-#if (CONFIG_CPU == PP5022) || (CONFIG_CPU == PP5024)
-	#define EMU2413_CALC_ICODE  ICODE_ATTR
-#else
 	#define EMU2413_CALC_ICODE
-#endif
 
 // BLARGG_RESTRICT: equivalent to C99's restrict, where supported
 #if __GNUC__ >= 3 || _MSC_VER >= 1100

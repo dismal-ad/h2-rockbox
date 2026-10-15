@@ -115,47 +115,6 @@ void system_init(void)
     mmu_init();
 }
 
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-void set_cpu_frequency(long tgt_freq)
-{
-    /* Clamp target frequency to "sane" values */
-    if(tgt_freq < 0)        tgt_freq = 0;
-    if(tgt_freq > CPU_FREQ) tgt_freq = CPU_FREQ;
-
-    /* Find out input clock */
-    uint32_t in_freq;
-    switch(jz_readf(CPM_CCR, SEL_CPLL)) {
-    case 1: in_freq = clk_get(X1000_CLK_SCLK_A); break;
-    case 2: in_freq = clk_get(X1000_CLK_MPLL); break;
-    default: return;
-    }
-
-    /* Clamp to valid range */
-    if(tgt_freq < 1)
-        tgt_freq = 1;
-    if(tgt_freq > (long)in_freq)
-        tgt_freq = in_freq;
-
-    /* Calculate CPU clock divider */
-    uint32_t cdiv = clk_calc_div(in_freq, tgt_freq);
-    if(cdiv > 16) cdiv = 16;
-    if(cdiv < 1)  cdiv = 1;
-
-    /* Calculate L2 cache clock. */
-    uint32_t l2div = cdiv;
-    if(cdiv == 1)
-        l2div = 2;
-
-    /* Change CPU/L2 frequency */
-    jz_writef(CPM_CCR, CE_CPU(1), L2DIV(l2div - 1), CDIV(cdiv - 1));
-    while(jz_readf(CPM_CSR, CDIV_BUSY));
-    jz_writef(CPM_CCR, CE_CPU(0));
-
-    /* Update value for Rockbox */
-    cpu_frequency = in_freq / cdiv;
-}
-#endif
-
 void system_reboot(void)
 {
     jz_clr(TCU_STOP, 0x10000);

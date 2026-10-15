@@ -32,9 +32,6 @@
    Measured on a Sansa e200v1: 48.96 MHz to 42.92, a 12.3% cut that the cycle
    model cannot see at all, because it does not model an instruction cache.
    Define OPUS_NO_ICODE to build without it and compare. */
-#if (CONFIG_CPU == PP5022 || CONFIG_CPU == PP5024) && !defined(OPUS_NO_ICODE)
-#define OPUS_ARM_ICODE            /* also read by the .S kernels */
-#endif
 
 #ifndef __ASSEMBLER__
 #ifdef OPUS_ARM_ICODE

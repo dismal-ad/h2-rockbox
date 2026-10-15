@@ -103,13 +103,8 @@ enum
 
 };
 
-#if (CONFIG_PLATFORM & PLATFORM_ANDROID)
-#define CODEC_EXTENSION "so"
-#define CODEC_PREFIX "lib"
-#else
 #define CODEC_EXTENSION "codec"
 #define CODEC_PREFIX ""
-#endif
 
 #define AFMT_ENTRY(label, root_fname, enc_root_fname, func, ext_list) \
     { label, root_fname, func, ext_list }

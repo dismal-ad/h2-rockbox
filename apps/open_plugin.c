@@ -82,14 +82,6 @@ static int op_find_entry(int fd, struct open_plugin_entry_t *entry,
             if (entry->lang_id == lang_id || entry->hash == hash ||
                (lang_id == OPEN_PLUGIN_LANG_IGNOREALL))/* return first entry found */
             {
-#if (CONFIG_STORAGE & STORAGE_ATA)
-                /* may have invalid entries but we append the file so continue looking*/
-                if (op_entry_checksum(entry) <= 0)
-                {
-                    ret = OPEN_PLUGIN_INVALID_ENTRY;
-                    continue;
-                }
-#endif
                 ret = record;
                 /* NULL terminate fields NOTE -- all are actually +1 larger */
                 entry->name[OPEN_PLUGIN_NAMESZ] = '\0';
@@ -107,11 +99,7 @@ static int op_find_entry(int fd, struct open_plugin_entry_t *entry,
     }
 
     /* sanity check */
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    if (ret == OPEN_PLUGIN_INVALID_ENTRY ||
-#else
     if(
-#endif
        (ret > OPEN_PLUGIN_NOT_FOUND && op_entry_checksum(entry) <= 0))
     {
         splashf(HZ * 2, "%s Invalid entry", str(LANG_OPEN_PLUGIN));
@@ -143,34 +131,6 @@ static int op_update_dat(struct open_plugin_entry_t *entry, bool clear)
     logf("OP update name: %s clear: %d", entry->name, (int) clear);
     logf("OP update %s %s %s", entry->name, entry->path, entry->param);
 
-#if (CONFIG_STORAGE & STORAGE_ATA) /* Harddrive -- update existing */
-    logf("OP update *Updating entries* %s", OPEN_PLUGIN_DAT);
-    fd = open(OPEN_PLUGIN_DAT, O_RDWR | O_CREAT, 0666);
-
-    if (fd < 0)
-        return OPEN_PLUGIN_NOT_FOUND;
-    /* Only read the hash lang id and checksum */
-    uint32_t hash_langid_csum[3] = {0};
-    const off_t hlc_sz = sizeof(hash_langid_csum);
-
-    uint32_t csum = open_plugin_csum +
-           (lang_id <= OPEN_PLUGIN_LANG_INVALID ? 0 : LANG_LAST_INDEX_IN_ARRAY);
-
-    while (read(fd, &hash_langid_csum, hlc_sz) == hlc_sz)
-    {
-        if ((hash_langid_csum[0] == hash || (int32_t)hash_langid_csum[1] == lang_id) &&
-             hash_langid_csum[2] == csum)
-        {
-            logf("OP update *Entry Exists* hash: %x langid: %d",
-                hash_langid_csum[0], (int32_t)hash_langid_csum[1]);
-            lseek(fd, 0-hlc_sz, SEEK_CUR);/* back to the start of record */
-            break;
-        }
-        lseek(fd, OP_ENTRY_SZ - hlc_sz, SEEK_CUR); /* finish record */
-    }
-    write(fd, entry, OP_ENTRY_SZ);
-    close(fd);
-#else /* Everyone else make a temp file */
     logf("OP update *Copying entries* %s", OPEN_PLUGIN_DAT ".tmp");
     fd = open(OPEN_PLUGIN_DAT ".tmp", O_RDWR  | O_CREAT | O_TRUNC, 0666);
 
@@ -201,7 +161,6 @@ static int op_update_dat(struct open_plugin_entry_t *entry, bool clear)
     }
     close(fd);
     rename(OPEN_PLUGIN_DAT ".tmp", OPEN_PLUGIN_DAT);
-#endif
 
     if (clear)
     {

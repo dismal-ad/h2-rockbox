@@ -48,9 +48,7 @@ struct screen
     int (*getcharwidth)(void);
     int (*getcharheight)(void);
     bool is_color;
-#if (CONFIG_LED == LED_VIRTUAL)
     bool has_disk_led;
-#endif
     void (*set_drawmode)(int mode);
     struct viewport* (*init_viewport)(struct viewport* vp);
     struct viewport* (*set_viewport)(struct viewport* vp);

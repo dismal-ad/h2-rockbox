@@ -59,12 +59,7 @@
 #ifdef USB_READ_BUFFER_SIZE
 #define READ_BUFFER_SIZE USB_READ_BUFFER_SIZE
 #else
-#if CONFIG_USBOTG == USBOTG_AS3525
-/* We'd need to implement multidescriptor dma for sizes >65535 */
-#define READ_BUFFER_SIZE (1024*63)
-#else
 #define READ_BUFFER_SIZE (1024*64)
-#endif /* CONFIG_CPU == AS3525 */
 #endif /* USB_READ_BUFFER_SIZE */
 
 /* We don't use sizeof() here, because we *need* a multiple of 32 */
@@ -74,12 +69,7 @@
 #define WRITE_BUFFER_SIZE USB_WRITE_BUFFER_SIZE
 #else
 #if (CONFIG_STORAGE & STORAGE_SD)
-#if CONFIG_USBOTG == USBOTG_AS3525
-/* We'd need to implement multidescriptor dma for sizes >65535 */
-#define WRITE_BUFFER_SIZE (1024*63)
-#else
 #define WRITE_BUFFER_SIZE (1024*64)
-#endif /* CONFIG_CPU == AS3525 */
 #else
 #define WRITE_BUFFER_SIZE (1024*24)
 #endif /* (CONFIG_STORAGE & STORAGE_SD) */
@@ -333,10 +323,6 @@ static struct usb_class_driver_ep_allocation ep_allocs[2] = {
 #define EP_IN (ep_allocs[0].ep)
 #define EP_OUT (ep_allocs[1].ep)
 
-#if defined(HAVE_MULTIDRIVE)
-static bool skip_first = 0;
-#endif
-
 #ifdef USB_USE_RAMDISK
 static unsigned char* ramdisk_buffer;
 #endif
@@ -427,11 +413,7 @@ static int usb_storage_get_config_descriptor(unsigned char *dest,int max_packet_
 
     return (dest - orig_dest);
 }
-#if (((CONFIG_CPU == IMX31L) || (CONFIG_CPU == S5L8702) || (CONFIG_CPU == S5L8701) || (CONFIG_CPU == AS3525v2)) || (CONFIG_CPU == DM320))
-#define USB_STATIC_ALLOC
-#else
 static int usb_handle = 0;
-#endif
 
 /* Sets up the buffers and primes the rx endpoint for the first command.
  * The buffers are allocated only once Rockbox has handed the storage over:
@@ -694,24 +676,6 @@ static void usb_storage_transfer_complete(int ep,int dir,int status,int length)
     }
 }
 
-#if (CONFIG_STORAGE & STORAGE_ATA)
-static void usb_storage_send_ata_identify(void)
-{
-    unsigned short* identify_info = ata_get_identify();
-
-    for (int i = 0 ; i < ATA_IDENTIFY_WORDS ; i++) {
-        tb.transfer_buffer[i*2] = identify_info[i] & 0xff;
-        tb.transfer_buffer[i*2+1] = identify_info[i] >> 8;
-    }
-    cur_cmd.count = 0;
-    cur_cmd.last_result = 0;
-    /* IDENTIFY can be the first data command after SET_CONFIGURATION.
-     * cur_cmd.data[] belongs to previous READ/WRITE commands and may be
-     * unset, or refer to a buffer freed by a USB reset. */
-    send_block_data(tb.transfer_buffer, ATA_IDENTIFY_WORDS * 2);
-}
-#endif /* STORAGE_ATA */
-
 /* called by usb_core_control_request() */
 static bool usb_storage_control_request(struct usb_ctrlrequest* req, uint8_t* reqdata, size_t reqdata_size)
 {
@@ -723,9 +687,6 @@ static bool usb_storage_control_request(struct usb_ctrlrequest* req, uint8_t* re
         case USB_BULK_GET_MAX_LUN: {
             /* comes before the handover, without the transfer buffer */
             reqdata[0] = storage_num_drives() - 1;
-#if defined(HAVE_MULTIDRIVE)
-            if(skip_first) reqdata[0]--;
-#endif
             logf("ums: getmaxlun");
             usb_core_control_response(USB_CONTROL_ACK, reqdata, 1);
             handled = true;
@@ -806,10 +767,6 @@ static void handle_scsi_ready(struct command_block_wrapper* cbw)
      * to trigger a second execution of the same command with
      * bogus data */
     cbw->signature=0;
-
-#if defined(HAVE_MULTIDRIVE)
-    if(skip_first) lun++;
-#endif
 
     storage_get_info(lun,&info);
 #ifdef USB_USE_RAMDISK
@@ -1371,38 +1328,6 @@ static void handle_scsi_ready(struct command_block_wrapper* cbw)
                 reject_command(cbw);
             break;
 
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    case SAT_ATA_PASSTHROUGH_12:
-            if (cbw->command_block[1] == 0x08 &&
-                cbw->command_block[2] == 0x0e &&
-                cbw->command_block[4] == 0x01) {
-                if (cbw->command_block[9] == 0xa1 ||
-                    cbw->command_block[9] == 0xec) {
-                    usb_storage_send_ata_identify();
-                    break;
-                }
-            }
-            send_csw(UMS_STATUS_FAIL);
-            cur_sense_data.sense_key=SENSE_ILLEGAL_REQUEST;
-            cur_sense_data.asc=ASC_INVALID_COMMAND;
-            cur_sense_data.ascq=0;
-            break;
-    case SAT_ATA_PASSTHROUGH_16:
-            if (cbw->command_block[1] == 0x08 &&
-                cbw->command_block[2] == 0x0e &&
-                cbw->command_block[6] == 0x01) {
-                if (cbw->command_block[14] == 0xa1 ||
-                    cbw->command_block[14] == 0xec) {
-                    usb_storage_send_ata_identify();
-                    break;
-                }
-            }
-            send_csw(UMS_STATUS_FAIL);
-            cur_sense_data.sense_key=SENSE_ILLEGAL_REQUEST;
-            cur_sense_data.asc=ASC_INVALID_COMMAND;
-            cur_sense_data.ascq=0;
-            break;
-#endif /* STORAGE_ATA */
         default:
             logf("scsi unknown cmd %x",cbw->command_block[0x0]);
             reject_command(cbw);

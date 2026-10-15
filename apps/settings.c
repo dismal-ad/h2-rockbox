@@ -83,11 +83,7 @@ static long lasttime = 0;
 
 /* flush system_status more often for spinning harddisks as we may not be able
  * to spin up at shutdown in order to save so keep the gap minimal */
-#if (CONFIG_STORAGE & STORAGE_ATA)
-#define SYSTEM_STATUS_UPDATE_TICKS (HZ * 60 * 5) /* flush every 5 minutes */
-#else
 #define SYSTEM_STATUS_UPDATE_TICKS (HZ * 60 * 15) /* flush every 15 minutes */
-#endif
 
 #include "dsp_proc_settings.h"
 #include "playback.h"
@@ -858,9 +854,7 @@ void settings_apply(bool read_disk)
     lcd_scroll_speed(global_settings.scroll_speed);
     backlight_set_brightness(global_settings.brightness);
     backlight_set_timeout(global_settings.backlight_timeout);
-#if CONFIG_CHARGING
     backlight_set_timeout_plugged(global_settings.backlight_timeout_plugged);
-#endif
     backlight_set_fade_in(global_settings.backlight_fade_in);
     backlight_set_fade_out(global_settings.backlight_fade_out);
     set_poweroff_timeout(global_settings.poweroff);
@@ -874,10 +868,6 @@ void settings_apply(bool read_disk)
     peak_meter_init_times(
         global_settings.peak_meter_release, global_settings.peak_meter_hold,
         global_settings.peak_meter_clip_hold);
-
-#ifdef HAVE_SPEAKER
-    audio_enable_speaker(global_settings.speaker_mode);
-#endif
 
     if (read_disk)
     {

@@ -48,12 +48,6 @@ void backlight_hw_brightness(int val)
 void backlight_hw_on(void)
 {
     lcd_enable(true);
-#if (CONFIG_BACKLIGHT_FADING != BACKLIGHT_FADING_SW_SETTING)
-    /* if we set the brightness to the settings value, then fading up
-     * is glitchy */
-    sim_backlight(normalize_backlight(backlight_brightness));
-
-#endif
 }
 
 void backlight_hw_off(void)

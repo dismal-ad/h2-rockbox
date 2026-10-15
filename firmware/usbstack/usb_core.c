@@ -50,16 +50,10 @@
 /* include order matters, include driver header before usb_drv.h */
 #if CONFIG_USBOTG == USBOTG_DESIGNWARE
 #include "usb-designware.h"
-#elif CONFIG_USBOTG == USBOTG_RK27XX
-#include "usb-rk27xx.h"
 #endif
 #include "usb_drv.h"
 
 /* TODO: Move target-specific stuff somewhere else (serial number reading) */
-
-#if   (CONFIG_STORAGE & STORAGE_ATA)
-#include "ata.h"
-#endif
 
 #ifndef USB_MAX_CURRENT
 #define USB_MAX_CURRENT 500
@@ -280,71 +274,10 @@ static void usb_core_control_request_handler(struct usb_ctrlrequest* req, uint8_
 
 static const short hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
                         '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-#if   (CONFIG_STORAGE & STORAGE_ATA)
-/* If we don't know the device serial number, use the one
- * from the disk */
-static void set_serial_descriptor(void)
-{
-    short* p = &usb_string_iSerial.wString[1];
-    unsigned short* identify = ata_get_identify();
-    char sn[20];
-    char length = 20;
-    int i;
-
-    for (i = 0; i < length / 2; i++) {
-        ((unsigned short*)sn)[i] = htobe16(identify[i + 10]);
-    }
-
-    char is_printable = 1;
-    for (i = 0; i < length; i++) {
-        if (sn[i] < 32 || sn[i] > 126) {
-            is_printable = 0;
-            break;
-        }
-    }
-
-    if (is_printable) {
-        /* trim ALL spaces */
-        int totallen = length;
-        for (i = 0; i < length; i++) {
-            if (sn[i] == ' ') {
-                totallen--;
-                continue;
-            }
-            *p++ = sn[i];
-        }
-
-        usb_string_iSerial.bLength = 2 + 2 * (1 + totallen);
-    }
-    else {
-        for (i = 0; i < length; i++) {
-            char x = sn[i];
-            *p++ = hex[(x >> 4) & 0xF];
-            *p++ = hex[x & 0xF];
-        }
-
-        usb_string_iSerial.bLength = 2 + 2 * (1 + length * 2);
-    }
-}
-#elif (CONFIG_STORAGE & STORAGE_RAMDISK)
-/* This "serial number" isn't unique, but it should never actually
-   appear in non-testing use */
-static void set_serial_descriptor(void)
-{
-    short* p = &usb_string_iSerial.wString[1];
-    int i;
-    for(i = 0; i < 16; i++) {
-        *p++ = hex[(2 * i) & 0xF];
-        *p++ = hex[(2 * i + 1) & 0xF];
-    }
-    usb_string_iSerial.bLength = 68;
-}
-#else
 static void set_serial_descriptor(void)
 {
     device_descriptor.iSerialNumber = 0;
 }
-#endif
 
 void usb_core_init(void)
 {

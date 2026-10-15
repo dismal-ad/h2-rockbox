@@ -106,15 +106,6 @@ extern int audio_output_source;
 #define SRCF_PLAYBACK         0x0000    /* default */
 #define SRCF_RECORDING        0x1000
 
-#ifdef HAVE_SPEAKER
-/* enable/disable the speaker: 0=off, 1=on, 2=on if jack unpluged, off otherwise
- * NOTE this is a one time thing, this function doesn't implement the logic to
- * check for jack events, it merely changes the speaker state to the expected
- * state based on the requested mode.
- */
-void audio_enable_speaker(int mode);
-#endif
-
 /***********************************************************************/
 /* audio event handling */
 enum track_event_flags

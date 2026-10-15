@@ -39,29 +39,9 @@ static unsigned int num_drives;
 #endif /* CONFIG_STORAGE_MULTI */
 
 /* defaults: override elsewhere target-wise if they must be different */
-#if (CONFIG_STORAGE & STORAGE_ATA)
- #ifndef ATA_THREAD_STACK_SIZE
-  #define ATA_THREAD_STACK_SIZE     (DEFAULT_STACK_SIZE*2)
- #endif
-#endif
-#if (CONFIG_STORAGE & STORAGE_MMC)
- #ifndef MMC_THREAD_STACK_SIZE
-  #define MMC_THREAD_STACK_SIZE     (DEFAULT_STACK_SIZE*2)
- #endif
-#endif
 #if (CONFIG_STORAGE & STORAGE_SD)
  #ifndef SD_THREAD_STACK_SIZE
   #define SD_THREAD_STACK_SIZE      (DEFAULT_STACK_SIZE*2)
- #endif
-#endif
-#if (CONFIG_STORAGE & STORAGE_NAND)
- #ifndef NAND_THREAD_STACK_SIZE
-  #define NAND_THREAD_STACK_SIZE    (DEFAULT_STACK_SIZE*2)
- #endif
-#endif
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
- #ifndef RAMDISK_THREAD_STACK_SIZE
-  #define RAMDISK_THREAD_STACK_SIZE (0) /* not used on its own */
  #endif
 #endif
 
@@ -69,38 +49,14 @@ static struct event_queue storage_queue SHAREDBSS_ATTR;
 static unsigned int storage_thread_id = 0;
 
 static union {
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    long stk_ata[ATA_THREAD_STACK_SIZE / sizeof (long)];
-#endif
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    long stk_mmc[MMC_THREAD_STACK_SIZE / sizeof (long)];
-#endif
 #if (CONFIG_STORAGE & STORAGE_SD)
     long stk_sd[SD_THREAD_STACK_SIZE / sizeof (long)];
-#endif
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    long stk_nand[NAND_THREAD_STACK_SIZE / sizeof (long)];
-#endif
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    long stk_ramdisk[RAMDISK_THREAD_STACK_SIZE / sizeof (long)];
 #endif
 } storage_thread_stack;
 
 static const char storage_thread_name[] =
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    "/ata"
-#endif
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    "/mmc"
-#endif
 #if (CONFIG_STORAGE & STORAGE_SD)
     "/sd"
-#endif
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    "/nand"
-#endif
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    "/ramdisk"
 #endif
     ;
 
@@ -118,29 +74,9 @@ static int storage_event_send(unsigned int route, long id, intptr_t data)
 
     int rc = 0;
 
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    if (route & STORAGE_ATA) {
-        rc = ata_event(id, data);
-    }
-#endif
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    if (route & STORAGE_MMC) {
-        rc = mmc_event(id, data);
-    }
-#endif
 #if (CONFIG_STORAGE & STORAGE_SD)
     if (route & STORAGE_SD) {
         rc = sd_event(id, data);
-    }
-#endif
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    if (route & STORAGE_NAND) {
-        rc = nand_event(id, data);
-    }
-#endif
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    if (route & STORAGE_RAMDISK) {
-        rc = ramdisk_event(id, data);
     }
 #endif
 
@@ -187,12 +123,6 @@ static void NORETURN_ATTR storage_thread(void)
             storage_event_send(DRIVE_EVT, ev.id, ev.data);
             break;
 
-#if (CONFIG_STORAGE & STORAGE_ATA)
-        case Q_STORAGE_SLEEP:
-            storage_event_send(bdcast, ev.id, 0);
-            break;
-#endif
-
 #ifdef STORAGE_CLOSE
         case Q_STORAGE_CLOSE:
             storage_event_send(CONFIG_STORAGE, ev.id, 0);
@@ -238,15 +168,6 @@ static void NORETURN_ATTR storage_thread(void)
     }
 }
 
-#if (CONFIG_STORAGE & STORAGE_ATA)
-void storage_sleep(void)
-{
-    if (storage_thread_id) {
-        queue_post(&storage_queue, Q_STORAGE_SLEEP, 0);
-    }
-}
-#endif /* (CONFIG_STORAGE & STORAGE_ATA) */
-
 #ifdef STORAGE_CLOSE
 void storage_close(void)
 {
@@ -287,28 +208,6 @@ int storage_init(void)
     int i;
     num_drives=0;
 
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    if ((rc=ata_init())) return rc;
-
-    int ata_drives = ata_num_drives(num_drives);
-    for (i=0; i<ata_drives; i++)
-    {
-        storage_drivers[num_drives++] =
-            (STORAGE_ATA<<DRIVER_OFFSET) | (i << DRIVE_OFFSET);
-    }
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    if ((rc=mmc_init())) return rc;
-
-    int mmc_drives = mmc_num_drives(num_drives);
-    for (i=0; i<mmc_drives ;i++)
-    {
-        storage_drivers[num_drives++] =
-            (STORAGE_MMC<<DRIVER_OFFSET) | (i << DRIVE_OFFSET);
-    }
-#endif
-
 #if (CONFIG_STORAGE & STORAGE_SD)
     if ((rc=sd_init())) return rc;
 
@@ -320,27 +219,6 @@ int storage_init(void)
     }
 #endif
 
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    if ((rc=nand_init())) return rc;
-
-    int nand_drives = nand_num_drives(num_drives);
-    for (i=0; i<nand_drives; i++)
-    {
-        storage_drivers[num_drives++] =
-            (STORAGE_NAND<<DRIVER_OFFSET) | (i << DRIVE_OFFSET);
-    }
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    if ((rc=ramdisk_init())) return rc;
-
-    int ramdisk_drives = ramdisk_num_drives(num_drives);
-    for (i=0; i<ramdisk_drives; i++)
-    {
-        storage_drivers[num_drives++] =
-            (STORAGE_RAMDISK<<DRIVER_OFFSET) | (i << DRIVE_OFFSET);
-    }
-#endif
 #else /* ndef CONFIG_STORAGE_MULTI */
     rc = STORAGE_FUNCTION(init)();
 #endif /* CONFIG_STORAGE_MULTI */
@@ -362,30 +240,12 @@ int storage_read_sectors(IF_MD(int drive,) sector_t start, int count,
 
     switch (driver)
     {
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    case STORAGE_ATA:
-        return ata_read_sectors(IF_MD(ldrive,) start,count,buf);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    case STORAGE_MMC:
-        return mmc_read_sectors(IF_MD(ldrive,) start,count,buf);
-#endif
 
 #if (CONFIG_STORAGE & STORAGE_SD)
     case STORAGE_SD:
         return sd_read_sectors(IF_MD(ldrive,) start,count,buf);
 #endif
 
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    case STORAGE_NAND:
-        return nand_read_sectors(IF_MD(ldrive,) start,count,buf);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    case STORAGE_RAMDISK:
-        return ramdisk_read_sectors(IF_MD(ldrive,) start,count,buf);
-#endif
     }
 
     return -1;
@@ -404,30 +264,12 @@ int storage_write_sectors(IF_MD(int drive,) sector_t start, int count,
 
     switch (driver)
     {
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    case STORAGE_ATA:
-        return ata_write_sectors(IF_MD(ldrive,)start,count,buf);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    case STORAGE_MMC:
-        return mmc_write_sectors(IF_MD(ldrive,)start,count,buf);
-#endif
 
 #if (CONFIG_STORAGE & STORAGE_SD)
     case STORAGE_SD:
         return sd_write_sectors(IF_MD(ldrive,)start,count,buf);
 #endif
 
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    case STORAGE_NAND:
-        return nand_write_sectors(IF_MD(ldrive,)start,count,buf);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    case STORAGE_RAMDISK:
-        return ramdisk_write_sectors(IF_MD(ldrive,)start,count,buf);
-#endif
     }
 
     return -1;
@@ -463,70 +305,27 @@ int storage_driver_type(int drive)
 
 void storage_enable(bool on)
 {
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    ata_enable(on);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    mmc_enable(on);
-#endif
 
 #if (CONFIG_STORAGE & STORAGE_SD)
     sd_enable(on);
 #endif
 
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    nand_enable(on);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    ramdisk_enable(on);
-#endif
 }
 
 void storage_sleepnow(void)
 {
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    ata_sleepnow();
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    mmc_sleepnow();
-#endif
 
 #if (CONFIG_STORAGE & STORAGE_SD)
     //sd_sleepnow();
 #endif
 
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    nand_sleepnow();
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    ramdisk_sleepnow();
-#endif
 }
 
 bool storage_disk_is_active(void)
 {
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    if (ata_disk_is_active()) return true;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    if (mmc_disk_is_active()) return true;
-#endif
 
 #if (CONFIG_STORAGE & STORAGE_SD)
     //if (sd_disk_is_active()) return true;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    //if (nand_disk_is_active()) return true;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    if (ramdisk_disk_is_active()) return true;
 #endif
 
     return false;
@@ -536,24 +335,8 @@ int storage_soft_reset(void)
 {
     int rc=0;
 
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    if ((rc=ata_soft_reset())) return rc;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    if ((rc=mmc_soft_reset())) return rc;
-#endif
-
 #if (CONFIG_STORAGE & STORAGE_SD)
     //if ((rc=sd_soft_reset())) return rc;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    //if ((rc=nand_soft_reset())) return rc;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    if ((rc=ramdisk_soft_reset())) return rc;
 #endif
 
     return rc;
@@ -564,24 +347,8 @@ int storage_flush(void)
 {
     int rc=0;
 
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    if ((rc=ata_flush())) return rc;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    //if ((rc=mmc_flush())) return rc;
-#endif
-
 #if (CONFIG_STORAGE & STORAGE_SD)
     //if ((rc=sd_flush())) return rc;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    if ((rc=nand_flush())) return rc;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    //if ((rc=ramdisk_flush())) return rc;
 #endif
 
     return rc;
@@ -590,102 +357,29 @@ int storage_flush(void)
 
 void storage_spin(void)
 {
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    ata_spin();
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    mmc_spin();
-#endif
 
 #if (CONFIG_STORAGE & STORAGE_SD)
     sd_spin();
 #endif
 
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    nand_spin();
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    ramdisk_spin();
-#endif
 }
 
 void storage_spindown(int seconds)
 {
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    ata_spindown(seconds);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    mmc_spindown(seconds);
-#endif
 
 #if (CONFIG_STORAGE & STORAGE_SD)
     sd_spindown(seconds);
 #endif
 
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    nand_spindown(seconds);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    ramdisk_spindown(seconds);
-#endif
 }
-
-#if (CONFIG_LED == LED_REAL)
-void storage_set_led_enabled(bool enabled)
-{
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    ata_set_led_enabled(enabled);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    mmc_set_led_enabled(enabled);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_SD)
-    sd_set_led_enabled(enabled);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    nand_set_led_enabled(enabled);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    ramdisk_set_led_enabled(enabled);
-#endif
-}
-#endif /* CONFIG_LED == LED_REAL */
 
 long storage_last_disk_activity(void)
 {
     long max=0;
     long t;
 
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    t=ata_last_disk_activity();
-    if (t>max) max=t;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    t=mmc_last_disk_activity();
-    if (t>max) max=t;
-#endif
-
 #if (CONFIG_STORAGE & STORAGE_SD)
     t=sd_last_disk_activity();
-    if (t>max) max=t;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    t=nand_last_disk_activity();
-    if (t>max) max=t;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    t=ramdisk_last_disk_activity();
     if (t>max) max=t;
 #endif
 
@@ -697,30 +391,10 @@ int storage_spinup_time(void)
     int max=0;
     int t;
 
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    t=ata_spinup_time();
-    if (t>max) max=t;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    t=mmc_spinup_time();
-    if (t>max) max=t;
-#endif
-
 #if (CONFIG_STORAGE & STORAGE_SD)
     //t=sd_spinup_time();
     //if (t>max) max=t;
     (void)t;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    t=nand_spinup_time();
-    if (t>max) max=t;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    t=ramdisk_spinup_time();
-    if (t>max) max=t;
 #endif
 
     return max;
@@ -734,30 +408,12 @@ void storage_get_info(int drive, struct storage_info *info)
 
     switch(driver)
     {
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    case STORAGE_ATA:
-        return ata_get_info(ldrive,info);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    case STORAGE_MMC:
-        return mmc_get_info(ldrive,info);
-#endif
 
 #if (CONFIG_STORAGE & STORAGE_SD)
     case STORAGE_SD:
         return sd_get_info(ldrive,info);
 #endif
 
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    case STORAGE_NAND:
-        return nand_get_info(ldrive,info);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    case STORAGE_RAMDISK:
-        return ramdisk_get_info(ldrive,info);
-#endif
     }
 }
 #endif /* STORAGE_GET_INFO */
@@ -769,29 +425,10 @@ bool storage_removable(int drive)
 
     switch(driver)
     {
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    case STORAGE_ATA:
-        return false;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    case STORAGE_MMC:
-        return mmc_removable(ldrive);
-#endif
 
 #if (CONFIG_STORAGE & STORAGE_SD)
     case STORAGE_SD:
         return sd_removable(ldrive);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    case STORAGE_NAND:
-        return false;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    case STORAGE_RAMDISK:
-        return false;
 #endif
 
     default:
@@ -806,29 +443,10 @@ bool storage_present(int drive)
 
     switch(driver)
     {
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    case STORAGE_ATA:
-        return true;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    case STORAGE_MMC:
-        return mmc_present(ldrive);
-#endif
 
 #if (CONFIG_STORAGE & STORAGE_SD)
     case STORAGE_SD:
         return sd_present(ldrive);
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_NAND)
-    case STORAGE_NAND:
-        return true;
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_RAMDISK)
-    case STORAGE_RAMDISK:
-        return true;
 #endif
 
     default:

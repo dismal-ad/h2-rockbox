@@ -125,16 +125,6 @@ bool disk_init(IF_MD_NONVOID(int drive))
     storage_get_info(IF_MD_DRV(drive), info);
     sector_t num_sectors = info->num_sectors;
 
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    disk_writer_lock();
-    disk_writer_unlock();
-
-    if (info->sector_size != SECTOR_SIZE) {
-        panicf("Unsupported logical sector size: %d",
-               info->sector_size);
-    }
-#endif  /* STORAGE_ATA */
-
     memset(sector, 0, DC_CACHE_BUFSIZE);
     storage_read_sectors(IF_MD(drive,) 0, 1, sector);
 

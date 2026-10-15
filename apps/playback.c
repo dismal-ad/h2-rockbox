@@ -345,10 +345,6 @@ static unsigned int position_key = 0;
 #define PLAYBACK_LOG_PATH ROCKBOX_DIR "/playback.log"
 #define PLAYBACK_LOG_MAX_FILESZ_BYTES (511 << 10) /* 512k approx 1000-2500 tracks */
 #define PLAYBACK_LOG_MIN_ELAPSED_MS   (500) /* 500 milliseconds */
-#if (CONFIG_STORAGE & STORAGE_ATA)
-#define PLAYBACK_LOG_BUFSZ (MAX_PATH * 10)
-static int playback_log_handle = 0; /* core_alloc handle for playback log buffer */
-#endif
 
 /* Forward declarations */
 enum audio_start_playback_flags
@@ -1204,19 +1200,6 @@ void allocate_playback_log(void)
     if (!global_settings.playback_log)
         return;
 
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    if (playback_log_handle == 0)
-    {
-        playback_log_handle = core_alloc(PLAYBACK_LOG_BUFSZ);
-        if (playback_log_handle > 0)
-        {
-            DEBUGF("%s Allocated %d bytes\n", __func__, PLAYBACK_LOG_BUFSZ);
-            char *buf = core_get_data(playback_log_handle);
-            buf[0] = '\0';
-        }
-    }
-#endif
-
     while (1)
     {
         DEBUGF("Opening %s \n", PLAYBACK_LOG_PATH);
@@ -1251,44 +1234,9 @@ void add_playbacklog(struct mp3entry *id3)
         return;
     unsigned long timestamp = 0;
     ssize_t used = 0;
-#if (CONFIG_STORAGE & STORAGE_ATA)
-    ssize_t bufsz = 0;
-    char *buf = NULL;
-    /* if the user just enabled playback logging rather than stopping playback
-     * to allocate a buffer or if buffer too large just flush direct to disk
-     * buffer will attempt to be allocated next start-up */
-    if (playback_log_handle > 0)
-    {
-        buf = core_get_data(playback_log_handle);
-        used = strlen(buf);
-        if (used < PLAYBACK_LOG_BUFSZ)
-        {
-            bufsz = PLAYBACK_LOG_BUFSZ - used;
-            buf += used;
-        }
-        DEBUGF("%s Used %lu Remain: %lu\n", __func__, used, bufsz);
-    }
-#endif
     if (id3 && id3->elapsed > PLAYBACK_LOG_MIN_ELAPSED_MS)
     {
         timestamp = mktime(get_time());
-#if (CONFIG_STORAGE & STORAGE_ATA)
-        if (buf)  /* we have a buffer allocd from core */
-        {
-            /*10:10:10:MAX_PATH\n*/
-            ssize_t entrylen = snprintf(buf, bufsz,"%lu:%ld:%ld:%s\n",
-                    timestamp, (long)id3->elapsed, (long)id3->length, id3->path);
-
-            if (entrylen < bufsz)
-            {
-                DEBUGF("BUFFERED: time: %lu elapsed %ld/%ld saving file: %s\n",
-                    timestamp, (long)id3->elapsed, (long)id3->length, id3->path);
-                return; /* succeed or snprintf fail return */
-            }
-            buf[0] = '\0';
-        }
-        /* that didn't fit, flush buffer & write this entry to disk */
-#endif
     }
     else
         id3 = NULL;
@@ -1301,16 +1249,6 @@ void add_playbacklog(struct mp3entry *id3)
         {
             return; /* failure */
         }
-#if (CONFIG_STORAGE & STORAGE_ATA)
-        if (buf) /* we have a buffer allocd from core */
-        {
-            buf = core_get_data_pinned(playback_log_handle); /* we might yield - pin it*/
-            write(fd, buf, used);
-            DEBUGF("%s Writing %lu bytes of buf:\n%s\n", __func__, used, buf);
-            buf[0] = '\0';
-            core_put_data_pinned(buf);
-        }
-#endif
         if (id3)
         {
             /* we have the timestamp from when we tried to add to buffer */

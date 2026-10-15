@@ -260,14 +260,6 @@ struct plugin_api {
                          int src_x, int src_y, int stride,
                          int x, int y, int width, int height);
 #endif /* MEMORYSIZE > 2 */
-#if defined(HAVE_LCD_MODES) && (HAVE_LCD_MODES & LCD_MODE_PAL256)
-    void (*lcd_blit_pal256)(unsigned char *src, int src_x, int src_y, int x, int y,
-                            int width, int height);
-    void (*lcd_pal256_update_pal)(fb_data *palette);
-#endif
-#if defined(HAVE_LCD_MODES)
-    void (*lcd_set_mode)(int mode);
-#endif
 
     void (*button_queue_post)(long id, intptr_t data);
     ucschar_t *(*bidi_l2v)(const unsigned char *str, int orientation);
@@ -310,9 +302,7 @@ struct plugin_api {
     void (*backlight_set_on_button_hold)(int index);
     void (*backlight_set_timeout)(int index);
     void (*backlight_set_brightness)(int val);
-#if CONFIG_CHARGING
     void (*backlight_set_timeout_plugged)(int index);
-#endif
 
     /* list */
     void (*gui_synclist_init)(struct gui_synclist * lists,
@@ -477,13 +467,6 @@ struct plugin_api {
     int (*get_sleep_timer)(void);
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
     long *cpu_frequency;
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-#ifdef CPU_BOOST_LOGGING
-    void (*cpu_boost_)(bool on_off,char*location,int line);
-#else
-    void (*cpu_boost)(bool on_off);
-#endif
-#endif /* HAVE_ADJUSTABLE_CPU_FREQ */
 #endif /* PLATFORM_NATIVE */
 #ifdef HAVE_SCHEDULER_BOOSTCTRL
     void (*trigger_cpu_boost)(void);
@@ -794,12 +777,8 @@ struct plugin_api {
     int (*battery_time)(void);
     int (*battery_voltage)(void);
     int (*battery_current)(void);
-#if CONFIG_CHARGING
     bool (*charger_inserted)(void);
-# if CONFIG_CHARGING >= CHARGING_MONITOR
     bool (*charging_state)(void);
-# endif
-#endif
 
     /* usb */
     bool (*usb_inserted)(void);
@@ -854,11 +833,6 @@ struct plugin_api {
     int (*read_jpeg_fd)(int fd, struct bitmap *bm, int maxsize,
                         int format, const struct custom_format *cformat);
     void (*screen_dump_set_hook)(void (*hook)(int fh));
-
-#ifdef HAVE_WHEEL_POSITION
-    int (*wheel_status)(void);
-    void (*wheel_send_events)(bool send);
-#endif
 
     /*plugin*/
     int (*plugin_open)(const char *path, const char *parameter);

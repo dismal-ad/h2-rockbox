@@ -39,9 +39,7 @@
 #include "misc.h"
 
 #include "backlight.h"
-#if CONFIG_CHARGING
 #include "power.h"
-#endif
 
 /*#define LOGF_ENABLE*/
 #include "logf.h"
@@ -874,10 +872,8 @@ static inline int do_backlight(action_last_t *last, action_cur_t *cur, int actio
     bool bl_activate = false;
     bool bl_is_off = !is_backlight_on(false);
 
-#if CONFIG_CHARGING /* disable if on external power */
     bl_is_off &= !(has_flag(last->backlight_mask, SEL_ACTION_NOEXT)
                      && power_input_present());
-#endif
     /* skip if backlight on | incorrect context | SEL_ACTION_NOEXT + ext pwr */
     if (bl_is_off && (cur->context == CONTEXT_FM || cur->context == CONTEXT_WPS ||
        cur->context == CONTEXT_MAINMENU))

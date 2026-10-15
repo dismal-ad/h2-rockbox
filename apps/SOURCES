@@ -43,13 +43,6 @@ talk.c
 tree.c
 tagtree.c
 filetree.c
-#ifdef IPOD_ACCESSORY_PROTOCOL
-iap/iap-core.c
-iap/iap-lingo0.c
-iap/iap-lingo2.c
-iap/iap-lingo3.c
-iap/iap-lingo4.c
-#endif
 screen_access.c
 gui/icon.c
 gui/list.c
@@ -69,12 +62,7 @@ gui/scrollbar.c
 gui/splash.c
 gui/statusbar.c
 gui/statusbar-skinned.c
-#if (CONFIG_PLATFORM&PLATFORM_ANDROID)
-hosted/android/yesno.c
-hosted/android/notification.c
-#else
 gui/yesno.c
-#endif
 gui/viewport.c
 
 gui/skin_engine/skin_backdrops.c
@@ -88,11 +76,7 @@ gui/backdrop.c
 
 recorder/bmp.c
 recorder/icons.c
-#if (CONFIG_PLATFORM&PLATFORM_ANDROID)
-hosted/android/keyboard.c
-#else
 recorder/keyboard.c
-#endif
 recorder/peakmeter.c
 recorder/resize.c
 recorder/jpeg_load.c
@@ -106,9 +90,7 @@ pcmbuf.c
 codec_thread.c
 playback.c
 codecs.c
-#ifndef HAVE_HARDWARE_BEEP
 beep.c
-#endif
 #ifdef USB_ENABLE_HID
 usb_keymaps.c
 #endif

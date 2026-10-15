@@ -53,9 +53,6 @@ typedef enum
 {
     REPORT_ID_KEYBOARD = 1,
     REPORT_ID_CONSUMER,
-#ifdef HAVE_USB_HID_MOUSE
-    REPORT_ID_MOUSE,
-#endif
     REPORT_ID_COUNT,
 } report_id_t;
 
@@ -241,148 +238,6 @@ static uint8_t buf_set_consumer(unsigned char *buf, int id)
     return BUF_LEN_CONSUMER;
 }
 
-#ifdef HAVE_USB_HID_MOUSE
-#define MOUSE_WHEEL_STEP       1
-#define MOUSE_STEP             8
-#define MOUSE_BUTTON_LEFT    0x1
-#define MOUSE_BUTTON_RIGHT   0x2
-//#define MOUSE_BUTTON_MIDDLE  0x4
-#define MOUSE_BUTTON           0
-#define MOUSE_X                1
-#define MOUSE_Y                2
-#define MOUSE_WHEEL            3
-#define BUF_LEN_MOUSE          4
-#define MOUSE_ACCEL_FACTOR(count) ((count) / 2)
-#define MOUSE_DO(item, step) (buf[(item)] = ((uint8_t)(step)))
-
-static uint8_t buf_set_mouse(unsigned char *buf, int id)
-{
-    static int count = 0;
-    int step = MOUSE_STEP;
-
-    memset(buf, 0, BUF_LEN_MOUSE);
-
-    /* Set proper button */
-    switch (id)
-    {
-        case HID_MOUSE_BUTTON_LEFT:
-        case HID_MOUSE_LDRAG_UP:
-        case HID_MOUSE_LDRAG_UP_REP:
-        case HID_MOUSE_LDRAG_DOWN:
-        case HID_MOUSE_LDRAG_DOWN_REP:
-        case HID_MOUSE_LDRAG_LEFT:
-        case HID_MOUSE_LDRAG_LEFT_REP:
-        case HID_MOUSE_LDRAG_RIGHT:
-        case HID_MOUSE_LDRAG_RIGHT_REP:
-            MOUSE_DO(MOUSE_BUTTON, MOUSE_BUTTON_LEFT);
-            break;
-        case HID_MOUSE_BUTTON_RIGHT:
-        case HID_MOUSE_RDRAG_UP:
-        case HID_MOUSE_RDRAG_UP_REP:
-        case HID_MOUSE_RDRAG_DOWN:
-        case HID_MOUSE_RDRAG_DOWN_REP:
-        case HID_MOUSE_RDRAG_LEFT:
-        case HID_MOUSE_RDRAG_LEFT_REP:
-        case HID_MOUSE_RDRAG_RIGHT:
-        case HID_MOUSE_RDRAG_RIGHT_REP:
-            MOUSE_DO(MOUSE_BUTTON, MOUSE_BUTTON_RIGHT);
-            break;
-        case HID_MOUSE_BUTTON_LEFT_REL:
-        case HID_MOUSE_BUTTON_RIGHT_REL:
-            /* Keep buf empty, to mark mouse button release */
-            break;
-        default:
-            break;
-    }
-
-    /* Handle mouse accelarated movement */
-    switch (id)
-    {
-        case HID_MOUSE_UP:
-        case HID_MOUSE_DOWN:
-        case HID_MOUSE_LEFT:
-        case HID_MOUSE_RIGHT:
-        case HID_MOUSE_LDRAG_UP:
-        case HID_MOUSE_LDRAG_DOWN:
-        case HID_MOUSE_LDRAG_LEFT:
-        case HID_MOUSE_LDRAG_RIGHT:
-        case HID_MOUSE_RDRAG_UP:
-        case HID_MOUSE_RDRAG_DOWN:
-        case HID_MOUSE_RDRAG_LEFT:
-        case HID_MOUSE_RDRAG_RIGHT:
-            count = 0;
-            break;
-        case HID_MOUSE_UP_REP:
-        case HID_MOUSE_DOWN_REP:
-        case HID_MOUSE_LEFT_REP:
-        case HID_MOUSE_RIGHT_REP:
-        case HID_MOUSE_LDRAG_UP_REP:
-        case HID_MOUSE_LDRAG_DOWN_REP:
-        case HID_MOUSE_LDRAG_LEFT_REP:
-        case HID_MOUSE_LDRAG_RIGHT_REP:
-        case HID_MOUSE_RDRAG_UP_REP:
-        case HID_MOUSE_RDRAG_DOWN_REP:
-        case HID_MOUSE_RDRAG_LEFT_REP:
-        case HID_MOUSE_RDRAG_RIGHT_REP:
-            count++;
-            /* TODO: Find a better mouse accellaration algorithm */
-            step *= 1 + MOUSE_ACCEL_FACTOR(count);
-            if (step > 255)
-                step = 255;
-            break;
-        default:
-            break;
-    }
-
-    /* Move/scroll mouse */
-    switch (id)
-    {
-        case HID_MOUSE_UP:
-        case HID_MOUSE_UP_REP:
-        case HID_MOUSE_LDRAG_UP:
-        case HID_MOUSE_LDRAG_UP_REP:
-        case HID_MOUSE_RDRAG_UP:
-        case HID_MOUSE_RDRAG_UP_REP:
-            MOUSE_DO(MOUSE_Y, -step);
-            break;
-        case HID_MOUSE_DOWN:
-        case HID_MOUSE_DOWN_REP:
-        case HID_MOUSE_LDRAG_DOWN:
-        case HID_MOUSE_LDRAG_DOWN_REP:
-        case HID_MOUSE_RDRAG_DOWN:
-        case HID_MOUSE_RDRAG_DOWN_REP:
-            MOUSE_DO(MOUSE_Y, step);
-            break;
-        case HID_MOUSE_LEFT:
-        case HID_MOUSE_LEFT_REP:
-        case HID_MOUSE_LDRAG_LEFT:
-        case HID_MOUSE_LDRAG_LEFT_REP:
-        case HID_MOUSE_RDRAG_LEFT:
-        case HID_MOUSE_RDRAG_LEFT_REP:
-            MOUSE_DO(MOUSE_X, -step);
-            break;
-        case HID_MOUSE_RIGHT:
-        case HID_MOUSE_RIGHT_REP:
-        case HID_MOUSE_LDRAG_RIGHT:
-        case HID_MOUSE_LDRAG_RIGHT_REP:
-        case HID_MOUSE_RDRAG_RIGHT:
-        case HID_MOUSE_RDRAG_RIGHT_REP:
-            MOUSE_DO(MOUSE_X, step);
-            break;
-        case HID_MOUSE_SCROLL_UP:
-            MOUSE_DO(MOUSE_WHEEL, MOUSE_WHEEL_STEP);
-            break;
-        case HID_MOUSE_SCROLL_DOWN:
-            MOUSE_DO(MOUSE_WHEEL, -MOUSE_WHEEL_STEP);
-            break;
-        default:
-            break;
-    }
-
-    return BUF_LEN_MOUSE;
-}
-#endif /* HAVE_USB_HID_MOUSE */
-
 static size_t descriptor_report_get(unsigned char *dest)
 {
     unsigned char *report = dest;
@@ -447,42 +302,6 @@ static size_t descriptor_report_get(unsigned char *dest)
     pack_parameter(&report, 0, 1, USB_HID_INPUT, USB_HID_MAIN_ITEM_NO_PREFERRED |
             USB_HID_MAIN_ITEM_NULL_STATE);
     PACK_VAL(report, USB_HID_END_COLLECTION);
-
-#ifdef HAVE_USB_HID_MOUSE
-    /* Mouse control */
-    usb_hid_report = &usb_hid_reports[REPORT_ID_MOUSE];
-    usb_hid_report->usage_page = HID_USAGE_PAGE_GENERIC_DESKTOP_CONTROLS;
-    usb_hid_report->buf_set = buf_set_mouse;
-    usb_hid_report->is_key_released = 0;
-
-    pack_parameter(&report, 0, 1, USB_HID_USAGE_PAGE,
-            HID_USAGE_PAGE_GENERIC_DESKTOP_CONTROLS);
-    pack_parameter(&report, 0, 0, USB_HID_CONSUMER_USAGE, HID_GENERIC_DESKTOP_MOUSE);
-    pack_parameter(&report, 0, 1, USB_HID_COLLECTION, USB_HID_COLLECTION_APPLICATION);
-    pack_parameter(&report, 0, 1, USB_HID_REPORT_ID, REPORT_ID_MOUSE);
-    pack_parameter(&report, 0, 0, USB_HID_CONSUMER_USAGE, HID_GENERIC_DESKTOP_POINTER);
-    pack_parameter(&report, 0, 1, USB_HID_COLLECTION, USB_HID_COLLECTION_PHYSICAL);
-    pack_parameter(&report, 0, 1, USB_HID_USAGE_PAGE, HID_USAGE_PAGE_BUTTON);
-    pack_parameter(&report, 0, 1, USB_HID_USAGE_MINIMUM, 1);
-    pack_parameter(&report, 0, 1, USB_HID_USAGE_MAXIMUM, 8);
-    pack_parameter(&report, 1, 1, USB_HID_LOGICAL_MINIMUM, 0);
-    pack_parameter(&report, 1, 1, USB_HID_LOGICAL_MAXIMUM, 1);
-    pack_parameter(&report, 0, 1, USB_HID_REPORT_SIZE, 1);
-    pack_parameter(&report, 0, 1, USB_HID_REPORT_COUNT, 8);
-    pack_parameter(&report, 0, 1, USB_HID_INPUT, USB_HID_MAIN_ITEM_VARIABLE);
-    pack_parameter(&report, 0, 1, USB_HID_USAGE_PAGE,
-            HID_USAGE_PAGE_GENERIC_DESKTOP_CONTROLS);
-    pack_parameter(&report, 0, 0, USB_HID_CONSUMER_USAGE, HID_GENERIC_DESKTOP_X);
-    pack_parameter(&report, 0, 0, USB_HID_CONSUMER_USAGE, HID_GENERIC_DESKTOP_Y);
-    pack_parameter(&report, 0, 0, USB_HID_CONSUMER_USAGE, HID_GENERIC_DESKTOP_WHEEL);
-    pack_parameter(&report, 0, 1, USB_HID_LOGICAL_MINIMUM, -127 & 0xFF);
-    pack_parameter(&report, 0, 1, USB_HID_LOGICAL_MAXIMUM, 127);
-    pack_parameter(&report, 0, 1, USB_HID_REPORT_SIZE, 8);
-    pack_parameter(&report, 0, 1, USB_HID_REPORT_COUNT, 3);
-    pack_parameter(&report, 0, 1, USB_HID_INPUT, USB_HID_MAIN_ITEM_VARIABLE | USB_HID_MAIN_ITEM_RELATIVE);
-    PACK_VAL(report, USB_HID_END_COLLECTION);
-    PACK_VAL(report, USB_HID_END_COLLECTION);
-#endif /* HAVE_USB_HID_MOUSE */
 
     /* Background reports */
     pack_parameter(&report, 0, 1, USB_HID_USAGE_PAGE, HID_USAGE_PAGE_GENERIC_DEVICE_CONTROLS);

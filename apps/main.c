@@ -77,14 +77,7 @@
 #include "bootdata.h"
 #include "devicedata.h"
 
-#if (CONFIG_PLATFORM & PLATFORM_ANDROID)
-#include "notification.h"
-#endif
 #include "shortcuts.h"
-
-#ifdef IPOD_ACCESSORY_PROTOCOL
-#include "iap.h"
-#endif
 
 #include "audio_thread.h"
 #include "playback.h"
@@ -92,18 +85,6 @@
 
 #ifdef BUTTON_REC
     #define SETTINGS_RESET BUTTON_REC
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-#include "ata_mmc.h"
-#endif
-
-#if CONFIG_USBOTG == USBOTG_ISP1362
-#include "isp1362.h"
-#endif
-
-#if CONFIG_USBOTG == USBOTG_M5636
-#include "m5636.h"
 #endif
 
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
@@ -253,17 +234,6 @@ static int INIT_ATTR init_dircache(bool preinit)
 
     int result = -1;
 
-#ifdef HAVE_EEPROM_SETTINGS
-    if (firmware_settings.initialized &&
-        firmware_settings.disk_clean &&
-        preinit)
-    {
-        result = dircache_load();
-        if (result < 0)
-            firmware_settings.disk_clean = false;
-    }
-    else
-#endif /* HAVE_EEPROM_SETTINGS */
     if (!preinit)
     {
         result = dircache_enable();
@@ -350,9 +320,6 @@ static void init(void)
 #ifdef SIMULATOR
     sim_tasks_init();
 #endif
-#if (CONFIG_PLATFORM & PLATFORM_ANDROID)
-    notification_init();
-#endif
     lang_init(core_language_builtin, language_strings,
               LANG_LAST_INDEX_IN_ARRAY);
 #ifdef DEBUG
@@ -413,11 +380,6 @@ static void init(void)
     /* early early early! */
     filesystem_init();
 
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-    set_cpu_frequency(CPUFREQ_NORMAL);
-    cpu_boost(true);
-#endif
-
     i2c_init();
 
     power_init();
@@ -450,11 +412,6 @@ static void init(void)
     adc_init();
 
     usb_init();
-#if CONFIG_USBOTG == USBOTG_ISP1362
-    isp1362_init();
-#elif CONFIG_USBOTG == USBOTG_M5636
-    m5636_init();
-#endif
 
     backlight_init();
 
@@ -502,25 +459,13 @@ static void init(void)
      * can be measured. Initialize power management if it was delayed. */
     powermgmt_init();
 #endif
-#ifdef HAVE_EEPROM_SETTINGS
-    CHART(">eeprom_settings_init");
-    eeprom_settings_init();
-    CHART("<eeprom_settings_init");
-#endif
 
 #ifndef HAVE_USBSTACK
     usb_start_monitoring();
     while (usb_detect() == USB_INSERTED)
     {
-#ifdef HAVE_EEPROM_SETTINGS
-        firmware_settings.disk_clean = false;
-#endif
         /* enter USB mode early, before trying to mount */
         if (button_get_w_tmo(HZ/10) == SYS_USB_CONNECTED)
-#if (CONFIG_STORAGE & STORAGE_MMC)
-            if (!mmc_touched() ||
-                (mmc_remove_request() == SYS_HOTSWAP_EXTRACTED))
-#endif
             {
                 gui_usb_screen_run(true, button_get_data());
                 mounted = true; /* mounting done @ end of USB mode */
@@ -624,16 +569,6 @@ static void init(void)
     init_tagcache();
     CHART("<init_tagcache");
 
-#ifdef HAVE_EEPROM_SETTINGS
-    if (firmware_settings.initialized)
-    {
-        /* In case we crash. */
-        firmware_settings.disk_clean = false;
-        CHART(">eeprom_settings_store");
-        eeprom_settings_store();
-        CHART("<eeprom_settings_store");
-    }
-#endif
     playlist_init();
     tree_mem_init();
     filetype_init();
@@ -648,12 +583,7 @@ static void init(void)
     /* runtime database has to be initialized after audio_init() */
     cpu_boost(false);
 
-#if CONFIG_CHARGING
     car_adapter_mode_init();
-#endif
-#ifdef IPOD_ACCESSORY_PROTOCOL
-    iap_setup(global_settings.serial_bitrate);
-#endif
 #ifdef HAVE_HOTSWAP_STORAGE_AS_MAIN
     CHART("<check_bootfile(false)");
     check_bootfile(false); /* remember write time and filesize */

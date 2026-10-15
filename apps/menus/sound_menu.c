@@ -222,10 +222,6 @@ static int timestretch_callback(int action,
               &compressor_threshold, &compressor_gain, &compressor_ratio,
               &compressor_knee, &compressor_attack, &compressor_release);
 
-#ifdef HAVE_SPEAKER
-    MENUITEM_SETTING(speaker_mode, &global_settings.speaker_mode, NULL);
-#endif
-
 #ifdef AUDIOHW_HAVE_EQ
 #endif /* AUDIOHW_HAVE_EQ */
 
@@ -264,7 +260,4 @@ MAKE_MENU(sound_settings, ID2P(LANG_SOUND_SETTINGS), NULL, Icon_Audio,
           ,&timestretch_enabled
 #endif
           ,&compressor_menu
-#ifdef HAVE_SPEAKER
-         ,&speaker_mode
-#endif
          );

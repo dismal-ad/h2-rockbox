@@ -1259,9 +1259,6 @@ void tree_flush(void)
 
 #ifdef HAVE_DIRCACHE
     int old_val = global_status.dircache_size;
-#ifdef HAVE_EEPROM_SETTINGS
-    bool savecache = false;
-#endif
 
     if (global_settings.dircache)
     {
@@ -1271,9 +1268,6 @@ void tree_flush(void)
         dircache_get_info(&info);
 
         global_status.dircache_size = info.last_size;
-    #ifdef HAVE_EEPROM_SETTINGS
-        savecache = firmware_settings.initialized;
-    #endif
     }
     else
     {
@@ -1283,18 +1277,11 @@ void tree_flush(void)
     if (old_val != global_status.dircache_size)
         status_save(true);
 
-    #ifdef HAVE_EEPROM_SETTINGS
-        if (savecache)
-            dircache_save();
-    #endif
 #endif /* HAVE_DIRCACHE */
 }
 
 void tree_restore(void)
 {
-#ifdef HAVE_EEPROM_SETTINGS
-    firmware_settings.disk_clean = false;
-#endif
 
 #ifdef HAVE_TC_RAMCACHE
     tagcache_remove_statefile();

@@ -65,13 +65,6 @@
 
 #include "debug.h"
 
-#ifdef IPOD_ACCESSORY_PROTOCOL
-#include "iap.h"
-#endif
-
-#if (CONFIG_STORAGE & STORAGE_MMC)
-#include "ata_mmc.h"
-#endif
 #include "tree.h"
 #include "eeprom_settings.h"
 #if !defined(__PCTOOL__)
@@ -84,9 +77,7 @@
 #include "voice_thread.h"
 
 #ifdef BOOTFILE
-#if !defined(USB_HANDLED_BY_OF) || defined(HAVE_HOTSWAP_STORAGE_AS_MAIN)
 #include "rolo.h"
-#endif
 #endif
 
 #ifndef PLUGIN
@@ -350,9 +341,6 @@ static bool clean_shutdown(enum shutdown_type sd_type,
 
     status_save(true);
 
-#if CONFIG_CHARGING && !defined(HAVE_POWEROFF_WHILE_CHARGING)
-    if(!charger_inserted())
-#endif
     {
         bool batt_safe = battery_level_safe();
 
@@ -406,14 +394,6 @@ static bool clean_shutdown(enum shutdown_type sd_type,
                 callback(parameter);
 
             system_flush();
-#ifdef HAVE_EEPROM_SETTINGS
-            if (firmware_settings.initialized)
-            {
-                firmware_settings.disk_clean = true;
-                firmware_settings.bl_version = 0;
-                eeprom_settings_store();
-            }
-#endif
         }
 
         if(global_settings.talk_menu)
@@ -447,7 +427,6 @@ bool list_stop_handler(void)
             ret = true;  /* bookmarking can make a refresh necessary */
         }
     }
-#if CONFIG_CHARGING
 #ifndef HAVE_POWEROFF_WHILE_CHARGING
     {
         static long last_off = 0;
@@ -463,11 +442,9 @@ bool list_stop_handler(void)
         last_off = current_tick;
     }
 #endif
-#endif /* CONFIG_CHARGING */
     return ret;
 }
 
-#if CONFIG_CHARGING
 static bool waiting_to_resume_play = false;
 static bool paused_on_unplugged = false;
 static long play_resume_tick;
@@ -528,7 +505,6 @@ void car_adapter_mode_init(void)
 {
     tick_add_task(car_adapter_tick);
 }
-#endif
 
 static void hp_unplug_change(bool inserted)
 {
@@ -557,10 +533,6 @@ static void hp_unplug_change(bool inserted)
         }
     }
 
-#ifdef HAVE_SPEAKER
-    /* update speaker status */
-    audio_enable_speaker(global_settings.speaker_mode);
-#endif
 }
 
 static void lo_unplug_change(bool inserted)
@@ -594,9 +566,6 @@ static void lo_unplug_change(bool inserted)
 
 long default_event_handler_ex(long event, void (*callback)(void *), void *parameter)
 {
-#if CONFIG_PLATFORM & (PLATFORM_ANDROID)
-    static bool resume = false;
-#endif
 
     switch(event)
     {
@@ -617,15 +586,11 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
                 callback(parameter);
             system_flush();
 #ifdef BOOTFILE
-#if !defined(USB_HANDLED_BY_OF)
             check_bootfile(false); /* gets initial size */
-#endif
 #endif
             gui_usb_screen_run(false, seqnum);
 #ifdef BOOTFILE
-#if !defined(USB_HANDLED_BY_OF)
             check_bootfile(true);
-#endif
 #endif
             system_restore();
             return SYS_USB_CONNECTED;
@@ -644,7 +609,6 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
                 return event;
         }
             break;
-#if CONFIG_CHARGING
         case SYS_CHARGER_CONNECTED:
             car_adapter_mode_processing(true);
             return SYS_CHARGER_CONNECTED;
@@ -657,7 +621,6 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
         case SYS_CAR_ADAPTER_RESUME:
             unpause_action(true);
             return SYS_CAR_ADAPTER_RESUME;
-#endif
 #ifdef HAVE_HOTSWAP_STORAGE_AS_MAIN
         case SYS_FS_CHANGED:
         {
@@ -689,23 +652,6 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
         case SYS_LINEOUT_UNPLUGGED:
             lo_unplug_change(false);
             return SYS_LINEOUT_UNPLUGGED;
-#if CONFIG_PLATFORM & (PLATFORM_ANDROID)
-        /* stop playback if we receive a call */
-        case SYS_CALL_INCOMING:
-            resume = audio_status() == AUDIO_STATUS_PLAY;
-            list_stop_handler();
-            return SYS_CALL_INCOMING;
-        /* resume playback if needed */
-        case SYS_CALL_HUNG_UP:
-            if (resume && playlist_resume() != -1)
-            {
-                playlist_start(global_status.resume_index,
-                               global_status.resume_elapsed,
-                               global_status.resume_offset);
-            }
-            resume = false;
-            return SYS_CALL_HUNG_UP;
-#endif
     }
     return 0;
 }
@@ -716,7 +662,6 @@ long default_event_handler(long event)
 }
 
 #ifdef BOOTFILE
-#if !defined(USB_HANDLED_BY_OF) || defined(HAVE_HOTSWAP_STORAGE_AS_MAIN)
 /*
     memorize/compare details about the BOOTFILE
     we don't use dircache because it may not be up to date after
@@ -761,7 +706,6 @@ void check_bootfile(bool do_rolo)
     }
     closedir(dir);
 }
-#endif
 #endif
 
 /* set volume and save settings */

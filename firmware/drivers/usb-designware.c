@@ -43,13 +43,8 @@
 /* The ARM940T uses a subset of the ARMv4 functions, not
  * supporting clean/invalidate cache entries using MVA.
  */
-#if CONFIG_CPU == S5L8701
-#define DISCARD_DCACHE_RANGE(b,s)   commit_discard_dcache()
-#define COMMIT_DCACHE_RANGE(b,s)    commit_dcache()
-#else
 #define DISCARD_DCACHE_RANGE(b,s)   discard_dcache_range(b,s)
 #define COMMIT_DCACHE_RANGE(b,s)    commit_dcache_range(b,s)
-#endif
 
 /* USB_DW_PHYSADDR(x) converts the address of buffer x to one usable with DMA.
  * For example, converting a virtual address to a physical address.
@@ -64,19 +59,6 @@
 #if CONFIG_CPU == X1000
 # define USB_DW_PHYSADDR(x)     PHYSADDR(x)
 # define USB_DW_UNCACHEDADDR(x) ((typeof(x))UNCACHEDADDR(x))
-# define POST_DMA_FLUSH
-#elif CONFIG_CPU == AS3525v2
-# define USB_DW_PHYSADDR(x)     AS3525_PHYSICAL_ADDR(x)
-# define USB_DW_UNCACHEDADDR(x) AS3525_UNCACHED_ADDR(x)
-#elif CONFIG_CPU == S5L8701
-# define USB_DW_PHYSADDR(x)     x
-# define NO_UNCACHED_ADDR       /* Not known how to form uncached addresses */
-#elif CONFIG_CPU == S5L8702 || CONFIG_CPU == S5L8720
-# define USB_DW_PHYSADDR(x)     S5L8702_PHYSICAL_ADDR(x)
-# define USB_DW_UNCACHEDADDR(x) S5L8702_UNCACHED_ADDR(x)
-#elif CONFIG_CPU == STM32H743
-# define USB_DW_PHYSADDR(x)     x
-# define NO_UNCACHED_ADDR       /* TODO: maybe implement this */
 # define POST_DMA_FLUSH
 #elif !defined(USB_DW_ARCH_SLAVE)
 # error "Must define USB_DW_PHYSADDR / USB_DW_UNCACHEDADDR!"
@@ -661,16 +643,6 @@ static void usb_dw_reset_endpoints(void)
             semaphore_release(&dw_ep->complete);
         }
     }
-
-#if CONFIG_CPU == S5L8701
-    /*
-     * Workaround for spurious -EPROTO when receiving bulk data on Nano2G.
-     *
-     * The Rx FIFO and Rx queue are currupted by the received (corrupted)
-     * data, must be flushed, otherwise the core can not set GONAK effective.
-     */
-    usb_dw_flush_fifo(RXFFLSH, 0);
-#endif
 
     /* Flush and initialize EPs, includes disabling USBAEP on all EPs
      * except EP0 (USB HW core keeps EP0 active on all configurations).

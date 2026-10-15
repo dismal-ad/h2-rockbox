@@ -304,24 +304,16 @@ MENUITEM_SETTING(keyclick_repeats, &global_settings.keyclick_repeats, NULL);
 MAKE_MENU(keyclick_menu, ID2P(LANG_KEYCLICK), 0, Icon_NOICON,
            &keyclick, &keyclick_repeats);
 
-#if CONFIG_CHARGING
 MENUITEM_SETTING(car_adapter_mode, &global_settings.car_adapter_mode, NULL);
 MENUITEM_SETTING(car_adapter_mode_delay, &global_settings.car_adapter_mode_delay, NULL);
 MAKE_MENU(car_adapter_mode_menu, ID2P(LANG_CAR_ADAPTER_MODE), 0, Icon_NOICON,
            &car_adapter_mode, &car_adapter_mode_delay);
-#endif
-#ifdef IPOD_ACCESSORY_PROTOCOL
-MENUITEM_SETTING(serial_bitrate, &global_settings.serial_bitrate, NULL);
-#endif
 #ifdef USB_ENABLE_HID
 MENUITEM_SETTING(usb_hid, &global_settings.usb_hid, NULL);
 MENUITEM_SETTING(usb_keypad_mode, &global_settings.usb_keypad_mode, NULL);
 #endif
 #if defined(USB_ENABLE_AUDIO)
 MENUITEM_SETTING(usb_audio, &global_settings.usb_audio, NULL);
-#endif
-#if defined(USB_ENABLE_STORAGE) && defined(HAVE_MULTIDRIVE)
-MENUITEM_SETTING(usb_skip_first_drive, &global_settings.usb_skip_first_drive, NULL);
 #endif
 
 MENUITEM_SETTING(shortcuts_replaces_quickscreen, &global_settings.shortcuts_replaces_qs, NULL);
@@ -344,9 +336,6 @@ MAKE_MENU(usb_menu, ID2P(LANG_USB_MENU), 0, Icon_NOICON,
 #if defined(USB_ENABLE_AUDIO)
             &usb_audio,
 #endif
-#if defined(USB_ENABLE_STORAGE) && defined(HAVE_MULTIDRIVE)
-            &usb_skip_first_drive,
-#endif
 #ifdef HAVE_USB_MODE
             &usb_mode,
 #endif
@@ -364,12 +353,7 @@ MAKE_MENU(system_menu, ID2P(LANG_SYSTEM),
             &volume_adjust_mode,
             &volume_adjust_norm_steps,
             &shortcuts_replaces_quickscreen,
-#if CONFIG_CHARGING
             &car_adapter_mode_menu,
-#endif
-#ifdef IPOD_ACCESSORY_PROTOCOL
-            &serial_bitrate,
-#endif
             &keyclick_menu,
             &sel_softlock,
 #if (defined(USB_ENABLE_HID) || defined(USB_ENABLE_AUDIO)) || (defined(USB_ENABLE_STORAGE) && defined(HAVE_MULTIDRIVE)) || defined(HAVE_USB_MODE)

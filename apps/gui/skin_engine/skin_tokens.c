@@ -64,10 +64,6 @@
 #include "option_select.h"
 #include "wps.h"
 
-#if (CONFIG_STORAGE & STORAGE_ATA)
-#include "ata.h" /* ata_disk_isssd() */
-#endif
-
 #define NOINLINE __attribute__ ((noinline))
 
 static const char* get_codectype(const struct mp3entry* id3)
@@ -261,10 +257,6 @@ void wps_playlist_percent_prepare(void)
 
     if (!tmp)
         return;
-#if (CONFIG_STORAGE & STORAGE_ATA) /* Harddrive estimate length based on filesize */
-    unsigned int last_afmt = AFMT_UNKNOWN;
-    uint32_t last_bps = 0;
-#endif
     for (int n = 0; n < amount; n++)
     {
         unsigned long secs = 0;
@@ -276,42 +268,12 @@ void wps_playlist_percent_prepare(void)
         if (slot < 0 || slot >= amount)
             goto abort;
 
-#if (CONFIG_STORAGE & STORAGE_ATA) /* Harddrive */
-        int fd = open(info.filename, O_RDONLY);
-        if (fd >= 0)
-        {
-            unsigned int afmt = probe_file_format(info.filename);
-            off_t size = ffilesize(fd);
-
-            if (size > 0)
-            {
-                if (afmt != last_afmt || last_bps == 0
-                    || amount <= 50 || (amount <= 250 && ata_disk_isssd())) // TODO tune this for harddisk devices
-                {
-                    if (get_metadata_afmt(tmp, fd, info.filename, afmt,
-                        METADATA_EXCLUDE_ID3_PATH | METADATA_EXCLUDE_NORMALIZE))
-                    {
-                        secs = tmp->length / 1000;
-                        last_bps = (uint32_t)((uint64_t)size * 1000 / tmp->length);
-                        last_afmt = afmt;
-                    }
-                }
-                else /* file size only -- no per-track metadata parse */
-                {
-                    secs = (unsigned long)((uint64_t)size / last_bps);
-                }
-                mins = MIN(MAX(1, (secs + 30) / 60), 65535ul);/* minutes, rounded to nearest */
-            }
-            close(fd);
-        }
-#else
         if (get_metadata_ex(tmp, -1, info.filename,
                             METADATA_EXCLUDE_ID3_PATH | METADATA_EXCLUDE_NORMALIZE))
         {
             secs = tmp->length / 1000;
             mins = MIN(MAX(1, (secs + 30) / 60), 65535ul);/* minutes, rounded to nearest */
         }
-#endif
         /* unreadable tracks count as zero length */
         plpct.track_mins[slot] = mins;
     }
@@ -1304,7 +1266,6 @@ const char *get_token_value(struct gui_wps *gwps,
             return buf;
         }
 
-#if CONFIG_CHARGING
         case SKIN_TOKEN_BATTERY_CHARGER_CONNECTED:
         {
             if(charger_input_state==CHARGER)
@@ -1312,8 +1273,6 @@ const char *get_token_value(struct gui_wps *gwps,
             else
                 return NULL;
         }
-#endif
-#if CONFIG_CHARGING >= CHARGING_MONITOR
         case SKIN_TOKEN_BATTERY_CHARGING:
         {
             if (charge_state == CHARGING || charge_state == TOPOFF) {
@@ -1322,7 +1281,6 @@ const char *get_token_value(struct gui_wps *gwps,
                 return NULL;
             }
         }
-#endif
         case SKIN_TOKEN_USB_INSERTED:
             if (usb_inserted())
                 return "u";
@@ -1435,13 +1393,11 @@ const char *get_token_value(struct gui_wps *gwps,
                 return NULL;
 #endif
 
-#if (CONFIG_LED == LED_VIRTUAL)
         case SKIN_TOKEN_VLED_HDD:
             if(led_read(HZ/2))
                 return "h";
             else
                 return NULL;
-#endif
         case SKIN_TOKEN_BUTTON_VOLUME:
             if (global_status.last_volume_change &&
                 TIME_BEFORE(current_tick, global_status.last_volume_change +

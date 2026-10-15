@@ -39,10 +39,6 @@
 #include "debug.h"
 
 #undef open /* want the *real* open here, not sim_open or the like */
-#if (CONFIG_PLATFORM & PLATFORM_ANDROID) || defined(DX50)
-#include "cpu-features.h"
-#define get_nprocs android_getCpuCount
-#endif
 
 #define NUM_SAMPLES 64
 #define NUM_SAMPLES_MASK (NUM_SAMPLES-1)

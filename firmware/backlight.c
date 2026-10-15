@@ -54,10 +54,7 @@
 
 #if defined(BACKLIGHT_FULL_INIT)
 
-#if (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_SETTING) \
-    || (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_HW_REG)
 #include "backlight-sw-fading.h"
-#endif
 
 #define BACKLIGHT_FADE_IN_THREAD \
     (CONFIG_BACKLIGHT_FADING &  (BACKLIGHT_FADING_SW_SETTING \
@@ -92,191 +89,15 @@ static unsigned int backlight_thread_id = 0;
 int backlight_brightness = DEFAULT_BRIGHTNESS_SETTING;
 static int backlight_timer SHAREDBSS_ATTR;
 static int backlight_timeout_normal = 5*HZ;
-#if CONFIG_CHARGING
 static int backlight_timeout_plugged = 5*HZ;
-#endif
 static int backlight_on_button_hold = 0;
 static void backlight_handle_timeout(void);
 
-#if (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_SETTING) \
-    || (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_HW_REG)
 static int backlight_fading_type = (FADING_UP|FADING_DOWN);
 static int backlight_fading_state = NOT_FADING;
-#endif
 
 
 /* backlight fading */
-#if (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_PWM)
-#define BL_PWM_INTERVAL 5  /* Cycle interval in ms */
-#define BL_PWM_BITS     8
-#define BL_PWM_COUNT    (1<<BL_PWM_BITS)
-
-/* s15.16 fixed point variables */
-static int32_t bl_fade_in_step  = ((BL_PWM_INTERVAL*BL_PWM_COUNT)<<16)/300;
-static int32_t bl_fade_out_step = ((BL_PWM_INTERVAL*BL_PWM_COUNT)<<16)/2000;
-static int32_t bl_dim_fraction  = 0;
-
-static int bl_dim_target  = 0;
-static int bl_dim_current = 0;
-static enum {DIM_STATE_START, DIM_STATE_MAIN} bl_dim_state = DIM_STATE_START;
-static bool bl_timer_active = false;
-
-static void backlight_isr(void)
-{
-    int timer_period = (TIMER_FREQ*BL_PWM_INTERVAL/1000);
-    bool idle = false;
-
-    switch (bl_dim_state)
-    {
-      /* New cycle */
-      case DIM_STATE_START:
-        bl_dim_current = bl_dim_fraction >> 16;
-
-        if (bl_dim_current > 0 && bl_dim_current < BL_PWM_COUNT)
-        {
-            _backlight_on_isr();
-            timer_period = (timer_period * bl_dim_current) >> BL_PWM_BITS;
-            bl_dim_state = DIM_STATE_MAIN;
-        }
-        else
-        {
-            if (bl_dim_current)
-                _backlight_on_isr();
-            else
-                _backlight_off_isr();
-            if (bl_dim_current == bl_dim_target)
-                idle = true;
-        }
-        if (bl_dim_current < bl_dim_target)
-        {
-            bl_dim_fraction = MIN(bl_dim_fraction + bl_fade_in_step,
-                                  (BL_PWM_COUNT<<16));
-        }
-        else if (bl_dim_current > bl_dim_target)
-        {
-            bl_dim_fraction = MAX(bl_dim_fraction - bl_fade_out_step, 0);
-        }
-        break;
-
-      /* Dim main screen */
-      case DIM_STATE_MAIN:
-        _backlight_off_isr();
-        timer_period = (timer_period * (BL_PWM_COUNT - bl_dim_current))
-                     >> BL_PWM_BITS;
-        bl_dim_state = DIM_STATE_START;
-        break ;
-    }
-    if (idle)
-    {
-#if defined(_BACKLIGHT_FADE_BOOST) || defined(_BACKLIGHT_FADE_ENABLE)
-        queue_post(&backlight_queue, BACKLIGHT_FADE_FINISH, 0);
-#endif
-        timer_unregister();
-        bl_timer_active = false;
-
-    }
-    else
-        timer_set_period(timer_period);
-}
-
-static void backlight_switch(void)
-{
-    if (bl_dim_target > (BL_PWM_COUNT/2))
-    {
-        _backlight_on_normal();
-        bl_dim_fraction = (BL_PWM_COUNT<<16);
-    }
-    else
-    {
-        _backlight_off_normal();
-        bl_dim_fraction = 0;
-
-    }
-}
-
-static void backlight_release_timer(void)
-{
-#ifdef _BACKLIGHT_FADE_BOOST
-    cpu_boost(false);
-#endif
-    timer_unregister();
-    bl_timer_active = false;
-    backlight_switch();
-}
-
-static void backlight_dim(int value)
-{
-    /* protect from extraneous calls with the same target value */
-    if (value == bl_dim_target)
-        return;
-
-    bl_dim_target = value;
-
-    if (bl_timer_active)
-        return ;
-
-    if (timer_register(0, backlight_release_timer, 2, backlight_isr
-                       IF_COP(, CPU)))
-    {
-#ifdef _BACKLIGHT_FADE_BOOST
-        /* Prevent cpu frequency changes while dimming. */
-        cpu_boost(true);
-#endif
-        bl_timer_active = true;
-    }
-    else
-        backlight_switch();
-}
-
-static void backlight_setup_fade_up(void)
-{
-    if (bl_fade_in_step > 0)
-    {
-#ifdef _BACKLIGHT_FADE_ENABLE
-        _backlight_hw_enable(true);
-#endif
-        backlight_dim(BL_PWM_COUNT);
-    }
-    else
-    {
-        bl_dim_target = BL_PWM_COUNT;
-        bl_dim_fraction = (BL_PWM_COUNT<<16);
-        _backlight_on_normal();
-    }
-}
-
-static void backlight_setup_fade_down(void)
-{
-    /* Start fading display if it's not dimmed yet */
-    if (bl_fade_out_step > 0 && bl_dim_current > 0)
-    {
-        backlight_dim(0);
-    }
-    else
-    {
-        bl_dim_target = bl_dim_fraction = 0;
-        _backlight_off_normal();
-    }
-}
-
-void backlight_set_fade_in(int value)
-{
-    if (value > 0)
-        bl_fade_in_step = ((BL_PWM_INTERVAL*BL_PWM_COUNT)<<16) / value;
-    else
-        bl_fade_in_step = 0;
-}
-
-void backlight_set_fade_out(int value)
-{
-    if (value > 0)
-        bl_fade_out_step = ((BL_PWM_INTERVAL*BL_PWM_COUNT)<<16) / value;
-    else
-        bl_fade_out_step = 0;
-}
-
-#elif  (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_SETTING) \
-    || (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_HW_REG)
 
 void backlight_set_fade_out(bool value)
 {
@@ -325,14 +146,8 @@ static void backlight_setup_fade_down(void)
         backlight_fading_state = NOT_FADING;
         _backlight_fade_update_state(MIN_BRIGHTNESS_SETTING-1);
         backlight_hw_off();
-#if (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_HW_REG)
-        /* write the lowest brightness level to the hardware so that
-         * fading up is glitch free */
-        backlight_hw_brightness(MIN_BRIGHTNESS_SETTING);
-#endif
     }
 }
-#endif /* CONFIG_BACKLIGHT_FADING */
 
 static inline void do_backlight_off(void)
 {
@@ -356,12 +171,9 @@ static void backlight_update_state(void)
     if (UNLIKELY(timeout < 0))
     {
         do_backlight_off();
-#if (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_SETTING) \
-    || (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_HW_REG)
         /* necessary step to issue fading down when the setting is selected */
         if (queue_empty(&backlight_queue))
             queue_post(&backlight_queue, SYS_TIMEOUT, 0);
-#endif
     }
     else
     {
@@ -377,12 +189,9 @@ static void backlight_update_state(void)
 
 static void backlight_queue_wait(struct queue_event *ev)
 {
-#if  (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_SETTING) \
-    || (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_HW_REG)
     if (backlight_fading_state != NOT_FADING)
         queue_wait_w_tmo(&backlight_queue, ev, FADE_DELAY);
     else
-#endif
         queue_wait_w_tmo(&backlight_queue, ev, BACKLIGHT_THREAD_TIMEOUT);
 }
 
@@ -437,11 +246,8 @@ void backlight_thread(void)
             case BACKLIGHT_BRIGHTNESS_CHANGED:
                 backlight_brightness = (int)ev.data;
                 backlight_hw_brightness((int)ev.data);
-#if  (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_SETTING) \
-    || (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_HW_REG)
                 /* receive backlight brightness */
                 _backlight_fade_update_state((int)ev.data);
-#endif
                 break;
 
             case SYS_REBOOT:
@@ -450,10 +256,8 @@ void backlight_thread(void)
                 if (!global_settings.show_shutdown_message)
                     break;
                 /* else fall through */
-#if CONFIG_CHARGING
             case SYS_CHARGER_CONNECTED:
             case SYS_CHARGER_DISCONNECTED:
-#endif
                 backlight_update_state();
                 break;
             case SYS_TIMEOUT:
@@ -483,8 +287,6 @@ static void backlight_timeout_handler(void)
 
 static void backlight_handle_timeout(void)
 {
-#if  (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_SETTING) \
-    || (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_SW_HW_REG)
     if (backlight_fading_state != NOT_FADING)
     {
         if ((_backlight_fade_step(backlight_fading_state)))
@@ -493,7 +295,6 @@ static void backlight_handle_timeout(void)
         }
     }
     else
-#endif /* CONFIG_BACKLIGHT_FADING */
         backlight_timeout_handler();
 }
 
@@ -503,11 +304,6 @@ void backlight_init(void)
 
     if (backlight_hw_init())
     {
-#if (CONFIG_BACKLIGHT_FADING == BACKLIGHT_FADING_PWM)
-        /* If backlight is already on, don't fade in. */
-        bl_dim_target = BL_PWM_COUNT;
-        bl_dim_fraction = (BL_PWM_COUNT<<16);
-#endif
     }
     /* Leave all lights as set by the bootloader here. The settings load will
      * call the appropriate backlight_set_*() functions, only changing light
@@ -576,11 +372,9 @@ int backlight_get_current_timeout(void)
         return (backlight_on_button_hold == 2) ? 0 : -1;
         /* always on or always off */
     else
-#if CONFIG_CHARGING
         if (power_input_present())
             return backlight_timeout_plugged;
         else
-#endif
             return backlight_timeout_normal;
 }
 
@@ -590,13 +384,11 @@ void backlight_set_timeout(int value)
     queue_post(&backlight_queue, BACKLIGHT_TMO_CHANGED, 0);
 }
 
-#if CONFIG_CHARGING
 void backlight_set_timeout_plugged(int value)
 {
     backlight_timeout_plugged = HZ * value;
     queue_post(&backlight_queue, BACKLIGHT_TMO_CHANGED, 0);
 }
-#endif /* CONFIG_CHARGING */
 
 void backlight_set_on_button_hold(int index)
 {

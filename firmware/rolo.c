@@ -34,13 +34,8 @@
 #include "rolo.h"
 
 #include "loader_strerror.h"
-#if defined(MI4_FORMAT)
-#include "mi4-loader.h"
-#define LOAD_FIRMWARE(a,b,c) load_mi4(a,b,c)
-#else
 #include "rb-loader.h"
 #define LOAD_FIRMWARE(a,b,c) load_firmware(a,b,c)
-#endif
 
 #if !defined(SIMULATOR)
 #include "multiboot.h"
@@ -50,10 +45,6 @@
 
 #if !defined(SIMULATOR)
 #include "devicedata.h"
-#endif
-
-#if CONFIG_CPU == AS3525v2
-#include "ascodec.h"
 #endif
 
 #define IRQ0_EDGE_TRIGGER 0x80
@@ -190,15 +181,9 @@ int rolo_load(const char* filename)
     lcd_update();
 
     adc_close();
-#if CONFIG_CPU == AS3525v2
-    /* Set CVDD1 power supply to default*/
-    ascodec_write_pmu(0x17, 1, 0);
-#endif
 
-#if CONFIG_CPU != IMX31L /* We're not finished yet */
     /* Some targets have a higher disable level than HIGEST_IRQ_LEVEL */
     set_irq_level(DISABLE_INTERRUPTS);
-#endif /* CONFIG_CPU == IMX31L */
 
     rolo_restart(filebuf, ramstart, length);
 

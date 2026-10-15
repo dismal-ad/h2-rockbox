@@ -46,9 +46,7 @@ extern unsigned short power_history[POWER_HISTORY_LEN];
 extern unsigned short battery_level_disksafe;
 extern unsigned short battery_level_shutoff;
 extern unsigned short percent_to_volt_discharge[11];
-#if CONFIG_CHARGING
 extern unsigned short percent_to_volt_charge[11];
-#endif
 
 #include "misc.h"
 #include "splash.h"
@@ -59,9 +57,7 @@ struct battery_tables_t device_battery_tables =
     .disksafe = &battery_level_disksafe,
     .shutoff = &battery_level_shutoff,
     .discharge = percent_to_volt_discharge,
-#if CONFIG_CHARGING
     .charge = percent_to_volt_charge,
-#endif
     .elems = ARRAYLEN(percent_to_volt_discharge),
     .isdefault = true,
 };
@@ -76,16 +72,12 @@ static bool sleeptimer_key_restarts = false;
 /* The number of seconds the sleep timer was last set to */
 static unsigned int sleeptimer_duration = 0;
 
-#if CONFIG_CHARGING
 /* State of the charger input as seen by the power thread */
 enum charger_input_state_type charger_input_state;
 /* Power inputs as seen by the power thread */
 unsigned int power_thread_inputs;
-#if CONFIG_CHARGING >= CHARGING_MONITOR
 /* Charging state (mode) as seen by the power thread */
 enum charge_state_type charge_state = DISCHARGING;
-#endif
-#endif /* CONFIG_CHARGING */
 
 static int shutdown_timeout = 0;
 
@@ -98,12 +90,7 @@ static long last_event_tick = 0;
 /* Power history: power_history[0] is the newest sample */
 unsigned short power_history[POWER_HISTORY_LEN] = {0};
 
-#if (CONFIG_CPU == JZ4732) || (CONFIG_CPU == JZ4760B) || \
-    (CONFIG_CPU == X1000) || (CONFIG_PLATFORM & PLATFORM_HOSTED)
 static long power_stack[DEFAULT_STACK_SIZE/sizeof(long)];
-#else
-static long power_stack[DEFAULT_STACK_SIZE/2/sizeof(long)];
-#endif
 static const char power_thread_name[] = "power";
 
 /* Time estimation requires 64 bit math so don't use it in the bootloader.
@@ -168,13 +155,11 @@ int battery_current(void)
     if (backlight_get_current_timeout() == 0) /* LED always on */
         current += CURRENT_BACKLIGHT;
 
-#if CONFIG_CHARGING >= CHARGING_MONITOR
     /* While charging we must report the charging current. */
     if (charging_state()) {
         current = CURRENT_MAX_CHG - current;
         current = MIN(current, 1);
     }
-#endif
 
     return current;
 }
@@ -258,7 +243,6 @@ static int voltage_to_battery_level(int millivolts)
     if (millivolts < 0)
         return -1;
 
-#if CONFIG_CHARGING >= CHARGING_MONITOR
     if (charging_state()) {
         /* battery level is defined to be < 100% until charging is finished */
         level = voltage_to_percent(millivolts, percent_to_volt_charge);
@@ -266,7 +250,6 @@ static int voltage_to_battery_level(int millivolts)
             level = 99;
     }
     else
-#endif /* CONFIG_CHARGING >= CHARGING_MONITOR */
     {
         /* DISCHARGING or error state */
         level = voltage_to_percent(millivolts, percent_to_volt_discharge);
@@ -298,11 +281,9 @@ static void battery_status_update(void)
 
     int time_est = 0;
     if(level >= 0 && current > 0) {
-#if CONFIG_CHARGING >= CHARGING_MONITOR
         if (charging_state())
             time_est = (100 - level) * battery_capacity * 36 / current;
         else
-#endif
             time_est = level * battery_capacity * 36 / current;
 
         /* The first term nudges the counter toward the estimate. */
@@ -368,33 +349,15 @@ bool battery_level_safe(void)
 /* switch off unit if battery level is too low for reliable operation */
 bool query_force_shutdown(void)
 {
-#if CONFIG_CHARGING
     /* It doesn't make sense to force shutdown when externally powered. */
     if (power_input_present())
         return false;
-#endif
 
     /* If we have both, prefer voltage */
     return voltage_now < battery_level_shutoff;
 }
 
 /** Generic charging algorithms for common charging types **/
-#if CONFIG_CHARGING == 0 || CONFIG_CHARGING == CHARGING_SIMPLE
-static inline void powermgmt_init_target(void)
-{
-    /* Nothing to do */
-}
-
-static inline void charging_algorithm_step(void)
-{
-    /* Nothing to do */
-}
-
-static inline void charging_algorithm_close(void)
-{
-    /* Nothing to do */
-}
-#elif CONFIG_CHARGING == CHARGING_MONITOR
 /*
  * Monitor CHARGING/DISCHARGING state.
  */
@@ -425,9 +388,7 @@ static inline void charging_algorithm_close(void)
 {
     /* Nothing to do */
 }
-#endif /* CONFIG_CHARGING == * */
 
-#if CONFIG_CHARGING
 /* Shortcut function calls - compatibility, simplicity. */
 
 /* Returns true if any power input is capable of charging. */
@@ -498,7 +459,6 @@ static inline bool detect_charger(unsigned int pwr)
     /* Transitional state */
     return true;
 }
-#endif /* CONFIG_CHARGING */
 
 static int power_hist_item(void)
 {
@@ -534,9 +494,7 @@ static inline void power_thread_step(void)
      * likely always be spinning in USB mode) or charging.
      */
     if (!storage_disk_is_active() || usb_inserted()
-#if CONFIG_CHARGING >= CHARGING_MONITOR
             || charger_input_state == CHARGER
-#endif
     ) {
         average_step(false);
         battery_status_update();
@@ -568,10 +526,8 @@ static void power_thread(void)
         sleep(HZ/100);
     }
 
-#if CONFIG_CHARGING
     /* Initialize power input status before calling other routines. */
     power_thread_inputs = power_input_status();
-#endif
 
     /* call target specific init now */
     powermgmt_init_target();
@@ -586,12 +542,10 @@ static void power_thread(void)
 
     while (1)
     {
-#if CONFIG_CHARGING
         unsigned int pwr = power_input_status();
         power_thread_inputs = pwr;
 
         if (!detect_charger(pwr))
-#endif /* CONFIG_CHARGING */
         {
             /* Steady state */
             sleep(POWER_THREAD_STEP_TICKS);
@@ -764,9 +718,7 @@ void init_battery_tables(void)
             /* if we made it here, the values should be OK to use */
             if (bl_op == eCHARGE)
             {
-#if CONFIG_CHARGING
                 memcpy(device_battery_tables.charge, &tmparr, PWRELEMS);
-#endif
                 break;
             }
             memcpy(device_battery_tables.discharge, &tmparr, PWRELEMS);
@@ -926,9 +878,7 @@ static void handle_sleep_timer(void)
 {
     if (TIME_AFTER(current_tick, sleeptimer_endtick)) {
         if (usb_inserted()
-#if CONFIG_CHARGING
             || charger_input_state != NO_CHARGER
-#endif
         ) {
             DEBUGF("Sleep timer timeout. Stopping...\n");
             audio_pause();
@@ -965,9 +915,7 @@ void handle_auto_poweroff(void)
      * unplugged, wait for a timeout period and then shut down.
      */
     if (audio_stat == AUDIO_STATUS_PLAY
-#if CONFIG_CHARGING
         || charger_input_state == CHARGER
-#endif
     ) {
         last_event_tick = current_tick;
     }

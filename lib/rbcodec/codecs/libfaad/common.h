@@ -34,35 +34,11 @@ extern "C" {
 #include "faad_config.h"
 #include "codeclib.h"
 
-#if   (CONFIG_CPU == MCF5250)
-/* Enough IRAM but performance suffers with ICODE_ATTR. */
-#define IBSS_ATTR_FAAD_LARGE_IRAM   IBSS_ATTR
-#define ICODE_ATTR_FAAD_LARGE_IRAM
-#define ICONST_ATTR_FAAD_LARGE_IRAM ICONST_ATTR
-#define IBSS_ATTR_FAAD_XLR
-
-#elif (CONFIG_CPU == PP5022) || (CONFIG_CPU == PP5024) || (CONFIG_CPU == S5L8702)
-/* Enough IRAM to move additional data and code to it. */
-#define IBSS_ATTR_FAAD_LARGE_IRAM   IBSS_ATTR
-#define ICODE_ATTR_FAAD_LARGE_IRAM  ICODE_ATTR
-#define ICONST_ATTR_FAAD_LARGE_IRAM ICONST_ATTR
-#define IBSS_ATTR_FAAD_XLR
-
-#elif (CONFIG_CPU == S5L8700) || (CONFIG_CPU == S5L8701)
-/* Very large IRAM. Move even more data to it. */
-#define IBSS_ATTR_FAAD_LARGE_IRAM   IBSS_ATTR
-#define ICODE_ATTR_FAAD_LARGE_IRAM  ICODE_ATTR
-#define ICONST_ATTR_FAAD_LARGE_IRAM ICONST_ATTR
-#define IBSS_ATTR_FAAD_XLR          IBSS_ATTR
-#define HAVE_FAAD_XLR_IN_IRAM
-
-#else
 /* Not enough IRAM available. */
 #define IBSS_ATTR_FAAD_LARGE_IRAM
 #define ICODE_ATTR_FAAD_LARGE_IRAM
 #define ICONST_ATTR_FAAD_LARGE_IRAM
 #define IBSS_ATTR_FAAD_XLR
-#endif
 
 /* Used to allocate several SBR + PS arrays and variables statically. */
 #define FAAD_STATIC_ALLOC

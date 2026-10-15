@@ -257,16 +257,6 @@ static int info_speak_item(int selected_item, void * data)
             break;
         }
         case INFO_BATTERY: /* battery */
-#if CONFIG_CHARGING == CHARGING_SIMPLE
-            /* Only know if plugged */
-            if (charger_inserted())
-            {
-                talk_id(LANG_BATTERY_CHARGE, true);
-                if (battery_level() >= 0)
-                    talk_value(battery_level(), UNIT_PERCENT, true);
-            }
-            else
-#elif CONFIG_CHARGING >= CHARGING_MONITOR
             /* Go by what power management reports */
             if (charging_state())
             {
@@ -275,7 +265,6 @@ static int info_speak_item(int selected_item, void * data)
                     talk_value(battery_level(), UNIT_PERCENT, true);
             }
             else
-#endif /* CONFIG_CHARGING = */
             if (battery_level() >= 0)
             {
                 int time_left = battery_time();
@@ -343,17 +332,10 @@ static int info_action_callback(int action, struct gui_synclist *lists)
 /* Note: these need to be in the same order as enum infoscreenorder */
     simplelist_reset_lines();
 /* INFO_BATTERY */
-#if CONFIG_CHARGING == CHARGING_SIMPLE
-    /* Only know if plugged */
-    if (charger_inserted())
-        simplelist_setline(str(LANG_BATTERY_CHARGE));
-    else
-#elif CONFIG_CHARGING >= CHARGING_MONITOR
     /* Go by what power management reports */
     if (charging_state())
         simplelist_setline(str(LANG_BATTERY_CHARGE));
     else
-#endif /* CONFIG_CHARGING = */
     if (battery_level() >= 0)
         simplelist_addline(str(LANG_BATTERY_TIME),
         battery_level(), battery_time() / 60, battery_time() % 60);

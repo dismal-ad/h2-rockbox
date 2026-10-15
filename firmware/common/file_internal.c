@@ -41,12 +41,7 @@
 
 /* for internal functions' scanning use to save quite a bit of stack space -
    access must be serialized by the writer lock */
-#if CONFIG_CPU == IMX233
-/* otherwise, out of IRAM */
-struct fat_direntry dir_fatent;
-#else
 struct fat_direntry dir_fatent IBSS_ATTR;
-#endif
 
 struct mrsw_lock file_internal_mrsw SHAREDBSS_ATTR;
 

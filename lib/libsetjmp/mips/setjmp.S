@@ -43,19 +43,11 @@
 #define FPR_LAYOUT
 #endif
 
-#if CPU_MIPS == 64
-#define BYTES_PER_WORD 8
-#define LOAD_GPR  ld
-#define LOAD_FPR  ldc1
-#define STORE_GPR sd
-#define STORE_FPR sdc1
-#else
 #define BYTES_PER_WORD 4
 #define LOAD_GPR  lw
 #define LOAD_FPR  lwc1
 #define STORE_GPR sw
 #define STORE_FPR swc1
-#endif
 
 #define GPOFF(INDEX) (INDEX * BYTES_PER_WORD)
 #define FPOFF(INDEX) ((INDEX + NUM_GPRS_SAVED) * BYTES_PER_WORD)

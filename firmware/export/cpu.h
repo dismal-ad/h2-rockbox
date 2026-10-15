@@ -22,40 +22,8 @@
 
 #include "config.h"
 
-#if CONFIG_CPU == MCF5249
-#include "mcf5249.h"
-#elif CONFIG_CPU == MCF5250
-#include "mcf5250.h"
-#elif (CONFIG_CPU == PP5020) || (CONFIG_CPU == PP5022)
-#include "pp5020.h"
-#elif CONFIG_CPU == PP5002
-#include "pp5002.h"
-#elif CONFIG_CPU == PP5024
-#include "pp5024.h"
-#elif CONFIG_CPU == PP6100
-#include "pp6100.h"
-#elif CONFIG_CPU == S3C2440
-#include "s3c2440.h"
-#elif CONFIG_CPU == DM320
-#include "dm320.h"
-#elif CONFIG_CPU == IMX31L
-#include "imx31l.h"
-#elif CONFIG_CPU == JZ4732
-#include "jz4740.h"
-#elif CONFIG_CPU == JZ4760B
-#include "jz4760b.h"
-#elif CONFIG_CPU == AS3525
-#include "as3525.h"
-#elif CONFIG_CPU == AS3525v2
-#include "as3525v2.h"
-#elif CONFIG_CPU == IMX233
-#include "imx233.h"
-#elif CONFIG_CPU == RK27XX
-#include "rk27xx.h"
-#elif CONFIG_CPU == X1000
+#if CONFIG_CPU == X1000
 #include "x1000.h"
-#elif CONFIG_CPU == STM32H743
-#include "stm32h743.h"
 #endif
 
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE) && defined(CPU_MIPS)

@@ -36,11 +36,7 @@ static struct mad_synth synth IBSS_ATTR;
 #ifdef MPA_SYNTH_ON_COP
 static volatile short die IBSS_ATTR = 0;          /*thread should die*/
 
-#if (CONFIG_CPU == PP5024) || (CONFIG_CPU == PP5022)
-static mad_fixed_t sbsample_prev[2][36][32] IBSS_ATTR;
-#else
 static mad_fixed_t sbsample_prev[2][36][32] SHAREDBSS_ATTR; 
-#endif
 
 static struct semaphore synth_done_sem IBSS_ATTR;
 static struct semaphore synth_pending_sem IBSS_ATTR;

@@ -47,41 +47,6 @@
 extern "C" {
 #endif
 
-#if   (CONFIG_CPU == MCF5250)
-/* Enough IRAM but performance suffers with ICODE_ATTR. */
-#define IBSS_ATTR_MPC_LARGE_IRAM   IBSS_ATTR
-#define ICODE_ATTR_MPC_LARGE_IRAM
-#define ICONST_ATTR_MPC_LARGE_IRAM ICONST_ATTR
-/* Does not fit into IRAM. */
-#define IBSS_ATTR_MPC_BITBUFFER
-#define ICODE_ATTR_MPC_SV8_BS_DEC
-/* Keep the data arrays of bitsreadr.c in IRAM. */
-#define ICONST_ATTR_MPC_BITSREADER ICONST_ATTR
-
-#elif (CONFIG_CPU == PP5022) || (CONFIG_CPU == PP5024) || (CONFIG_CPU == S5L8702)
-/* Enough IRAM to move additional data and code to it. */
-#define IBSS_ATTR_MPC_LARGE_IRAM   IBSS_ATTR
-#define ICODE_ATTR_MPC_LARGE_IRAM  ICODE_ATTR
-#define ICONST_ATTR_MPC_LARGE_IRAM ICONST_ATTR
-/* Does not fit into IRAM. */
-#define IBSS_ATTR_MPC_BITBUFFER
-#define ICODE_ATTR_MPC_SV8_BS_DEC
-/* Not putting the data arrays of bitsreader.c to IRAM allows to move the
- * sv7/sv8 bitstream demuxing into IRAM. This config is faster. */
-#define ICONST_ATTR_MPC_BITSREADER
-
-#elif (CONFIG_CPU == S5L8700) || (CONFIG_CPU == S5L8701)
-/* Enough IRAM to move additional data and code to it. */
-#define IBSS_ATTR_MPC_LARGE_IRAM   IBSS_ATTR
-#define ICODE_ATTR_MPC_LARGE_IRAM  ICODE_ATTR
-#define ICONST_ATTR_MPC_LARGE_IRAM ICONST_ATTR
-/* Faster when moved to IRAM. */
-#define IBSS_ATTR_MPC_BITBUFFER    IBSS_ATTR
-#define ICODE_ATTR_MPC_SV8_BS_DEC  ICODE_ATTR
-/* Not faster when moved to IRAM. */
-#define ICONST_ATTR_MPC_BITSREADER
-
-#else
 /* Not enough IRAM available. */
 #define IBSS_ATTR_MPC_LARGE_IRAM
 #define ICODE_ATTR_MPC_LARGE_IRAM
@@ -89,7 +54,6 @@ extern "C" {
 #define IBSS_ATTR_MPC_BITBUFFER
 #define ICODE_ATTR_MPC_SV8_BS_DEC
 #define ICONST_ATTR_MPC_BITSREADER
-#endif
 
 enum {
     MPC_FRAME_LENGTH          = (36 * 32),              ///< Samples per mpc frame

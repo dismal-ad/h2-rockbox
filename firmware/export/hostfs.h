@@ -45,21 +45,8 @@ extern bool hostfs_present(IF_MD_NONVOID(int drive));
 #ifdef CONFIG_STORAGE_MULTI
 extern int hostfs_driver_type(int drive);
 #else
-#  if (CONFIG_STORAGE & STORAGE_ATA)
-#   define hostfs_driver_type(drive) (STORAGE_ATA_NUM)
-#  elif (CONFIG_STORAGE & STORAGE_SD)
+#  if   (CONFIG_STORAGE & STORAGE_SD)
 #   define hostfs_driver_type(drive) (STORAGE_SD_NUM)
-#  elif (CONFIG_STORAGE & STORAGE_USB)
-#   define hostfs_driver_type(drive) (STORAGE_USB_NUM)
-#  elif (CONFIG_STORAGE & STORAGE_MMC)
-#   define hostfs_driver_type(drive) (STORAGE_MMC_NUM)
-#  elif (CONFIG_STORAGE & STORAGE_NAND)
-#   define hostfs_driver_type(drive) (STORAGE_NAND_NUM)
-#  elif (CONFIG_STORAGE & STORAGE_RAMDISK)
-#   define hostfs_driver_type(drive) (STORAGE_RAMDISK_NUM)
-/* we may have hostfs without application when building sims for applications! */
-#  elif (CONFIG_STORAGE & STORAGE_HOSTFS)
-#   define hostfs_driver_type(drive) (STORAGE_HOSTFS_NUM)
 #  else
 #   error Unknown storage driver
 #  endif /* CONFIG_STORAGE */

@@ -10,9 +10,6 @@
 /* necv70 was 9 as well. */
 
 #ifdef CPU_MIPS
-#if CPU_MIPS == 64
-#define _JBTYPE long long
-#endif
 #ifdef __mips_soft_float
 #define _JBLEN 11
 #else

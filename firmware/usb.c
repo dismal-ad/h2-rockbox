@@ -48,10 +48,6 @@
 #include "lang_enum.h"
 #include "gui/skin_engine/skin_engine.h"
 
-#if defined(IPOD_ACCESSORY_PROTOCOL)
-#include "iap.h"
-#endif
-
 #define USB_FULL_INIT
 
 /* USB detect debouncing interval (200ms taken from the usb polling code) */
@@ -67,9 +63,6 @@ bool do_screendump_instead_of_usb = false;
 #if !defined(SIMULATOR)
 /* We assume that the USB cable is extracted */
 static int usb_state = USB_EXTRACTED;
-#if (CONFIG_STORAGE & STORAGE_MMC) && defined(USB_FULL_INIT) && !defined(HAVE_USBSTACK)
-static int usb_mmc_countdown = 0;
-#endif
 #if defined(HAVE_USB_POWER)
 #ifdef USB_FULL_INIT
 static bool usb_power_only = false;
@@ -254,23 +247,6 @@ static inline void usb_stack_enable(bool enable)
 
 static inline void usb_handle_hotswap(long id)
 {
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    switch(id)
-    {
-    case SYS_HOTSWAP_INSERTED:
-    case SYS_HOTSWAP_EXTRACTED:
-        if(usb_state == USB_INSERTED)
-        {
-            usb_enable(false);
-            usb_mmc_countdown = HZ/2; /* re-enable after 0.5 sec */
-        }
-        break;
-    case USB_REENABLE:
-        if(usb_state == USB_INSERTED)
-            usb_enable(true);  /* reenable only if still inserted */
-        break;
-    }
-#endif /* STORAGE_MMC */
     (void)id;
 }
 
@@ -463,10 +439,6 @@ static void NORETURN_ATTR usb_thread(void)
             if(usb_state == USB_POWERED || usb_state == USB_INSERTED)
                 usb_stack_enable(false);
 
-#ifdef IPOD_ACCESSORY_PROTOCOL
-            iap_reset_state(IF_IAP_MP(0));
-#endif
-
             usb_state = USB_EXTRACTED;
             send_event(SYS_EVENT_USB_EXTRACTED, NULL);
             usb_set_host_present(false);
@@ -478,9 +450,6 @@ static void NORETURN_ATTR usb_thread(void)
         /* HOTSWAP */
         case SYS_HOTSWAP_INSERTED:
         case SYS_HOTSWAP_EXTRACTED:
-#if (CONFIG_STORAGE & STORAGE_MMC)
-        case USB_REENABLE:
-#endif
             usb_handle_hotswap(ev.id);
             break;
 
@@ -611,14 +580,6 @@ static void usb_tick(void)
             }
         }
     }
-#if (CONFIG_STORAGE & STORAGE_MMC)
-    if(usb_mmc_countdown > 0)
-    {
-        usb_mmc_countdown--;
-        if(usb_mmc_countdown == 0)
-            queue_post(&usb_queue, USB_REENABLE, 0);
-    }
-#endif
 }
 void usb_start_monitoring(void)
 {

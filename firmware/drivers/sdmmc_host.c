@@ -43,23 +43,11 @@ DECLARE_FIRST_DRIVE(int sdmmc_sd_first_drive);
 static volatile long sdmmc_sd_last_activity;
 #endif
 
-#if CONFIG_STORAGE & STORAGE_MMC
-static struct sdmmc_host *sdmmc_mmc_hosts[SDMMC_HOST_NUM_MMC_CONTROLLERS];
-DECLARE_FIRST_DRIVE(int sdmmc_mmc_first_drive);
-static volatile long sdmmc_mmc_last_activity;
-#endif
-
 static bool sdmmc_host_any_active(void)
 {
 #if CONFIG_STORAGE & STORAGE_SD
     for (size_t i = 0; i < ARRAYLEN(sdmmc_sd_hosts); ++i)
         if (sdmmc_sd_hosts[i]->led_active)
-            return true;
-#endif
-
-#if CONFIG_STORAGE & STORAGE_MMC
-    for (size_t i = 0; i < ARRAYLEN(sdmmc_mmc_hosts); ++i)
-        if (sdmmc_mmc_hosts[i]->led_active)
             return true;
 #endif
 
@@ -81,11 +69,6 @@ static int sdmmc_host_get_logical_drive(struct sdmmc_host *host)
         return sdmmc_sd_first_drive + host->drive;
 #endif
 
-#if CONFIG_STORAGE & STORAGE_MMC
-    case STORAGE_MMC:
-        return sdmmc_mmc_first_drive + host->drive;
-#endif
-
     default:
         return 0;
     }
@@ -105,13 +88,6 @@ void sdmmc_host_init(struct sdmmc_host *host,
     case STORAGE_SD:
         array = sdmmc_sd_hosts;
         array_size = ARRAYLEN(sdmmc_sd_hosts);
-        break;
-#endif
-
-#if CONFIG_STORAGE & STORAGE_MMC
-    case STORAGE_MMC:
-        array = sdmmc_mmc_hosts;
-        array_size = ARRAYLEN(sdmmc_mmc_hosts);
         break;
 #endif
 

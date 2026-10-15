@@ -553,10 +553,6 @@ int32_t audiohw_get_pitch(void);
  */
 void audiohw_set_stereo_width(int val);
 
-#ifdef HAVE_SPEAKER
-void audiohw_enable_speaker(bool on);
-#endif /* HAVE_SPEAKER */
-
 /**
  * Some setting are the same for every codec and can be defined here.
  */

@@ -23,7 +23,6 @@
 #include "config.h"
 #include <stdbool.h>
 
-#if CONFIG_CHARGING
 enum power_input_flags {
     /* No external power source? Default. */
     POWER_INPUT_NONE = 0x00,
@@ -68,14 +67,11 @@ bool charger_inserted(void);
  * or not.
  * > (power_input_status() & POWER_INPUT) != 0 */
 bool power_input_present(void);
-#endif /* CONFIG_CHARGING */
 
 void power_off(void);
 void ide_power_enable(bool on);
 
-#if CONFIG_CHARGING >= CHARGING_MONITOR
 bool charging_state(void);
-#endif
 
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
 

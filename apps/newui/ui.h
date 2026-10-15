@@ -43,6 +43,7 @@
 #define UI_COL_SEL_TEXT LCD_RGBPACK(0x17, 0x17, 0x17)
 #define UI_COL_TRACK    LCD_RGBPACK(0x1c, 0x1c, 0x1c) /* progress track */
 #define UI_COL_ACCENT   LCD_RGBPACK(0x6e, 0x6e, 0x6e) /* Classic: Graphite */
+#define UI_COL_PANEL    LCD_RGBPACK(0x26, 0x26, 0x26) /* pop-up panels */
 
 /* --- fonts (ui_font.c) --- */
 
@@ -81,6 +82,24 @@ int ui_text(int x, int y, int font, unsigned color, const char *text,
 /* Same, vertically centred in the band [y, y + h) */
 int ui_text_vcenter(int x, int y, int h, int font, unsigned color,
                     const char *text, int max_w, int align);
+
+/* --- pop-ups (ui_popup.c) --- */
+
+#define UI_POPUP_RADIUS   12
+#define UI_POPUP_PAD      16  /* panel's inner margin */
+#define UI_POPUP_LINES     8
+#define UI_POPUP_LINE_LEN 96
+struct ui_lines {
+    int count;
+    int widest;     /* pixels */
+    char line[UI_POPUP_LINES][UI_POPUP_LINE_LEN];
+};
+/* The pop-up panel's rounded rectangle */
+void ui_panel(int x, int y, int w, int h);
+/* Darkens what is in the current viewport, behind a pop-up */
+void ui_dim(void);
+/* Appends text to l, word wrapped to max_w; '\n' and '\t' break lines */
+void ui_wrap(struct ui_lines *l, const char *text, int font, int max_w);
 
 /* --- album art (ui_art.c) --- */
 

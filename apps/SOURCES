@@ -108,4 +108,5 @@ newui/scr_home.c
 newui/scr_np.c
 newui/ui_thumb.c
 newui/scr_coverflow.c
+newui/ui_popup.c
 keymaps/keymap-erosq.c

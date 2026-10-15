@@ -183,14 +183,14 @@ void ui_np_draw(bool full)
         const char *artist = id3->artist && *id3->artist ? id3->artist :
                              id3->albumartist && *id3->albumartist ? id3->albumartist : NULL;
         const char *album = id3->album && *id3->album ? id3->album : NULL;
-        int block = 22 + (artist ? 22 : 0) + (album ? 20 : 0);
+        int block = 26 + (artist ? 24 : 0) + (album ? 20 : 0);
         int y = NP_ART_Y + (NP_ART - block) / 2;
         ui_text(NP_TEXT_X, y, ui_font(UI_FONT_TITLE), UI_COL_TEXT, title, text_w, -1);
-        y += 24;
+        y += 28;
         if (artist)
         {
             ui_text(NP_TEXT_X, y, body, NP_ARTIST_COL, artist, text_w, -1);
-            y += 20;
+            y += 22;
         }
         if (album)
             ui_text(NP_TEXT_X, y, body, NP_ALBUM_COL, album, text_w, -1);

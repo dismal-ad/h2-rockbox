@@ -55,9 +55,10 @@ static void title(const char *text, int page, int pages)
 static void page_fonts(void)
 {
     static const struct { enum ui_font f; const char *name; } fonts[] = {
-        { UI_FONT_SMALL, "Small 12 " UTF8_EMDASH " 0:15  -6:05  3 of 12" },
-        { UI_FONT_BODY,  "Body 15 " UTF8_EMDASH " Pink Floyd, Bj\xc3\xb6rk" },
-        { UI_FONT_TITLE, "Title 18 " UTF8_EMDASH " Money" },
+        { UI_FONT_SMALL, "Small 13 " UTF8_EMDASH " 0:15  -6:05  3 of 12" },
+        { UI_FONT_BODY,  "Body 17 " UTF8_EMDASH " Pink Floyd, Bj\xc3\xb6rk" },
+        { UI_FONT_ROW,   "Row 17 " UTF8_EMDASH " Sound Settings" },
+        { UI_FONT_TITLE, "Title 20 " UTF8_EMDASH " Money" },
     };
     int y = UI_STATUS_H + 4;
     for (size_t i = 0; i < sizeof(fonts) / sizeof(fonts[0]); i++)

@@ -310,7 +310,7 @@ static const char graphic_numeric[] = "graphic,numeric";
 #define MAX_GLYPHS 65540
 
 #ifndef DEFAULT_FONTNAME
-#define DEFAULT_FONTNAME "newui-15" /* Source Sans 3, fonts/newui */
+#define DEFAULT_FONTNAME "newui-17b" /* Source Sans 3 Semibold, fonts/newui */
 #endif
 #ifndef DEFAULT_FONTNAME
 /* ugly expansion needed */

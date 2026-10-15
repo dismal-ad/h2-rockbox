@@ -156,7 +156,7 @@ void list_draw(struct screen *display, struct gui_synclist *list)
         int value_w = 0;
         if (value && *value)
         {
-            value_w = MIN(ui_text_width(font, value), text_w / 2);
+            value_w = MIN(ui_text_width(ui_font(UI_FONT_BODY), value), text_w / 2);
             text_w -= value_w + UI_GAP;
         }
 
@@ -202,7 +202,7 @@ void list_draw(struct screen *display, struct gui_synclist *list)
         }
 
         if (value_w)
-            ui_text_vcenter(text_x + text_w + UI_GAP, y, row_h, font,
+            ui_text_vcenter(text_x + text_w + UI_GAP, y, row_h, ui_font(UI_FONT_BODY),
                             selected ? UI_COL_TEXT : UI_COL_TEXT2, value,
                             value_w, 1);
 

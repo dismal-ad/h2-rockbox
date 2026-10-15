@@ -26,9 +26,10 @@
 
 /* Source Sans 3, installed by buildzip from fonts/newui */
 static const char * const font_files[UI_FONT_COUNT] = {
-    [UI_FONT_SMALL] = FONT_DIR "/newui-12.fnt",
-    [UI_FONT_BODY]  = FONT_DIR "/newui-15.fnt",
-    [UI_FONT_TITLE] = FONT_DIR "/newui-18b.fnt",
+    [UI_FONT_SMALL] = FONT_DIR "/newui-13.fnt",
+    [UI_FONT_BODY]  = FONT_DIR "/newui-17.fnt",
+    [UI_FONT_ROW]   = FONT_DIR "/newui-17b.fnt",
+    [UI_FONT_TITLE] = FONT_DIR "/newui-20b.fnt",
     [UI_FONT_BIG]   = FONT_DIR "/newui-40b.fnt",
 };
 

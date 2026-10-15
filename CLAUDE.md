@@ -68,6 +68,34 @@ browser (`GO_TO_BROWSEPLUGINS` in `apps/root_menu.c`, `apps/menus/plugin_menu.c`
 playing time, image viewer, DB folder select, main menu config, open-plugin
 hotkey. Remove or replace these during the overhaul.
 
+## Bluetooth (branch `newui-bt`)
+
+Ported from https://github.com/thiagoelg/h2-rockbox-bt (branch `h2-bt`, git
+remote `h2bt`): the 19 code commits from `4e3333fd06` (Skye's Bluedroid port)
+through `bde005189c` (Thiago Lugli's manager/menu/settings), cherry-picked with
+`-x`. Their README, GitHub workflow and manual commits were not taken.
+
+- Bluedroid (ESP-IDF 6.0.1 Bluetooth stack) in `lib/bluedroid/`: ~200k code
+  lines; A2DP source with SBC, AVRCP. Host side only: the H2's Broadcom
+  BCM4343A1 is driven over UART (HCI H4) by
+  `firmware/target/mips/ingenic_x1000/erosqnative/hci-erosqnative.c`, with its
+  patchram firmware in `BCM4343A1_*.c`. **hw4 only.**
+- `HAVE_BLUETOOTH` and `BT_HEAP_SIZE` (256 KiB, TLSF heap) are in
+  `config/erosqnative.h`. Audio goes out through a second PCM sink,
+  `PCM_SINK_BLUETOOTH`.
+- App side: `apps/bluetooth/bluetooth.c` (manager thread, paired devices in
+  `/.rockbox/bt_devices.txt`), `apps/menus/bluetooth_menu.c`
+  (Settings > Bluetooth), settings `bt_enabled` (default off),
+  `bt_high_quality`, `bt_volume_sync`. With `BT_DEBUG` it logs to `/bt_log.txt`.
+- Simulator: `uisimulator/common/hci-sim.c` talks to a host serial HCI device.
+- Porting notes: `uart_rx_timeout()` was re-applied by hand on top of
+  upstream's DMA UART TX driver (`af9a81f5f6`), which their branch predates.
+  That driver keeps one set of state for all UARTs, so only one UART can be in
+  use at a time.
+- Cost: firmware text +425 KB, `rockbox.zip` 2.4 → 2.7 MB. Most of Bluedroid
+  sits behind its own feature switches (`sdkconfig.h`, BLE/GATT/other
+  profiles), which are candidates for the same dead-code carving.
+
 ## UI overhaul: decisions
 
 1. **Code-drawn UI, no themes.** The new UI is drawn directly in C. The skin

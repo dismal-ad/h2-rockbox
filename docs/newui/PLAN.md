@@ -372,6 +372,13 @@ design check (screenshots of the gallery) before wiring it into real screens.
 None of these is a blocker. #1 (drawing speed) decides how much animation is
 possible and is measured first.
 
+**Measured on the H2 (2026-10-15, UI gallery):** clearing the full screen in
+memory takes 0.64 ms; a full-screen `lcd_update()` brings a frame to 15.4 ms
+(65 fps); a page of eight anti-aliased text rows adds about 0.2 ms. Sending the
+frame to the display is the limit, not drawing, so 60 fps animation is possible
+when a frame's drawing stays near 1 ms, and 30 fps leaves ~18 ms of drawing per
+frame. Risk #1 is resolved; small changes should use `lcd_update_rect()`.
+
 ---
 
 ## 9. Decisions

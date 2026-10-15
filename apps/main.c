@@ -208,17 +208,23 @@ int main(void)
 int show_logo_boot( void ) INIT_ATTR;
 int show_logo_boot( void )
 {
+    /* new UI: black, the logo centred, the version in grey at the bottom
+     * (the system font: the UI fonts are not loaded yet) */
     unsigned char version[32];
     int font_h, ver_w;
     snprintf(version, sizeof(version), "Ver. %s", rbversion);
     ver_w = font_getstringsize(version, NULL, &font_h, FONT_SYSFIXED);
+    lcd_set_background(LCD_BLACK);
     lcd_clear_display();
+    lcd_bmp(&bm_rockboxlogo, (LCD_WIDTH - BMPWIDTH_rockboxlogo) / 2,
+            (LCD_HEIGHT - BMPHEIGHT_rockboxlogo) / 2 - 8);
     lcd_setfont(FONT_SYSFIXED);
-    lcd_bmp(&bm_rockboxlogo, (LCD_WIDTH - BMPWIDTH_rockboxlogo) / 2, 10);
+    lcd_set_foreground(LCD_RGBPACK(0x8c, 0x8c, 0x8c));
     if (ver_w > LCD_WIDTH)
-        lcd_putsxy(0, LCD_HEIGHT-font_h, rbversion);
+        lcd_putsxy(0, LCD_HEIGHT - font_h - 8, rbversion);
     else
-        lcd_putsxy((LCD_WIDTH/2) - (ver_w/2), LCD_HEIGHT-font_h, version);
+        lcd_putsxy((LCD_WIDTH - ver_w) / 2, LCD_HEIGHT - font_h - 8, version);
+    lcd_set_foreground(LCD_WHITE);
     lcd_setfont(FONT_UI);
     lcd_update();
 #ifdef SIMULATOR

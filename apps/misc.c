@@ -337,6 +337,16 @@ static void system_restore(void)
     tree_restore();
 }
 
+/* new UI: the shutdown message goes on a black screen */
+static void clear_for_shutdown(void)
+{
+    lcd_set_viewport(NULL);
+    lcd_scroll_stop();
+    lcd_set_background(LCD_BLACK);
+    lcd_clear_display();
+    lcd_update();
+}
+
 static bool clean_shutdown(enum shutdown_type sd_type,
                            void (*callback)(void *), void *parameter)
 {
@@ -374,11 +384,15 @@ static bool clean_shutdown(enum shutdown_type sd_type,
             if (level > 10 || level < 0)
             {
                 if (global_settings.show_shutdown_message)
+                {
+                    clear_for_shutdown();
                     splash(0, str(LANG_SHUTTINGDOWN));
+                }
             }
             else
             {
                 msg_id = LANG_WARNING_BATTERY_LOW;
+                clear_for_shutdown();
                 splashf(0, "%s %s", str(LANG_WARNING_BATTERY_LOW),
                                     str(LANG_SHUTTINGDOWN));
             }
@@ -386,6 +400,7 @@ static bool clean_shutdown(enum shutdown_type sd_type,
         else
         {
             msg_id = LANG_WARNING_BATTERY_EMPTY;
+            clear_for_shutdown();
             splashf(0, "%s %s", str(LANG_WARNING_BATTERY_EMPTY),
                                 str(LANG_SHUTTINGDOWN));
         }

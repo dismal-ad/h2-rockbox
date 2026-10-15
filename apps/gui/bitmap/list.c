@@ -149,10 +149,21 @@ void list_draw(struct screen *display, struct gui_synclist *list)
         const int text_x = UI_MARGIN + indent * TAB_INDENT;
         int text_w = text_right - text_x - (drills ? CHEVRON_SPACE : 0);
 
-        /* a value on the right takes up to half of the row */
-        char valbuf[64];
+        /* a value on the right takes up to half of the row: from the
+           list's value callback, or the text after a TAB in the name */
+        char valbuf[64], namebuf[MAX_PATH];
         const char *value = list->callback_get_item_value ?
                 list->callback_get_item_value(i, list->data, valbuf, sizeof(valbuf)) : NULL;
+        const char *tab = strchr(name, '\t');
+        if (tab)
+        {
+            size_t n = MIN((size_t)(tab - name), sizeof(namebuf) - 1);
+            memcpy(namebuf, name, n);
+            namebuf[n] = '\0';
+            if (!value)
+                value = tab + 1;
+            name = namebuf;
+        }
         int value_w = 0;
         if (value && *value)
         {

@@ -42,8 +42,20 @@
 #define UI_COL_SEL      LCD_RGBPACK(0xee, 0xee, 0xec) /* Minimal selection */
 #define UI_COL_SEL_TEXT LCD_RGBPACK(0x17, 0x17, 0x17)
 #define UI_COL_TRACK    LCD_RGBPACK(0x1c, 0x1c, 0x1c) /* progress track */
-#define UI_COL_ACCENT   LCD_RGBPACK(0x6e, 0x6e, 0x6e) /* Classic: Graphite */
+#define UI_COL_ACCENT   ui_accent()  /* the user's accent colour */
 #define UI_COL_PANEL    LCD_RGBPACK(0x26, 0x26, 0x26) /* pop-up panels */
+
+/* --- the chosen look (ui_style.c) --- */
+
+unsigned ui_accent(void);
+/* Minimal style: the selection is a light card, else an accent bar */
+bool ui_minimal(void);
+/* Draws the selection behind a row at x, y, w, h */
+void ui_selection(int x, int y, int w, int h);
+/* the selection's colour, and the text on it (main, secondary) */
+unsigned ui_sel_bg(void);
+unsigned ui_sel_text(void);
+unsigned ui_sel_text2(void);
 
 /* --- fonts (ui_font.c) --- */
 
@@ -173,6 +185,7 @@ struct ui_status {
     const struct tm *time; /* NULL: no clock */
     bool clock_24h;
     int battery;           /* percent, -1 unknown */
+    bool battery_pct;      /* the percentage left of the battery */
     bool battery_visible;  /* false while blinking off (low battery) */
     bool charging;
     int bluetooth;         /* 0 off, 1 on but not connected, 2 connected */

@@ -366,9 +366,15 @@ static int codepage_callback(int action,
 
 MENUITEM_SETTING(codepage_setting, &global_settings.default_codepage, codepage_callback);
 
+/* new UI: look */
+MENUITEM_SETTING(newui_style, &global_settings.newui_style, NULL);
+MENUITEM_SETTING(newui_accent, &global_settings.newui_accent, NULL);
+MENUITEM_SETTING(newui_clock, &global_settings.newui_clock, NULL);
+MENUITEM_SETTING(newui_battery_pct, &global_settings.newui_battery_pct, NULL);
 
 MAKE_MENU(display_menu, ID2P(LANG_DISPLAY),
             NULL, Icon_Display_menu,
+            &newui_style, &newui_accent, &newui_clock, &newui_battery_pct,
             &lcd_settings,
             &scroll_settings_menu,
             &peak_meter_menu,

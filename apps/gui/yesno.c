@@ -100,9 +100,9 @@ static void gui_yesno_draw(struct gui_yesno *yn)
             label = buf;
         }
         if (i == yn->sel)
-            ui_fill_round_rect(x + 8, ry, w - 16, UI_ROW_H, 6, UI_COL_ACCENT);
+            ui_fill_round_rect(x + 8, ry, w - 16, UI_ROW_H, 6, ui_sel_bg());
         ui_text_vcenter(x + UI_POPUP_PAD, ry, UI_ROW_H, font,
-                        i == yn->sel ? UI_COL_TEXT : UI_COL_TEXT2, label, tw, -1);
+                        i == yn->sel ? ui_sel_text() : UI_COL_TEXT2, label, tw, -1);
     }
     lcd_update_viewport();
     lcd_set_viewport(last_vp);

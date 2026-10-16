@@ -139,7 +139,9 @@ bool gui_statusbar_draw(struct gui_statusbar * bar, bool force_redraw, struct vi
         struct ui_status st = {
             .playmode = bar->info.playmode,
             .keylock = bar->info.keylock,
-            .time = valid_time(bar->time) ? bar->time : NULL,
+            .time = global_settings.newui_clock && valid_time(bar->time) ?
+                    bar->time : NULL,
+            .battery_pct = global_settings.newui_battery_pct,
             .clock_24h = !global_settings.timeformat,
             .battery = bar->info.battlevel,
             .battery_visible = bar->info.battery_state,

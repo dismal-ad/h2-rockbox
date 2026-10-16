@@ -132,13 +132,14 @@ static void draw(struct viewport *vp, const enum home_target *list, int n,
     {
         int y = i * UI_ROW_H;
         bool selected = i == sel;
+        unsigned fg = selected ? ui_sel_text() : UI_COL_TEXT;
         if (selected)
-            ui_fill_rect(0, y, HOME_MENU_W, UI_ROW_H, UI_COL_ACCENT);
-        ui_text_vcenter(UI_MARGIN, y, UI_ROW_H, font, UI_COL_TEXT,
+            ui_selection(0, y, HOME_MENU_W, UI_ROW_H);
+        ui_text_vcenter(UI_MARGIN, y, UI_ROW_H, font, fg,
                         item_label(list[i]),
                         HOME_MENU_W - UI_MARGIN - 18, -1);
         if (selected)
-            ui_text_vcenter(HOME_MENU_W - 14, y, UI_ROW_H, font, UI_COL_TEXT,
+            ui_text_vcenter(HOME_MENU_W - 14, y, UI_ROW_H, font, fg,
                             CHEVRON, 0, -1);
     }
 

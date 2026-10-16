@@ -408,6 +408,10 @@ struct user_settings
     int volume_type;   /* how volume is displayed: 0=graphic, 1=percent */
     int battery_display; /* how battery is displayed: 0=graphic, 1=percent */
     bool show_icons;   /* 0=hide 1=show */
+    int newui_style;   /* new UI selection: 0 Classic bar, 1 Minimal card */
+    int newui_accent;  /* new UI accent colour, index in ui_style.c */
+    bool newui_clock;  /* status bar clock */
+    bool newui_battery_pct; /* battery percentage next to the battery */
 
 
     /* goto current song when exiting WPS */

@@ -137,6 +137,14 @@ void ui_status_draw(const struct ui_status *st)
     x = vp->width - UI_MARGIN - BATT_W - 2;
     if (st->battery_visible)
         draw_battery(x, st->battery, st->charging);
+    if (st->battery_pct && st->battery >= 0)
+    {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%d%%", st->battery);
+        int w = ui_text_width(font, buf);
+        x -= w + 5;
+        ui_text_vcenter(x, 0, UI_STATUS_H, font, UI_COL_TEXT, buf, 0, -1);
+    }
     if (st->bluetooth)
         draw_bluetooth(x - 14, st->bluetooth > 1 ? UI_COL_TEXT : UI_COL_MUTED);
 }

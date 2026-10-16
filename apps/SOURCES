@@ -97,4 +97,5 @@ newui/scr_coverflow.c
 newui/ui_popup.c
 newui/scr_lock.c
 newui/ui_keyboard.c
+newui/ui_style.c
 keymaps/keymap-erosq.c

@@ -95,11 +95,10 @@ static void draw_art_row(struct viewport *vp, int y, int row_h,
     const int ax = UI_MARGIN, ay = y + (row_h - UI_THUMB) / 2;
     const int tx = ax + UI_THUMB + 10;
     const int tw = text_right - tx - (drills ? CHEVRON_SPACE : 0);
-    unsigned bg = selected ? UI_COL_ACCENT : UI_COL_BG;
+    unsigned bg = selected ? ui_sel_bg() : UI_COL_BG;
 
     if (selected)
-        ui_fill_rect(0, y, vp->width - (scrollbar ? SCROLLBAR_W + 3 : 0),
-                     row_h, UI_COL_ACCENT);
+        ui_selection(0, y, vp->width - (scrollbar ? SCROLLBAR_W + 3 : 0), row_h);
     if (thumb)
     {
         lcd_bitmap(thumb, ax, ay, UI_THUMB, UI_THUMB);
@@ -112,10 +111,10 @@ static void draw_art_row(struct viewport *vp, int y, int row_h,
     if (line2[0])
     {
         int top = y + (row_h - font_get(row)->height - font_get(body)->height) / 2;
-        ui_text(tx, top, row, UI_COL_TEXT, name, tw, -1);
+        ui_text(tx, top, row, selected ? ui_sel_text() : UI_COL_TEXT, name, tw, -1);
         /* a TAB splits the second line: the part after it stays whole,
          * on the right */
-        unsigned col2 = selected ? UI_COL_TEXT : UI_COL_TEXT2;
+        unsigned col2 = selected ? ui_sel_text2() : UI_COL_TEXT2;
         int y2 = top + font_get(row)->height, lw = tw;
         char *tab = strchr(line2, '\t');
         if (tab)
@@ -127,11 +126,12 @@ static void draw_art_row(struct viewport *vp, int y, int row_h,
         ui_text(tx, y2, body, col2, line2, lw, -1);
     }
     else
-        ui_text_vcenter(tx, y, row_h, row, UI_COL_TEXT, name, tw, -1);
+        ui_text_vcenter(tx, y, row_h, row, selected ? ui_sel_text() : UI_COL_TEXT,
+                        name, tw, -1);
 
     if (drills)
         ui_text_vcenter(text_right - 7, y, row_h, row,
-                        selected ? UI_COL_TEXT : UI_COL_TEXT2, CHEVRON, 0, -1);
+                        selected ? ui_sel_text() : UI_COL_TEXT2, CHEVRON, 0, -1);
 }
 
 static void draw_title(struct screen *display, struct gui_synclist *list,
@@ -246,11 +246,10 @@ void list_draw(struct screen *display, struct gui_synclist *list)
         if (selected)
         {
             strmemccpy(sel_name, name, sizeof(sel_name));
-            ui_fill_rect(0, y, vp->width - (scrollbar ? SCROLLBAR_W + 3 : 0),
-                         row_h, UI_COL_ACCENT);
+            ui_selection(0, y, vp->width - (scrollbar ? SCROLLBAR_W + 3 : 0), row_h);
             if (ui_text_width(font, name) <= text_w)
             {
-                ui_text_vcenter(text_x, y, row_h, font, UI_COL_TEXT, name, text_w, -1);
+                ui_text_vcenter(text_x, y, row_h, font, ui_sel_text(), name, text_w, -1);
             }
             else
             {
@@ -264,8 +263,8 @@ void list_draw(struct screen *display, struct gui_synclist *list)
                 sv->height = row_h;
                 ld.height = row_h;
                 ld.style = STYLE_COLORBAR;
-                ld.line_color = UI_COL_ACCENT;
-                ld.text_color = UI_COL_TEXT;
+                ld.line_color = ui_sel_bg();
+                ld.text_color = ui_sel_text();
                 ld.scroll = true;
                 display->set_viewport(sv);
                 display->put_line(0, 0, &ld, "$t", name);
@@ -286,12 +285,12 @@ void list_draw(struct screen *display, struct gui_synclist *list)
 
         if (value_w)
             ui_text_vcenter(text_x + text_w + UI_GAP, y, row_h, ui_font(UI_FONT_BODY),
-                            selected ? UI_COL_TEXT : UI_COL_TEXT2, value,
+                            selected ? ui_sel_text2() : UI_COL_TEXT2, value,
                             value_w, 1);
 
         if (drills)
             ui_text_vcenter(text_right - 7, y, row_h, font,
-                            selected ? UI_COL_TEXT : UI_COL_TEXT2, CHEVRON, 0, -1);
+                            selected ? ui_sel_text() : UI_COL_TEXT2, CHEVRON, 0, -1);
     }
 
     if (scrollbar)

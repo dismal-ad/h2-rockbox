@@ -17682,3 +17682,171 @@
     *: "Folder"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_NEWUI_STYLE
+  desc: new UI: Display setting, how the selection is drawn
+  user: core
+  <source>
+    *: "Selection Style"
+  </source>
+  <dest>
+    *: "Selection Style"
+  </dest>
+  <voice>
+    *: "Selection Style"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_STYLE_CLASSIC
+  desc: new UI: selection style, a bar in the accent colour
+  user: core
+  <source>
+    *: "Classic"
+  </source>
+  <dest>
+    *: "Classic"
+  </dest>
+  <voice>
+    *: "Classic"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_STYLE_MINIMAL
+  desc: new UI: selection style, a light rounded card
+  user: core
+  <source>
+    *: "Minimal"
+  </source>
+  <dest>
+    *: "Minimal"
+  </dest>
+  <voice>
+    *: "Minimal"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_ACCENT
+  desc: new UI: Display setting
+  user: core
+  <source>
+    *: "Accent Colour"
+  </source>
+  <dest>
+    *: "Accent Colour"
+  </dest>
+  <voice>
+    *: "Accent Colour"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_COL_GRAPHITE
+  desc: new UI: accent colour
+  user: core
+  <source>
+    *: "Graphite"
+  </source>
+  <dest>
+    *: "Graphite"
+  </dest>
+  <voice>
+    *: "Graphite"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_COL_BLUE
+  desc: new UI: accent colour
+  user: core
+  <source>
+    *: "Blue"
+  </source>
+  <dest>
+    *: "Blue"
+  </dest>
+  <voice>
+    *: "Blue"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_COL_RED
+  desc: new UI: accent colour
+  user: core
+  <source>
+    *: "Red"
+  </source>
+  <dest>
+    *: "Red"
+  </dest>
+  <voice>
+    *: "Red"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_COL_GREEN
+  desc: new UI: accent colour
+  user: core
+  <source>
+    *: "Green"
+  </source>
+  <dest>
+    *: "Green"
+  </dest>
+  <voice>
+    *: "Green"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_COL_PURPLE
+  desc: new UI: accent colour
+  user: core
+  <source>
+    *: "Purple"
+  </source>
+  <dest>
+    *: "Purple"
+  </dest>
+  <voice>
+    *: "Purple"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_COL_ORANGE
+  desc: new UI: accent colour
+  user: core
+  <source>
+    *: "Orange"
+  </source>
+  <dest>
+    *: "Orange"
+  </dest>
+  <voice>
+    *: "Orange"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_CLOCK
+  desc: new UI: Display setting, the status bar clock
+  user: core
+  <source>
+    *: "Clock in Status Bar"
+  </source>
+  <dest>
+    *: "Clock in Status Bar"
+  </dest>
+  <voice>
+    *: "Clock in Status Bar"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_BATTERY_PCT
+  desc: new UI: Display setting
+  user: core
+  <source>
+    *: "Battery Percentage"
+  </source>
+  <dest>
+    *: "Battery Percentage"
+  </dest>
+  <voice>
+    *: "Battery Percentage"
+  </voice>
+</phrase>

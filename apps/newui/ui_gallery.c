@@ -84,7 +84,7 @@ static void page_fonts(void)
     lcd_putsxy(UI_MARGIN, y, "A 42");
 
     /* colour swatches */
-    static const unsigned cols[] = {
+    const unsigned cols[] = {
         UI_COL_TEXT, UI_COL_TEXT2, UI_COL_MUTED, UI_COL_SEL,
         UI_COL_SEL_TEXT, UI_COL_TRACK, UI_COL_ACCENT,
     };

@@ -66,12 +66,12 @@
 /* layout at 320 wide; x of the left half, mirrored for the right */
 #define CF_CENTER_L   (LCD_WIDTH / 2 - UI_COVER / 2)  /* centre cover */
 #define CF_SIDE_R     (CF_CENTER_L - 6)   /* inner edge of the first side cover */
-#define CF_SIDE_W     56                  /* side cover's width on screen */
-#define CF_SIDE_HIN   110                 /* its inner edge's height */
-#define CF_SIDE_HOUT  86                  /* its outer edge's height */
-#define CF_SPACING    26                  /* between side covers */
+#define CF_SIDE_W     58                  /* side cover's width on screen */
+#define CF_SIDE_HIN   136                 /* its inner edge's height */
+#define CF_SIDE_HOUT  106                 /* its outer edge's height */
+#define CF_SPACING    22                  /* between side covers */
 #define CF_SIDE_SHADE 170                 /* side covers' brightness /256 */
-#define CF_TOP        6                   /* centre cover's top */
+#define CF_TOP        4                   /* centre cover's top */
 #define CF_REFLECT    80                  /* reflection's starting brightness /256 */
 #define CF_VISIBLE    4                   /* covers drawn on each side */
 

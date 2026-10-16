@@ -148,7 +148,7 @@ bool ui_art_decode_to(const struct mp3entry *id3, int size, fb_data *out);
  * RAM and in /.rockbox/newui/thumbs, so each album is decoded once. */
 const fb_data *ui_thumb_get(const char *track_path);
 
-#define UI_COVER 120 /* Cover Flow's cover size */
+#define UI_COVER 150 /* Cover Flow's cover size */
 /* The UI_COVER cover from RAM only: NULL with *known false if it is not
  * loaded, else the cover or NULL for none */
 const fb_data *ui_cover_peek(const char *track_path, bool *known);

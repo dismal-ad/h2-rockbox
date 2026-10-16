@@ -17598,3 +17598,17 @@
     *: "Centre add · Back delete · Hold Centre done"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_NEWUI_CF_PREPARING
+  desc: new UI: Cover Flow, progress while finding each album's tracks
+  user: core
+  <source>
+    *: "Preparing albums"
+  </source>
+  <dest>
+    *: "Preparing albums"
+  </dest>
+  <voice>
+    *: "Preparing albums"
+  </voice>
+</phrase>

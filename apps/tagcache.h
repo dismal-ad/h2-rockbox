@@ -179,6 +179,7 @@ bool tagcache_retrieve(struct tagcache_search *tcs, int idxid,
                        int tag, char *buf, long size);
 void tagcache_search_finish(struct tagcache_search *tcs);
 long tagcache_get_numeric(const struct tagcache_search *tcs, int tag);
+int32_t tagcache_get_tag_seek(const struct tagcache_search *tcs, int tag);
 long tagcache_increase_serial(void);
 bool tagcache_import_changelog(void);
 bool tagcache_create_changelog(struct tagcache_search *tcs);

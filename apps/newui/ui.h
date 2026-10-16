@@ -128,10 +128,16 @@ const fb_data *ui_thumb_get(const char *track_path);
 
 #define UI_COVER 120 /* Cover Flow's cover size */
 /* The UI_COVER cover from RAM only: NULL with *known false if it is not
- * loaded yet, else the cover or NULL for none. Load it with ui_cover_load
- * (from the card, or decoded: slow). */
+ * loaded, else the cover or NULL for none */
 const fb_data *ui_cover_peek(const char *track_path, bool *known);
-void ui_cover_load(const char *track_path);
+/* Loads the cover into RAM if it was saved on the card (fast); false if
+ * it still has to be built */
+bool ui_cover_load_saved(const char *track_path);
+/* True if the cover is saved on the card */
+bool ui_cover_saved(const char *track_path);
+/* Decodes the cover (slow) and saves it, and its list thumbnail, on the
+ * card, without touching the covers in RAM */
+void ui_cover_build(const char *track_path);
 
 /* --- screens --- */
 

@@ -36,7 +36,7 @@
 
 #define THUMB_DIR   ROCKBOX_DIR "/newui/thumbs"
 #define THUMB_RAM   24
-#define COVER_RAM   12
+#define COVER_RAM   16
 
 struct cache {
     int size, slots;
@@ -138,6 +138,52 @@ static bool generate(const struct cache *c, const char *path, fb_data *px)
     return ok && ui_art_decode_to(&id3, c->size, px);
 }
 
+/* the thumbnail from a decoded cover, averaging the pixels each covers */
+static void shrink_cover(const fb_data *src, fb_data *dst)
+{
+    for (int y = 0; y < UI_THUMB; y++)
+    {
+        int y0 = y * UI_COVER / UI_THUMB, y1 = (y + 1) * UI_COVER / UI_THUMB;
+        for (int x = 0; x < UI_THUMB; x++)
+        {
+            int x0 = x * UI_COVER / UI_THUMB, x1 = (x + 1) * UI_COVER / UI_THUMB;
+            unsigned r = 0, g = 0, b = 0, n = 0;
+            for (int sy = y0; sy < y1; sy++)
+                for (int sx = x0; sx < x1; sx++, n++)
+                {
+                    unsigned c = FB_UNPACK_SCALAR_LCD(src[sy * UI_COVER + sx]);
+                    r += RGB_UNPACK_RED(c);
+                    g += RGB_UNPACK_GREEN(c);
+                    b += RGB_UNPACK_BLUE(c);
+                }
+            dst[y * UI_THUMB + x] = FB_SCALARPACK(LCD_RGBPACK(r / n, g / n, b / n));
+        }
+    }
+}
+
+static bool on_card(const struct cache *c, uint32_t key)
+{
+    char name[MAX_PATH];
+    file_of(c, key, name, sizeof(name));
+    return file_exists(name);
+}
+
+/* decodes a cover into px and keeps it on the card; a cover also gives
+ * the list thumbnail, so that is not decoded again */
+static bool build(struct cache *c, uint32_t key, const char *path, fb_data *px)
+{
+    static fb_data thumb[UI_THUMB * UI_THUMB];
+    bool has_art = generate(c, path, px);
+    store(c, key, has_art, px);
+    if (c == &covers && !on_card(&thumbs, key))
+    {
+        if (has_art)
+            shrink_cover(px, thumb);
+        store(&thumbs, key, has_art, thumb);
+    }
+    return has_art;
+}
+
 /* the RAM slot holding key, or -1 */
 static int find(struct cache *c, uint32_t key)
 {
@@ -150,19 +196,26 @@ static int find(struct cache *c, uint32_t key)
     return -1;
 }
 
-/* loads key into the least recently used slot, from the card or decoded */
-static int fill(struct cache *c, uint32_t key, const char *path)
+static int oldest(const struct cache *c)
 {
     int slot = 0;
     for (int i = 1; i < c->slots; i++)
         if (c->age[i] < c->age[slot])
             slot = i;
+    return slot;
+}
 
+/* loads key into the least recently used slot, from the card or (if
+ * decode) decoded; -1 if it is not on the card and decode is false */
+static int fill(struct cache *c, uint32_t key, const char *path, bool decode)
+{
+    int slot = oldest(c);
     bool has_art;
     if (!load(c, key, &has_art, pixels(c, slot)))
     {
-        has_art = generate(c, path, pixels(c, slot));
-        store(c, key, has_art, pixels(c, slot));
+        if (!decode)
+            return -1;
+        has_art = build(c, key, path, pixels(c, slot));
     }
     c->key[slot] = key;
     c->age[slot] = ++thumb_clock;
@@ -170,36 +223,35 @@ static int fill(struct cache *c, uint32_t key, const char *path)
     return slot;
 }
 
-static const fb_data *get(struct cache *c, const char *path, bool *known)
-{
-    uint32_t key = key_of(path);
-    int slot = find(c, key);
-    if (slot < 0)
-    {
-        if (!known)
-            slot = fill(c, key, path);
-        else
-        {
-            *known = false;
-            return NULL;
-        }
-    }
-    if (known)
-        *known = true;
-    return c->has_art[slot] ? pixels(c, slot) : NULL;
-}
-
 const fb_data *ui_thumb_get(const char *track_path)
 {
-    return get(&thumbs, track_path, NULL);
+    uint32_t key = key_of(track_path);
+    int slot = find(&thumbs, key);
+    if (slot < 0)
+        slot = fill(&thumbs, key, track_path, true);
+    return thumbs.has_art[slot] ? pixels(&thumbs, slot) : NULL;
 }
 
 const fb_data *ui_cover_peek(const char *track_path, bool *known)
 {
-    return get(&covers, track_path, known);
+    int slot = find(&covers, key_of(track_path));
+    *known = slot >= 0;
+    return slot >= 0 && covers.has_art[slot] ? pixels(&covers, slot) : NULL;
 }
 
-void ui_cover_load(const char *track_path)
+bool ui_cover_load_saved(const char *track_path)
 {
-    get(&covers, track_path, NULL);
+    uint32_t key = key_of(track_path);
+    return find(&covers, key) >= 0 || fill(&covers, key, track_path, false) >= 0;
+}
+
+bool ui_cover_saved(const char *track_path)
+{
+    return on_card(&covers, key_of(track_path));
+}
+
+void ui_cover_build(const char *track_path)
+{
+    static fb_data px[UI_COVER * UI_COVER];
+    build(&covers, key_of(track_path), track_path, px);
 }

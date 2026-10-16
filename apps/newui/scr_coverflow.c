@@ -27,9 +27,15 @@
  * returns to Home.
  *
  * Covers are drawn straight into the frame buffer column by column, with
- * perspective-correct texture mapping for the turned ones. Albums are looked
- * up and covers loaded (ui_thumb.c) only while no key is pending and nothing
- * moves; until then a placeholder is drawn. */
+ * perspective-correct texture mapping for the turned ones.
+ *
+ * Each album's first track (for its cover) and artist are found in one pass
+ * over the database when Cover Flow opens, and kept while the database is
+ * the same. Covers saved on the card (ui_thumb.c) are read even while the
+ * covers move, a few per frame; while nothing moves and no key is pending,
+ * the missing ones are built, the shown ones first and then the rest of the
+ * library outwards from the centre, so later visits find them saved. A
+ * placeholder stands in until a cover is loaded. */
 
 #include "config.h"
 #include <stdio.h>
@@ -71,27 +77,32 @@
 
 #define MAX_ALBUMS    2000
 #define NAMES_SIZE    (64 * 1024)
+#define POOL_SIZE     (192 * 1024)  /* albums' track paths and artists */
 #define MAX_TRACKS    200
 #define TRACKS_SIZE   (32 * 1024)
+#define LOADS_MOVING  2             /* saved covers read per frame in motion */
+#define PROBES        16            /* covers checked per background step */
+
+enum cover_state {
+    COVER_UNKNOWN,      /* not checked */
+    COVER_SAVED,        /* on the card (or "no art" is) */
+    COVER_TO_BUILD,     /* has to be decoded */
+};
 
 struct album {
-    int seek;   /* tag seek, the database's album id */
-    int name;   /* offset in names[] */
+    int seek;           /* tag seek, the database's album id */
+    int name;           /* offset in names[] */
+    int path;           /* first track, offset in pool[]; -1: none */
+    int artist;         /* offset in pool[] */
+    unsigned char cover;
 };
 static struct album albums[MAX_ALBUMS];
 static char names[NAMES_SIZE];
+static char pool[POOL_SIZE];
 static int album_count;
+static unsigned long albums_stamp;  /* the album list they were found for */
 static int current;         /* centred album, kept between visits */
-
-/* looked-up albums around the centre; entry a % INFO_SLOTS is album a's */
-#define INFO_SLOTS 16
-struct info {
-    int album;              /* -1: unused */
-    bool found;
-    char path[MAX_PATH];
-    char artist[64];
-};
-static struct info info[INFO_SLOTS];
+static int bg_next;         /* background building: distance reached */
 
 static fb_data placeholder[UI_COVER * UI_COVER];
 
@@ -101,71 +112,193 @@ static int compare_albums(const void *a, const void *b)
                       names + ((const struct album *)b)->name);
 }
 
+static short by_seek[MAX_ALBUMS];   /* album indexes in seek order */
+
+static int compare_seeks(const void *a, const void *b)
+{
+    return albums[*(const short *)a].seek - albums[*(const short *)b].seek;
+}
+
+static int album_of_seek(int32_t seek)
+{
+    int lo = 0, hi = album_count - 1;
+    while (lo <= hi)
+    {
+        int mid = (lo + hi) / 2, s = albums[by_seek[mid]].seek;
+        if (s == seek)
+            return by_seek[mid];
+        if (s < seek)
+            lo = mid + 1;
+        else
+            hi = mid - 1;
+    }
+    return -1;
+}
+
+static int pool_add(int *used, const char *str)
+{
+    int len = strlen(str) + 1;
+    if (*used + len > POOL_SIZE)
+        return -1;
+    memcpy(pool + *used, str, len);
+    *used += len;
+    return *used - len;
+}
+
+/* one pass over the tracks: each album's first track and its artist */
+static void find_tracks(void)
+{
+    struct tagcache_search tcs;
+    static char path[MAX_PATH];
+    char artist[64];
+    int used = 0, found = 0;
+
+    for (int i = 0; i < album_count; i++)
+    {
+        albums[i].path = albums[i].artist = -1;
+        albums[i].cover = COVER_UNKNOWN;
+        by_seek[i] = i;
+    }
+    qsort(by_seek, album_count, sizeof(by_seek[0]), compare_seeks);
+
+    if (!tagcache_search(&tcs, tag_filename))
+        return;
+    splash_progress_set_delay(HZ / 2);
+    while (found < album_count && tagcache_get_next(&tcs, path, sizeof(path)))
+    {
+        int a = album_of_seek(tagcache_get_tag_seek(&tcs, tag_album));
+        if (a < 0 || albums[a].path >= 0)
+            continue;
+        if (!tagcache_retrieve(&tcs, tcs.idx_id, tag_albumartist, artist, sizeof(artist))
+            || !*artist || !strcmp(artist, UNTAGGED))
+        {
+            if (!tagcache_retrieve(&tcs, tcs.idx_id, tag_artist, artist, sizeof(artist))
+                || !strcmp(artist, UNTAGGED))
+                *artist = '\0';
+        }
+        albums[a].path = pool_add(&used, path);
+        albums[a].artist = pool_add(&used, artist);
+        found++;
+        splash_progress(found, album_count, "%s", str(LANG_NEWUI_CF_PREPARING));
+    }
+    tagcache_search_finish(&tcs);
+}
+
+/* The album list, sorted by name; the tracks are looked for again only
+ * when it changed. */
 static bool load_albums(void)
 {
     struct tagcache_search tcs;
     char buf[TAGCACHE_BUFSZ];
-    int used = 0;
+    unsigned long stamp = 5381;
+    int used = 0, count = 0;
 
-    album_count = 0;
     if (!tagcache_search(&tcs, tag_album))
         return false;
-    while (album_count < MAX_ALBUMS && tagcache_get_next(&tcs, buf, sizeof(buf)))
+    while (count < MAX_ALBUMS && tagcache_get_next(&tcs, buf, sizeof(buf)))
     {
         int len = strlen(buf) + 1;
         if (!strcmp(buf, UNTAGGED) || used + len > NAMES_SIZE)
             continue;
+        stamp = stamp * 33 + tcs.result_seek + len;
         memcpy(names + used, buf, len);
-        albums[album_count].seek = tcs.result_seek;
-        albums[album_count].name = used;
-        album_count++;
+        albums[count].seek = tcs.result_seek;
+        albums[count].name = used;
+        count++;
         used += len;
     }
     tagcache_search_finish(&tcs);
-    qsort(albums, album_count, sizeof(albums[0]), compare_albums);
-    for (int i = 0; i < INFO_SLOTS; i++)
-        info[i].album = -1;
+    stamp = stamp * 33 + count;
+
+    if (stamp != albums_stamp || count != album_count)
+    {
+        album_count = count;
+        qsort(albums, album_count, sizeof(albums[0]), compare_albums);
+        find_tracks();
+        albums_stamp = stamp;
+        bg_next = 0;
+    }
+    else
+    {
+        /* same list: names[] was rewritten identically, the rest stays */
+    }
     return true;
 }
 
-/* album a's track and artist, or NULL if not looked up yet */
-static const struct info *album_info(int a)
+static const char *album_path(int a)
 {
-    return info[a % INFO_SLOTS].album == a ? &info[a % INFO_SLOTS] : NULL;
+    return albums[a].path >= 0 ? pool + albums[a].path : NULL;
 }
 
-static void look_up(int a)
+/* Reads saved covers of the albums shown around 'centre' into RAM,
+ * nearest first, at most 'limit'; true if any was read */
+static bool load_saved(int centre, int limit)
 {
-    struct info *e = &info[a % INFO_SLOTS];
-    e->found = tagtree_album_info(albums[a].seek, e->path, sizeof(e->path),
-                                  e->artist, sizeof(e->artist), NULL);
-    e->album = a;
+    bool loaded = false;
+    for (int d = 0; d <= CF_VISIBLE && limit > 0; d++)
+        for (int s = (d ? -1 : 1); s <= 1 && limit > 0; s += 2)
+        {
+            int a = centre + s * d;
+            if (a < 0 || a >= album_count || !album_path(a) ||
+                albums[a].cover == COVER_TO_BUILD)
+                continue;
+            bool known;
+            ui_cover_peek(album_path(a), &known);
+            if (known)
+                continue;
+            limit--;
+            if (ui_cover_load_saved(album_path(a)))
+            {
+                albums[a].cover = COVER_SAVED;
+                loaded = true;
+            }
+            else
+                albums[a].cover = COVER_TO_BUILD;
+        }
+    return loaded;
 }
 
-/* One step of background work, nearest the centre first: look an album
- * up, or load its cover. False when there is nothing left to do. */
+static bool build(int a)
+{
+    if (albums[a].cover == COVER_UNKNOWN)
+        albums[a].cover = ui_cover_saved(album_path(a)) ? COVER_SAVED
+                                                        : COVER_TO_BUILD;
+    if (albums[a].cover != COVER_TO_BUILD)
+        return false;
+    ui_cover_build(album_path(a));
+    albums[a].cover = COVER_SAVED;
+    return true;
+}
+
+/* One step of background work while nothing moves: build a missing cover,
+ * the shown ones first, then outwards through the library. False when
+ * there is nothing left to do. */
 static bool idle_work(void)
 {
     for (int d = 0; d <= CF_VISIBLE; d++)
         for (int s = (d ? -1 : 1); s <= 1; s += 2)
         {
             int a = current + s * d;
-            if (a < 0 || a >= album_count)
-                continue;
-            const struct info *e = album_info(a);
-            if (!e)
-            {
-                look_up(a);
-                return true;
-            }
-            bool known;
-            if (e->found && (ui_cover_peek(e->path, &known), !known))
-            {
-                ui_cover_load(e->path);
-                return true;
-            }
+            if (a >= 0 && a < album_count && album_path(a) &&
+                albums[a].cover == COVER_TO_BUILD)
+                return build(a);
         }
-    return false;
+
+    for (int probes = 0; bg_next < album_count && probes < PROBES; )
+    {
+        int d = bg_next;
+        for (int s = (d ? -1 : 1); s <= 1; s += 2)
+        {
+            int a = current + s * d;
+            if (a < 0 || a >= album_count || !album_path(a))
+                continue;
+            probes++;
+            if (build(a))
+                return true;
+        }
+        bg_next++;
+    }
+    return bg_next < album_count;
 }
 
 static void make_placeholder(void)
@@ -305,22 +438,21 @@ static void draw(struct viewport *vp, int pos)
                 continue;
             int xl, xr, hl, hr, shade_a;
             place(k, &xl, &xr, &hl, &hr, &shade_a);
-            const struct info *e = album_info(a);
             bool known;
-            const fb_data *px = e && e->found ? ui_cover_peek(e->path, &known) : NULL;
+            const fb_data *px = album_path(a) ? ui_cover_peek(album_path(a), &known)
+                                              : NULL;
             draw_cover(fb, vp->height, px ? px : placeholder,
                        xl, xr, hl, hr, shade_a, yc, text_y - 2);
         }
 
     if (album_count > 0)
     {
-        const struct info *e = album_info(centre);
         int w = vp->width - 2 * UI_MARGIN;
         ui_text(UI_MARGIN, text_y, row, UI_COL_TEXT,
                 names + albums[centre].name, w, 0);
-        if (e && e->artist[0])
+        if (albums[centre].artist >= 0 && pool[albums[centre].artist])
             ui_text(UI_MARGIN, text_y + row_h, body, UI_COL_TEXT2,
-                    e->artist, w, 0);
+                    pool + albums[centre].artist, w, 0);
     }
     lcd_update_viewport();
     lcd_set_viewport(last);
@@ -510,7 +642,10 @@ int ui_coverflow(void)
                 step = diff > 0 ? MIN(min_step, diff) : MAX(-min_step, diff);
             pos += step;
             redraw = true;
+            load_saved((pos + 128) >> 8, LOADS_MOVING);
         }
+        else if (load_saved(current, 2 * CF_VISIBLE + 1))
+            redraw = true;
         if (redraw)
         {
             draw(&vp, pos);
@@ -533,6 +668,7 @@ int ui_coverflow(void)
                     last_us = ui_time_us();
                 current += dir * ui_wheel_step(dir, album_count);
                 current = MAX(0, MIN(current, album_count - 1));
+                bg_next = 0;
                 work = true;
                 break;
             }
@@ -550,7 +686,7 @@ int ui_coverflow(void)
                 if (busy)
                     yield();
                 else if (work)
-                    redraw = work = idle_work();
+                    work = idle_work();
                 break;
             default:
                 if (default_event_handler(action) == SYS_USB_CONNECTED)

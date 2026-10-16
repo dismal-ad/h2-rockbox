@@ -1330,6 +1330,18 @@ long tagcache_get_numeric(const struct tagcache_search *tcs, int tag)
     return check_virtual_tags(tag, tcs->idx_id, &idx);
 }
 
+/* the current entry's position in tag's file, the id filters compare
+ * (tagcache_search_add_filter); -1 for numeric tags or on error */
+int32_t tagcache_get_tag_seek(const struct tagcache_search *tcs, int tag)
+{
+    struct index_entry idx;
+
+    if (!tc_stat.ready || TAGCACHE_IS_NUMERIC(tag) ||
+        !get_index(tcs->masterfd, tcs->idx_id, &idx, true))
+        return -1;
+    return idx.tag_seek[tag];
+}
+
 inline static bool str_ends_with(const char *str1, const char *str2)
 {
     logf_clauses("%s %s %s", str1, __func__, str2);

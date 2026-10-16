@@ -230,10 +230,57 @@ int ui_text(int x, int y, int font, unsigned color, const char *text,
 }
 
 /* Text vertically centred in a band of height h starting at y */
-int ui_text_vcenter(int x, int y, int h, int font, unsigned color,
-                    const char *text, int max_w, int align)
+/* The top row of the font's capitals ('H'), or -1 if unknown (1-bit
+ * fonts). Measured once per font: the line box of some fonts has more room
+ * below the letters than above, so centring it puts the text too high. */
+static int cap_top(int font)
+{
+    static signed char cache[MAXFONTS];
+    static bool known[MAXFONTS];
+    if (font < 0 || font >= MAXFONTS)
+        return -1;
+    if (known[font])
+        return cache[font];
+
+    struct font *pf = font_get(font);
+    int top = -1;
+    if (pf->depth)
+    {
+        /* 4-bit alpha, pixels in a stream row by row, low nibble first;
+           0 is full ink, 15 none */
+        const unsigned char *bits = font_get_bits(pf, 'H');
+        int w = font_get_width(pf, 'H');
+        for (int r = 0; r < (int)pf->height && top < 0; r++)
+            for (int c = 0; c < w; c++)
+            {
+                int p = r * w + c;
+                int a = (bits[p >> 1] >> ((p & 1) * 4)) & 15;
+                if (a < 8)
+                {
+                    top = r;
+                    break;
+                }
+            }
+    }
+    known[font] = true;
+    cache[font] = top;
+    return top;
+}
+
+int ui_text_y(int font, int y, int h)
 {
     font = ui_resolve_font(font);
     struct font *pf = font_get(font);
-    return ui_text(x, y + (h - pf->height) / 2, font, color, text, max_w, align);
+    int top = cap_top(font);
+    if (top < 0 || top >= pf->ascent)
+        return y + (h - (int)pf->height) / 2;
+    /* centre the capitals, from their top to the baseline */
+    int cap_h = pf->ascent - top;
+    return y + (h - cap_h + 1) / 2 - top;
+}
+
+int ui_text_vcenter(int x, int y, int h, int font, unsigned color,
+                    const char *text, int max_w, int align)
+{
+    return ui_text(x, ui_text_y(font, y, h), font, color, text, max_w, align);
 }

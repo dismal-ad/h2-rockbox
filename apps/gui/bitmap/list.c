@@ -256,12 +256,16 @@ void list_draw(struct screen *display, struct gui_synclist *list)
                 /* too long: let the scroll engine scroll it */
                 struct viewport *sv = &sel_text[screen];
                 struct line_desc ld = LINE_DESC_DEFINIT;
+                /* the scroller centres the line box: move it so the text
+                   sits where ui_text_vcenter() puts it */
+                int shift = ui_text_y(font, 0, row_h) -
+                            (row_h - (int)font_get(ui_resolve_font(font))->height) / 2;
                 *sv = *vp;
                 sv->x = vp->x + text_x;
-                sv->y = vp->y + y;
+                sv->y = vp->y + y + shift;
                 sv->width = text_w;
-                sv->height = row_h;
-                ld.height = row_h;
+                sv->height = row_h - shift;
+                ld.height = row_h - shift;
                 ld.style = STYLE_COLORBAR;
                 ld.line_color = ui_sel_bg();
                 ld.text_color = ui_sel_text();

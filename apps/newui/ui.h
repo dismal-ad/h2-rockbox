@@ -101,6 +101,9 @@ int ui_text_width(int font, const char *text);
  * align -1 left, 0 centre, 1 right within max_w. Returns the drawn width. */
 int ui_text(int x, int y, int font, unsigned color, const char *text,
             int max_w, int align);
+/* The y to draw text of font at so its capitals are centred in the band
+ * [y, y + h) */
+int ui_text_y(int font, int y, int h);
 /* Same, vertically centred in the band [y, y + h) */
 int ui_text_vcenter(int x, int y, int h, int font, unsigned color,
                     const char *text, int max_w, int align);

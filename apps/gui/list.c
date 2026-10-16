@@ -231,7 +231,8 @@ void gui_synclist_draw(struct gui_synclist *gui_list)
     {
         struct viewport *p = gui_list->parent[i];
         list_draw(&screens[i], gui_list);
-        screens[i].update_rect(p->x, p->y, p->width, p->height);
+        if (!ui_transition_run(p->x, p->y, p->width, p->height))
+            screens[i].update_rect(p->x, p->y, p->width, p->height);
     }
 }
 

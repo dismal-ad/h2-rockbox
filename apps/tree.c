@@ -763,6 +763,7 @@ static int dirbrowse(void)
         tc.selected_item = gui_synclist_get_sel_pos(&tree_lists);
         int customaction = ONPLAY_NO_CUSTOMACTION;
         bool do_restore_display = true;
+        const int level_before = tc.dirlevel;
             if (id3db && (button == ACTION_STD_OK || button == ACTION_STD_CONTEXT))
             {
                 customaction = tagtree_get_custom_action(&tc);
@@ -799,6 +800,8 @@ static int dirbrowse(void)
                     default:
                         break;
                 }
+                if (tc.dirlevel > level_before)
+                    ui_transition(1);
                 restore = do_restore_display;
                 break;
 
@@ -823,6 +826,8 @@ static int dirbrowse(void)
                     if (ft_exit(&tc) == 3)
                         exit_func = true;
 
+                if (tc.dirlevel < level_before)
+                    ui_transition(-1);
                 restore = do_restore_display;
                 break;
 

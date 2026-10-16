@@ -57,6 +57,16 @@ unsigned ui_sel_bg(void);
 unsigned ui_sel_text(void);
 unsigned ui_sel_text2(void);
 
+/* --- transitions (ui_transition.c) --- */
+
+/* Before a list changes level: keeps the screen to slide from, dir +1
+ * (enter, from the right) or -1 (back, from the left) */
+void ui_transition(int dir);
+/* Called with the area a list just drew: slides to it if a transition is
+ * pending and the area is the whole screen below the status bar. True if
+ * it did (and updated the display). */
+bool ui_transition_run(int x, int y, int w, int h);
+
 /* --- fonts (ui_font.c) --- */
 
 enum ui_font {

@@ -32,6 +32,7 @@
 #include "font.h"
 #include "file.h"
 #include "menu.h"
+#include "newui/ui.h"
 #include "button.h"
 #include "kernel.h"
 #include "debug.h"
@@ -632,6 +633,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
 
             if (stack_top > 0)
             {
+                ui_transition(-1);
                 stack_top--;
                 menu = mstack[stack_top].menu;
                 int msel = mstack[stack_top].selected;
@@ -675,6 +677,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                 case MT_MENU:
                     if (stack_top < MAX_MENUS)
                     {
+                        ui_transition(1);
                         mstack[stack_top].menu = menu;
                         mstack[stack_top].selected = selected;
                         stack_top++;

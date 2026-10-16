@@ -551,12 +551,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
         }
         else if (action == ACTION_STD_CONTEXT)
         {
-            if (menu == &root_menu_)
-            {
-                ret = GO_TO_ROOTITEM_CONTEXT;
-                done = true;
-            }
-            else if (!in_stringlist)
+            if (!in_stringlist)
             {
                 int type = (menu->flags&MENU_TYPE_MASK);
                 selected = get_menu_selection(gui_synclist_get_sel_pos(&lists),menu);
@@ -617,10 +612,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
         }
         else if (action == ACTION_STD_MENU)
         {
-            if (menu != &root_menu_)
-                ret = GO_TO_ROOT;
-            else
-                ret = GO_TO_PREVIOUS;
+            ret = GO_TO_ROOT;
             done = true;
         }
         else if (action == ACTION_STD_CANCEL)
@@ -651,7 +643,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                 /* new menu, so reload the callback */
                 get_menu_callback(menu, &menu_callback);
             }
-            else if (menu != &root_menu_)
+            else
             {
                 ret = GO_TO_PREVIOUS;
                 done = true;

@@ -39,7 +39,6 @@
 #include "power.h"
 #include "powermgmt.h"
 #include "kernel.h"
-#include "open_plugin.h"
 #include "misc.h"
 #include "playback.h"
 #ifndef __PCTOOL__
@@ -755,12 +754,6 @@ static void treesort_callback(int value)
 {
     (void) value;
     reload_directory();
-}
-
-static void start_in_callback(int var)
-{
-    if (var - 2 == GO_TO_PLUGIN)
-        open_plugin_browse(ID2P(LANG_START_SCREEN));
 }
 
 /* volume limiter */
@@ -1526,16 +1519,14 @@ const struct settings_list settings[] = {
                    "wps,menu,"
 #define START_REC_COUNT 0
 #define START_TUNER_COUNT 0
-                   "bookmarks,"
-                   "plugin"
-                   , start_in_callback,
-    (7 + START_DB_COUNT + START_REC_COUNT + START_TUNER_COUNT),
+                   "bookmarks"
+                   , NULL,
+    (6 + START_DB_COUNT + START_REC_COUNT + START_TUNER_COUNT),
                    ID2P(LANG_PREVIOUS_SCREEN), ID2P(LANG_MAIN_MENU),
                    ID2P(LANG_DIR_BROWSER),
                    ID2P(LANG_TAGCACHE),
                    ID2P(LANG_RESUME_PLAYBACK), ID2P(LANG_SETTINGS),
-                   ID2P(LANG_BOOKMARK_MENU_RECENT_BOOKMARKS),
-                   ID2P(LANG_OPEN_PLUGIN)
+                   ID2P(LANG_BOOKMARK_MENU_RECENT_BOOKMARKS)
                   ),
 
     /* Customizable icons */
@@ -1615,11 +1606,6 @@ const struct settings_list settings[] = {
     INT_SETTING(F_TIME_SETTING, resume_rewind, LANG_RESUME_REWIND, 0,
                 "resume rewind", UNIT_SEC, 0, 60, 5,
                 formatter_time_unit_0_is_off, getlang_time_unit_0_is_off, NULL),
-   CUSTOM_SETTING(0, root_menu_customized,
-                  LANG_ROCKBOX_TITLE, /* lang string here is never actually used */
-                  NULL, "root menu order",
-                  root_menu_load_from_cfg, root_menu_write_to_cfg,
-                  root_menu_is_changed, root_menu_set_default),
 
 #if !defined(SIMULATOR) && defined(HAVE_USB_POWER)
     CHOICE_SETTING(0,

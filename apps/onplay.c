@@ -40,10 +40,9 @@
 #include "playlist_viewer.h"
 #include "talk.h"
 #include "onplay.h"
+#include "fs_attr.h"
 #include "filetypes.h"
 #include "fileop.h"
-#include "open_plugin.h"
-#include "plugin.h"
 #include "bookmark.h"
 #include "action.h"
 #include "splash.h"
@@ -55,7 +54,6 @@
 #include "playlist_catalog.h"
 #include "tagtree.h"
 #include "cuesheet.h"
-#include "pitchscreen.h"
 #include "viewport.h"
 #include "pathfuncs.h"
 #include "shortcuts.h"
@@ -69,7 +67,6 @@ static bool in_queue_submenu = false;
 
 static bool (*ctx_current_playlist_insert)(int position, bool queue, bool create_new);
 static int (*ctx_add_to_playlist)(const char* playlist, bool new_playlist);
-static char *onplay_get_plugin_name(bool reload);
 extern struct menu_item_ex file_menu; /* settings_menu.c  */
 
 /* redefine MAKE_MENU so the MENU_EXITAFTERTHISMENU flag can be added easily */
@@ -194,18 +191,6 @@ static int wps_view_cur_playlist(void)
     return 0;
 }
 
-static void playing_time(void)
-{
-    plugin_load(PLUGIN_APPS_DIR"/playing_time.rock", NULL);
-}
-
-#ifdef HAVE_ALBUMART
-static void view_album_art(void)
-{
-    plugin_load(VIEWERS_DIR"/imageviewer.rock", NULL);
-}
-#endif
-
 MENUITEM_FUNCTION(wps_view_cur_playlist_item, 0, ID2P(LANG_VIEW_DYNAMIC_PLAYLIST),
                   wps_view_cur_playlist, NULL, Icon_NOICON);
 MENUITEM_FUNCTION(search_playlist_item, 0, ID2P(LANG_SEARCH_IN_PLAYLIST),
@@ -214,8 +199,6 @@ MENUITEM_FUNCTION(playlist_save_item, 0, ID2P(LANG_SAVE_DYNAMIC_PLAYLIST),
                   save_playlist, NULL, Icon_Playlist);
 MENUITEM_FUNCTION(reshuffle_item, 0, ID2P(LANG_SHUFFLE_PLAYLIST),
                   shuffle_playlist, NULL, Icon_Playlist);
-MENUITEM_FUNCTION(playing_time_item, 0, ID2P(LANG_PLAYING_TIME),
-                  playing_time, NULL, Icon_Playlist);
 MAKE_ONPLAYMENU( wps_playlist_menu, ID2P(LANG_CURRENT_PLAYLIST),
                  NULL, Icon_Playlist,
                  &wps_view_cur_playlist_item, &playlist_save_item,
@@ -653,27 +636,6 @@ static char *wps_context_get_item_name(int selected_item, void * data,
     int item = (intptr_t)data;
     const struct hotkey_assignment *hkey =
       get_hotkey(HK_CTX_GET(item, global_settings.context_wps));
-    if (hkey->action == HOTKEY_PLUGIN)
-    {
-        return onplay_get_plugin_name(false);
-    }
-#ifdef HAVE_PITCHCONTROL
-    else if (hkey->action == HOTKEY_PITCHSCREEN)
-    {
-        int32_t ts = dsp_get_timestretch();
-        int32_t pitch = sound_get_pitch();
-        if (ts != PITCH_SPEED_100 || pitch != PITCH_SPEED_100)
-        {
-            int32_t speed = GET_SPEED(pitch, ts);
-            snprintf(buffer, buffer_len,"%s %ld.%ld%% / %ld.%ld%%", str(hkey->lang_id),
-                 pitch / PITCH_SPEED_PRECISION,
-                (pitch % PITCH_SPEED_PRECISION) / (PITCH_SPEED_PRECISION / 10),
-                 speed / PITCH_SPEED_PRECISION,
-                (speed % PITCH_SPEED_PRECISION) / (PITCH_SPEED_PRECISION / 10));
-            return buffer;
-        }
-    }
-#endif
     return ID2P(hkey->lang_id);
 }
 
@@ -683,32 +645,6 @@ static int wps_context_item_speak_item(int selected_item, void * data)
     const struct hotkey_assignment *hkey =
       get_hotkey(HK_CTX_GET(item, global_settings.context_wps));
 
-    if (hkey->action == HOTKEY_PLUGIN)
-    {
-        talk_spell(onplay_get_plugin_name(false), false);
-        return 0;
-    }
-#ifdef HAVE_PITCHCONTROL
-    else if (hkey->action == HOTKEY_PITCHSCREEN)
-    {
-        int32_t ts = dsp_get_timestretch();
-        int32_t pitch = sound_get_pitch();
-        if (ts != PITCH_SPEED_100 || pitch != PITCH_SPEED_100)
-        {
-            talk_id(hkey->lang_id, false);
-
-            if (pitch != PITCH_SPEED_100)
-                talk_value_decimal(pitch, UNIT_PERCENT, 2, true);
-            if (ts != PITCH_SPEED_100)
-            {
-                int32_t speed = GET_SPEED(pitch, ts);
-                talk_id(LANG_SPEED, true);
-                talk_value_decimal(speed, UNIT_PERCENT, 2, true);
-            }
-            return 0;
-        }
-    }
-#endif
     talk_id(hkey->lang_id, false);
     return 0;
     (void)selected_item;
@@ -745,18 +681,6 @@ WPSCTX_RETURNVALUE_DYNTEXT(context_item_4, GO_TO_PREVIOUS, wps_context_item_cb,
 static struct menu_get_name_and_icon * const ctx_item_map[HK_CTX_ITEMS]=
   {&context_item_0_, &context_item_1_, &context_item_2_, &context_item_3_, &context_item_4_};
 
-#ifdef HAVE_PITCHCONTROL
-MENUITEM_FUNCTION(pitch_screen_item, 0, ID2P(LANG_PITCH),
-                  gui_syncpitchscreen_run, NULL, Icon_Audio);
-MENUITEM_FUNCTION(pitch_reset_item, 0, ID2P(LANG_RESET_SETTING),
-                  reset_pitch, NULL, Icon_Submenu_Entered);
-
-MAKE_ONPLAYMENU(pitch_menu, ID2P(LANG_PITCH),
-                NULL, Icon_Audio,
-                &pitch_screen_item,
-                &pitch_reset_item);
-#endif
-
 static int wps_context_item_cb(int action,
                                   const struct menu_item_ex *this_item,
                                   struct gui_synclist *this_list)
@@ -770,16 +694,6 @@ static int wps_context_item_cb(int action,
             return ACTION_EXIT_MENUITEM;
         }
         ctx_item_map[item]->icon_id = get_hotkey(act)->icon;
-#ifdef HAVE_PITCHCONTROL
-        if (act == HOTKEY_PITCHSCREEN)
-        {
-            int32_t ts = dsp_get_timestretch();
-            if (sound_get_pitch() != PITCH_SPEED_100 || ts != PITCH_SPEED_100)
-            {
-                ctx_item_map[item]->icon_id = Icon_Submenu; /* if setting changed show + */
-            }
-        }
-#endif
     }
     else if (action == ACTION_EXIT_MENUITEM) /* selected */
     {
@@ -789,12 +703,6 @@ static int wps_context_item_cb(int action,
         {
             onplay_result = hotkey_run_menu(HOTKEY_FLAG_WPS, true, 0);
         }
-#ifdef HAVE_PITCHCONTROL
-        else if (act == HOTKEY_PITCHSCREEN && ctx_item_map[item]->icon_id == Icon_Submenu)
-        {
-            do_menu(&pitch_menu, NULL, NULL, false);
-        }
-#endif
         else
         {
             onplay_result = execute_hotkey(act);
@@ -910,77 +818,22 @@ MENUITEM_FUNCTION(create_dir_item, 0, ID2P(LANG_CREATE_DIR),
                   clipboard_create_dir, clipboard_callback, Icon_NOICON);
 
 /* other items */
-static bool list_viewers(void)
-{
-    int ret = filetype_list_viewers(selected_file.path);
-    if (ret == PLUGIN_USB_CONNECTED)
-        onplay_result = ONPLAY_RELOAD_DIR;
-    return false;
-}
-
 static bool prepare_database_sel(void *param)
 {
+    (void)param;
     if (selected_file.context == CONTEXT_ID3DB)
     {
-        if (param && !strcmp(param, "properties")
-            && (selected_file.attr & FILE_ATTR_MASK) != FILE_ATTR_AUDIO)
+        /* If database is not loaded into RAM, or tagcache_ram is
+           set to "quick", filename needs to be retrieved from disk! */
+        if (!tagtree_get_subentry_filename(selected_file.buf, MAX_PATH))
         {
-            strmemccpy(selected_file.buf, MAKE_ACT_STR(ACTIVITY_DATABASEBROWSER),
-                       sizeof(selected_file.buf));
-        }
-        else
-        {
-            /* If database is not loaded into RAM, or tagcache_ram is
-               set to "quick", filename needs to be retrieved from disk! */
-             if (!tagtree_get_subentry_filename(selected_file.buf, MAX_PATH))
-            {
-                onplay_result = ONPLAY_RELOAD_DIR;
-                return false;
-            }
+            onplay_result = ONPLAY_RELOAD_DIR;
+            return false;
         }
 
         selected_file.path = selected_file.buf;
     }
     return true;
-}
-
-static bool onplay_load_plugin(void *param)
-{
-    if (!prepare_database_sel(param))
-        return false;
-    int ret = filetype_load_plugin((const char*)param, selected_file.path);
-    if (ret == PLUGIN_USB_CONNECTED)
-        onplay_result = ONPLAY_RELOAD_DIR;
-    else if (ret == PLUGIN_GOTO_PLUGIN)
-        onplay_result = ONPLAY_PLUGIN;
-    else if (ret == PLUGIN_GOTO_WPS)
-        onplay_result = ONPLAY_START_PLAY;
-    else if (ret == PLUGIN_GOTO_ROOT)
-        onplay_result = ONPLAY_MAINMENU;
-    return false;
-}
-
-static char *onplay_get_plugin_name(bool reload)
-{
-    static char ctx_plugin_namebuf[OPEN_PLUGIN_NAMESZ] = "";
-    if (reload || ctx_plugin_namebuf[0] == '\0')
-    {
-        int res = open_plugin_load_entry(ID2P(LANG_ONPLAY_MENU_TITLE));
-        if (res >= 0 || res ==  OPEN_PLUGIN_NEEDS_FLUSHED)
-        {
-            struct open_plugin_entry_t *op = open_plugin_get_entry();
-            strmemccpy(ctx_plugin_namebuf, op->name, sizeof(ctx_plugin_namebuf));
-        }
-        else
-        {
-            strmemccpy(ctx_plugin_namebuf, str(LANG_OPEN_PLUGIN),
-                       sizeof(ctx_plugin_namebuf));
-        }
-    }
-
-    if (get_current_activity() == ACTIVITY_SETTINGS)
-        return str(LANG_OPEN_PLUGIN);
-    return ctx_plugin_namebuf;
 }
 
 static int reveal(void)
@@ -1001,11 +854,6 @@ static int reveal(void)
 
 MENUITEM_FUNCTION(reveal_item, 0, ID2P(LANG_SHOW_IN_FILES),
                   reveal, clipboard_callback, Icon_file_view_menu);
-MENUITEM_FUNCTION(list_viewers_item, 0, ID2P(LANG_ONPLAY_OPEN_WITH),
-                  list_viewers, clipboard_callback, Icon_NOICON);
-MENUITEM_FUNCTION_W_PARAM(properties_item, 0, ID2P(LANG_PROPERTIES),
-                  onplay_load_plugin, (void *)"properties",
-                  clipboard_callback, Icon_NOICON);
 /* a file's tags, with the track info screen */
 static bool show_file_track_info(void)
 {
@@ -1023,9 +871,6 @@ static bool show_file_track_info(void)
 }
 MENUITEM_FUNCTION(track_info_item, 0, ID2P(LANG_MENU_SHOW_ID3_INFO),
                   show_file_track_info, clipboard_callback, Icon_NOICON);
-MENUITEM_FUNCTION_W_PARAM(pictureflow_item, 0, ID2P(LANG_ONPLAY_PICTUREFLOW),
-                  onplay_load_plugin, (void *)"pictureflow",
-                  clipboard_callback, Icon_NOICON);
 static bool onplay_add_to_shortcuts(void)
 {
     shortcuts_add(SHORTCUT_BROWSER, selected_file.path);
@@ -1093,14 +938,12 @@ static int clipboard_callback(int action,
             if ((selected_file.attr & ATTR_VOLUME) &&
                 (this_item == &rename_file_item ||
                  this_item == &delete_dir_item ||
-                 this_item == &clipboard_cut_item ||
-                 this_item == &list_viewers_item))
+                 this_item == &clipboard_cut_item))
                 return ACTION_EXIT_MENUITEM;
 #endif
             if (selected_file.context == CONTEXT_ID3DB)
             {
                 if (this_item == &track_info_item ||
-                    this_item == &pictureflow_item ||
                     this_item == &reveal_item)
                     return action;
                 return ACTION_EXIT_MENUITEM;
@@ -1127,8 +970,6 @@ static int clipboard_callback(int action,
                 else if (this_item == &rename_file_item ||
                     (this_item == &track_info_item &&
                         (selected_file.attr & FILE_ATTR_MASK) == FILE_ATTR_AUDIO) ||
-                    (this_item == &properties_item &&
-                        (selected_file.attr & FILE_ATTR_MASK) != FILE_ATTR_AUDIO) ||
                     this_item == &add_to_faves_item)
                 {
                     return action;
@@ -1145,11 +986,6 @@ static int clipboard_callback(int action,
                         return action;
                 }
                     /* only for files */
-                else if (this_item == &list_viewers_item)
-                {
-                    if (*tree_get_context()->dirfilter != SHOW_M3U)
-                        return action;
-                }
                 else if (this_item == &delete_file_item ||
                          (this_item == &reveal_item &&
                           selected_file.context == CONTEXT_WPS))
@@ -1263,20 +1099,6 @@ static bool hotkey_delete_item(void)
     return clipboard_delete_selected_fileobject();
 }
 
-static bool hotkey_open_with(void)
-{
-    /* only open files */
-    if (selected_file.attr & ATTR_DIRECTORY)
-        return false;
-#ifdef HAVE_MULTIVOLUME
-    if (selected_file.attr & ATTR_VOLUME)
-        return false;
-#endif
-    if (!prepare_database_sel(NULL))
-        return false;
-    return list_viewers();
-}
-
 static int hotkey_tree_pl_insert_shuffled(void)
 {
     if ((audio_status() & AUDIO_STATUS_PLAY) ||
@@ -1286,25 +1108,6 @@ static int hotkey_tree_pl_insert_shuffled(void)
         add_to_playlist(&addtopl_insert_shuf);
     }
     return ONPLAY_RELOAD_DIR;
-}
-
-static int hotkey_tree_run_plugin(void *param)
-{
-    if (!prepare_database_sel(param))
-        return ONPLAY_RELOAD_DIR;
-    if (filetype_load_plugin((const char*)param, selected_file.path) == PLUGIN_GOTO_WPS)
-        return ONPLAY_START_PLAY;
-
-    return ONPLAY_RELOAD_DIR;
-}
-
-static int hotkey_wps_run_plugin(void)
-{
-    if (get_current_activity() == ACTIVITY_CONTEXTMENU)
-        open_plugin_run(ID2P(LANG_ONPLAY_MENU_TITLE));
-    else
-        open_plugin_run(ID2P(LANG_HOTKEY_WPS));
-    return ONPLAY_OK;
 }
 
 static int hotkey_execute_menu(void)
@@ -1341,20 +1144,6 @@ static const struct hotkey_assignment hotkey_items[] = {
       .return_code = ONPLAY_RELOAD_DIR,
       .flags = HOTKEY_FLAG_WPS,
       .icon = Icon_Questionmark},
-#ifdef HAVE_PITCHCONTROL
-    { .action = HOTKEY_PITCHSCREEN,
-      .lang_id = LANG_PITCH,
-      .func = HOTKEY_FUNC(gui_syncpitchscreen_run, NULL),
-      .return_code = ONPLAY_RELOAD_DIR,
-      .flags = HOTKEY_FLAG_WPS | HOTKEY_FLAG_NOSBS,
-      .icon = Icon_Audio},
-#endif
-    { .action = HOTKEY_OPEN_WITH,
-      .lang_id = LANG_ONPLAY_OPEN_WITH,
-      .func = HOTKEY_FUNC(hotkey_open_with, NULL),
-      .return_code = ONPLAY_RELOAD_DIR,
-      .flags = HOTKEY_FLAG_WPS | HOTKEY_FLAG_TREE,
-      .icon = Icon_Plugin},
    { .action = HOTKEY_DELETE,
       .lang_id = LANG_DELETE,
       .func = HOTKEY_FUNC(hotkey_delete_item, NULL),
@@ -1373,12 +1162,6 @@ static const struct hotkey_assignment hotkey_items[] = {
       .return_code = ONPLAY_FUNC_RETURN,
       .flags = HOTKEY_FLAG_TREE,
       .icon = Icon_Queued},
-   { .action = HOTKEY_PLUGIN,
-      .lang_id = LANG_OPEN_PLUGIN,
-      .func = HOTKEY_FUNC(hotkey_wps_run_plugin, NULL),
-      .return_code = ONPLAY_FUNC_RETURN,
-      .flags = HOTKEY_FLAG_WPS | HOTKEY_FLAG_NOSBS,
-      .icon = Icon_Plugin},
    { .action = HOTKEY_BOOKMARK,
       .lang_id = LANG_BOOKMARK_MENU_CREATE,
       .func = HOTKEY_FUNC(bookmark_create_menu, NULL),
@@ -1391,12 +1174,6 @@ static const struct hotkey_assignment hotkey_items[] = {
       .return_code = ONPLAY_START_PLAY,
       .flags = HOTKEY_FLAG_WPS,
       .icon = Icon_Bookmark},
-   { .action = HOTKEY_PROPERTIES,
-      .lang_id = LANG_PROPERTIES,
-      .func = HOTKEY_FUNC(hotkey_tree_run_plugin, (void *)"properties"),
-      .return_code = ONPLAY_FUNC_RETURN,
-      .flags = HOTKEY_FLAG_TREE,
-      .icon = Icon_NOICON},
    { .action = HOTKEY_SHOW_IN_FILES,
       .lang_id = LANG_SHOW_IN_FILES,
       .func = HOTKEY_FUNC(reveal, NULL),
@@ -1409,20 +1186,6 @@ static const struct hotkey_assignment hotkey_items[] = {
       .return_code = ONPLAY_FUNC_RETURN,
       .flags = HOTKEY_FLAG_WPS | HOTKEY_FLAG_TREE,
       .icon = Icon_Submenu},
-#ifdef HAVE_ALBUMART
-    { .action = HOTKEY_ALBUMART,
-      .lang_id = LANG_VIEW_ALBUMART,
-      .func = HOTKEY_FUNC(view_album_art, NULL),
-      .return_code = ONPLAY_OK,
-      .flags = HOTKEY_FLAG_WPS | HOTKEY_FLAG_NOSBS,
-      .icon = Icon_Wps},
-#endif
-    { .action = HOTKEY_PICTUREFLOW,
-      .lang_id = LANG_ONPLAY_PICTUREFLOW,
-      .func = HOTKEY_FUNC(hotkey_tree_run_plugin, (void *)"pictureflow"),
-      .return_code = ONPLAY_FUNC_RETURN,
-      .flags = HOTKEY_FLAG_TREE,
-      .icon = Icon_Plugin},
 };
 
 const struct hotkey_assignment *get_hotkey(int action)
@@ -1470,11 +1233,6 @@ static const char* hotkey_get_name(int selected_item, void * data,
     const struct hotkey_assignment **hk_menu =
                 (const struct hotkey_assignment**)data;
 
-    if (hk_menu[selected_item]->action == HOTKEY_PLUGIN)
-    {
-        return onplay_get_plugin_name(false);
-    }
-
     return ID2P(hk_menu[selected_item]->lang_id);
 }
 
@@ -1482,10 +1240,7 @@ static int hotkey_get_talk(int selected_item, void * data)
 {
     const struct hotkey_assignment **hk_menu =
                 (const struct hotkey_assignment**)data;
-    if (hk_menu[selected_item]->action == HOTKEY_PLUGIN)
-        talk_spell(onplay_get_plugin_name(false), false);
-    else
-        talk_id(hk_menu[selected_item]->lang_id, false);
+    talk_id(hk_menu[selected_item]->lang_id, false);
     return 0;
 }
 
@@ -1682,8 +1437,6 @@ int onplay(char* file, int attr, int from_context, bool hotkey, int customaction
         return ONPLAY_MAINMENU;
     if (menu_selection == GO_TO_PLAYLIST_VIEWER)
         return ONPLAY_PLAYLIST;
-    if (menu_selection == GO_TO_PLUGIN)
-        return ONPLAY_PLUGIN;
 
     return onplay_result;
 }
@@ -1702,20 +1455,6 @@ static int hotkey_menu_do_setting(void *param, int *setting, int flag)
     int sel = hotkey_run_menu(flag, false, temp);
     if (sel >=0)
     {
-        if (sel == HOTKEY_PLUGIN)
-        {
-            if (get_current_activity() != ACTIVITY_QUICKSCREEN)
-            {
-                if (item == 0)
-                    open_plugin_browse(ID2P(LANG_HOTKEY_WPS));
-                else
-                {
-                    open_plugin_browse(ID2P(LANG_ONPLAY_MENU_TITLE));
-                    onplay_get_plugin_name(true);
-                }
-            }
-        }
-
         current &= ~HK_CTX_SET(item, HK_CTX_MASK);/*clear*/
         current |= HK_CTX_SET(item, sel);
 

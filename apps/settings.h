@@ -600,7 +600,6 @@ struct user_settings
     char start_directory[MAX_PATHNAME+1];
     /* Has the root been customized from the .cfg file? false = no, true = loaded from cfg */
     bool keep_directory;  /* this saves the last path visited in the file browser */
-    bool root_menu_customized;
 
     int play_frequency; /* core audio output frequency selection */
     int volume_limit; /* maximum volume limit */

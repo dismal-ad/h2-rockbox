@@ -29,6 +29,10 @@
 #include "debug.h"
 #include "lang.h"
 #include "kernel.h"
+#include "misc.h"
+#include "settings.h"
+#include "talk.h"
+#include "string-extra.h"
 #include "plugin.h"
 #include "filetypes.h"
 #include "screens.h"
@@ -652,38 +656,3 @@ char* filetype_get_viewer(char *buffer, size_t buffer_len, const char* current_f
 
 }
 
-int filetype_list_viewers(const char* current_file)
-{
-    int ret = PLUGIN_ERROR;
-    char plugin[MAX_PATH];
-    if (filetype_get_viewer(plugin, sizeof(plugin), current_file) != NULL)
-        ret = plugin_load(plugin, current_file);
-    return ret;
-}
-
-int filetype_load_plugin(const char* plugin, const char* file)
-{
-    int i;
-    char plugin_name[MAX_PATH];
-    const char *s;
-
-    for (i=1;i<filetype_count;i++)
-    {
-        if (filetypes[i].plugin)
-        {
-            s = strrchr(filetypes[i].plugin, '/');
-            if (s)
-            {
-                if (!strcmp(s+1, plugin))
-                    break;
-            }
-            else if (!strcmp(filetypes[i].plugin, plugin))
-                break;
-        }
-    }
-    if (i >= filetype_count)
-        return PLUGIN_ERROR;
-    snprintf(plugin_name, MAX_PATH, "%s/%s." ROCK_EXTENSION,
-             PLUGIN_DIR, filetypes[i].plugin);
-    return plugin_load(plugin_name, file);
-}

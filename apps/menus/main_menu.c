@@ -36,6 +36,8 @@
 #include "yesno.h"
 #include "keyboard.h"
 #include "screens.h"
+#include "dir.h"
+#include "pathfuncs.h"
 #include "plugin.h"
 #include "talk.h"
 #include "splash.h"

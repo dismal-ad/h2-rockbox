@@ -37,7 +37,6 @@
 #include "lang.h"
 #include "menu.h"
 #include "misc.h"
-#include "open_plugin.h"
 #include "tree.h"
 #include "splash.h"
 #include "pathfuncs.h"
@@ -759,13 +758,7 @@ int do_shortcut_menu(void *ignored)
                     break;
                 }
                 /* else fall through */
-            case SHORTCUT_BROWSER:
-                if (open_plugin_add_path(ID2P(LANG_SHORTCUTS),
-                                         sc->u.path, NULL) != 0)
-                {
-                    done = GO_TO_PLUGIN;
-                    break;
-                }
+            case SHORTCUT_BROWSER:;
                 struct browse_context browse = {
                     .dirfilter = SHOW_ALL, /* ignored for SHORTCUT_BROWSER */
                     .icon = Icon_NOICON,
@@ -815,10 +808,7 @@ int do_shortcut_menu(void *ignored)
                 break;
         }
     }
-    if (GO_TO_PLUGIN == done)
-        pop_current_activity_without_refresh();
-    else
-        pop_current_activity();
+    pop_current_activity();
     --buflib_move_lock;
 
     return done;

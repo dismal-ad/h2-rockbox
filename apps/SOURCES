@@ -13,7 +13,6 @@ main.c
 menu.c
 menus/menu_common.c
 menus/display_menu.c
-menus/plugin_menu.c
 menus/eq_menu.c
 buffering.c
 rbcodec_helpers.c
@@ -46,7 +45,6 @@ gui/line.c
 gui/bitmap/list.c
 gui/option_select.c
 #ifdef HAVE_PITCHCONTROL
-gui/pitchscreen.c
 #endif
 gui/folder_select.c
 gui/mask_select.c

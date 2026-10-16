@@ -56,6 +56,8 @@
 #include "strnatcmp.h"
 #include "panic.h"
 #include "onplay.h"
+#include "crc32.h"
+#include <ctype.h>
 #include "plugin.h"
 #include "language.h"
 #include "playlist_catalog.h"

@@ -105,6 +105,9 @@
 #include "splash.h"
 #include "rbunicode.h"
 #include "root_menu.h"
+#include "fs_attr.h"
+#include "crc32.h"
+#include "yesno.h"
 #include "plugin.h" /* To borrow a temp buffer to rewrite a .m3u8 file */
 #include "iap-usb.h"
 #include "logdiskf.h"

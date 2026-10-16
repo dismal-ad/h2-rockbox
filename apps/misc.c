@@ -61,7 +61,6 @@
 #include "viewport.h"
 #include "list.h"
 #include "fixedpoint.h"
-#include "open_plugin.h"
 
 #include "debug.h"
 
@@ -328,7 +327,6 @@ static void system_flush(void)
 {
     playlist_shutdown();
     tree_flush();
-    open_plugin_cache_flush();
     call_storage_idle_notifys(true); /*doesnt work on usb and shutdown from ata thread */
 }
 

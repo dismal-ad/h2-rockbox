@@ -28,7 +28,6 @@
 #include "settings.h"
 #include "rbpaths.h"
 #include "menu.h"
-#include "open_plugin.h"
 #include "keyboard.h"
 #include "sound_menu.h"
 #include "exported_menus.h"
@@ -45,6 +44,7 @@
 #include "dircache.h"
 #endif
 #include "mask_select.h"
+#include "pathfuncs.h"
 #include "plugin.h"
 #include "onplay.h"
 #include "misc.h"
@@ -495,12 +495,9 @@ static int autoresume_nexttrack_callback(int action,
             oldval = global_settings.autoresume_automatic;
             break;
         case ACTION_EXIT_MENUITEM:
-            if (global_settings.autoresume_automatic == AUTORESUME_NEXTTRACK_CUSTOM
-                && plugin_load(VIEWERS_DIR"/db_folder_select.rock",
-                               str(LANG_AUTORESUME)) == PLUGIN_OK)
-            {
+            /* custom needs the folder selector plugin */
+            if (global_settings.autoresume_automatic == AUTORESUME_NEXTTRACK_CUSTOM)
                 global_settings.autoresume_automatic = oldval;
-            }
     }
     return action;
 }

@@ -30,6 +30,12 @@
 #include "lang.h"
 #include "language.h"
 #include "list.h"
+#include "dir.h"
+#include "fs_attr.h"
+#include "string-extra.h"
+#include "settings.h"
+#include "yesno.h"
+#include "crc32.h"
 #include "plugin.h"
 #include "splash.h"
 

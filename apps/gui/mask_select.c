@@ -27,6 +27,8 @@
 #include "lang.h"
 #include "language.h"
 #include "list.h"
+#include "settings.h"
+#include "string-extra.h"
 #include "plugin.h"
 #include "mask_select.h"
 #include "talk.h"

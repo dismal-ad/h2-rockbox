@@ -36,11 +36,12 @@
 #include "lang.h"
 #include "language.h"
 #include "screens.h"
-#include "plugin.h"
 #include "rolo.h"
 #include "splash.h"
 #include "cuesheet.h"
 #include "filetree.h"
+#include "pathfuncs.h"
+#include "root_menu.h"
 #include "misc.h"
 #include "strnatcmp.h"
 #include "keyboard.h"
@@ -470,13 +471,6 @@ static void ft_load_font(char *file)
     viewportmanager_theme_changed(THEME_UI_VIEWPORT);
 }
 
-static void ft_apply_skin_file(char *buf, char *file)
-{
-    splash(0, ID2P(LANG_WAIT));
-    set_file(buf, file);
-    viewportmanager_theme_changed(THEME_ALL);
-}
-
 static const char *strip_slash(const char *path, const char *def)
 {
     if (path)
@@ -622,13 +616,6 @@ int ft_enter(struct tree_context* c)
                 }
                 break;
             }
-            case FILE_ATTR_SBS:
-                ft_apply_skin_file(buf, global_settings.sbs_file);
-                break;
-                /* wps config file */
-            case FILE_ATTR_WPS:
-                ft_apply_skin_file(buf, global_settings.wps_file);
-                break;
             case FILE_ATTR_CFG:
                 splash(0, ID2P(LANG_WAIT));
                 if (!settings_load_config(buf,true))
@@ -679,95 +666,8 @@ int ft_enter(struct tree_context* c)
                 display_cuesheet_content(buf);
                 break;
 
-                /* plugin file */
-            case FILE_ATTR_ROCK:
-            {
-                char *plugin = buf, *argument = NULL;
-                if (global_settings.party_mode && audio_status()) {
-                    splash(HZ, ID2P(LANG_PARTY_MODE));
-                    break;
-                }
-
-#ifdef PLUGINS_RUN_IN_BROWSER /* Stay in the filetree to run a plugin */
-                switch (plugin_load(plugin, argument))
-                {
-                    case PLUGIN_GOTO_WPS:
-                        play = true;
-                        break;
-                    case PLUGIN_GOTO_PLUGIN:
-                        rc = GO_TO_PLUGIN;
-                        break;
-                    case PLUGIN_USB_CONNECTED:
-                        if(*c->dirfilter > NUM_FILTER_MODES)
-                            /* leave sub-browsers after usb, doing
-                               otherwise might be confusing to the user */
-                            rc = GO_TO_ROOT;
-                        else
-                            rc = GO_TO_FILEBROWSER;
-                        break;
-                    case PLUGIN_GOTO_ROOT:
-                        rc = GO_TO_ROOT;
-                        break;
-                    /*
-                    case PLUGIN_ERROR:
-                    case PLUGIN_OK:
-                    */
-                    default:
-                        break;
-                }
-#else /* Exit the filetree to run a plugin */
-                plugin_open(plugin, argument);
-                rc = GO_TO_PLUGIN;
-#endif
-                break;
-            }
-
             default:
-            {
-                const char* plugin;
-                char plugin_path[MAX_PATH];
-                const char *argument = buf;
-                if (global_settings.party_mode && audio_status()) {
-                    splash(HZ, ID2P(LANG_PARTY_MODE));
-                    break;
-                }
-
-                file = tree_get_entry_at(c, c->selected_item);
-                if (!file)
-                {
-                    splashf(HZ, ID2P(LANG_READ_FAILED), str(LANG_UNKNOWN));
-                    return rc;
-                }
-
-                plugin = filetype_get_plugin(file->attr, plugin_path, sizeof(plugin_path));
-                if (plugin)
-                {
-#ifdef PLUGINS_RUN_IN_BROWSER /* Stay in the filetree to run a plugin */
-                    switch (plugin_load(plugin, argument))
-                    {
-                        case PLUGIN_USB_CONNECTED:
-                            rc = GO_TO_FILEBROWSER;
-                            break;
-                        case PLUGIN_GOTO_PLUGIN:
-                            rc = GO_TO_PLUGIN;
-                            break;
-                        case PLUGIN_GOTO_WPS:
-                            rc = GO_TO_WPS;
-                            break;
-                        /*
-                        case PLUGIN_OK:
-                        case PLUGIN_ERROR:
-                        */
-                        default:
-                            break;
-                    }
-#else /* Exit the filetree to run a plugin */
-                    plugin_open(plugin, argument);
-                    rc = GO_TO_PLUGIN;
-#endif
-                }
                 break;
-            }
         }
 
         if ( play ) {

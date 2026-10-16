@@ -63,6 +63,8 @@
 #include "usb_screen.h"
 #include "power.h"
 #include "talk.h"
+#include "rbunicode.h"
+#include "dsp_core.h"
 #include "plugin.h"
 #include "misc.h"
 #include "dircache.h"
@@ -173,26 +175,6 @@ int main(void)
         }
     }
 
-#ifdef AUTOROCK
-    {
-        const char *file = ""AUTOROCK;
-        file = *file
-                ? file
-                :
-                                PLUGIN_APPS_DIR
-                                    "/autostart.rock";
-        if (file_exists(file)) /* no complaint if it doesn't exist */
-        {
-            plugin_load(file,
-#ifdef AUTOROCK_ARG
-                AUTOROCK_ARG
-#else
-                NULL
-#endif
-                ); /* start if it does */
-        }
-    }
-#endif /* #ifdef AUTOROCK */
 
     global_status.last_volume_change = 0;
     validate_start_directory_init();

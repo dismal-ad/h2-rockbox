@@ -32,7 +32,6 @@
 #include "kernel.h"
 #include "debug.h"
 #include "misc.h"
-#include "open_plugin.h"
 #include "rolo.h"
 #include "powermgmt.h"
 #include "power.h"
@@ -42,6 +41,8 @@
 
 #include "storage.h"
 #include "mv.h"
+#include "pathfuncs.h"
+#include "sound.h"
 /* gui api */
 #include "list.h"
 #include "splash.h"
@@ -59,13 +60,14 @@
 #include "tagcache.h"
 #include "tagtree.h"
 #include "language.h"
-#include "plugin.h"
 #include "disk.h"
+
+/* The new UI's screens. Home (scr_home.c) is the root; each screen
+ * returns the next one to show (GO_TO_*). */
 
 struct root_items {
     int (*function)(void* param);
     void* param;
-    const struct menu_item_ex *context_menu;
 };
 static int next_screen = GO_TO_ROOT; /* holding info about the upcoming screen
                                         * which is the current screen for the
@@ -263,8 +265,7 @@ static int browser(void* param)
     ret_val = rockbox_browse(&browse);
 
     if (ret_val == GO_TO_WPS
-        || ret_val == GO_TO_PREVIOUS_MUSIC
-        || ret_val == GO_TO_PLUGIN)
+        || ret_val == GO_TO_PREVIOUS_MUSIC)
         pop_current_activity_without_refresh();
     else
         pop_current_activity();
@@ -334,13 +335,11 @@ static int wpsscrn(void* param)
     }
 
     if (ret_val == GO_TO_PLAYLIST_VIEWER
-        || ret_val == GO_TO_PLUGIN
         || ret_val == GO_TO_WPS
         || ret_val == GO_TO_PREVIOUS_MUSIC
         || ret_val == GO_TO_PREVIOUS_BROWSER
         || (ret_val == GO_TO_PREVIOUS
                && (last_screen == GO_TO_MAINMENU /* Settings */
-                || last_screen == GO_TO_BROWSEPLUGINS
                 || last_screen == GO_TO_SYSTEM_SCREEN
                 || last_screen == GO_TO_PLAYLISTS_SCREEN)))
     {
@@ -358,7 +357,6 @@ static int miscscrn(void * param)
     int result = do_menu(menu, NULL, NULL, false);
     switch (result)
     {
-        case GO_TO_PLUGIN:
         case GO_TO_PLAYLIST_VIEWER:
         case GO_TO_WPS:
         case GO_TO_PREVIOUS_MUSIC:
@@ -412,213 +410,20 @@ static int load_bmarks(void* param)
 /* These are all static const'd from apps/menus/ *.c
    so little hack so we can use them */
 extern struct menu_item_ex
-        file_menu,
-        tagcache_menu,
         main_menu_,
-        manage_settings,
-        plugin_menu,
-        playlist_options,
-        info_menu,
-        system_menu;
+        info_menu;
 static const struct root_items items[] = {
-    [GO_TO_FILEBROWSER] =   { browser, (void*)GO_TO_FILEBROWSER, &file_menu},
-    [GO_TO_DBBROWSER] =     { browser, (void*)GO_TO_DBBROWSER, &tagcache_menu },
-    [GO_TO_WPS] =           { wpsscrn, NULL, &playback_settings },
-    [GO_TO_MAINMENU] =      { miscscrn, (struct menu_item_ex*)&main_menu_,
-                                                            &manage_settings },
-
-    [GO_TO_RECENTBMARKS] =  { load_bmarks, NULL, &bookmark_settings_menu },
-    [GO_TO_BROWSEPLUGINS] = { miscscrn, &plugin_menu, NULL },
-    [GO_TO_PLAYLISTS_SCREEN] = { playlist_view_catalog, NULL,
-                                                        &playlist_options },
-    [GO_TO_PLAYLIST_VIEWER] = { playlist_view, NULL, &playlist_options },
-    [GO_TO_SYSTEM_SCREEN] = { miscscrn, &info_menu, &system_menu },
-    [GO_TO_SHORTCUTMENU] = { do_shortcut_menu, NULL, NULL },
-
+    [GO_TO_FILEBROWSER] =   { browser, (void*)GO_TO_FILEBROWSER },
+    [GO_TO_DBBROWSER] =     { browser, (void*)GO_TO_DBBROWSER },
+    [GO_TO_WPS] =           { wpsscrn, NULL },
+    [GO_TO_MAINMENU] =      { miscscrn, (struct menu_item_ex*)&main_menu_ },
+    [GO_TO_RECENTBMARKS] =  { load_bmarks, NULL },
+    [GO_TO_PLAYLISTS_SCREEN] = { playlist_view_catalog, NULL },
+    [GO_TO_PLAYLIST_VIEWER] = { playlist_view, NULL },
+    [GO_TO_SYSTEM_SCREEN] = { miscscrn, &info_menu },
+    [GO_TO_SHORTCUTMENU] = { do_shortcut_menu, NULL },
 };
 #define NUM_ITEMS (int)(sizeof(items)/sizeof(*items))
-
-static int item_callback(int action,
-                         const struct menu_item_ex *this_item,
-                         struct gui_synclist *this_list);
-
-MENUITEM_RETURNVALUE(shortcut_menu, ID2P(LANG_SHORTCUTS), GO_TO_SHORTCUTMENU,
-                        NULL, Icon_Bookmark);
-
-MENUITEM_RETURNVALUE(file_browser, ID2P(LANG_DIR_BROWSER), GO_TO_FILEBROWSER,
-                        NULL, Icon_file_view_menu);
-MENUITEM_RETURNVALUE(db_browser, ID2P(LANG_TAGCACHE), GO_TO_DBBROWSER,
-                        NULL, Icon_Audio);
-MENUITEM_RETURNVALUE(rocks_browser, ID2P(LANG_PLUGINS), GO_TO_BROWSEPLUGINS,
-                        NULL, Icon_Plugin);
-
-static char *get_wps_item_name(int selected_item, void * data,
-                               char *buffer, size_t buffer_len)
-{
-    (void)selected_item; (void)data; (void)buffer; (void)buffer_len;
-    if (audio_status())
-        return ID2P(LANG_NOW_PLAYING);
-    return ID2P(LANG_RESUME_PLAYBACK);
-}
-MENUITEM_RETURNVALUE_DYNTEXT(wps_item, GO_TO_WPS, NULL, get_wps_item_name,
-                                NULL, NULL, Icon_Playback_menu);
-MENUITEM_RETURNVALUE(menu_, ID2P(LANG_SETTINGS), GO_TO_MAINMENU,
-                        NULL, Icon_Submenu_Entered);
-MENUITEM_RETURNVALUE(bookmarks, ID2P(LANG_BOOKMARK_MENU_RECENT_BOOKMARKS),
-                        GO_TO_RECENTBMARKS,  item_callback,
-                        Icon_Bookmark);
-MENUITEM_RETURNVALUE(playlists, ID2P(LANG_PLAYLISTS), GO_TO_PLAYLISTS_SCREEN,
-                     NULL, Icon_Playlist);
-MENUITEM_RETURNVALUE(system_menu_, ID2P(LANG_SYSTEM), GO_TO_SYSTEM_SCREEN,
-                     NULL, Icon_System_menu);
-
-struct menu_item_ex root_menu_;
-static struct menu_callback_with_desc root_menu_desc = {
-        item_callback, ID2P(LANG_ROCKBOX_TITLE), Icon_Rockbox };
-
-static struct menu_table menu_table[] = {
-    /* Order here represents the default ordering */
-    { "bookmarks", &bookmarks },
-    { "files", &file_browser },
-    { "database", &db_browser },
-    { "wps", &wps_item },
-    { "settings", &menu_ },
-    { "playlists", &playlists },
-    { "plugins", &rocks_browser },
-    { "system_menu", &system_menu_ },
-    { "shortcuts", &shortcut_menu },
-};
-#define MAX_MENU_ITEMS (sizeof(menu_table) / sizeof(struct menu_table))
-static struct menu_item_ex *root_menu__[MAX_MENU_ITEMS];
-
-struct menu_table *root_menu_get_options(int *nb_options)
-{
-    *nb_options = MAX_MENU_ITEMS;
-
-    return menu_table;
-}
-
-void root_menu_load_from_cfg(void* setting, char *value)
-{
-    char *next = value, *start, *end;
-    unsigned int menu_item_count = 0, i;
-    bool main_menu_added = false;
-
-    if (*value == '-')
-    {
-        root_menu_set_default(setting, NULL);
-        return;
-    }
-    root_menu_.flags = MENU_HAS_DESC | MT_MENU;
-    root_menu_.submenus = (const struct menu_item_ex **)&root_menu__;
-    root_menu_.callback_and_desc = &root_menu_desc;
-
-    while (next && menu_item_count < MAX_MENU_ITEMS)
-    {
-        start = next;
-        next = strchr(next, ',');
-        if (next)
-        {
-            *next = '\0';
-            next++;
-        }
-        start = skip_whitespace(start);
-        if ((end = strchr(start, ' ')))
-            *end = '\0';
-        for (i=0; i<MAX_MENU_ITEMS; i++)
-        {
-            if (*start && !strcmp(start, menu_table[i].string))
-            {
-                root_menu__[menu_item_count++] = (struct menu_item_ex *)menu_table[i].item;
-                if (menu_table[i].item == &menu_)
-                    main_menu_added = true;
-                break;
-            }
-        }
-    }
-    if (!main_menu_added)
-        root_menu__[menu_item_count++] = (struct menu_item_ex *)&menu_;
-    root_menu_.flags |= MENU_ITEM_COUNT(menu_item_count);
-    *(bool*)setting = true;
-}
-
-char* root_menu_write_to_cfg(void* setting, char*buf, int buf_len)
-{
-    (void)setting;
-    unsigned i, written, j;
-    for (i = 0; i < MENU_GET_COUNT(root_menu_.flags); i++)
-    {
-        for (j=0; j<MAX_MENU_ITEMS; j++)
-        {
-            if (menu_table[j].item == root_menu__[i])
-            {
-                written = snprintf(buf, buf_len, "%s, ", menu_table[j].string);
-                buf_len -= written;
-                buf += written;
-                break;
-            }
-        }
-    }
-    return buf;
-}
-
-void root_menu_set_default(void* setting, void* defaultval)
-{
-    unsigned i;
-    (void)defaultval;
-
-    root_menu_.flags = MENU_HAS_DESC | MT_MENU;
-    root_menu_.submenus = (const struct menu_item_ex **)&root_menu__;
-    root_menu_.callback_and_desc = &root_menu_desc;
-
-    for (i=0; i<MAX_MENU_ITEMS; i++)
-    {
-        root_menu__[i] = (struct menu_item_ex *)menu_table[i].item;
-    }
-    root_menu_.flags |= MENU_ITEM_COUNT(MAX_MENU_ITEMS);
-    *(bool*)setting = false;
-}
-
-bool root_menu_is_changed(void* setting, void* defaultval)
-{
-    (void)defaultval;
-    return *(bool*)setting;
-}
-
-static int item_callback(int action,
-                         const struct menu_item_ex *this_item,
-                         struct gui_synclist *this_list)
-{
-    (void)this_list;
-    switch (action)
-    {
-        case ACTION_TREE_STOP:
-            return ACTION_REDRAW;
-        case ACTION_REQUEST_MENUITEM:
-                if (this_item == &bookmarks)
-            {
-                if (global_settings.usemrb == 0)
-                    return ACTION_EXIT_MENUITEM;
-            }
-        break;
-    }
-    return action;
-}
-
-static int get_selection(int last_screen)
-{
-    int i;
-    int len = ARRAYLEN(root_menu__);
-    for(i=0; i < len; i++)
-    {
-        if (((root_menu__[i]->flags&MENU_TYPE_MASK) == MT_RETURN_VALUE) &&
-            (root_menu__[i]->value == last_screen))
-        {
-            return i;
-        }
-    }
-    return 0;
-}
 
 static inline int load_screen(int screen)
 {
@@ -629,14 +434,14 @@ static inline int load_screen(int screen)
     enum current_activity activity = ACTIVITY_UNKNOWN;
     if (screen <= GO_TO_ROOT)
         return screen;
+    if (screen >= NUM_ITEMS || !items[screen].function)
+        return GO_TO_ROOT;
     if (screen == old_previous)
         old_previous = GO_TO_ROOT;
     global_status.last_screen = (char)screen;
     status_save(false);
 
-    if (screen == GO_TO_BROWSEPLUGINS)
-        activity = ACTIVITY_PLUGINBROWSER;
-    else if (screen == GO_TO_MAINMENU)
+    if (screen == GO_TO_MAINMENU)
         activity = ACTIVITY_SETTINGS;
     else if (screen == GO_TO_SYSTEM_SCREEN)
         activity =  ACTIVITY_SYSTEMSCREEN;
@@ -648,8 +453,7 @@ static inline int load_screen(int screen)
 
     if (activity != ACTIVITY_UNKNOWN)
     {
-        if (ret_val == GO_TO_PLUGIN
-            || ret_val == GO_TO_WPS
+        if (ret_val == GO_TO_WPS
             || ret_val == GO_TO_PREVIOUS_MUSIC
             || ret_val == GO_TO_PREVIOUS_BROWSER
             || ret_val == GO_TO_FILEBROWSER)
@@ -666,135 +470,18 @@ static inline int load_screen(int screen)
     return ret_val;
 }
 
-static int load_context_screen(int selection)
-{
-    const struct menu_item_ex *context_menu = NULL;
-    int retval = GO_TO_PREVIOUS;
-    push_current_activity(ACTIVITY_CONTEXTMENU);
-    if ((root_menu__[selection]->flags&MENU_TYPE_MASK) == MT_RETURN_VALUE)
-    {
-        int item = root_menu__[selection]->value;
-        context_menu = items[item].context_menu;
-    }
-    /* special cases */
-    else if (root_menu__[selection] == &info_menu)
-    {
-        context_menu = &system_menu;
-    }
-
-    if (context_menu)
-        retval = do_menu(context_menu, NULL, NULL, false);
-    pop_current_activity();
-    return retval;
-}
-
-static int load_plugin_screen(char *key)
-{
-    int ret_val = PLUGIN_ERROR;
-    int loops = 100;
-    int old_previous = last_screen;
-    int old_global = global_status.last_screen;
-    last_screen = next_screen;
-    global_status.last_screen = (char)next_screen;
-
-    while(loops-- > 0) /* just to keep things from getting out of hand */
-    {
-        int opret = open_plugin_load_entry(key);
-        struct open_plugin_entry_t *op_entry = open_plugin_get_entry();
-        char *path = op_entry->path;
-        char *param = op_entry->param;
-        if (param[0] == '\0')
-            param = NULL;
-        if (path[0] == '\0' && key)
-            path = P2STR((unsigned char *)key);
-        int ret = plugin_load(path, param);
-
-        if (ret == PLUGIN_USB_CONNECTED || ret == PLUGIN_ERROR)
-            ret_val = GO_TO_ROOT;
-        else if (ret == PLUGIN_GOTO_WPS) /* prevent infinite loop */
-            ret_val = old_global == GO_TO_WPS ? GO_TO_BROWSEPLUGINS : GO_TO_WPS;
-        else if (ret == PLUGIN_GOTO_PLUGIN)
-        {
-            if(op_entry->lang_id == LANG_OPEN_PLUGIN)
-            {
-                if (key == (char*)ID2P(LANG_SHORTCUTS))
-                {
-                    op_entry->lang_id = LANG_SHORTCUTS;
-                }
-                else /* Bugfix ensure proper key */
-                {
-                    key = ID2P(LANG_OPEN_PLUGIN);
-                }
-            }
-            continue;
-        }
-        else
-        {
-            if (ret == PLUGIN_GOTO_ROOT)
-                ret_val = GO_TO_ROOT;
-            else
-                ret_val = GO_TO_PREVIOUS;
-            /* Prevents infinite loop with WPS, Plugins, Previous Screen*/
-            if (ret == PLUGIN_OK && old_global == GO_TO_WPS && !audio_status())
-                ret_val = GO_TO_ROOT;
-            last_screen = (old_previous == next_screen || old_global == GO_TO_ROOT)
-                ? GO_TO_ROOT : old_previous;
-            if (last_screen == GO_TO_ROOT)
-                global_status.last_screen = GO_TO_ROOT;
-        }
-        /* ret_val != GO_TO_PLUGIN */
-
-        if (opret != OPEN_PLUGIN_NEEDS_FLUSHED || last_screen != GO_TO_WPS)
-        {
-            /* Keep the entry in case of GO_TO_PREVIOUS */
-            op_entry->hash = 0; /*remove hash -- prevents flush to disk */
-            op_entry->lang_id = LANG_PREVIOUS_SCREEN;
-            /*open_plugin_add_path(NULL, NULL, NULL);// clear entry */
-        }
-        break;
-    } /*while */
-    return ret_val;
-}
-
-static void ignore_back_button_stub(bool ignore)
-{
-    (void) ignore;
-}
-
 static int root_menu_setup_screens(void)
 {
-    int new_screen = next_screen;
+    int new_screen;
     if (global_settings.start_in_screen == 0)
         new_screen = global_status.last_screen;
     else
         new_screen = global_settings.start_in_screen - 2;
 
-    if (new_screen >= NUM_ITEMS ||
+    if (new_screen >= NUM_ITEMS || !items[new_screen].function ||
         (new_screen == GO_TO_WPS && global_status.resume_index == -1))
         new_screen = GO_TO_ROOT;
-    else if (new_screen == GO_TO_PLUGIN)
-    {
-        if (global_status.last_screen == GO_TO_SHORTCUTMENU)
-        {
-            /* Can make this any value other than GO_TO_SHORTCUTMENU
-               otherwise it takes over on startup when the user wanted
-               the plugin at key - LANG_START_SCREEN */
-            global_status.last_screen = GO_TO_PLUGIN;
-        }
-        if(global_status.last_screen == GO_TO_SHORTCUTMENU ||
-           global_status.last_screen == GO_TO_PLUGIN)
-        {
-            if (global_settings.start_in_screen == 0)
-            {  /* Start in: Previous Screen */
-                last_screen = GO_TO_PREVIOUS;
-                global_status.last_screen = GO_TO_ROOT;
-                /* since the plugin has GO_TO_PLUGIN as origin it
-                   will just return GO_TO_PREVIOUS <=> GO_TO_PLUGIN in a loop
-                   To allow exit after restart we check for GO_TO_ROOT
-                   if so exit to ROOT after the plugin exits */
-            }
-        }
-    }
+
     add_event(PLAYBACK_EVENT_TRACK_CHANGE, rootmenu_track_changed_callback);
 
     if (new_screen == GO_TO_WPS && global_settings.unplug_autoresume)
@@ -808,12 +495,9 @@ static int root_menu_setup_screens(void)
     return new_screen;
 }
 
-
 void root_menu(void)
 {
     int previous_browser = global_status.last_browser;
-    int selected = 0;
-    int shortcut_origin = GO_TO_ROOT;
     static int home_selected = 0;
 
     push_current_activity(ACTIVITY_MAINMENU);
@@ -827,37 +511,24 @@ void root_menu(void)
             case MENU_SELECTED_EXIT:
                 /* fall through */
             case GO_TO_ROOT:
-                if (last_screen != GO_TO_ROOT)
-                    selected = get_selection(last_screen);
                 global_status.last_screen = GO_TO_ROOT; /* We've returned to ROOT */
-                /* When we are in the main menu we want the hardware BACK
-                 * button to be handled by HOST instead of rockbox */
-                ignore_back_button_stub(true);
-
-                /* the new UI's Home replaces the root menu list */
                 next_screen = ui_home(&home_selected);
-
-                ignore_back_button_stub(false);
-
                 if (next_screen != GO_TO_PREVIOUS)
                     last_screen = GO_TO_ROOT;
                 break;
+
             case GO_TO_DBBROWSER:
             case GO_TO_FILEBROWSER:
             case GO_TO_PLAYLISTS_SCREEN:
                 global_status.last_browser = previous_browser = next_screen;
-                goto load_next_screen;
+                next_screen = load_screen(next_screen);
                 break;
 
             case GO_TO_PREVIOUS:
-            {
                 next_screen = last_screen;
-                if (last_screen == GO_TO_PLUGIN)/* for WPS */
-                    last_screen = GO_TO_PREVIOUS;
-                else if (last_screen == GO_TO_PREVIOUS)
+                if (last_screen == GO_TO_PREVIOUS)
                     next_screen = GO_TO_ROOT;
                 break;
-            }
 
             case GO_TO_PREVIOUS_BROWSER:
                 next_screen = previous_browser;
@@ -866,81 +537,10 @@ void root_menu(void)
             case GO_TO_PREVIOUS_MUSIC:
                 next_screen = previous_music;
                 break;
-            case GO_TO_ROOTITEM_CONTEXT:
-                next_screen = load_context_screen(selected);
-                break;
-            case GO_TO_PLUGIN:
-            {
 
-                char *key;
-                if (global_status.last_screen == GO_TO_SHORTCUTMENU)
-                {
-                    struct open_plugin_entry_t *op_entry = open_plugin_get_entry();
-                    if (op_entry->lang_id == LANG_OPEN_PLUGIN)
-                        op_entry->lang_id = LANG_SHORTCUTS;
-                    shortcut_origin = last_screen;
-                    key = ID2P(LANG_SHORTCUTS);
-                }
-                else
-                {
-                    switch (last_screen)
-                    {
-                        case GO_TO_ROOT:
-                            key = ID2P(LANG_START_SCREEN);
-                            break;
-                        case GO_TO_WPS:
-                            key = ID2P(LANG_ONPLAY_MENU_TITLE);
-                            break;
-                        case GO_TO_SHORTCUTMENU:
-                            key = ID2P(LANG_SHORTCUTS);
-                            break;
-                        case GO_TO_PREVIOUS:
-                            key = ID2P(LANG_PREVIOUS_SCREEN);
-                            break;
-                        default:
-                            key = ID2P(LANG_OPEN_PLUGIN);
-                            break;
-                    }
-                }
-
-                next_screen = load_plugin_screen(key);
-
-                if (next_screen == GO_TO_PREVIOUS)
-                {
-                    /* shortcuts may take several trips through the GO_TO_PLUGIN
-                       case make sure we preserve and restore the origin */
-                    if(tree_get_context()->out_of_tree > 0) /* a shortcut has been selected */
-                    {
-                        next_screen = GO_TO_FILEBROWSER;
-                        shortcut_origin = GO_TO_ROOT;
-                        /* note in some cases there is a screen to return to
-                        but the history is rewritten as if you browsed here
-                        from the root so return there when finished */
-                    }
-                    else if (shortcut_origin != GO_TO_ROOT)
-                    {
-                        if (shortcut_origin != GO_TO_WPS)
-                            next_screen = shortcut_origin;
-                        shortcut_origin = GO_TO_ROOT;
-                    }
-                    /* skip GO_TO_PREVIOUS */
-                    if (last_screen == GO_TO_BROWSEPLUGINS)
-                    {
-                        next_screen = last_screen;
-                        last_screen = GO_TO_PLUGIN;
-                    }
-                }
-                previous_browser = (next_screen == GO_TO_WPS) ?
-                                   GO_TO_PLUGIN : global_status.last_browser;
-                break;
-            }
             default:
-                goto load_next_screen;
+                next_screen = load_screen(next_screen);
                 break;
-        } /* switch() */
-        continue;
-load_next_screen: /* load_screen is inlined */
-        next_screen = load_screen(next_screen);
+        }
     }
-
 }

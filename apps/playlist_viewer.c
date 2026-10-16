@@ -29,6 +29,8 @@
 #include "settings.h"
 #include "icons.h"
 #include "menu.h"
+#include "string-extra.h"
+#include "appevents.h"
 #include "plugin.h"
 #include "keyboard.h"
 #include "filetypes.h"
@@ -617,46 +619,6 @@ static void close_playlist_viewer(void)
     viewer.is_open = false;
 }
 
-static enum pv_context_result
-    open_with_plugin(const struct playlist_entry *current_track,
-                     const char* plugin_name,
-                     int (*loadplugin)(const char* plugin, const char* file))
-{
-    char selected_track[MAX_PATH];
-    close_playlist_viewer(); /* don't pop activity yet – relevant for plugin_load */
-
-    strmemccpy(selected_track, current_track->name, sizeof(selected_track));
-
-    int plugin_return = loadplugin(plugin_name, selected_track);
-    pop_current_activity_without_refresh();
-
-    switch (plugin_return)
-    {
-        case PLUGIN_USB_CONNECTED:
-            return PV_CONTEXT_USB_CLOSED;
-        case PLUGIN_GOTO_WPS:
-            return PV_CONTEXT_WPS_CLOSED;
-        default:
-            return PV_CONTEXT_CLOSED;
-    }
-}
-
-static int list_viewers(const char* plugin, const char* file)
-{
-    /* dummy function to match prototype with filetype_load_plugin */
-    (void)plugin;
-    return filetype_list_viewers(file);
-}
-static enum pv_context_result open_with(const struct playlist_entry *current_track)
-{
-    return open_with_plugin(current_track, "", &list_viewers);
-}
-
-static enum pv_context_result open_pictureflow(const struct playlist_entry *current_track)
-{
-    return open_with_plugin(current_track, "pictureflow", &filetype_load_plugin);
-}
-
 static enum pv_context_result delete_track(int current_track_index,
                                           int index, bool current_was_playing)
 {
@@ -695,7 +657,6 @@ static enum pv_context_result context_menu(int index)
                         ID2P(LANG_MENU_SHOW_ID3_INFO),
                         ID2P(LANG_SHUFFLE), ID2P(LANG_SAVE),
                         ID2P(LANG_PLAYLISTVIEWER_SETTINGS)
-                        ,ID2P(LANG_ONPLAY_PICTUREFLOW)
                         );
     int sel = do_menu(&menu_items, NULL, NULL, false);
     if (sel == MENU_ATTACHED_USB)
@@ -747,8 +708,6 @@ static enum pv_context_result context_menu(int index)
                     return (sel == global_settings.playlist_viewer_track_display) ?
                            PV_CONTEXT_UNCHANGED : PV_CONTEXT_PL_UPDATE;
             }
-            case 8:
-                return open_pictureflow(current_track);
         }
     }
     return PV_CONTEXT_UNCHANGED;
@@ -1131,27 +1090,7 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename,
                 struct playlist_entry *current_track = playlist_buffer_get_track(
                                                             &viewer.buffer,
                                                             viewer.selected_track);
-                enum pv_context_result (*do_plugin)(const struct playlist_entry *) = NULL;
-                if (global_settings.hotkey_tree == HOTKEY_PICTUREFLOW)
-                    do_plugin = &open_pictureflow;
-                if (global_settings.hotkey_tree == HOTKEY_OPEN_WITH)
-                    do_plugin = &open_with;
-
-                if (do_plugin != NULL)
-                {
-                    int plugin_result = do_plugin(current_track);
-
-                    if (plugin_result == PV_CONTEXT_USB_CLOSED)
-                        return PLAYLIST_VIEWER_USB;
-                    else if (plugin_result == PV_CONTEXT_WPS_CLOSED)
-                        return PLAYLIST_VIEWER_OK;
-                    else if (!open_playlist_viewer(filename, &playlist_lists, true, NULL))
-                    {
-                        ret = PLAYLIST_VIEWER_CANCEL;
-                        goto exit;
-                    }
-                }
-                else if (global_settings.hotkey_tree == HOTKEY_PROPERTIES)
+                if (global_settings.hotkey_tree == HOTKEY_PROPERTIES)
                 {
                     if (show_track_info(current_track) == PV_CONTEXT_USB)
                     {

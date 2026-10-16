@@ -71,7 +71,6 @@
 #include "scroll_engine.h"
 
 #ifndef __PCTOOL__
-#include "open_plugin.h"
 struct user_settings global_settings;
 struct system_status global_status;
 static uint32_t user_settings_crc;
@@ -381,7 +380,6 @@ bool settings_load_config(const char* file, bool apply)
     int fd;
     char line[128];
     bool theme_changed = false;
-    bool import_open_plugins = false;
     fd = open_utf8(file, O_RDONLY);
     if (fd < 0)
         return false;
@@ -392,26 +390,11 @@ bool settings_load_config(const char* file, bool apply)
         if (!settings_parseline(line, &name, &value))
             continue;
 
-        if (!string_to_cfg(name, value, &theme_changed))
-        {
-            /* if we are here then name was not a valid setting */
-            if (strcmp(name, OPEN_PLUGIN_CFGNAME) == 0)
-            {
-                import_open_plugins = true;
-                char ch;
-                while (read(fd, &ch, 1) == 1 && ch != '\n'){};
-            }
-        }
+        string_to_cfg(name, value, &theme_changed);
     } /* while(...) */
 
     close(fd);
 
-#ifndef __PCTOOL__
-    if (import_open_plugins)
-        open_plugin_import(file);
-#else
-        (void) import_open_plugins;
-#endif
 
     if (apply)
     {
@@ -624,13 +607,6 @@ static bool settings_write_config(const char* filename, int options)
 
         fdprintf(fd,"%s: %s\r\n",setting->cfg_name,value);
     } /* for(...) */
-#ifndef __PCTOOL__
-    if (options == SETTINGS_SAVE_ALL)
-    {
-        /* add openplugin entries to the open settings file */
-        open_plugin_export(fd);
-    }
-#endif
     close(fd);
     return true;
 }

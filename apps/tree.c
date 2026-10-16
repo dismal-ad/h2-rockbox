@@ -793,8 +793,6 @@ static int dirbrowse(void)
                 switch (id3db ? tagtree_enter(&tc, true) : ft_enter(&tc))
                 {
                     case GO_TO_FILEBROWSER: reload_dir = true; break;
-                    case GO_TO_PLUGIN:
-                        return exit_to_new_screen(GO_TO_PLUGIN);
                     case GO_TO_WPS:
                         return exit_to_new_screen(GO_TO_WPS);
                     case GO_TO_ROOT: exit_func = true; break;
@@ -945,9 +943,6 @@ static int dirbrowse(void)
                         return exit_to_new_screen(GO_TO_WPS);
                         break;
 
-                    case ONPLAY_PLUGIN:
-                        return exit_to_new_screen(GO_TO_PLUGIN);
-                        break;
                 }
                 break;
             }

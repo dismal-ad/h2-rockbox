@@ -26,6 +26,7 @@
 *
 ****************************************************************************/
 #include "metadata_common.h"
+#include <string.h>
 #include "plugin.h"
 #include "debug.h"
 #include "jpeg_load.h"

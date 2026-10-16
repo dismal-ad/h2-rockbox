@@ -24,19 +24,11 @@
 #include "gcc_extensions.h"
 
 void root_menu(void) NORETURN_ATTR;
-struct menu_table {
-    char *string;
-    const struct menu_item_ex *item;
-};
-
-struct menu_table *root_menu_get_options(int *nb_options);
-
 enum {
     /* from old menu api, but still required*/
     MENU_ATTACHED_USB = -10,
     MENU_SELECTED_EXIT = -9,
 
-    GO_TO_ROOTITEM_CONTEXT = -5,
     GO_TO_PREVIOUS_MUSIC = -4,
     GO_TO_PREVIOUS_BROWSER = -3,
     GO_TO_PREVIOUS = -2,
@@ -46,25 +38,17 @@ enum {
     GO_TO_WPS,
     GO_TO_MAINMENU,
     GO_TO_RECENTBMARKS,
-    GO_TO_PLUGIN,
-    /* Do Not add any items above here unless you want it to be able to 
+    /* Do Not add any items above here unless you want it to be able to
        be the "start screen" after a boot up. The setting in settings_list.c
        will need editing if this is the case. */
-    GO_TO_BROWSEPLUGINS,
-    GO_TO_TIMESCREEN,
+    GO_TO_UNUSED_5,     /* was plugins; keeps the numbers saved settings use */
+    GO_TO_UNUSED_6,
+    GO_TO_UNUSED_7,
     GO_TO_PLAYLISTS_SCREEN,
     GO_TO_PLAYLIST_VIEWER,
     GO_TO_SYSTEM_SCREEN,
     GO_TO_SHORTCUTMENU
 };
-#ifndef PLUGIN
-extern struct menu_item_ex root_menu_;
-
-void root_menu_load_from_cfg(void* setting, char *value);
-char* root_menu_write_to_cfg(void* setting, char*buf, int buf_len);
-void root_menu_set_default(void* setting, void* defaultval);
-bool root_menu_is_changed(void* setting, void* defaultval);
-#endif
 
 
 #endif /* __ROOT_MENU_H__ */

@@ -51,14 +51,12 @@
 #include "root_menu.h"
 #include "backdrop.h"
 #include "shortcuts.h"
-#include "pitchscreen.h"
 #include "appevents.h"
 #include "viewport.h"
 #include "pcmbuf.h"
 #include "option_select.h"
 #include "playlist_viewer.h"
 #include "wps.h"
-#include "open_plugin.h"
 #include "newui/ui.h"
 
 #ifdef USB_ENABLE_AUDIO
@@ -437,12 +435,6 @@ static void gwps_leave_wps(bool theme_enabled)
     remove_event(LCD_EVENT_ACTIVATION, wps_lcd_activation_hook);
 }
 
-/* The status bar stays on while Now Playing shows, as on every other
- * screen, so there is no theme to switch */
-static void restore_theme(void)
-{
-}
-
 /*
  * display the wps on entering or restoring */
 static void gwps_enter_wps(bool theme_enabled)
@@ -628,12 +620,6 @@ long gui_wps_show(void)
                     return GO_TO_FILEBROWSER;
                 else if (retval == ONPLAY_PLAYLIST)
                     return GO_TO_PLAYLIST_VIEWER;
-                else if (retval == ONPLAY_PLUGIN)
-                {
-                    restore_theme();
-                    theme_enabled = false;
-                    open_plugin_run(ID2P(LANG_ONPLAY_MENU_TITLE));
-                }
 
                 restore = true;
             }
@@ -775,16 +761,6 @@ long gui_wps_show(void)
                 /* screen settings */
 
                 /* pitch screen */
-#ifdef HAVE_PITCHCONTROL
-            case ACTION_WPS_PITCHSCREEN:
-            {
-                gwps_leave_wps(true);
-                if (1 == gui_syncpitchscreen_run())
-                    return GO_TO_ROOT;
-                restore = true;
-            }
-            break;
-#endif /* HAVE_PITCHCONTROL */
 
             /* reset A&B markers */
             case ACTION_WPS_ABRESET:

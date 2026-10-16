@@ -22,14 +22,17 @@
  * apps/gui/wps.c, which calls ui_np_draw() where it used to update the
  * theme. Drawn below the status bar:
  *
- *   3 of 12                         Shuffle
+ *   3 of 12             • o o           Shuffle
  *   [ art 140x140 ]  Title
  *                    Artist
  *                    Album
  *   ======================------------------  progress, 4 px
  *   0:15                              -6:05
  *
- * The volume overlay appears over it for a moment when the volume changes. */
+ * Three pages (dots at the top; Centre twice for the next): the cover with
+ * the title, the track's details, and a big cover. While scrubbing the bar
+ * is white and thicker. The volume overlay appears over it for a moment
+ * when the volume changes. */
 
 #include "config.h"
 #include <stdio.h>
@@ -47,6 +50,7 @@
 #include "lang.h"
 #include "language.h"
 #include "string-extra.h"
+#include "metadata.h"
 #include "ui.h"
 
 #define NP_ART         140
@@ -59,9 +63,13 @@
 #define NP_ARTIST_COL  LCD_RGBPACK(0xcc, 0xcc, 0xcc)
 #define NP_ALBUM_COL   LCD_RGBPACK(0xbb, 0xbb, 0xbb)
 #define OVERLAY_TICKS  (HZ * 3 / 2)
+#define NP_BIG_ART     148    /* Home's size: shares its decoded cover */
+#define NP_PAGES       3
 
 static long volume_until;   /* tick until which the volume overlay shows */
 static bool volume_shown;
+static int page;            /* 0: cover and title, 1: details, 2: big cover */
+static bool scrubbing;
 
 static void format_mmss(char *buf, size_t len, long ms, bool minus)
 {
@@ -94,14 +102,21 @@ static void draw_band(struct viewport *vp, const struct mp3entry *id3, long elap
     int w = vp->width - 2 * UI_MARGIN;
     char buf[32];
 
+    /* scrubbing: 8 px, white, with a knob */
+    const int bh = scrubbing ? 8 : 4, by = NP_BAR_Y + 2 - bh / 2;
     ui_fill_rect(0, NP_BAND_Y, vp->width, vp->height - NP_BAND_Y, UI_COL_BG);
-    ui_fill_round_rect(UI_MARGIN, NP_BAR_Y, w, 4, 2, UI_COL_TRACK);
+    ui_fill_round_rect(UI_MARGIN, by, w, bh, bh / 2, UI_COL_TRACK);
     if (id3 && id3->length > 0)
     {
         long pos = elapsed > (long)id3->length ? (long)id3->length : elapsed;
+        if (pos < 0)
+            pos = 0;
         int fill = (int)((long long)w * pos / id3->length);
+        unsigned col = scrubbing ? UI_COL_TEXT : UI_COL_SEL;
         if (fill > 0)
-            ui_fill_round_rect(UI_MARGIN, NP_BAR_Y, fill < 4 ? 4 : fill, 4, 2, UI_COL_SEL);
+            ui_fill_round_rect(UI_MARGIN, by, fill < bh ? bh : fill, bh, bh / 2, col);
+        if (scrubbing)
+            ui_fill_round_rect(UI_MARGIN + fill - 6, by - 2, 12, bh + 4, 6, col);
         format_mmss(buf, sizeof(buf), pos, false);
         ui_text(UI_MARGIN, NP_TIME_Y, small, UI_COL_TEXT2, buf, 0, -1);
         format_mmss(buf, sizeof(buf), id3->length - pos, true);
@@ -127,6 +142,102 @@ static void draw_volume_overlay(struct viewport *vp)
     int fill = hi > lo ? bw * (vol - lo) / (hi - lo) : 0;
     if (fill > 0)
         ui_fill_round_rect(x + 14, by, fill < 6 ? 6 : fill, 6, 3, UI_COL_SEL);
+}
+
+/* page 0: the cover, and title, artist and album beside it */
+static void draw_cover_and_title(struct viewport *vp, const struct mp3entry *id3,
+                                 char *buf, size_t len)
+{
+    int body = ui_font(UI_FONT_BODY);
+    int text_w = vp->width - NP_TEXT_X - UI_MARGIN;
+
+    const struct bitmap *art = ui_art_current(NP_ART);
+    if (art)
+        ui_art_draw(art, NP_ART_X, NP_ART_Y, NP_ART, 10);
+    else
+        ui_art_placeholder(NP_ART_X, NP_ART_Y, NP_ART, 10);
+
+    /* title, artist, album, centred against the cover */
+    const char *title = track_title(id3, buf, len);
+    const char *artist = id3->artist && *id3->artist ? id3->artist :
+                         id3->albumartist && *id3->albumartist ? id3->albumartist : NULL;
+    const char *album = id3->album && *id3->album ? id3->album : NULL;
+    int block = 29 + (artist ? 24 : 0) + (album ? 20 : 0);
+    int y = NP_ART_Y + (NP_ART - block) / 2;
+    ui_text(NP_TEXT_X, y, ui_font(UI_FONT_TITLE), UI_COL_TEXT, title, text_w, -1);
+    y += 29;
+    if (artist)
+    {
+        ui_text(NP_TEXT_X, y, body, NP_ARTIST_COL, artist, text_w, -1);
+        y += 24;
+    }
+    if (album)
+        ui_text(NP_TEXT_X, y, body, NP_ALBUM_COL, album, text_w, -1);
+}
+
+/* page 1: the track's details, a label and a value per row */
+static void draw_details(struct viewport *vp, const struct mp3entry *id3)
+{
+    const int small = ui_font(UI_FONT_SMALL), body = ui_font(UI_FONT_BODY);
+    const int lx = UI_MARGIN, vx = UI_MARGIN + 92, row = 24;
+    const int vw = vp->width - vx - UI_MARGIN;
+    char buf[MAX_PATH];
+    int y = NP_ART_Y + 2;
+
+    struct { int lang; char value[64]; } rows[6];
+    int n = 0;
+
+    rows[n].lang = LANG_NEWUI_FORMAT;
+    strmemccpy(rows[n++].value, get_codec_string(id3->codectype), 64);
+    rows[n].lang = LANG_NEWUI_BITRATE;
+    snprintf(rows[n++].value, 64, "%u kbps%s", id3->bitrate, id3->vbr ? " VBR" : "");
+    rows[n].lang = LANG_NEWUI_SAMPLE_RATE;
+    snprintf(rows[n++].value, 64, "%lu.%lu kHz", id3->frequency / 1000,
+             (id3->frequency % 1000) / 100);
+    if (id3->year > 0)
+    {
+        rows[n].lang = LANG_ID3_YEAR;
+        snprintf(rows[n++].value, 64, "%d", id3->year);
+    }
+    if (id3->genre_string && *id3->genre_string)
+    {
+        rows[n].lang = LANG_ID3_GENRE;
+        strmemccpy(rows[n++].value, id3->genre_string, 64);
+    }
+    if (id3->tracknum > 0)
+    {
+        rows[n].lang = LANG_NEWUI_TRACK;
+        snprintf(rows[n++].value, 64, "%d", id3->tracknum);
+    }
+
+    for (int i = 0; i < n; i++, y += row)
+    {
+        ui_text_vcenter(lx, y, row, small, UI_COL_TEXT2, str(rows[i].lang), vx - lx - 6, -1);
+        ui_text_vcenter(vx, y, row, body, UI_COL_TEXT, rows[i].value, vw, -1);
+    }
+
+    /* the folder, shortened */
+    strmemccpy(buf, id3->path, sizeof(buf));
+    char *slash = strrchr(buf, '/');
+    if (slash && slash != buf)
+        *slash = '\0';
+    if (y + row <= NP_BAND_Y)
+    {
+        ui_text_vcenter(lx, y, row, small, UI_COL_TEXT2, str(LANG_NEWUI_FOLDER), vx - lx - 6, -1);
+        ui_text_vcenter(vx, y, row, small, UI_COL_TEXT, buf, vw, -1);
+    }
+}
+
+void ui_np_next_page(void)
+{
+    page = (page + 1) % NP_PAGES;
+    ui_np_draw(true);
+}
+
+void ui_np_set_scrub(bool on)
+{
+    scrubbing = on;
+    ui_np_draw(false);
 }
 
 void ui_np_draw(bool full)
@@ -156,9 +267,8 @@ void ui_np_draw(bool full)
     ui_fill_rect(0, 0, vp.width, vp.height, UI_COL_BG);
     if (id3)
     {
-        int small = ui_font(UI_FONT_SMALL), body = ui_font(UI_FONT_BODY);
+        int small = ui_font(UI_FONT_SMALL);
         char buf[MAX_PATH];
-        int text_w = vp.width - NP_TEXT_X - UI_MARGIN;
 
         /* top row: position in the playlist, play mode */
         snprintf(buf, sizeof(buf), "%d of %d",
@@ -171,29 +281,24 @@ void ui_np_draw(bool full)
             ui_text(UI_MARGIN, 3, small, UI_COL_TEXT2, mode,
                     vp.width - 2 * UI_MARGIN, 1);
 
-        /* cover */
-        const struct bitmap *art = ui_art_current(NP_ART);
-        if (art)
-            ui_art_draw(art, NP_ART_X, NP_ART_Y, NP_ART, 10);
-        else
-            ui_art_placeholder(NP_ART_X, NP_ART_Y, NP_ART, 10);
+        /* page dots, in the middle of the top row */
+        for (int i = 0; i < NP_PAGES; i++)
+            ui_fill_round_rect(vp.width / 2 - 14 + i * 12, 8, 6, 6, 3,
+                               i == page ? UI_COL_TEXT : UI_COL_ACCENT);
 
-        /* title, artist, album, centred against the cover */
-        const char *title = track_title(id3, buf, sizeof(buf));
-        const char *artist = id3->artist && *id3->artist ? id3->artist :
-                             id3->albumartist && *id3->albumartist ? id3->albumartist : NULL;
-        const char *album = id3->album && *id3->album ? id3->album : NULL;
-        int block = 29 + (artist ? 24 : 0) + (album ? 20 : 0);
-        int y = NP_ART_Y + (NP_ART - block) / 2;
-        ui_text(NP_TEXT_X, y, ui_font(UI_FONT_TITLE), UI_COL_TEXT, title, text_w, -1);
-        y += 29;
-        if (artist)
+        if (page == 1)
+            draw_details(&vp, id3);
+        else if (page == 2)
         {
-            ui_text(NP_TEXT_X, y, body, NP_ARTIST_COL, artist, text_w, -1);
-            y += 24;
+            int x = (vp.width - NP_BIG_ART) / 2;
+            const struct bitmap *art = ui_art_current(NP_BIG_ART);
+            if (art)
+                ui_art_draw(art, x, NP_ART_Y, NP_BIG_ART, 10);
+            else
+                ui_art_placeholder(x, NP_ART_Y, NP_BIG_ART, 10);
         }
-        if (album)
-            ui_text(NP_TEXT_X, y, body, NP_ALBUM_COL, album, text_w, -1);
+        else
+            draw_cover_and_title(&vp, id3, buf, sizeof(buf));
     }
     draw_band(&vp, id3, elapsed);
     if (overlay)

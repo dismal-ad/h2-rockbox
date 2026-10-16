@@ -66,6 +66,9 @@
 #define FF_REWIND_MAX_PERCENT 3 /* cap ff/rewind step size at max % of file */
                                 /* 3% of 30min file == 54s step size */
 #define MIN_FF_REWIND_STEP 500
+#define DOUBLE_PRESS    (HZ * 2 / 5)    /* second Centre press: next page */
+#define SCRUB_STEP_MS   5000            /* per wheel step, more when spinning */
+#define SCRUB_IDLE      (HZ * 3)        /* scrubbing seeks after this */
 
 static struct wps_state wps_state;
 /* the new UI's Now Playing (apps/newui/scr_np.c) must redraw everything */
@@ -264,6 +267,67 @@ static bool ffwd_rew(int button, bool seek_from_end)
                 button = ACTION_WPS_STOPSEEK;
         }
     }
+    return usb;
+}
+
+/* Scrub mode (hold Centre): the wheel moves the position, 5 s a step and
+ * faster when spinning; Centre, or 3 s without a turn, seeks there; Back
+ * leaves without seeking. True if USB was connected. */
+static bool scrub(void)
+{
+    struct wps_state *gstate = get_wps_state();
+    struct mp3entry *id3 = gstate->id3;
+    if (!id3 || !id3->length || !(audio_status() & AUDIO_STATUS_PLAY))
+        return false;
+
+    long target = id3->elapsed;
+    long idle_until = current_tick + SCRUB_IDLE;
+    bool usb = false, seek = false;
+
+    action_wait_for_release();
+    ui_np_set_scrub(true);
+    while (true)
+    {
+        int b = get_action(CONTEXT_WPS, HZ/10);
+        if (b == ACTION_WPS_VOLUP || b == ACTION_WPS_VOLDOWN)
+        {
+            int dir = b == ACTION_WPS_VOLUP ? 1 : -1;
+            target += dir * SCRUB_STEP_MS * ui_wheel_step(dir, 1000);
+            target = MAX(0, MIN(target, (long)id3->length - 1000));
+            idle_until = current_tick + SCRUB_IDLE;
+        }
+        else if (b == ACTION_WPS_PLAY)
+        {
+            seek = true;
+            break;
+        }
+        else if (b == ACTION_WPS_BROWSE || b == ACTION_WPS_MENU)
+            break;
+        else if (b == ACTION_NONE)
+        {
+            if (TIME_AFTER(current_tick, idle_until))
+            {
+                seek = true;
+                break;
+            }
+        }
+        else if (default_event_handler(b) == SYS_USB_CONNECTED)
+        {
+            usb = true;
+            break;
+        }
+        if (id3 != gstate->id3) /* the track changed */
+            break;
+        gstate->ff_rewind_count = target - (long)id3->elapsed;
+        ui_np_draw(false);
+    }
+    gstate->ff_rewind_count = 0;
+    if (seek && id3 == gstate->id3)
+    {
+        audio_pre_ff_rewind();
+        audio_ff_rewind(target);
+    }
+    ui_np_set_scrub(false);
     return usb;
 }
 
@@ -519,6 +583,7 @@ long gui_wps_show(void)
     bool update = false;
     bool theme_enabled = true;
     long last_left = 0, last_right = 0;
+    long play_pending = 0; /* tick until which a second Centre press counts */
     struct wps_state *state = get_wps_state();
 
     ab_reset_markers();
@@ -569,7 +634,19 @@ long gui_wps_show(void)
         if (button && !IS_SYSEVENT(button) )
             storage_spin();
 
-        button = get_action(CONTEXT_WPS|ALLOW_SOFTLOCK, HZ/5);
+        long timeout = HZ/5;
+        if (play_pending)
+            timeout = MAX(0, play_pending - current_tick);
+        button = get_action(CONTEXT_WPS|ALLOW_SOFTLOCK, timeout);
+
+        /* Centre pressed once: play/pause once no second press can come */
+        bool idle = button == ACTION_NONE || button == ACTION_UNKNOWN;
+        if (play_pending && button != ACTION_WPS_PLAY &&
+            (!idle || !TIME_BEFORE(current_tick, play_pending)))
+        {
+            play_pending = 0;
+            wps_do_action(WPS_PLAYPAUSE, true);
+        }
 
         /* Exit if audio has stopped playing. This happens e.g. at end of
            playlist or if using the sleep timer. */
@@ -631,9 +708,15 @@ long gui_wps_show(void)
                 return GO_TO_PREVIOUS;
                 break;
 
-                /* play/pause */
+                /* play/pause, unless a second press follows: next page */
             case ACTION_WPS_PLAY:
-                wps_do_action(WPS_PLAYPAUSE, true);
+                if (play_pending)
+                {
+                    play_pending = 0;
+                    ui_np_next_page();
+                }
+                else
+                    play_pending = current_tick + DOUBLE_PRESS;
                 break;
 
             case ACTION_WPS_VOLUP: /* fall through */
@@ -749,14 +832,12 @@ long gui_wps_show(void)
                 }
                 break;
 
+            /* new UI: holding Centre scrubs */
             case ACTION_WPS_QUICKSCREEN:
-            {
-                /* new UI: the Shortcuts menu (no quick screen) */
-                gwps_leave_wps(true);
-                global_status.last_screen = GO_TO_SHORTCUTMENU;
-                int ret = do_shortcut_menu(NULL);
-                return (ret == GO_TO_PREVIOUS ? GO_TO_WPS : ret);
-            }
+                if (scrub())
+                    return GO_TO_ROOT;
+                update = true;
+                break;
 
                 /* screen settings */
 

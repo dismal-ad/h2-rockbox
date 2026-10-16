@@ -17612,3 +17612,73 @@
     *: "Preparing albums"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_NEWUI_FORMAT
+  desc: new UI: Now Playing details, the audio format
+  user: core
+  <source>
+    *: "Format"
+  </source>
+  <dest>
+    *: "Format"
+  </dest>
+  <voice>
+    *: "Format"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_BITRATE
+  desc: new UI: Now Playing details
+  user: core
+  <source>
+    *: "Bitrate"
+  </source>
+  <dest>
+    *: "Bitrate"
+  </dest>
+  <voice>
+    *: "Bitrate"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_SAMPLE_RATE
+  desc: new UI: Now Playing details
+  user: core
+  <source>
+    *: "Sample rate"
+  </source>
+  <dest>
+    *: "Sample rate"
+  </dest>
+  <voice>
+    *: "Sample rate"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_TRACK
+  desc: new UI: Now Playing details, the track number
+  user: core
+  <source>
+    *: "Track"
+  </source>
+  <dest>
+    *: "Track"
+  </dest>
+  <voice>
+    *: "Track"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_FOLDER
+  desc: new UI: Now Playing details, the track's folder
+  user: core
+  <source>
+    *: "Folder"
+  </source>
+  <dest>
+    *: "Folder"
+  </dest>
+  <voice>
+    *: "Folder"
+  </voice>
+</phrase>

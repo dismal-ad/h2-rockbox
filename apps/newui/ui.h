@@ -56,8 +56,8 @@ enum ui_font {
     UI_FONT_COUNT
 };
 
-/* Loads the fonts once; safe to call again. Missing fonts fall back to the
- * system font. */
+/* Loads the fonts once, at the end of boot; safe to call again. Missing
+ * fonts fall back to the system font, as does ui_font() before this. */
 void ui_font_init(void);
 /* Rockbox font id for one of the UI fonts */
 int ui_font(enum ui_font f);

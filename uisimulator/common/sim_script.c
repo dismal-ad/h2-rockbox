@@ -50,6 +50,8 @@
 #include "sim_script.h"
 #include "sim_tasks.h"
 
+extern SDL_Surface *lcd_surface;
+
 /* host stdio, not the simulator's virtual disk */
 #undef fopen
 #undef fclose
@@ -131,19 +133,25 @@ static void write_png(const char *path)
     /* deflate stored blocks: 5 bytes overhead per 65535, plus zlib 2+4 */
     static uint8_t zbuf[RAW + (RAW / 65535 + 1) * 5 + 6];
 
+    /* what reached the display (lcd_update), not the frame buffer, so a
+       screen that forgets to update shows up as such */
+    SDL_LockSurface(lcd_surface);
     for (int y = 0; y < LCD_HEIGHT; y++)
     {
         uint8_t *r = raw + y * ROW;
-        fb_data *src = FBADDR(0, y);
+        const uint16_t *src = (const uint16_t *)
+            ((const uint8_t *)lcd_surface->pixels + y * lcd_surface->pitch);
         *r++ = 0; /* filter: none */
         for (int x = 0; x < LCD_WIDTH; x++)
         {
-            unsigned px = FB_UNPACK_SCALAR_LCD(src[x]);
-            *r++ = RGB_UNPACK_RED(px);
-            *r++ = RGB_UNPACK_GREEN(px);
-            *r++ = RGB_UNPACK_BLUE(px);
+            Uint8 cr, cg, cb;
+            SDL_GetRGB(src[x], lcd_surface->format, &cr, &cg, &cb);
+            *r++ = cr;
+            *r++ = cg;
+            *r++ = cb;
         }
     }
+    SDL_UnlockSurface(lcd_surface);
 
     size_t z = 0, left = RAW;
     const uint8_t *p = raw;

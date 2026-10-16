@@ -229,7 +229,9 @@ void gui_synclist_draw(struct gui_synclist *gui_list)
     }
     FOR_NB_SCREENS(i)
     {
+        struct viewport *p = gui_list->parent[i];
         list_draw(&screens[i], gui_list);
+        screens[i].update_rect(p->x, p->y, p->width, p->height);
     }
 }
 

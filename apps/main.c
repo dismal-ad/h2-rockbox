@@ -340,6 +340,7 @@ static void init(void)
     audio_init();
     talk_announce_voice_invalid(); /* notify user w/ voice prompt if voice file invalid */
     ui_font_init();
+    viewportmanager_theme_changed(THEME_ALL); /* redraw the bar in them */
 
 /* do USB last so prompt (if enabled) can work correctly if USB was inserted with device off,
  * also doesn't hurt that it will display the nice pretty backdrop this way too. */
@@ -587,6 +588,7 @@ static void init(void)
     CHART(">check_bootfile(false)");
 #endif
     ui_font_init();
+    viewportmanager_theme_changed(THEME_ALL); /* redraw the bar in them */
 }
 
 #endif /* CONFIG_PLATFORM & PLATFORM_HOSTED */

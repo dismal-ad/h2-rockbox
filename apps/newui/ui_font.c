@@ -58,7 +58,7 @@ int ui_resolve_font(int font)
 
 int ui_font(enum ui_font f)
 {
-    if (!loaded)
-        ui_font_init();
-    return font_ids[f];
+    /* before boot is far enough for the fonts (the disk may not even be
+       mounted), draw with the system font rather than fail to load them */
+    return loaded ? font_ids[f] : FONT_SYSFIXED;
 }

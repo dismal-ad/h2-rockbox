@@ -33,6 +33,9 @@
 #include "misc.h"
 #include "splash.h"
 #include "menu.h"
+#include "font.h"
+#include "viewport.h"
+#include "newui/ui.h"
 
 /* HASFLAG compares value to flags returns true if set, false otherwise */
 #define HASFLAG(settings_list, flag) ((settings_list->flags & (flag)) == (flag))
@@ -463,6 +466,106 @@ static void val_to_selection(const struct settings_list *setting, int oldvalue,
     }
 }
 
+/* --- new UI: number settings as a slider (PLAN.md §4.7) --- */
+
+/* sound and number settings (not choices or tables) */
+static bool is_slider(const struct settings_list *setting)
+{
+    return !HASFLAG(setting, F_CHOICE_SETTING) &&
+           !HASFLAG(setting, F_TABLE_SETTING) &&
+           (HASFLAG(setting, F_T_SOUND) || HASFLAG(setting, F_INT_SETTING));
+}
+
+static void slider_range(const struct settings_list *setting, int *min, int *max)
+{
+    if (HASFLAG(setting, F_T_SOUND))
+    {
+        int id = setting->sound_setting->setting;
+        *min = sound_min(id);
+        *max = id == SOUND_VOLUME ? global_settings.volume_limit : sound_max(id);
+    }
+    else
+    {
+        *min = setting->int_setting->min;
+        *max = setting->int_setting->max;
+    }
+}
+
+/*   Title
+ *              -2 dB                 the value, big
+ *   ==============o-------------     the bar
+ *   -74 dB                  6 dB     its ends */
+static void draw_slider(struct viewport *vp, const struct settings_list *setting,
+                        const char *title, int value)
+{
+    struct viewport *last = lcd_set_viewport(vp);
+    const int small = ui_font(UI_FONT_SMALL);
+    const int w = vp->width - 2 * UI_MARGIN;
+    char buf[64];
+    int min, max;
+    slider_range(setting, &min, &max);
+
+    ui_fill_rect(0, 0, vp->width, vp->height, UI_COL_BG);
+    ui_text_vcenter(UI_MARGIN, 0, UI_ROW_H, ui_font(UI_FONT_TITLE), UI_COL_TEXT,
+                    title, w, -1);
+    ui_fill_rect(0, UI_ROW_H - 1, vp->width, 1, UI_COL_TRACK);
+
+    ui_text(UI_MARGIN, 58, ui_font(UI_FONT_BIG), UI_COL_TEXT,
+            option_get_valuestring(setting, buf, sizeof(buf), value), w, 0);
+
+    const int by = 134, bh = 8;
+    int fill = max > min ? (int)((long long)w * (value - min) / (max - min)) : 0;
+    fill = MAX(0, MIN(fill, w));
+    ui_fill_round_rect(UI_MARGIN, by, w, bh, bh / 2, UI_COL_TRACK);
+    if (fill > 0)
+        ui_fill_round_rect(UI_MARGIN, by, MAX(fill, bh), bh, bh / 2, UI_COL_SEL);
+    ui_fill_round_rect(UI_MARGIN + fill - 7, by - 4, 14, bh + 8, 7, UI_COL_TEXT);
+
+    ui_text(UI_MARGIN, by + 18, small, UI_COL_TEXT2,
+            option_get_valuestring(setting, buf, sizeof(buf), min), w, -1);
+    ui_text(UI_MARGIN, by + 18, small, UI_COL_TEXT2,
+            option_get_valuestring(setting, buf, sizeof(buf), max), w, 1);
+    lcd_update_viewport();
+    lcd_set_viewport(last);
+}
+
+/* a wheel/button action on the slider: true if it moved *selected */
+static bool slider_move(const struct settings_list *setting, int action,
+                        int *selected, int nb_items)
+{
+    int dir;
+    switch (action)
+    {
+        case ACTION_SETTINGS_INC: case ACTION_SETTINGS_INCREPEAT:
+        case ACTION_STD_NEXT: case ACTION_STD_NEXTREPEAT:
+            dir = 1;
+            break;
+        case ACTION_SETTINGS_DEC: case ACTION_SETTINGS_DECREPEAT:
+        case ACTION_STD_PREV: case ACTION_STD_PREVREPEAT:
+            dir = -1;
+            break;
+        case ACTION_SETTINGS_INCBIGSTEP:
+            dir = 10;
+            break;
+        case ACTION_SETTINGS_DECBIGSTEP:
+            dir = -10;
+            break;
+        default:
+            return false;
+    }
+    if (dir == 1 || dir == -1)
+        dir *= ui_wheel_step(dir, nb_items);
+    /* the list's order: index 0 is the largest value when descending */
+    if (global_settings.list_order == LIST_ORDER_DESCENDING)
+        dir = -dir;
+    int sel = MAX(0, MIN(*selected + dir, nb_items - 1));
+    if (sel == *selected)
+        return false;
+    *selected = sel;
+    (void)setting;
+    return true;
+}
+
 bool option_screen(const struct settings_list *setting,
                    struct viewport parent[NB_SCREENS],
                    bool use_temp_var, const unsigned char* option_title)
@@ -511,7 +614,16 @@ bool option_screen(const struct settings_list *setting,
     gui_synclist_set_nb_items(&lists, nb_items);
     gui_synclist_select_item(&lists, selected);
 
-    gui_synclist_draw(&lists);
+    const bool slider = is_slider(setting);
+    struct viewport slider_vp;
+    if (parent)
+        slider_vp = parent[SCREEN_MAIN];
+    else
+        viewport_set_defaults(&slider_vp, SCREEN_MAIN);
+    if (slider)
+        draw_slider(&slider_vp, setting, title, *variable);
+    else
+        gui_synclist_draw(&lists);
     /* talk the item */
     gui_synclist_speak_item(&lists);
     while (!done)
@@ -521,12 +633,23 @@ bool option_screen(const struct settings_list *setting,
         if (!allow_wrap)
             lists.wraparound = false;
 
-        if (list_do_action(CONTEXT_LIST|ALLOW_SOFTLOCK, HZ, /* HZ so the status bar redraws */
-                           &lists, &action))
+        bool changed;
+        if (slider)
+        {
+            action = get_action(CONTEXT_SETTINGS|ALLOW_SOFTLOCK, HZ);
+            changed = slider_move(setting, action, &selected, nb_items);
+        }
+        else
+            changed = list_do_action(CONTEXT_LIST|ALLOW_SOFTLOCK, HZ, /* HZ so the status bar redraws */
+                                     &lists, &action);
+        if (changed)
         {
             /* setting changed */
-            selected = gui_synclist_get_sel_pos(&lists);
+            if (!slider)
+                selected = gui_synclist_get_sel_pos(&lists);
             *variable = selection_to_val(setting, selected);
+            if (slider)
+                draw_slider(&slider_vp, setting, title, *variable);
             if (var_type == F_T_BOOL && !use_temp_var)
                 *(bool*)setting->setting = (*variable==1);
         }
@@ -553,7 +676,10 @@ bool option_screen(const struct settings_list *setting,
             val_to_selection(setting, *variable, &nb_items,
                                 &selected, &function);
             gui_synclist_select_item(&lists, selected);
-            gui_synclist_draw(&lists);
+            if (slider)
+                draw_slider(&slider_vp, setting, title, *variable);
+            else
+                gui_synclist_draw(&lists);
             gui_synclist_speak_item(&lists);
         }
         else if (action == ACTION_STD_OK)

@@ -604,11 +604,8 @@ static int album_songs(int a)
 
 int ui_coverflow(void)
 {
-    if (!tagcache_is_usable())
-    {
-        splash(HZ * 2, ID2P(LANG_TAGCACHE_BUSY));
+    if (!root_menu_wait_for_database())
         return GO_TO_ROOT;
-    }
     if (!load_albums() || album_count == 0)
     {
         splash(HZ * 2, ID2P(LANG_NO_FILES));

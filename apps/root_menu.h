@@ -24,6 +24,8 @@
 #include "gcc_extensions.h"
 
 void root_menu(void) NORETURN_ATTR;
+/* Waits for the database, offering to build it; true once usable */
+bool root_menu_wait_for_database(void);
 enum {
     /* from old menu api, but still required*/
     MENU_ATTACHED_USB = -10,

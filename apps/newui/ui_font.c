@@ -24,7 +24,7 @@
 #include "settings.h"
 #include "ui.h"
 
-/* Source Sans 3, installed by buildzip from fonts/newui */
+/* Nimbus Sans (a free Helvetica clone), installed by buildzip from fonts/newui */
 static const char * const font_files[UI_FONT_COUNT] = {
     [UI_FONT_SMALL] = FONT_DIR "/newui-14.fnt",
     [UI_FONT_BODY]  = FONT_DIR "/newui-18.fnt",

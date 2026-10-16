@@ -1,0 +1,18 @@
+Nimbus Sans (URW base35 fonts), used for the new UI's fonts (newui-*.fnt).
+Source: https://github.com/ArtifexSoftware/urw-base35-fonts
+
+Files: *
+Copyright: 2015 URW Software
+           2013, 2014 (URW)++ Design & Development
+License: AGPL-3 with Font exception
+ The font and related files in this directory are distributed under the
+ GNU AFFERO GENERAL PUBLIC LICENSE Version 3 (see the file COPYING), with
+ the following exemption:
+ .
+ As a special exception, permission is granted to include these font
+ programs in a Postscript or PDF file that consists of a document that
+ contains text to be displayed or printed using this font, regardless
+ of the conditions or license applying to the document itself.
+
+
+The full AGPL-3 text: https://www.gnu.org/licenses/agpl-3.0.txt

@@ -385,7 +385,7 @@ frame. Risk #1 is resolved; small changes should use `lcd_update_rect()`.
 
 Made (2026-10-15):
 
-1. **Font**: Source Sans 3.
+1. **Font**: Nimbus Sans (URW's free Helvetica clone; was Source Sans 3 until 2026-10-16).
 2. **Home items and menu layout**: as drafted in §4, refined during the work.
 3. **Back** always goes to the parent screen, including from Now Playing.
    Now Playing's extra pages (track info, big art) open from its Menu sheet

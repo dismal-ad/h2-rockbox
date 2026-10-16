@@ -143,9 +143,6 @@ MENUITEM_SETTING(rewind_across_tracks, &global_settings.rewind_across_tracks, NU
 MENUITEM_SETTING(resume_rewind, &global_settings.resume_rewind, NULL);
 MENUITEM_SETTING(pause_rewind, &global_settings.pause_rewind, NULL);
 MENUITEM_SETTING(play_frequency, &global_settings.play_frequency, NULL);
-#ifdef HAVE_ALBUMART
-MENUITEM_SETTING(album_art, &global_settings.album_art, NULL);
-#endif
 
 MENUITEM_SETTING(playback_log, &global_settings.playback_log, NULL);
 
@@ -167,9 +164,6 @@ MAKE_MENU(playback_settings,ID2P(LANG_PLAYBACK),0,
           ,&resume_rewind
           ,&pause_rewind
           ,&play_frequency
-#ifdef HAVE_ALBUMART
-          ,&album_art
-#endif
         ,&playback_log
          );
 

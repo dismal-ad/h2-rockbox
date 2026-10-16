@@ -69,7 +69,6 @@ recorder/jpeg_load.c
 #ifdef HAVE_ALBUMART
 recorder/albumart.c
 #endif
-gui/color_picker.c
 
 audio_thread.c
 pcmbuf.c

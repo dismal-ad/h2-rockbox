@@ -924,9 +924,6 @@ void settings_apply(bool read_disk)
     lcd_bidir_scroll(global_settings.bidir_limit);
     lcd_scroll_delay(global_settings.scroll_delay);
 
-#ifdef HAVE_ALBUMART
-    set_albumart_mode(global_settings.album_art);
-#endif
 
     /* before crossfade */
     audio_set_playback_frequency(global_settings.play_frequency);

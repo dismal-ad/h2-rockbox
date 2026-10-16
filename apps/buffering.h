@@ -34,7 +34,6 @@ enum data_type {
     TYPE_PACKET_AUDIO,
     TYPE_ATOMIC_AUDIO,
     TYPE_CUESHEET,
-    TYPE_BITMAP,
     TYPE_RAW_ATOMIC,
 };
 
@@ -45,7 +44,6 @@ enum data_type {
 #define ERR_FILE_ERROR          -4
 #define ERR_HANDLE_NOT_DONE     -5
 #define ERR_UNSUPPORTED_TYPE    -6
-#define ERR_BITMAP_TOO_LARGE    -7
 
 /* Initialise the buffering subsystem */
 void buffering_init(void) INIT_ATTR;

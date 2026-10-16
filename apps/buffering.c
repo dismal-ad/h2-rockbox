@@ -29,11 +29,6 @@
 #include "appevents.h"
 #include "metadata.h"
 #include "bmp.h"
-#ifdef HAVE_ALBUMART
-#include "albumart.h"
-#include "jpeg_load.h"
-#include "playback.h"
-#endif
 #include "buffering.h"
 #include "linked_list.h"
 
@@ -795,12 +790,6 @@ static struct memory_handle * shrink_handle(struct memory_handle *h)
                                 ringbuf_ptr(olddata));
                 break;
 
-            case TYPE_BITMAP:
-                /* adjust the bitmap's pointer */
-                ((struct bitmap *)ringbuf_ptr(h->data))->data =
-                    ringbuf_ptr(h->data + sizeof(struct bitmap));
-                break;
-
             default:
                 break;
         }
@@ -839,40 +828,6 @@ static bool fill_buffer(void)
     }
 }
 
-#ifdef HAVE_ALBUMART
-/* Given a file descriptor to a bitmap file, write the bitmap data to the
-   buffer, with a struct bitmap and the actual data immediately following.
-   Return value is the total size (struct + data). */
-static int load_image(int fd, const char *path,
-                      struct bufopen_bitmap_data *data,
-                      size_t bufidx, size_t max_size)
-{
-    (void)path;
-    int rc;
-    struct bitmap *bmp = ringbuf_ptr(bufidx);
-    struct dim *dim = data->dim;
-    struct mp3_albumart *aa = data->embedded_albumart;
-
-    /* get the desired image size */
-    bmp->width = dim->width, bmp->height = dim->height;
-    /* FIXME: alignment may be needed for the data buffer. */
-    bmp->data = ringbuf_ptr(bufidx + sizeof(struct bitmap));
-
-    bmp->maskdata = NULL;
-    const int format = FORMAT_NATIVE | FORMAT_DITHER |
-                       FORMAT_RESIZE | FORMAT_KEEP_ASPECT;
-    if (aa != NULL) {
-        lseek(fd, aa->pos, SEEK_SET);
-        rc = clip_jpeg_fd(fd, aa->type, aa->size, bmp, (int)max_size, format, NULL);
-    }
-    else if (strcmp(path + strlen(path) - 4, ".bmp"))
-        rc = read_jpeg_fd(fd, bmp, (int)max_size, format, NULL);
-    else
-        rc = read_bmp_fd(fd, bmp, (int)max_size, format, NULL);
-
-    return rc + (rc > 0 ? sizeof(struct bitmap) : 0);
-}
-#endif /* HAVE_ALBUMART */
 
 
 /*
@@ -899,7 +854,7 @@ management functions for all the actual handle management work.
            offset bytes of the file aren't needed.
    type: one of the data types supported (audio, image, cuesheet, others
    user_data: user data passed possibly passed in subcalls specific to a
-              data_type (only used for image (albumart) buffering so far )
+              data_type (unused)
    return value: <0 if the file cannot be opened, or one file already
    queued to be opened, otherwise the handle for the file in the buffer
 */
@@ -949,22 +904,6 @@ int bufopen(const char *file, off_t offset, enum data_type type,
         return ERR_FILE_ERROR;
 
     size_t size = 0;
-#ifdef HAVE_ALBUMART
-    if (type == TYPE_BITMAP) {
-        /* Bitmaps are resized to the requested dimensions when loaded,
-         * so the file size should not be used as it may be too large
-         * or too small */
-        struct bufopen_bitmap_data *aa = user_data;
-        size = BM_SIZE(aa->dim->width, aa->dim->height, FORMAT_NATIVE, false);
-        size += sizeof(struct bitmap);
-
-        /* JPEG loading requires extra memory
-         * TODO: don't add unncessary overhead for .bmp images! */
-        size += JPEG_DECODE_OVERHEAD;
-       /* resize_on_load requires space for 1 line + 2 spare lines */
-        size += sizeof(struct uint32_argb) * 3 * aa->dim->width;
-    }
-#endif /* HAVE_ALBUMART */
 
     if (size == 0)
         size = ffilesize(fd);
@@ -972,9 +911,6 @@ int bufopen(const char *file, off_t offset, enum data_type type,
     unsigned int hflags = 0;
     if (type == TYPE_PACKET_AUDIO || type == TYPE_CODEC)
         hflags |= H_CANWRAP;
-    /* Bitmaps need their space allocated up front */
-    if (type == TYPE_BITMAP)
-        hflags |= H_ALLOCALL;
 
     size_t adjusted_offset = offset;
     if (adjusted_offset > size)
@@ -990,12 +926,6 @@ int bufopen(const char *file, off_t offset, enum data_type type,
         DEBUGF("%s(): failed to add handle\n", __func__);
         mutex_unlock(&llist_mutex);
         close(fd);
-
-        /*warn playback.c if it is trying to buffer too large of an image*/
-        if(type == TYPE_BITMAP && padded_size >= buffer_len - 64*1024)
-        {
-            return ERR_BITMAP_TOO_LARGE;
-        }
         return ERR_BUFFER_FULL;
 
     }
@@ -1006,10 +936,7 @@ int bufopen(const char *file, off_t offset, enum data_type type,
     h->fd   = -1;
 
 #ifdef STORAGE_WANTS_ALIGN
-    /* Don't bother to storage align bitmaps because they are not
-     * loaded directly into the buffer.
-     */
-    if (type != TYPE_BITMAP) {
+    {
         /* Align to desired storage alignment */
         size_t alignment_pad = STORAGE_OVERLAP((uintptr_t)adjusted_offset -
                                                (uintptr_t)ringbuf_ptr(data));
@@ -1022,20 +949,6 @@ int bufopen(const char *file, off_t offset, enum data_type type,
     h->start = adjusted_offset;
     h->pos   = adjusted_offset;
 
-#ifdef HAVE_ALBUMART
-    if (type == TYPE_BITMAP) {
-        /* Bitmap file: we load the data instead of the file */
-        int rc = load_image(fd, file, user_data, data, padded_size);
-        if (rc <= 0) {
-            handle_id = ERR_FILE_ERROR;
-        } else {
-            data = ringbuf_add(data, rc);
-            size = rc;
-            adjusted_offset = rc;
-        }
-    }
-    else
-#endif
     if (type == TYPE_CUESHEET) {
         h->fd = fd;
     }

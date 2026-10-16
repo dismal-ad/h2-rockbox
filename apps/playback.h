@@ -32,44 +32,6 @@
 #define AUDIO_FAST_SKIP_PREVIEW
 #endif
 
-#ifdef HAVE_ALBUMART
-
-#include "bmp.h"
-#include "metadata.h"
-/*
- * Returns the handle id of the buffered albumart for the given slot id
- **/
-int playback_current_aa_hid(int slot);
-
-/*
- * Hands out an albumart slot for buffering albumart using the size
- * int the passed dim struct, it copies the data of dim in order to
- * be safe to be reused for other code
- *
- * The slot may be reused if other code calls this with the same dimensions
- * in dim, so if you change dim release and claim a new slot
- *
- * Save to call from other threads */
-int playback_claim_aa_slot(struct dim *dim);
-
-/*
- * Releases the albumart slot with given id
- *
- * Save to call from other threads */
-void playback_release_aa_slot(int slot);
-
-/*
- * Tells playback to sync buffered album art dimensions
- *
- * Save to call from other threads */
-void playback_update_aa_dims(void);
-
-struct bufopen_bitmap_data {
-    struct dim *dim;
-    struct mp3_albumart *embedded_albumart;
-};
-
-#endif /* HAVE_ALBUMART */
 
 /* Functions */
 unsigned int audio_track_count(void);
@@ -80,9 +42,6 @@ void audio_skip(int direction);
 void audio_set_cuesheet(bool enable);
 void audio_set_crossfade(int enable);
 void audio_set_playback_frequency(unsigned int sample_rate_hz);
-#ifdef HAVE_ALBUMART
-void set_albumart_mode(int setting);
-#endif
 
 size_t audio_get_filebuflen(void);
 

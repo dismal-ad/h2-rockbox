@@ -718,12 +718,6 @@ static void playback_frequency_callback(int sample_rate_hz)
         audio_set_playback_frequency(sample_rate_hz);
 }
 
-#ifdef HAVE_ALBUMART
-static void albumart_callback(int mode)
-{
-    set_albumart_mode(mode);
-}
-#endif
 
 /* perform shuffle/unshuffle of the current playlist based on the boolean provided */
 static void shuffle_playlist_callback(bool shuffle)
@@ -914,14 +908,6 @@ const struct settings_list settings[] = {
                   playback_frequency_callback,
                   7,0,SAMPR_44,SAMPR_48,SAMPR_88,SAMPR_96,SAMPR_176,SAMPR_192),
 
-#ifdef HAVE_ALBUMART
-    CHOICE_SETTING(F_CB_ON_SELECT_ONLY|F_CB_ONLY_IF_CHANGED, album_art,
-                   LANG_ALBUM_ART, 1, "album art",
-                   "off,prefer embedded,prefer image file",
-                   albumart_callback, 3,
-                   ID2P(LANG_OFF), ID2P(LANG_PREFER_EMBEDDED),
-                   ID2P(LANG_PREFER_IMAGE_FILE)),
-#endif
 
     /* LCD */
     TABLE_SETTING_LIST(F_TIME_SETTING | F_ALLOW_ARBITRARY_VALS,

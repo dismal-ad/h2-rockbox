@@ -112,7 +112,6 @@ int plugin_open(const char *plugin, const char *parameter);
 #include "rbunicode.h"
 #include "list.h"
 #include "tree.h"
-#include "color_picker.h"
 #include "buflib.h"
 #include "buffering.h"
 #include "tagcache.h"

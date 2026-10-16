@@ -63,14 +63,17 @@
 #error "Cover Flow draws RGB565 pixels directly"
 #endif
 
-/* layout at 320 wide; x of the left half, mirrored for the right */
+/* layout at 320 wide; x of the left half, mirrored for the right.
+ * As on the iPod, three covers each side show equal strips (CF_SPACING
+ * wide): steeply turned, nearly full height, the nearest tucked under the
+ * centre cover. */
 #define CF_CENTER_L   (LCD_WIDTH / 2 - UI_COVER / 2)  /* centre cover */
-#define CF_SIDE_R     (CF_CENTER_L - 6)   /* inner edge of the first side cover */
-#define CF_SIDE_W     58                  /* side cover's width on screen */
-#define CF_SIDE_HIN   136                 /* its inner edge's height */
-#define CF_SIDE_HOUT  106                 /* its outer edge's height */
-#define CF_SPACING    22                  /* between side covers */
-#define CF_SIDE_SHADE 170                 /* side covers' brightness /256 */
+#define CF_SIDE_W     46                  /* side cover's width on screen */
+#define CF_SPACING    27                  /* the strip each side cover shows */
+#define CF_SIDE_R     (CF_CENTER_L - CF_SPACING + CF_SIDE_W) /* nearest's inner edge */
+#define CF_SIDE_HIN   140                 /* its inner edge's height */
+#define CF_SIDE_HOUT  116                 /* its outer edge's height */
+#define CF_SIDE_SHADE 190                 /* side covers' brightness /256 */
 #define CF_TOP        4                   /* centre cover's top */
 #define CF_REFLECT    80                  /* reflection's starting brightness /256 */
 #define CF_VISIBLE    4                   /* covers drawn on each side */

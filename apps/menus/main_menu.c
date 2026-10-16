@@ -43,11 +43,43 @@
 #include "version.h"
 #include "time.h"
 #include "wps.h"
-#include "skin_buffer.h"
 #include "disk.h"
 
 static const struct browse_folder_info config = {ROCKBOX_DIR, SHOW_CFG};
 static int show_info(void);
+/* a settings folder (languages, presets...) in the file browser, on the
+ * current language if it is the languages folder */
+int browse_folder(void *param)
+{
+    char selected[MAX_FILENAME+10];
+    const struct browse_folder_info *info =
+        (const struct browse_folder_info*)param;
+
+    struct browse_context browse = {
+        .dirfilter = info->show_options,
+        .icon = Icon_NOICON,
+        .root = info->dir,
+    };
+
+    if (!dir_exists(info->dir)) {
+        splash(HZ, ID2P(LANG_PLAYLIST_DIRECTORY_ACCESS_ERROR));
+        return GO_TO_PREVIOUS;
+    }
+
+    if (info->show_options == SHOW_LNG)
+    {
+        snprintf(selected, sizeof(selected), "%s.lng",
+                 global_settings.lang_file[0] ? (const char *)global_settings.lang_file
+                                              : "english");
+        browse.selected = selected;
+        browse.icon = Icon_Questionmark;
+        browse.title = str(LANG_LANGUAGE);
+    }
+
+    tree_get_context()->browse = NULL;  /*bugfix - force root dir reload */
+    return rockbox_browse(&browse);
+}
+
 /***********************************/
 /*    MANAGE SETTINGS MENU        */
 
@@ -72,7 +104,7 @@ static int reset_settings(void)
             settings_reset();
             settings_save();
             settings_apply(true);
-            settings_apply_skins();
+            viewportmanager_theme_changed(THEME_ALL);
             break;
         case YESNO_TMO:
         case YESNO_NO:
@@ -425,7 +457,7 @@ MAKE_MENU(main_menu_, ID2P(LANG_SETTINGS), NULL,
         &bluetooth_menu,
 #endif
         &playback_settings,
-        &settings_menu_item, &theme_menu,
+        &settings_menu_item,
         &timedate_item,
         &manage_settings,
         );

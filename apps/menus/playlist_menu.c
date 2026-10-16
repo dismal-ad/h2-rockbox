@@ -28,6 +28,7 @@
 #include "string-extra.h"
 #include "menu.h"
 #include "playlist_menu.h"
+#include "statusbar.h"
 
 #include "file.h"
 #include "keyboard.h"
@@ -113,8 +114,7 @@ int save_playlist_screen(struct playlist_info* playlist)
 static int playlist_view_(void)
 {
     playlist_viewer_ex(NULL, NULL);
-    FOR_NB_SCREENS(i) /* Playlist Viewer defers skin updates when popping its activity */
-        skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
+    statusbar_update(true); /* the Playlist Viewer defers it when popping its activity */
     return 0;
 }
 MENUITEM_FUNCTION(create_playlist_item, 0, ID2P(LANG_CREATE_PLAYLIST),

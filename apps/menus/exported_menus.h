@@ -39,14 +39,13 @@ extern const struct menu_item_ex
 #ifdef HAVE_BLUETOOTH
         bluetooth_menu,             /* bluetooth_menu.c */
 #endif
-        radio_settings_menu,        /* radio_menu.c     */
-        theme_menu;                 /* theme_menu.c     */
+        radio_settings_menu;        /* radio_menu.c     */
 
 struct browse_folder_info {
     const char* dir;
     int show_options;
 };
-int browse_folder(void *param); /* in theme_menu.c as it is mostly used there */
+int browse_folder(void *param); /* in main_menu.c */
 
 #endif /* ! PLUGIN */
 #endif /*_EXPORTED_MENUS_H */

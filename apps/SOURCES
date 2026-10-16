@@ -13,7 +13,6 @@ main.c
 menu.c
 menus/menu_common.c
 menus/display_menu.c
-menus/theme_menu.c
 menus/plugin_menu.c
 menus/eq_menu.c
 buffering.c
@@ -45,12 +44,10 @@ gui/icon.c
 gui/list.c
 gui/line.c
 gui/bitmap/list.c
-gui/bitmap/list-skinned.c
 gui/option_select.c
 #ifdef HAVE_PITCHCONTROL
 gui/pitchscreen.c
 #endif
-gui/quickscreen.c
 gui/folder_select.c
 gui/mask_select.c
 
@@ -58,16 +55,9 @@ gui/wps.c
 gui/scrollbar.c
 gui/splash.c
 gui/statusbar.c
-gui/statusbar-skinned.c
 gui/yesno.c
 gui/viewport.c
 
-gui/skin_engine/skin_backdrops.c
-gui/skin_engine/skin_display.c
-gui/skin_engine/skin_engine.c
-gui/skin_engine/skin_parser.c
-gui/skin_engine/skin_render.c
-gui/skin_engine/skin_tokens.c
 
 gui/backdrop.c
 

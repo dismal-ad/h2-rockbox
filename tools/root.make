@@ -65,7 +65,6 @@ all: $(DEPFILE) build
 # compile rules
 include $(TOOLSDIR)/tools.make
 
-ifeq (,$(findstring checkwps,$(APP_TYPE)))
   ifeq (,$(findstring database,$(APP_TYPE)))
     ifeq (,$(findstring warble,$(APP_TYPE)))
       include $(FIRMDIR)/firmware.make
@@ -83,13 +82,11 @@ ifeq (,$(findstring checkwps,$(APP_TYPE)))
           endif
       endif
       ifeq (,$(findstring bootloader,$(APPSDIR)))
-        include $(ROOTDIR)/lib/skin_parser/skin_parser.make
         include $(ROOTDIR)/lib/tlsf/libtlsf.make
         include $(ROOTDIR)/lib/bluedroid/bluedroid.make
       endif
     endif
   endif
-endif
 
 #included before codecs.make and plugins.make so they see them)
 ifndef APP_TYPE
@@ -103,14 +100,9 @@ ifeq (,$(NO_UTF8PROC))
   include $(ROOTDIR)/lib/utf8proc/utf8proc.make
 endif
 
-ifeq (,$(findstring checkwps,$(APP_TYPE)))
-  include $(ROOTDIR)/lib/fixedpoint/fixedpoint.make
-endif
+include $(ROOTDIR)/lib/fixedpoint/fixedpoint.make
 
-ifneq (,$(findstring checkwps,$(APP_TYPE)))
-  include $(APPSDIR)/checkwps.make
-  include $(ROOTDIR)/lib/skin_parser/skin_parser.make
-else ifneq (,$(findstring warble,$(APP_TYPE)))
+ifneq (,$(findstring warble,$(APP_TYPE)))
   include $(ROOTDIR)/lib/rbcodec/test/warble.make
   include $(ROOTDIR)/lib/tlsf/libtlsf.make
   include $(ROOTDIR)/lib/rbcodec/rbcodec.make

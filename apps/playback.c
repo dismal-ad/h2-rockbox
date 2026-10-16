@@ -173,7 +173,7 @@ struct audio_resume_info
 static struct mutex id3_mutex SHAREDBSS_ATTR; /* (A,O)*/
 
 /** For album art support **/
-#define MAX_MULTIPLE_AA SKINNABLE_SCREENS_COUNT
+#define MAX_MULTIPLE_AA 1 /* claimed by no one since the theme engine went */
 #ifdef HAVE_ALBUMART
 
 static int albumart_mode = -1;

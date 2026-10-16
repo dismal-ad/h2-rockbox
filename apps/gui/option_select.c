@@ -33,7 +33,6 @@
 #include "misc.h"
 #include "splash.h"
 #include "menu.h"
-#include "quickscreen.h"
 
 /* HASFLAG compares value to flags returns true if set, false otherwise */
 #define HASFLAG(settings_list, flag) ((settings_list->flags & (flag)) == (flag))

@@ -38,7 +38,6 @@
 #include "sound.h"
 #include "misc.h"
 #include "viewport.h"
-#include "statusbar-skinned.h"
 #include "debug.h"
 #include "line.h"
 #include "fixedpoint.h"

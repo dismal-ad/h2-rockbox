@@ -36,7 +36,6 @@
 #include "audio.h"
 #include "playlist.h"
 #include "menu.h"
-#include "skin_engine/skin_engine.h"
 #include "settings.h"
 #include "debug.h"
 #include "storage.h"
@@ -66,7 +65,6 @@
 /* gui api */
 #include "list.h"
 #include "splash.h"
-#include "quickscreen.h"
 #include "shortcuts.h"
 #include "appevents.h"
 
@@ -844,20 +842,9 @@ static int dirbrowse(void)
                 break;
             case ACTION_STD_QUICKSCREEN:
             {
-                /* Shortcuts Menu currently disabled in browse filter modes */
-                bool enter_shortcuts_menu = global_settings.shortcuts_replaces_qs;
-                if (enter_shortcuts_menu && *tc.dirfilter >= NUM_FILTER_MODES)
-                    break;
-                else if (!enter_shortcuts_menu)
-                {
-                    int ret = quickscreen_show(button);
-                    if (ret == QUICKSCREEN_IN_USB)
-                        reload_dir = true;
-                    else if (ret == QUICKSCREEN_GOTO_SHORTCUTS_MENU)
-                        enter_shortcuts_menu = true;
-                }
-
-                if (enter_shortcuts_menu && *tc.dirfilter < NUM_FILTER_MODES)
+                /* new UI: the Shortcuts menu (no quick screen); not in
+                   browse filter modes */
+                if (*tc.dirfilter < NUM_FILTER_MODES)
                 {
                     int last_screen = global_status.last_screen;
                     global_status.last_screen = GO_TO_SHORTCUTMENU;

@@ -37,7 +37,6 @@ int viewport_get_nb_lines(const struct viewport *vp);
 #define THEME_LISTS                 (BIT_N(3))
 #define THEME_ALL                   (~(0u))
 
-/* These are needed in checkwps */
 void viewport_set_defaults(struct viewport *vp,
                             const enum screen_type screen);
 void viewport_set_fullscreen(struct viewport *vp,

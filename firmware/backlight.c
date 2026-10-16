@@ -22,7 +22,6 @@
 #include "config.h"
 #include "settings.h"
 #include "action.h"
-#include "../apps/gui/skin_engine/skin_engine.h"
 #include <stdlib.h>
 #include "cpu.h"
 #include "kernel.h"

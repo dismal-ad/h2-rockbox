@@ -935,8 +935,6 @@ static bool open_playlist_viewer(const char* filename,
     {
         push_activity_without_refresh(ACTIVITY_PLAYLISTVIEWER);
         clear_screen_buffer(false);
-        FOR_NB_SCREENS(i)
-            sb_set_title_text(viewer.title, Icon_Playlist, i);
         send_event(GUI_EVENT_ACTIONUPDATE, (void*) 1);
     }
     else
@@ -1128,17 +1126,6 @@ enum playlist_viewer_result playlist_viewer_ex(const char* filename,
             case ACTION_STD_MENU:
                 ret = PLAYLIST_VIEWER_MAINMENU;
                 goto exit;
-            case ACTION_STD_QUICKSCREEN:
-                    /* Shortcuts menu currently disabled in Playlist Viewer */
-                    if (!global_settings.shortcuts_replaces_qs)
-                    {
-                        /* QUICKSCREEN_GOTO_SHORTCUTS_MENU
-                           return value ignored for now */
-                        quickscreen_show(button);
-                        update_playlist(true);
-                        update_gui(&playlist_lists, true);
-                    }
-                    break;
             case ACTION_TREE_HOTKEY:
             {
                 struct playlist_entry *current_track = playlist_buffer_get_track(

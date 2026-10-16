@@ -27,7 +27,6 @@
 #include "config.h"
 #include "audiohw.h" /* for the AUDIOHW_* defines */
 #include "statusbar.h" /* for the statusbar values */
-#include "quickscreen.h"
 #include "button.h"
 #include "audio.h"
 #include "dsp_proc_settings.h"
@@ -243,7 +242,6 @@ void sound_settings_apply(void);
 /* call this after loading a .wps/.rwps or other skin files, so that the
  * skin buffer is reset properly
  */
-void settings_apply_skins(void);
 
 void settings_apply(bool read_disk);
 void settings_apply_pm_range(void);
@@ -375,7 +373,6 @@ struct user_settings
 #endif
     bool unplug_autoresume; /* disable auto-resume if no phones */
 
-    const struct settings_list *qs_items[QUICKSCREEN_ITEM_COUNT];
 
     int timeformat;    /* time format: 0=24 hour clock, 1=12 hour clock */
 
@@ -605,7 +602,6 @@ struct user_settings
     /* Has the root been customized from the .cfg file? false = no, true = loaded from cfg */
     bool keep_directory;  /* this saves the last path visited in the file browser */
     bool root_menu_customized;
-    bool shortcuts_replaces_qs;
 
     int play_frequency; /* core audio output frequency selection */
     int volume_limit; /* maximum volume limit */

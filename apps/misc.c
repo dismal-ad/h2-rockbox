@@ -25,6 +25,7 @@
 #include "string-extra.h"
 #include "config.h"
 #include "misc.h"
+#include "statusbar.h"
 #include "system.h"
 #include "lcd.h"
 #include "language.h" /* is_lang_rtl() */
@@ -61,7 +62,6 @@
 #include "list.h"
 #include "fixedpoint.h"
 #include "open_plugin.h"
-#include "statusbar-skinned.h"
 
 #include "debug.h"
 
@@ -1636,27 +1636,15 @@ static int current_activity_top = 0;
 static void push_current_activity_refresh(enum current_activity screen, bool refresh)
 {
     current_activity[current_activity_top++] = screen;
-    FOR_NB_SCREENS(i)
-    {
-        skinlist_set_cfg(i, NULL);
-        if (refresh)
-            skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
-    }
     if (refresh)
-        sb_skin_force_next_update();
+        statusbar_update(true);
 }
 
 static void pop_current_activity_refresh(bool refresh)
 {
     current_activity_top--;
-    FOR_NB_SCREENS(i)
-    {
-        skinlist_set_cfg(i, NULL);
-        if (refresh)
-            skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
-    }
     if (refresh)
-        sb_skin_force_next_update();
+        statusbar_update(true);
 }
 
 void push_current_activity(enum current_activity screen)

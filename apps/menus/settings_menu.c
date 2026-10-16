@@ -41,7 +41,6 @@
 #include "powermgmt.h"
 #include "playback.h"
 #include "screens.h"
-#include "quickscreen.h"
 #ifdef HAVE_DIRCACHE
 #include "dircache.h"
 #endif
@@ -300,7 +299,6 @@ MENUITEM_SETTING(usb_keypad_mode, &global_settings.usb_keypad_mode, NULL);
 MENUITEM_SETTING(usb_audio, &global_settings.usb_audio, NULL);
 #endif
 
-MENUITEM_SETTING(shortcuts_replaces_quickscreen, &global_settings.shortcuts_replaces_qs, NULL);
 
 MENUITEM_SETTING(bt_selective_actions,
                  &global_settings.bt_selective_softlock_actions,
@@ -336,7 +334,6 @@ MAKE_MENU(system_menu, ID2P(LANG_SYSTEM),
             &limits_menu,
             &volume_adjust_mode,
             &volume_adjust_norm_steps,
-            &shortcuts_replaces_quickscreen,
             &car_adapter_mode_menu,
             &keyclick_menu,
             &sel_softlock,

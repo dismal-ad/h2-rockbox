@@ -763,36 +763,6 @@ static void treesort_callback(int value)
     reload_directory();
 }
 
-static void qs_load_from_cfg(void *var, char *value)
-{
-    const struct settings_list **item = var;
-
-    if (*value == '-')
-        *item = NULL;
-    else
-        *item = find_setting_by_cfgname(value);
-}
-
-static char* qs_write_to_cfg(void *var, char *buf, int buf_len)
-{
-    const struct settings_list *setting = *(const struct settings_list **)var;
-
-    strmemccpy(buf, setting ? setting->cfg_name : "-", buf_len);
-    return buf;
-}
-
-static bool qs_is_changed(void* var, void* defaultval)
-{
-    const struct settings_list *defaultsetting = find_setting(defaultval);
-
-    return var != defaultsetting;
-}
-
-static void qs_set_default(void* var, void* defaultval)
-{
-    *(const struct settings_list **)var = find_setting(defaultval);
-}
-
 static void start_in_callback(int var)
 {
     if (var - 2 == GO_TO_PLUGIN)
@@ -1616,24 +1586,6 @@ const struct settings_list settings[] = {
     OFFON_SETTING(0, show_shutdown_message, LANG_SHOW_SHUTDOWN_MESSAGE, true,
                   "show shutdown message", NULL),
 
-   CUSTOM_SETTING(0, qs_items[QUICKSCREEN_TOP], LANG_TOP_QS_ITEM,
-                  NULL, "qs top",
-                  qs_load_from_cfg, qs_write_to_cfg,
-                  qs_is_changed, qs_set_default),
-   CUSTOM_SETTING(0, qs_items[QUICKSCREEN_LEFT], LANG_LEFT_QS_ITEM,
-                  &global_settings.playlist_shuffle, "qs left",
-                  qs_load_from_cfg, qs_write_to_cfg,
-                  qs_is_changed, qs_set_default),
-   CUSTOM_SETTING(0, qs_items[QUICKSCREEN_RIGHT], LANG_RIGHT_QS_ITEM,
-                  &global_settings.repeat_mode, "qs right",
-                  qs_load_from_cfg, qs_write_to_cfg,
-                  qs_is_changed, qs_set_default),
-   CUSTOM_SETTING(0, qs_items[QUICKSCREEN_BOTTOM], LANG_BOTTOM_QS_ITEM,
-                  NULL, "qs bottom",
-                  qs_load_from_cfg, qs_write_to_cfg,
-                  qs_is_changed, qs_set_default),
-   OFFON_SETTING(0, shortcuts_replaces_qs, LANG_USE_SHORTCUTS_INSTEAD_OF_QS,
-                  false, "shortcuts instead of quickscreen", NULL),
     OFFON_SETTING(0, prevent_skip, LANG_PREVENT_SKIPPING, false, "prevent track skip", NULL),
     OFFON_SETTING(0, rewind_across_tracks, LANG_REWIND_ACROSS_TRACKS, false, "rewind across tracks", NULL),
 #ifdef HAVE_PITCHCONTROL

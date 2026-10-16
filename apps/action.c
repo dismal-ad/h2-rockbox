@@ -26,11 +26,11 @@
 #include "lang.h"
 
 #include "language.h"
-#include "skin_engine/skin_engine.h"
 
 #include "appevents.h"
 #include "button.h"
 #include "action.h"
+#include "statusbar.h"
 #include "newui/ui.h"
 #include "kernel.h"
 #include "core_alloc.h"
@@ -761,7 +761,7 @@ static inline void do_softlock(action_last_t *last, action_cur_t *cur)
 
     if (notify_user)
     {
-        skin_request_update_locked(last->keys_locked);
+        statusbar_update(true);
         action_handle_backlight(true, false);
 
         if (!has_flag(last->softlock_mask, SEL_ACTION_ALLNONOTIFY))
@@ -783,7 +783,7 @@ static inline void do_softlock(action_last_t *last, action_cur_t *cur)
                     return;
                 }
                 do_key_lock(false);
-                skin_request_update_locked(false);
+                statusbar_update(true);
             }
         }
 

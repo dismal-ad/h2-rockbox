@@ -66,9 +66,7 @@
 #include "filetypes.h"
 #include "option_select.h"
 #include "wps.h"
-#include "skin_engine/skin_engine.h"
 #include "viewport.h"
-#include "statusbar-skinned.h"
 #include "bootchart.h"
 #include "scroll_engine.h"
 
@@ -420,7 +418,7 @@ bool settings_load_config(const char* file, bool apply)
         settings_save();
         settings_apply(true);
         if (theme_changed)
-            settings_apply_skins();
+            viewportmanager_theme_changed(THEME_ALL);
     }
     return true;
 }

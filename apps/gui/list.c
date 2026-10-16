@@ -39,7 +39,6 @@
 #include "viewport.h"
 #include "newui/ui.h"
 #include "appevents.h"
-#include "statusbar-skinned.h"
 
 /* The minimum number of pending button events in queue before starting
  * to limit list drawing interval.
@@ -92,9 +91,8 @@ static int list_nb_lines(struct gui_synclist *list, enum screen_type screen)
 
 bool list_display_title(struct gui_synclist *list, enum screen_type screen)
 {
-    return list->title != NULL &&
-        !sb_set_title_text(list->title, list->title_icon, screen) &&
-        list_nb_lines(list, screen) > 2;
+    (void)screen;
+    return list->title != NULL && list_nb_lines(list, screen) > 2;
 }
 
 int list_title_height(struct gui_synclist *list)
@@ -104,8 +102,7 @@ int list_title_height(struct gui_synclist *list)
 
 int list_get_nb_lines(struct gui_synclist *list, enum screen_type screen)
 {
-    int lines = skinlist_get_line_count(screen, list);
-    if (lines < 0)
+    int lines;
     {
         /* the title row is UI_ROW_H (a header UI_ART_ROW_H), whatever
          * the rows' height */
@@ -183,9 +180,6 @@ void gui_synclist_init(struct gui_synclist * gui_list,
     gui_list->data = data;
     gui_list->scroll_all = scroll_all;
     gui_list->selected_size = selected_size;
-    if (selected_size != 1)
-        FOR_NB_SCREENS(i)
-            skinlist_set_cfg(i, NULL);
     gui_list->title = NULL;
     gui_list->title_icon = Icon_NOICON;
 
@@ -236,9 +230,7 @@ void gui_synclist_draw(struct gui_synclist *gui_list)
     }
     FOR_NB_SCREENS(i)
     {
-        if (!skinlist_draw(&screens[i], gui_list))
-            list_draw(&screens[i], gui_list);
-        skin_mark_dirty(i);
+        list_draw(&screens[i], gui_list);
     }
 }
 
@@ -437,8 +429,6 @@ void gui_synclist_set_title(struct gui_synclist * gui_list,
 {
     gui_list->title = title;
     gui_list->title_icon = icon;
-    FOR_NB_SCREENS(i)
-        sb_set_title_text(title, icon, i);
     send_event(GUI_EVENT_ACTIONREDRAW, (void*)1);
 }
 
@@ -919,7 +909,6 @@ bool simplelist_show_list(struct simplelist_info *info)
 
     FOR_NB_SCREENS(i)
     {
-        sb_set_persistent_title(info->title, info->title_icon, i);
         viewportmanager_theme_enable(i, !info->hide_theme, NULL);
     }
 
@@ -1012,7 +1001,6 @@ bool simplelist_show_list(struct simplelist_info *info)
 
     FOR_NB_SCREENS(i)
     {
-        sb_set_persistent_title(info->title, info->title_icon, i);
         viewportmanager_theme_undo(i, false);
     }
     return ret;

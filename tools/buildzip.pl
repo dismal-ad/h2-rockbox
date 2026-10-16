@@ -116,7 +116,7 @@ sub make_install {
     my $libdir = $dest;
     my $userdir = $dest;
 
-    my @userstuff = ( "backdrops", "codepages", "docs", "fonts", "langs", "themes", "wps", "eqs", "icons" );
+    my @userstuff = ( "codepages", "docs", "fonts", "langs", "eqs", "icons" );
     my @files = ();
 
     if ($app) {
@@ -160,21 +160,6 @@ sub make_install {
             return 0;
         }
         glob_install("$src/$t/*", "$userdir/$t");
-    }
-
-    # wps/ subfolders and bitmaps
-    opendir(DIR, $src . "/wps");
-    @files = readdir(DIR);
-    closedir(DIR);
-
-    foreach my $_dir (@files) {
-        my $dir = "wps/" . $_dir;
-        if ( -d "$src/$dir" && $_dir !~ /^\.\.?$/) {
-            unless (glob_mkdir("$userdir/$dir")) {
-                return 0;
-            }
-            glob_install("$src/$dir/*", "$userdir/$dir");
-        }
     }
 
     # rest of the files, excluding the binary
@@ -389,9 +374,7 @@ sub buildzip {
     glob_mkdir("$temp_dir/eqs");
     glob_copy("$ROOT/lib/rbcodec/dsp/eqs/*.cfg", "$temp_dir/eqs/"); # equalizer presets
 
-    glob_mkdir("$temp_dir/wps");
     glob_mkdir("$temp_dir/icons");
-    glob_mkdir("$temp_dir/themes");
     glob_mkdir("$temp_dir/codepages");
 
     if($bitmap) {
@@ -402,10 +385,6 @@ sub buildzip {
     }
 
     glob_move('*.cp', "$temp_dir/codepages/");
-
-    if($bitmap && $depth > 1) {
-        glob_mkdir("$temp_dir/backdrops");
-    }
 
     glob_mkdir("$temp_dir/codecs");
 
@@ -453,37 +432,6 @@ sub buildzip {
          "sample.icons"
         )) {
         copy("$ROOT/docs/$_", "$temp_dir/docs/$_");
-    }
-
-    # Now do the WPS dance
-    if(-d "$ROOT/wps") {
-        my $wps_build_cmd="perl $ROOT/wps/wpsbuild.pl ";
-        $wps_build_cmd=$wps_build_cmd."-v " if $verbose;
-        $wps_build_cmd=$wps_build_cmd." --tempdir=$temp_dir --rbdir=$rbdir -r $ROOT -m $modelname $ROOT/wps/WPSLIST $target";
-        print "wpsbuild: $wps_build_cmd\n" if $verbose;
-        system("$wps_build_cmd");
-        print "wps_build_cmd: done\n" if $verbose;
-    }
-    else {
-        print STDERR "No wps module present, can't do the WPS magic!\n";
-    }
-
-    # until buildwps.pl is fixed, manually copy the classic_statusbar theme across
-    mkdir "$temp_dir/wps/classic_statusbar", 0777;
-    glob_copy("$ROOT/wps/classic_statusbar/*.bmp", "$temp_dir/wps/classic_statusbar");
-    if ($depth >= 16 && $height > 480) {
-        copy("$ROOT/wps/classic_statusbar.24.sbs", "$temp_dir/wps/classic_statusbar.sbs");
-    } elsif ($depth == 16) {
-        copy("$ROOT/wps/classic_statusbar.sbs", "$temp_dir/wps");
-    } elsif ($depth > 1) {
-        copy("$ROOT/wps/classic_statusbar.grey.sbs", "$temp_dir/wps/classic_statusbar.sbs");
-    } else {
-        copy("$ROOT/wps/classic_statusbar.mono.sbs", "$temp_dir/wps/classic_statusbar.sbs");
-    }
-    if ($remote_depth == $depth) {
-        copy("$temp_dir/wps/classic_statusbar.sbs", "$temp_dir/wps/classic_statusbar.rsbs");
-    } elsif ($remote_depth != 0) {
-        copy("$ROOT/wps/classic_statusbar.mono.sbs", "$temp_dir/wps/classic_statusbar.rsbs");
     }
 
     # and the info file

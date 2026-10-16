@@ -74,8 +74,6 @@
 #include "eeprom_settings.h"
 #include "icon.h"
 #include "viewport.h"
-#include "skin_engine/skin_engine.h"
-#include "statusbar-skinned.h"
 #include "bootchart.h"
 #include "logdiskf.h"
 #include "bootdata.h"
@@ -338,8 +336,6 @@ static void init(void)
     /* Keep the order of this 3 (viewportmanager handles statusbars)
      * Must be done before any code uses the multi-screen API */
     gui_syncstatusbar_init(&statusbars);
-    gui_sync_skin_init();
-    sb_skin_init();
     viewportmanager_init();
 
     storage_init();
@@ -361,8 +357,7 @@ static void init(void)
 
     audio_init();
     talk_announce_voice_invalid(); /* notify user w/ voice prompt if voice file invalid */
-    settings_apply_skins();
-    ui_font_init(); /* after the theme font, so FONT_UI stays pinned to it */
+    ui_font_init();
 
 /* do USB last so prompt (if enabled) can work correctly if USB was inserted with device off,
  * also doesn't hurt that it will display the nice pretty backdrop this way too. */
@@ -451,12 +446,6 @@ static void init(void)
     CHART(">gui_syncstatusbar_init");
     gui_syncstatusbar_init(&statusbars);
     CHART("<gui_syncstatusbar_init");
-    CHART(">sb_skin_init");
-    sb_skin_init();
-    CHART("<sb_skin_init");
-    CHART(">gui_sync_wps_init");
-    gui_sync_skin_init();
-    CHART("<gui_sync_wps_init");
     CHART(">viewportmanager_init");
     viewportmanager_init();
     CHART("<viewportmanager_init");
@@ -615,10 +604,7 @@ static void init(void)
     check_bootfile(false); /* remember write time and filesize */
     CHART(">check_bootfile(false)");
 #endif
-    CHART("<settings_apply_skins");
-    settings_apply_skins();
-    CHART(">settings_apply_skins");
-    ui_font_init(); /* after the theme font, so FONT_UI stays pinned to it */
+    ui_font_init();
 }
 
 #endif /* CONFIG_PLATFORM & PLATFORM_HOSTED */

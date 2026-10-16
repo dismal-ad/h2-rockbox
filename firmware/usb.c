@@ -46,7 +46,6 @@
 #include "gui/yesno.h"
 #include "settings.h"
 #include "lang_enum.h"
-#include "gui/skin_engine/skin_engine.h"
 
 #define USB_FULL_INIT
 

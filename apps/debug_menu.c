@@ -64,7 +64,6 @@
 
 #include "scrollbar.h"
 #include "peakmeter.h"
-#include "skin_engine/skin_engine.h"
 #include "logfdisp.h"
 #include "core_alloc.h"
 #include "pcmbuf.h"
@@ -1281,7 +1280,6 @@ static const struct {
         { "View battery", view_battery },
 #endif
         { "Screendump", dbg_screendump },
-        { "Skin Engine RAM usage", dbg_skin_engine },
 #if ((CONFIG_PLATFORM & PLATFORM_NATIVE) || defined(SONY_NWZ_LINUX)) && !defined(SIMULATOR)
         { "View HW info", dbg_hw_info },
 #endif

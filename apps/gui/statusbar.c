@@ -125,11 +125,11 @@ static struct screen * sb_fill_bar_info(struct gui_statusbar * bar)
     return display;
 }
 
-void gui_statusbar_draw(struct gui_statusbar * bar, bool force_redraw, struct viewport *vp)
+bool gui_statusbar_draw(struct gui_statusbar * bar, bool force_redraw, struct viewport *vp)
 {
     struct screen * display = sb_fill_bar_info(bar);
     if (!display)
-        return;
+        return false;
 
     /* only redraw if forced to, or info has changed */
     if (force_redraw ||
@@ -153,7 +153,25 @@ void gui_statusbar_draw(struct gui_statusbar * bar, bool force_redraw, struct vi
         display->set_viewport(last_vp);
         bar->last_tm_min = bar->time->tm_min;
         bar->lastinfo = bar->info;
+        return true;
     }
+    return false;
+}
+
+void statusbar_update(bool force)
+{
+    static long next_update;
+    if (!force && TIME_BEFORE(current_tick, next_update))
+        return;
+    next_update = current_tick + HZ / 7; /* don't check too often */
+    if (!lcd_active())
+        return;
+
+    struct viewport vp = { .buffer = NULL, .flags = VP_DEFAULT_FLAGS };
+    viewport_set_fullscreen(&vp, SCREEN_MAIN);
+    vp.height = UI_STATUS_H;
+    if (gui_statusbar_draw(&statusbars.statusbars[SCREEN_MAIN], force, &vp))
+        lcd_update_rect(0, 0, LCD_WIDTH, UI_STATUS_H);
 }
 
 void gui_syncstatusbar_init(struct gui_syncstatusbar * bars)

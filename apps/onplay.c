@@ -55,7 +55,6 @@
 #include "playlist_catalog.h"
 #include "tagtree.h"
 #include "cuesheet.h"
-#include "statusbar-skinned.h"
 #include "pitchscreen.h"
 #include "viewport.h"
 #include "pathfuncs.h"
@@ -1042,34 +1041,6 @@ static void set_dir_helper(char* dirnamebuf, size_t bufsz)
     settings_save();
 }
 
-static void show_updated_backdrop(void)
-{
-    skin_backdrop_load_setting();
-    viewportmanager_theme_changed(THEME_STATUSBAR);
-    skin_backdrop_show(sb_get_backdrop(SCREEN_MAIN));
-}
-
-static bool set_backdrop(void)
-{
-    char previous_backdrop[sizeof global_settings.backdrop_file];
-    strcpy(previous_backdrop, global_settings.backdrop_file);
-
-    path_append(global_settings.backdrop_file, selected_file.path,
-                PA_SEP_HARD, sizeof(global_settings.backdrop_file));
-
-    show_updated_backdrop();
-
-    if (!yesno_pop(ID2P(LANG_SET_AS_BACKDROP))) {
-        strcpy(global_settings.backdrop_file, previous_backdrop);
-        show_updated_backdrop();
-    }
-    else
-        settings_save();
-
-    return true;
-}
-MENUITEM_FUNCTION(set_backdrop_item, 0, ID2P(LANG_SET_AS_BACKDROP),
-                  set_backdrop, clipboard_callback, Icon_NOICON);
 static bool set_startdir(void)
 {
     set_dir_helper(global_settings.start_directory,
@@ -1183,17 +1154,6 @@ static int clipboard_callback(int action,
                          (this_item == &reveal_item &&
                           selected_file.context == CONTEXT_WPS))
                     return action;
-                else if (this_item == &set_backdrop_item)
-                {
-                    char *suffix = strrchr(selected_file.path, '.');
-                    if (suffix)
-                    {
-                        if (strcasecmp(suffix, ".bmp") == 0)
-                        {
-                            return action;
-                        }
-                    }
-                }
             }
             return ACTION_EXIT_MENUITEM;
             break;
@@ -1248,7 +1208,6 @@ MAKE_ONPLAYMENU( tree_onplay_menu, ID2P(LANG_ONPLAY_MENU_TITLE),
            &clipboard_paste_item, &delete_file_item, &delete_dir_item,
            &create_dir_item, &track_info_item,
            &reveal_item,
-           &set_backdrop_item,
            &add_to_faves_item, &set_as_dir_menu, &file_menu, &sort_playlists,
          );
 

@@ -498,8 +498,6 @@ EOF
    echo "Simulator environment deemed $endian endian"
  elif [ "$app_type" = "sdl-app" ]; then
    echo "Application environment deemed $endian endian"
- elif [ "$app_type" = "checkwps" ]; then
-   echo "CheckWPS environment deemed $endian endian"
  fi
 
  # use wildcard here to make it work even if it was named *.exe like
@@ -1457,7 +1455,7 @@ esac
 if [ "$ARG_TYPE" ]; then
   btype=$ARG_TYPE
 else
-  echo "Build (N)ormal, (A)dvanced, (S)imulator, (C)heckWPS, (W)arble codec tool$gdbstub: (Defaults to N)"
+  echo "Build (N)ormal, (A)dvanced, (S)imulator, (W)arble codec tool$gdbstub: (Defaults to N)"
   btype=`input`;
 fi
 
@@ -1476,18 +1474,6 @@ fi
     [Aa]*)
       echo "Advanced build selected"
       whichadvanced $btype
-      ;;
-    [Cc])
-      uname=`uname`
-      simcc "checkwps"
-      toolset='';
-      GCCOPTS='';
-      LDOPTS='';
-      rbdir='.'
-      extradefines="$extradefines  -DDEBUG"
-      appsdir='$(ROOTDIR)/tools/checkwps';
-      output='checkwps.'${modelname};
-      echo "CheckWPS build selected"
       ;;
     [Ww])
       uname=`uname`
@@ -1558,8 +1544,7 @@ gccver=`$CC -dumpversion`;
 # figure out the binutil version too
 if [ $uname = "Darwin" ] && \
    [ "$app_type" = "sdl-sim" -o \
-     "$app_type" = "sdl-app" -o \
-     "$app_type" = "checkwps" ]; then
+     "$app_type" = "sdl-app" ]; then
  ldnum=0
 else
  ldnum=`$LD --version | sed -n '1p' | sed -e 's/.* \([0-9]*\)\.\([0-9]*\).*/\1\2/'`
@@ -1683,7 +1668,7 @@ HOSTAR=${HOSTAR:-${AR}}
 
 # This disables all arch-specific code paths (eg inline asm)
 # for builds that target the host system
-if [ "$app_type" = "sdl-sim" -o "$app_type" = "sdl-app" -o "$app_type" = "checkwps" ]; then
+if [ "$app_type" = "sdl-sim" -o "$app_type" = "sdl-app" ]; then
     arch="none"
 fi
 
@@ -1827,9 +1812,9 @@ if [ "$ARG_STACK_PROTECTOR" != "" ]; then
 fi
 
 # We generally want utf8proc.  Exceptions are:
-#   checkwps, warble, <4MB RAM
+#   warble, <4MB RAM
 #   and (temporarily) imx233
-if [ "$app_type" = "checkwps" -o "$app_type" = "warble" -o "$memory" -lt "4" ]; then
+if [ "$app_type" = "warble" -o "$memory" -lt "4" ]; then
     no_utf8proc=1
 fi
 

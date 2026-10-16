@@ -86,8 +86,13 @@ extern struct gui_syncstatusbar statusbars;
  * Draws the status bar on the attached screen
  * - bar : the statusbar structure
  */
-extern void gui_statusbar_draw(struct gui_statusbar * bar,
+/* true if it drew (something changed, or forced) */
+extern bool gui_statusbar_draw(struct gui_statusbar * bar,
                                bool force_redraw, struct viewport *vp);
+
+/* new UI: redraws the status bar on top of the screen if what it shows
+ * changed (checked at most every HZ/7) or force */
+void statusbar_update(bool force);
 
 
 struct gui_syncstatusbar

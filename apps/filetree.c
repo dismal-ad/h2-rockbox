@@ -474,7 +474,7 @@ static void ft_apply_skin_file(char *buf, char *file)
 {
     splash(0, ID2P(LANG_WAIT));
     set_file(buf, file);
-    settings_apply_skins();
+    viewportmanager_theme_changed(THEME_ALL);
 }
 
 static const char *strip_slash(const char *path, const char *def)
@@ -652,7 +652,7 @@ int ft_enter(struct tree_context* c)
                 set_file(buf, (char *)global_settings.lang_file);
                 talk_init(); /* use voice of same language */
                 viewportmanager_theme_changed(THEME_LANGUAGE);
-                settings_apply_skins();
+                viewportmanager_theme_changed(THEME_ALL);
                 splash(HZ, ID2P(LANG_LANGUAGE_LOADED));
                 break;
 

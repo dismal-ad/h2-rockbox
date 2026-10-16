@@ -3736,8 +3736,6 @@ void playlist_start(int start_index, unsigned long elapsed,
 
     playlist_write_unlock(playlist);
 
-    wps_playlist_percent_prepare();
-
     audio_play(elapsed, offset);
     audio_resume();
 }

@@ -686,7 +686,7 @@ static void apply_new_setting(const struct settings_list *setting)
     settings_apply(false);
     if ((setting->flags & (F_THEMESETTING|F_NEEDAPPLY)) == (F_THEMESETTING|F_NEEDAPPLY))
     {
-            settings_apply_skins();
+            viewportmanager_theme_changed(THEME_ALL);
     }
     if (setting->setting == &global_settings.sleeptimer_duration && get_sleep_timer())
     {

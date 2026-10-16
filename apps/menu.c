@@ -50,9 +50,7 @@
 #include "root_menu.h"
 #include "audio.h"
 #include "viewport.h"
-#include "quickscreen.h"
 #include "shortcuts.h"
-#include "statusbar-skinned.h"
 
 #include "icons.h"
 
@@ -434,6 +432,26 @@ void do_setting_from_menu(const struct menu_item_ex *temp,
 }
 
 /* display a menu */
+/* settings that can go in the Shortcuts menu: those with a name and a
+ * simple value */
+static bool can_be_shortcut(const struct settings_list *setting)
+{
+    if (!setting)
+        return true;
+    if (setting->lang_id < 0 || (setting->flags & F_BANFROMQS))
+        return false;
+    switch (setting->flags & F_T_MASK)
+    {
+        case F_T_BOOL:
+            return true;
+        case F_T_INT:
+        case F_T_UINT:
+            return (setting->RESERVED != NULL);
+        default:
+            return false;
+    }
+}
+
 int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
             struct viewport parent[NB_SCREENS], bool hide_theme)
 {
@@ -441,8 +459,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
     int ret = 0;
     int action;
     int start_action;
-    int icon;
-    char buf[80], *title;
+    char buf[80];
     struct gui_synclist lists;
     const struct menu_item_ex *temp = NULL;
     const struct menu_item_ex *menu = start_menu;
@@ -452,10 +469,8 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
 
     int old_audio_status = audio_status();
 
-    title = init_title(menu, &icon, buf, sizeof buf);
     FOR_NB_SCREENS(i)
     {
-        sb_set_persistent_title(title, icon, i);
         viewportmanager_theme_enable(i, !hide_theme, NULL);
     }
     struct menu_data_t mstack[MAX_MENUS]; /* menu, selected */
@@ -507,8 +522,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
             continue;
         else if (action == ACTION_STD_QUICKSCREEN)
         {
-            if (global_settings.shortcuts_replaces_qs ||
-                quickscreen_show(action) == QUICKSCREEN_GOTO_SHORTCUTS_MENU)
+            /* new UI: the Shortcuts menu (no quick screen) */
             {
                 int last_screen = global_status.last_screen;
                 global_status.last_screen = GO_TO_SHORTCUTMENU;
@@ -563,25 +577,19 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                     MENUITEM_STRINGLIST(settings_op_menu,
                                         ID2P(LANG_ONPLAY_MENU_TITLE), NULL,
                                         ID2P(LANG_RESET_SETTING),
-                                        ID2P(LANG_TOP_QS_ITEM),
-                                        ID2P(LANG_LEFT_QS_ITEM),
-                                        ID2P(LANG_BOTTOM_QS_ITEM),
-                                        ID2P(LANG_RIGHT_QS_ITEM),
                                         ID2P(LANG_ADD_CURRENT_TO_FAVES),
                                         ID2P(LANG_ADD_TO_FAVES));
 
                     /* re-use the strings and desc from the settings_op_menu */
-                    static const struct menu_item_ex non_quickscreen_op_menu =
+                    static const struct menu_item_ex non_shortcut_op_menu =
                     {MT_RETURN_ID|MENU_HAS_DESC|MENU_ITEM_COUNT(1),
                     { .strings = settings_op_menu_},
                     {.callback_and_desc = &settings_op_menu__}};
 
-                    if (is_setting_quickscreenable(setting))
+                    if (can_be_shortcut(setting))
                         context_menu = &settings_op_menu;
                     else
-                    {
-                        context_menu = &non_quickscreen_op_menu;
-                    }
+                        context_menu = &non_shortcut_op_menu;
                     int msel = do_menu(context_menu, NULL, NULL, false);
 
                     switch (msel)
@@ -593,25 +601,11 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
                             settings_save();
                             settings_apply(false);
                             break;
-                        case 1: /* set as top QS item */
-                            global_settings.qs_items[QUICKSCREEN_TOP] = setting;
-                            break;
-                        case 2: /* set as left QS item */
-                            global_settings.qs_items[QUICKSCREEN_LEFT] = setting;
-                            break;
-                        case 3: /* set as bottom QS item */
-                            global_settings.qs_items[QUICKSCREEN_BOTTOM] = setting;
-                            break;
-                        case 4: /* set as right QS item */
-                            global_settings.qs_items[QUICKSCREEN_RIGHT] = setting;
-                            break;
-                        case 5: /* Add current value of setting to faves.
-                                   Same limitation on which can be
-                                   added to the shortcuts menu as the quickscreen */
+                        case 1: /* add the setting's current value to
+                                   the shortcuts */
                             shortcuts_add(SHORTCUT_SETTING_APPLY, (void*)setting);
                             break;
-                        case 6: /* Add to faves. Same limitation on which can be
-                                  added to the shortcuts menu as the quickscreen */
+                        case 2: /* add the setting to the shortcuts */
                             shortcuts_add(SHORTCUT_SETTING, (void*)setting);
                             break;
                     } /* switch(do_menu()) */
@@ -823,9 +817,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
 
     FOR_NB_SCREENS(i)
     {
-        sb_set_persistent_title(lists.title, lists.title_icon, i);
         viewportmanager_theme_undo(i, false);
-        skinlist_set_cfg(i, NULL); /* Bugfix dangling reference in skin_draw() */
     }
     return ret;
 }

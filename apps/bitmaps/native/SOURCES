@@ -1,8 +1,5 @@
 /* Rockbox logo */
 rockboxlogo.320x98x16.bmp
 
-/* The Sony NWZ linux bootloader needs icons to display a menu */
 
-/* USB logo */
-usblogo.176x48x16.bmp
 

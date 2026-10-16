@@ -26,8 +26,7 @@ endif
 
 BMPOBJ = $(call full_path_subst,$(ROOTDIR)/%.bmp,$(BUILDDIR)/%.o,$(BMP))
 
-BMPHFILES = $(BMPINCDIR)/usblogo.h $(BMPINCDIR)/remote_usblogo.h \
-	$(BMPINCDIR)/default_icons.h $(BMPINCDIR)/remote_default_icons.h \
+BMPHFILES = $(BMPINCDIR)/default_icons.h $(BMPINCDIR)/remote_default_icons.h \
 	$(BMPINCDIR)/rockboxlogo.h $(BMPINCDIR)/remote_rockboxlogo.h \
 	$(BMPINCDIR)/rockboxicon.h $(BMPINCDIR)/toolsicon.h
 

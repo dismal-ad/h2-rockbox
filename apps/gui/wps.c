@@ -705,6 +705,7 @@ long gui_wps_show(void)
             /* Back returns to the screen Now Playing was opened from */
             case ACTION_WPS_BROWSE:
                 gwps_leave_wps(true);
+                ui_transition(-1);
                 return GO_TO_PREVIOUS;
                 break;
 

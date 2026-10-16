@@ -366,7 +366,9 @@ void ui_np_draw(bool full)
     draw_band(&vp, id3, elapsed);
     if (overlay)
         draw_volume_overlay(&vp);
-    lcd_update_viewport();
+    /* slide in if a screen change asked for it */
+    if (!ui_transition_run(vp.x, vp.y, vp.width, vp.height))
+        lcd_update_viewport();
     lcd_set_viewport(last);
 }
 

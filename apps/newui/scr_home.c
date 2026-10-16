@@ -152,7 +152,9 @@ static void draw(struct viewport *vp, const enum home_target *list, int n,
     else
         ui_art_placeholder(ax, ay, HOME_ART, 8);
 
-    lcd_update_viewport();
+    /* slide in if a screen change asked for it */
+    if (!ui_transition_run(vp->x, vp->y, vp->width, vp->height))
+        lcd_update_viewport();
     lcd_set_viewport(last);
 }
 
@@ -211,6 +213,7 @@ int ui_home(int *selected)
             case ACTION_STD_OK:
             {
                 enum home_target t = list[sel];
+                ui_transition(1);
                 if (t == HOME_COVERFLOW)
                 {
                     int r = ui_coverflow();
@@ -219,6 +222,7 @@ int ui_home(int *selected)
                         ret = r;
                         goto out;
                     }
+                    ui_transition(-1);
                     redraw = true;
                     break;
                 }
@@ -230,6 +234,7 @@ int ui_home(int *selected)
                         ret = MENU_ATTACHED_USB;
                         goto out;
                     }
+                    ui_transition(-1);
                     redraw = true;
                     break;
                 }

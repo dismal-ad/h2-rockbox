@@ -506,6 +506,7 @@ void root_menu(void)
 {
     int previous_browser = global_status.last_browser;
     static int home_selected = 0;
+    static bool home_shown = false;
 
     push_current_activity(ACTIVITY_MAINMENU);
     next_screen = root_menu_setup_screens();
@@ -519,6 +520,9 @@ void root_menu(void)
                 /* fall through */
             case GO_TO_ROOT:
                 global_status.last_screen = GO_TO_ROOT; /* We've returned to ROOT */
+                if (home_shown)
+                    ui_transition(-1); /* back to Home slides from the left */
+                home_shown = true;
                 next_screen = ui_home(&home_selected);
                 if (next_screen != GO_TO_PREVIOUS)
                     last_screen = GO_TO_ROOT;
@@ -543,6 +547,11 @@ void root_menu(void)
 
             case GO_TO_PREVIOUS_MUSIC:
                 next_screen = previous_music;
+                break;
+
+            case GO_TO_WPS:
+                ui_transition(1); /* Now Playing slides in */
+                next_screen = load_screen(next_screen);
                 break;
 
             default:

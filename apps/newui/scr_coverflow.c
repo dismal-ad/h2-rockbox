@@ -454,7 +454,9 @@ static void draw(struct viewport *vp, int pos)
             ui_text(UI_MARGIN, text_y + row_h, body, UI_COL_TEXT2,
                     pool + albums[centre].artist, w, 0);
     }
-    lcd_update_viewport();
+    /* slide in if a screen change asked for it */
+    if (!ui_transition_run(vp->x, vp->y, vp->width, vp->height))
+        lcd_update_viewport();
     lcd_set_viewport(last);
 }
 
@@ -671,9 +673,11 @@ int ui_coverflow(void)
             }
             case ACTION_STD_OK:
             {
+                ui_transition(1);
                 int ret = album_songs(current);
                 if (ret != GO_TO_ROOT)
                     return ret;
+                ui_transition(-1);
                 redraw = work = true;
                 break;
             }

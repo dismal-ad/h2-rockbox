@@ -29,8 +29,8 @@
  *   ======================------------------  progress, 4 px
  *   0:15                              -6:05
  *
- * Three pages (dots at the top; Centre twice for the next): the cover with
- * the title, the track's details, and a big cover. While scrubbing the bar
+ * Four pages (dots at the top; Centre twice for the next): the cover with
+ * the title, the track's details, a big cover, and level meters. While scrubbing the bar
  * is white and thicker. The volume overlay appears over it for a moment
  * when the volume changes. */
 
@@ -41,6 +41,8 @@
 #include "lcd.h"
 #include "font.h"
 #include "metadata.h"
+#include "screen_access.h"
+#include "peakmeter.h"
 #include "audio.h"
 #include "playlist.h"
 #include "settings.h"
@@ -64,7 +66,12 @@
 #define NP_ALBUM_COL   LCD_RGBPACK(0xbb, 0xbb, 0xbb)
 #define OVERLAY_TICKS  (HZ * 3 / 2)
 #define NP_BIG_ART     148    /* Home's size: shares its decoded cover */
-#define NP_PAGES       3
+#define NP_PAGES       4
+#define NP_PAGE_LEVELS 3
+#define METER_SEGS     20
+#define METER_W        56
+#define METER_GAP      24
+#define PEAK_HOLD      (HZ * 3 / 2)
 
 static long volume_until;   /* tick until which the volume overlay shows */
 static bool volume_shown;
@@ -142,6 +149,54 @@ static void draw_volume_overlay(struct viewport *vp)
     int fill = hi > lo ? bw * (vol - lo) / (hi - lo) : 0;
     if (fill > 0)
         ui_fill_round_rect(x + 14, by, fill < 6 ? 6 : fill, 6, 3, UI_COL_SEL);
+}
+
+/* page 3: left and right level meters, 2 dB a segment from -40 dB, with
+ * the peak held for a moment */
+static const unsigned short meter_thr[METER_SEGS] = {
+    413, 519, 654, 823, 1036, 1304, 1642, 2067, 2603, 3277,
+    4125, 5193, 6538, 8231, 10362, 13045, 16422, 20675, 26028, 32767,
+};
+
+static void draw_levels(struct viewport *vp)
+{
+    static int hold[2];
+    static long hold_until[2];
+    int lv[2];
+    peak_meter_peek();
+    peak_meter_current_vals(&lv[0], &lv[1]);
+
+    const int seg_h = (NP_ART - 4) / METER_SEGS;
+    const int x0 = (vp->width - 2 * METER_W - METER_GAP) / 2;
+    const int bottom = NP_ART_Y + NP_ART;
+    ui_fill_rect(0, NP_ART_Y, vp->width, NP_ART + 2, UI_COL_BG);
+    for (int ch = 0; ch < 2; ch++)
+    {
+        int n = 0;
+        while (n < METER_SEGS && lv[ch] >= meter_thr[n])
+            n++;
+        if (n >= hold[ch] || TIME_AFTER(current_tick, hold_until[ch]))
+        {
+            hold[ch] = n;
+            hold_until[ch] = current_tick + PEAK_HOLD;
+        }
+        int x = x0 + ch * (METER_W + METER_GAP);
+        for (int i = 0; i < METER_SEGS; i++)
+        {
+            int y = bottom - (i + 1) * seg_h;
+            unsigned c = i < n ? (i >= METER_SEGS - 2 ? LCD_RGBPACK(0xe0, 0x40, 0x40) :
+                                  i >= METER_SEGS - 5 ? UI_COL_SEL : UI_COL_ACCENT)
+                               : UI_COL_TRACK;
+            if (i == hold[ch] - 1 && i >= n)
+                c = UI_COL_TEXT2;
+            ui_fill_round_rect(x, y, METER_W, seg_h - 2, 2, c);
+        }
+    }
+}
+
+bool ui_np_wants_fast_updates(void)
+{
+    return page == NP_PAGE_LEVELS;
 }
 
 /* page 0: the cover, and title, artist and album beside it */
@@ -259,7 +314,13 @@ void ui_np_draw(bool full)
     if (!full && !overlay)
     {
         draw_band(&vp, id3, elapsed);
-        lcd_update_viewport_rect(0, NP_BAND_Y, vp.width, vp.height - NP_BAND_Y);
+        if (page == NP_PAGE_LEVELS && id3)
+        {
+            draw_levels(&vp);
+            lcd_update_viewport_rect(0, NP_ART_Y, vp.width, vp.height - NP_ART_Y);
+        }
+        else
+            lcd_update_viewport_rect(0, NP_BAND_Y, vp.width, vp.height - NP_BAND_Y);
         lcd_set_viewport(last);
         return;
     }
@@ -286,7 +347,9 @@ void ui_np_draw(bool full)
             ui_fill_round_rect(vp.width / 2 - 14 + i * 12, 8, 6, 6, 3,
                                i == page ? UI_COL_TEXT : UI_COL_ACCENT);
 
-        if (page == 1)
+        if (page == NP_PAGE_LEVELS)
+            draw_levels(&vp);
+        else if (page == 1)
             draw_details(&vp, id3);
         else if (page == 2)
         {

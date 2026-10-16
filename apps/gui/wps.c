@@ -634,7 +634,7 @@ long gui_wps_show(void)
         if (button && !IS_SYSEVENT(button) )
             storage_spin();
 
-        long timeout = HZ/5;
+        long timeout = ui_np_wants_fast_updates() ? HZ/20 : HZ/5;
         if (play_pending)
             timeout = MAX(0, play_pending - current_tick);
         button = get_action(CONTEXT_WPS|ALLOW_SOFTLOCK, timeout);

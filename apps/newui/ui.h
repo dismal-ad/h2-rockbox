@@ -181,8 +181,10 @@ int ui_lock_screen(void);
 void ui_np_draw(bool full);
 /* Shows the volume overlay for a moment */
 void ui_np_volume_changed(void);
-/* Next page: cover and title, details, big cover */
+/* Next page: cover and title, details, big cover, level meters */
 void ui_np_next_page(void);
+/* The level meters show: Now Playing should redraw often */
+bool ui_np_wants_fast_updates(void);
 /* The progress bar as the scrub bar (white, thicker) or back */
 void ui_np_set_scrub(bool on);
 

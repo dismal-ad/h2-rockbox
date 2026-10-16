@@ -293,16 +293,6 @@ static void style_line(struct screen *display,
         style |= STYLE_INVERT;
     }
 
-    if (line->separator_height > 0 && (line->line == line->nlines-1))
-    {
-        int sep_height = MIN(line->separator_height, height);
-        display->set_drawmode(DRMODE_FG);
-        display->set_foreground(global_settings.list_separator_color);
-        display->fillrect(x, y + height - sep_height, width, sep_height);
-        bar_height -= sep_height;
-        display->set_foreground(global_settings.fg_color);
-    }
-
     /* mask out gradient and colorbar styles for non-color displays */
     if (display->depth < 16)
     {

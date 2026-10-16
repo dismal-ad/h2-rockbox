@@ -390,32 +390,7 @@ static const char graphic_numeric[] = "graphic,numeric";
 # define MAX_FILES_IN_DIR_STEP      50
 #endif
 
-# define SCROLLBAR_DEFAULT SCROLLBAR_LEFT
-
 #ifndef __PCTOOL__
-
-static const char* list_pad_formatter(char *buffer, size_t buffer_size,
-                                    int val, const char *unit)
-{
-    switch (val)
-    {
-        case -1: return str(LANG_AUTO);
-        case  0: return str(LANG_OFF);
-        default: break;
-    }
-    snprintf(buffer, buffer_size, "%d %s", val, unit);
-    return buffer;
-}
-
-static int32_t list_pad_getlang(int value, int unit)
-{
-    switch (value)
-    {
-        case -1: return LANG_AUTO;
-        case  0: return LANG_OFF;
-        default: return TALK_ID(value, unit);
-    }
-}
 
 static const char* formatter_time_unit_0_is_off(char *buffer, size_t buffer_size,
                                     int val, const char *unit)
@@ -916,29 +891,6 @@ const struct settings_list settings[] = {
                     getlang_time_unit_0_is_always, backlight_set_timeout_plugged,
                     23, timeout_sec_common),
     /* display */
-     CHOICE_SETTING(F_TEMPVAR|F_THEMESETTING, cursor_style, LANG_INVERT_CURSOR,
-                    3, "selector type",
-                    "pointer,bar (inverse),bar (color),bar (gradient)", NULL, 4,
-                    ID2P(LANG_INVERT_CURSOR_POINTER),
-                    ID2P(LANG_INVERT_CURSOR_BAR),
-                    ID2P(LANG_INVERT_CURSOR_COLOR),
-                    ID2P(LANG_INVERT_CURSOR_GRADIENT)),
-    CHOICE_SETTING(F_THEMESETTING|F_TEMPVAR|F_NEEDAPPLY, statusbar,
-                  LANG_STATUS_BAR, STATUSBAR_TOP, "statusbar","off,top,bottom",
-                  NULL, 3, ID2P(LANG_OFF), ID2P(LANG_STATUSBAR_TOP),
-                  ID2P(LANG_STATUSBAR_BOTTOM)),
-    CHOICE_SETTING(F_THEMESETTING|F_TEMPVAR, scrollbar,
-                  LANG_SCROLL_BAR, SCROLLBAR_DEFAULT, "scrollbar","off,left,right",
-                  NULL, 3, ID2P(LANG_OFF), ID2P(LANG_LEFT), ID2P(LANG_RIGHT)),
-    INT_SETTING(F_THEMESETTING, scrollbar_width, LANG_SCROLLBAR_WIDTH, 6,
-                "scrollbar width",UNIT_INT, 3, MAX(LCD_WIDTH/10,25), 1,
-                NULL, NULL, NULL),
-    TABLE_SETTING(F_ALLOW_ARBITRARY_VALS, list_separator_height, LANG_LIST_SEPARATOR,
-                  0, "list separator height", "auto,off", UNIT_PIXEL,
-                  list_pad_formatter, list_pad_getlang, NULL, 15,
-                  -1,0,1,2,3,4,5,7,9,11,13,16,20,25,30),
-    {F_T_INT|F_RGB|F_THEMESETTING ,&global_settings.list_separator_color,-1,
-        INT(DEFAULT_THEME_SEPARATOR),"list separator color",UNUSED},
     CHOICE_SETTING(F_THEMESETTING, volume_type, LANG_VOLUME_DISPLAY, 0,
                    "volume display", graphic_numeric, NULL, 2,
                    ID2P(LANG_DISPLAY_GRAPHIC),
@@ -1062,12 +1014,6 @@ const struct settings_list settings[] = {
         INT(DEFAULT_THEME_FOREGROUND),"foreground color",UNUSED},
     {F_T_INT|F_RGB|F_THEMESETTING ,&global_settings.bg_color,-1,
         INT(DEFAULT_THEME_BACKGROUND),"background color",UNUSED},
-    {F_T_INT|F_RGB|F_THEMESETTING ,&global_settings.lss_color,-1,
-        INT(DEFAULT_THEME_SELECTOR_START),"line selector start color",UNUSED},
-    {F_T_INT|F_RGB|F_THEMESETTING ,&global_settings.lse_color,-1,
-        INT(DEFAULT_THEME_SELECTOR_END),"line selector end color",UNUSED},
-    {F_T_INT|F_RGB|F_THEMESETTING ,&global_settings.lst_color,-1,
-        INT(DEFAULT_THEME_SELECTOR_TEXT),"line selector text color",UNUSED},
 
     /* more playback */
     OFFON_SETTING(0,play_selected,LANG_PLAY_SELECTED,true,"play selected",NULL),
@@ -1491,13 +1437,7 @@ const struct settings_list settings[] = {
     INT_SETTING(0, glyphs_to_cache, LANG_GLYPHS, DEFAULT_GLYPHS,
                 "glyphs", UNIT_INT, MIN_GLYPHS, MAX_GLYPHS, 10,
                 NULL, NULL, NULL),
-    TEXT_SETTING(F_THEMESETTING|F_NEEDAPPLY,wps_file, "wps",
-                     DEFAULT_WPSNAME, WPS_DIR "/", ".wps"),
-    TEXT_SETTING(F_THEMESETTING|F_NEEDAPPLY,sbs_file, "sbs",
-                     DEFAULT_SBSNAME, SBS_DIR "/", ".sbs"),
     TEXT_SETTING(0,lang_file,"lang","",LANG_DIR "/",".lng"),
-    TEXT_SETTING(F_THEMESETTING|F_NEEDAPPLY,backdrop_file,"backdrop",
-                     DEFAULT_BACKDROP, NULL, NULL),
     TEXT_SETTING(0,kbd_file,"kbd","-",ROCKBOX_DIR "/",".kbd"),
 #ifdef HAVE_USB_CHARGING_ENABLE
     CHOICE_SETTING(0, usb_charging, LANG_USB_CHARGING, TARGET_USB_CHARGING_DEFAULT, "usb charging",
@@ -1588,8 +1528,6 @@ const struct settings_list settings[] = {
         ID2P(LANG_NEVER), ID2P(LANG_ALWAYS), ID2P(LANG_WHILE_USB_CHARGE_ONLY), ID2P(LANG_WHILE_MASS_STORAGE_USB_ONLY)),
 #endif
 
-    /* Customizable list */
-    VIEWPORT_SETTING(ui_vp_config, "ui viewport"),
 
    CUSTOM_SETTING(0, context_wps,
                   LANG_ONPLAY_MENU_TITLE, /* lang string here is never actually used */

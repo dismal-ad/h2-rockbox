@@ -46,9 +46,7 @@ static int screen_helper_getcharheight(void)
 
 static int screen_helper_getnblines(void)
 {
-    int height=screens[0].lcdheight;
-    if(global_settings.statusbar != STATUSBAR_OFF)
-        height -= STATUSBAR_HEIGHT;
+    int height=screens[0].lcdheight - STATUSBAR_HEIGHT;
     return height / screens[0].getcharheight();
 }
 
@@ -110,9 +108,7 @@ static int screen_helper_remote_getcharheight(void)
 
 static int screen_helper_remote_getnblines(void)
 {
-    int height=screens[1].lcdheight;
-    if(global_settings.statusbar != STATUSBAR_OFF)
-        height -= STATUSBAR_HEIGHT;
+    int height=screens[1].lcdheight - STATUSBAR_HEIGHT;
     return height / screens[1].getcharheight();
 }
 

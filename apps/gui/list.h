@@ -29,7 +29,6 @@
 #endif
 #include "line.h"
 
-#define SCROLLBAR_WIDTH global_settings.scrollbar_width
 
 enum synclist_cursor
 {
@@ -159,7 +158,6 @@ struct gui_synclist
 {
     /*flags to hold settings show: icons, scrollbar etc..*/
     int scrollbar;
-    int cursor_style;
     bool show_icons;
     bool keyclick;
     bool talk_menu;

@@ -400,8 +400,6 @@ struct user_settings
     int peak_meter_min; /* range minimum */
     int peak_meter_max; /* range maximum */
 
-    unsigned char wps_file[MAX_FILENAME+1];  /* last wps */
-    unsigned char sbs_file[MAX_FILENAME+1];  /* last statusbar skin */
     unsigned char lang_file[MAX_FILENAME+1]; /* last language */
     unsigned char playlist_catalog_dir[MAX_PATHNAME+1];
     int skip_length; /* skip length */
@@ -410,13 +408,8 @@ struct user_settings
     int volume_type;   /* how volume is displayed: 0=graphic, 1=percent */
     int battery_display; /* how battery is displayed: 0=graphic, 1=percent */
     bool show_icons;   /* 0=hide 1=show */
-    int statusbar;    /* STATUSBAR_* enum values */
 
-    int scrollbar;    /* SCROLLBAR_* enum values */
-    int scrollbar_width;
 
-    int list_separator_height; /* -1=auto (== 1 currently), 0=disabled, X=height in pixels */
-    int list_separator_color;
     /* goto current song when exiting WPS */
     bool browse_current; /* 1=goto current song,
                             0=goto previous location */
@@ -450,13 +443,9 @@ struct user_settings
     unsigned char tagcache_scan_paths[MAX_PATHLIST+1];
     unsigned char tagcache_db_path[MAX_PATHNAME+1];
 
-    unsigned char backdrop_file[MAX_PATHNAME+1];  /* backdrop bitmap file */
 
     int bg_color; /* background color native format */
     int fg_color; /* foreground color native format */
-    int lss_color; /* background color for the selector or start color for the gradient */
-    int lse_color; /* end color for the selector gradient */
-    int lst_color; /* color of the text for the selector */
     unsigned char colors_file[MAX_FILENAME+1];
 
     /* playlist/playback settings */
@@ -504,7 +493,6 @@ struct user_settings
 #endif
     /* device settings */
 
-    int  cursor_style; /* style of the selection cursor */
     int  screen_scroll_step;
     int  show_path_in_browser; /* 0=off, 1=current directory, 2=full path */
     bool offset_out_of_view;
@@ -550,7 +538,6 @@ struct user_settings
     int usb_audio;
 #endif
 
-    unsigned char ui_vp_config[64]; /* viewport string for the lists */
 
     struct compressor_settings compressor_settings;
 

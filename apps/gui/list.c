@@ -127,13 +127,12 @@ void list_init_item_height(struct gui_synclist *list, enum screen_type screen)
 static void gui_synclist_init_display_settings(struct gui_synclist * list)
 {
     struct user_settings *gs = &global_settings;
-    list->scrollbar = gs->scrollbar;
+    list->scrollbar = SCROLLBAR_RIGHT; /* the new UI's thin bar */
     list->show_icons = gs->show_icons;
     list->scroll_paginated = gs->scroll_paginated;
     list->keyclick = gs->keyclick;
     list->talk_menu = gs->talk_menu;
     list->wraparound = gs->list_wraparound;
-    list->cursor_style = gs->cursor_style;
 }
 
 /*

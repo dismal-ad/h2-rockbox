@@ -102,7 +102,5 @@ struct gui_syncstatusbar
 
 extern void gui_syncstatusbar_init(struct gui_syncstatusbar * bars) INIT_ATTR;
 
-#include "settings.h"
-#define statusbar_position(a) ((enum statusbar_values)global_settings.statusbar)
 
 #endif /*_GUI_STATUSBAR_H_*/

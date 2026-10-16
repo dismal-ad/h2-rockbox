@@ -122,6 +122,13 @@ void ui_panel(int x, int y, int w, int h);
 void ui_dim(void);
 /* Appends text to l, word wrapped to max_w; '\n' and '\t' break lines */
 void ui_wrap(struct ui_lines *l, const char *text, int font, int max_w);
+/* Most choices a choice panel shows; more go in a full-screen list */
+#define UI_CHOICE_MAX 6
+/* A panel with a title and up to UI_CHOICE_MAX choices, sel highlighted
+ * (the yes/no panel's look) */
+void ui_choice_draw(struct viewport *vp, const char *title, int count, int sel,
+                    const char *(*label)(int i, void *data, char *buf, size_t len),
+                    void *data);
 
 /* --- album art (ui_art.c) --- */
 

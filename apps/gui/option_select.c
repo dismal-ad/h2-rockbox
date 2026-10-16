@@ -615,6 +615,8 @@ bool option_screen(const struct settings_list *setting,
     gui_synclist_select_item(&lists, selected);
 
     const bool slider = is_slider(setting);
+    /* few choices (on/off, a short list): a panel over the dimmed menu */
+    const bool panel = !slider && nb_items <= UI_CHOICE_MAX;
     struct viewport slider_vp;
     if (parent)
         slider_vp = parent[SCREEN_MAIN];
@@ -622,6 +624,15 @@ bool option_screen(const struct settings_list *setting,
         viewport_set_defaults(&slider_vp, SCREEN_MAIN);
     if (slider)
         draw_slider(&slider_vp, setting, title, *variable);
+    else if (panel)
+    {
+        struct viewport *last = lcd_set_viewport(&slider_vp);
+        ui_dim();
+        lcd_update_viewport();
+        lcd_set_viewport(last);
+        ui_choice_draw(&slider_vp, title, nb_items, selected,
+                       value_setting_get_name_cb, (void*)setting);
+    }
     else
         gui_synclist_draw(&lists);
     /* talk the item */
@@ -639,17 +650,31 @@ bool option_screen(const struct settings_list *setting,
             action = get_action(CONTEXT_SETTINGS|ALLOW_SOFTLOCK, HZ);
             changed = slider_move(setting, action, &selected, nb_items);
         }
+        else if (panel)
+        {
+            action = get_action(CONTEXT_LIST|ALLOW_SOFTLOCK, HZ);
+            int sel = selected;
+            if (action == ACTION_STD_NEXT || action == ACTION_STD_NEXTREPEAT)
+                sel = allow_wrap ? (sel + 1) % nb_items : MIN(sel + 1, nb_items - 1);
+            else if (action == ACTION_STD_PREV || action == ACTION_STD_PREVREPEAT)
+                sel = allow_wrap ? (sel + nb_items - 1) % nb_items : MAX(sel - 1, 0);
+            changed = sel != selected;
+            selected = sel;
+        }
         else
             changed = list_do_action(CONTEXT_LIST|ALLOW_SOFTLOCK, HZ, /* HZ so the status bar redraws */
                                      &lists, &action);
         if (changed)
         {
             /* setting changed */
-            if (!slider)
+            if (!slider && !panel)
                 selected = gui_synclist_get_sel_pos(&lists);
             *variable = selection_to_val(setting, selected);
             if (slider)
                 draw_slider(&slider_vp, setting, title, *variable);
+            else if (panel)
+                ui_choice_draw(&slider_vp, title, nb_items, selected,
+                               value_setting_get_name_cb, (void*)setting);
             if (var_type == F_T_BOOL && !use_temp_var)
                 *(bool*)setting->setting = (*variable==1);
         }
@@ -678,6 +703,9 @@ bool option_screen(const struct settings_list *setting,
             gui_synclist_select_item(&lists, selected);
             if (slider)
                 draw_slider(&slider_vp, setting, title, *variable);
+            else if (panel)
+                ui_choice_draw(&slider_vp, title, nb_items, selected,
+                               value_setting_get_name_cb, (void*)setting);
             else
                 gui_synclist_draw(&lists);
             gui_synclist_speak_item(&lists);

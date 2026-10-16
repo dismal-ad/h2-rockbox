@@ -26,6 +26,7 @@
 #include "system.h"
 #include "lcd.h"
 #include "font.h"
+#include <stdio.h>
 #include "ui.h"
 
 void ui_panel(int x, int y, int w, int h)
@@ -107,4 +108,46 @@ void ui_wrap(struct ui_lines *l, const char *text, int font, int max_w)
             return;
         text = *end ? end + 1 : end;
     }
+}
+
+/* A choice panel: the title and the choices as rows, the selected one
+ * highlighted, centred in vp over what is behind it. */
+void ui_choice_draw(struct viewport *vp, const char *title, int count, int sel,
+                    const char *(*label)(int i, void *data, char *buf, size_t len),
+                    void *data)
+{
+    struct viewport *last = lcd_set_viewport(vp);
+    const int font = ui_font(UI_FONT_ROW), tfont = ui_font(UI_FONT_TITLE);
+    const int th = font_get(tfont)->height + 6;
+    char buf[64];
+
+    int widest = title ? ui_text_width(tfont, title) : 0;
+    for (int i = 0; i < count; i++)
+    {
+        int w = ui_text_width(font, label(i, data, buf, sizeof(buf)));
+        if (w > widest)
+            widest = w;
+    }
+    int w = MIN(MAX(widest + 2 * UI_POPUP_PAD, 180), vp->width - 2 * UI_MARGIN);
+    int h = 12 + (title ? th : 0) + count * UI_ROW_H + 8;
+    int x = (vp->width - w) / 2, y = (vp->height - h) / 2;
+    int tw = w - 2 * UI_POPUP_PAD;
+
+    ui_panel(x, y, w, h);
+    int ry = y + 12;
+    if (title)
+    {
+        ui_text(x + UI_POPUP_PAD, ry, tfont, UI_COL_TEXT, title, tw, 0);
+        ry += th;
+    }
+    for (int i = 0; i < count; i++, ry += UI_ROW_H)
+    {
+        if (i == sel)
+            ui_fill_round_rect(x + 8, ry, w - 16, UI_ROW_H, 6, ui_sel_bg());
+        ui_text_vcenter(x + UI_POPUP_PAD, ry, UI_ROW_H, font,
+                        i == sel ? ui_sel_text() : UI_COL_TEXT2,
+                        label(i, data, buf, sizeof(buf)), tw, -1);
+    }
+    lcd_update_viewport_rect(x, y, w, h);
+    lcd_set_viewport(last);
 }

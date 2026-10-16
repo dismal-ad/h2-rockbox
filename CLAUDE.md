@@ -29,8 +29,7 @@ export PATH=$HOME/rockbox-toolchain/bin:$PATH
 ../src/tools/configure --target=erosqnative --type=s && make -j8 && make install && ./rockboxui
 ```
 
-Other build types still supported: `--type=c` (checkwps), `--type=w` (warble
-codec test tool), `--type=a<opts>` advanced builds (`l` logf, `i` logf to
+Other build types still supported: `--type=w` (warble codec test tool), `--type=a<opts>` advanced builds (`l` logf, `i` logf to
 serial, `d` debug, `u` USB serial, `m` small C lib, `x` LTO). Profiling (`p`)
 does not build on MIPS (also broken upstream).
 
@@ -38,12 +37,18 @@ Simulator keys: arrows = scroll wheel / prev / next, Enter = play/select,
 Backspace = back, Insert = menu, PgUp/PgDn = volume, Esc = power.
 
 Install on the player: unzip `rockbox.zip` to the SD card root (it contains
-`.rockbox/`). Remove the old `.rockbox` first, since unzip does not delete stale files.
+`.rockbox/`). The owner's card keeps settings and Bluetooth pairings in
+`.rockbox/` (`config.cfg`, `bt_config.conf`, `bt_devices.txt`): unzip over the
+existing folder (`unzip -o`) and check those files are unchanged.
 
 ## Verifying changes
 
-A change is good when **all four** fresh builds pass: firmware, simulator,
-checkwps, warble (plus a logf build for debug-path changes). For pure cleanups,
+A change is good when the fresh builds pass: firmware, simulator, warble
+(plus a logf build for debug-path changes). `../newui-tools/check.sh` is the
+commit gate (firmware zip + simulator install, no new warnings);
+`../newui-tools/simrun.sh <script> <shotdir>` runs the simulator headless from
+a key script and writes screenshots (see `uisimulator/common/sim_script.c`);
+`../newui-tools/loc.py [commit]` counts code lines. For pure cleanups,
 `mipsel-elf-size rockbox.elf` and the `.codec` sizes must be unchanged. Only
 the version string may differ.
 
@@ -59,14 +64,14 @@ the version string may differ.
   WavPack, WMA/WMA Pro, Shorten, DSD, AU, VOX, SMAF.
 - Voice (spoken menus): `apps/talk.h` and `apps/voice_thread.h` are **inline
   no-op stubs**; call sites remain and can be deleted as screens are rewritten.
-- Plugins: no plugins and no loader. `plugin_load()` always fails;
-  `plugin_get_buffer()` still returns the 2 MiB scratch buffer.
-
-Known leftovers that still try to launch plugins (show "Plugin error"): Plugins
-browser (`GO_TO_BROWSEPLUGINS` in `apps/root_menu.c`, `apps/menus/plugin_menu.c`),
-"Open with…", Properties, PictureFlow, credits/licence viewer, pitch screen,
-playing time, image viewer, DB folder select, main menu config, open-plugin
-hotkey. Remove or replace these during the overhaul.
+- Plugins: no plugins, no loader and no menu entries for them;
+  `plugin_get_buffer()` (apps/plugin.c) still returns the 2 MiB scratch buffer.
+- The theme (skin) engine and everything around it (phase 8 of the new UI):
+  `apps/gui/skin_engine/`, `lib/skin_parser/`, the skinned status bar and
+  lists, Theme Settings and the theme settings, the quick screen (its button
+  opens Shortcuts), `tools/checkwps` and the CheckWPS build type, `wps/`,
+  `backdrops/`, the bitmap fonts except the system font, and playback's
+  album art buffering for themes.
 
 ## Bluetooth (branch `newui-bt`)
 
@@ -114,12 +119,8 @@ The full plan (screens, layouts at 320×240, phases, risks) is in
 `docs/newui/PLAN.md`.
 
 
-1. **Code-drawn UI, no themes.** The new UI is drawn directly in C. The skin
-   engine is to be removed **once the new screens replace it** (the current
-   UI still depends on it): `apps/gui/skin_engine/`, `lib/skin_parser/`,
-   `apps/gui/statusbar-skinned.c`, `apps/gui/wps.c` (Now Playing),
-   `tools/checkwps/`, `wps/`, `backdrops/`, theme settings and the `--type=c`
-   build. Until then, keep checkwps building.
+1. **Code-drawn UI, no themes.** The new UI is drawn directly in C
+   (`apps/newui/`); the theme engine is gone.
 2. **Keep the music database and add iPod-style Cover Flow** album browsing
    (album covers that slide/scroll with the wheel). The database format may be
    changed for this.
@@ -130,21 +131,23 @@ The full plan (screens, layouts at 320×240, phases, risks) is in
    - Album art: `apps/recorder/albumart.c` (finds cover files),
      `apps/recorder/jpeg_load.c`, `bmp.c`, `resize.c` (decode + scale).
      `HAVE_ALBUMART` and `HAVE_JPEG` are enabled.
-   - Decoding JPEGs while scrolling is too slow on the X1000; plan for
-     pre-scaled cover thumbnails cached on disk (e.g. built alongside the
-     database) and a small in-RAM cache for the covers on screen.
-   - Upstream's PictureFlow plugin implements this effect and is a useful
-     reference: `git show 212bb63ee4:apps/plugins/pictureflow/pictureflow.c`.
+   - Decoding JPEGs while scrolling is too slow on the X1000: covers are
+     saved pre-scaled on the card (`/.rockbox/newui/thumbs`, 46 and 120 px,
+     `apps/newui/ui_thumb.c`) with a small RAM cache.
 3. Layout for 320×240 driven by the scroll wheel; build and check every
    screen in the simulator first.
 
 ## Where the UI code lives
 
-- `apps/root_menu.c`: top-level screen switching and the start screen
+- `apps/newui/`: the new UI (`ui.h` has the design tokens and APIs): Home
+  (`scr_home.c`), Now Playing (`scr_np.c`), Cover Flow (`scr_coverflow.c`),
+  lock screen, keyboard, pop-ups, status bar, fonts, album art and thumbnails
+- `apps/root_menu.c`: screen switching under Home and the start screen
 - `apps/menus/`, `apps/menu.c`: settings menus
-- `apps/gui/list.c`, `line.c`, `viewport.c`, `scrollbar.c`, `icon.c`: list and
-  drawing primitives
+- `apps/gui/list.c` + `bitmap/list.c` (drawing): every list; `viewport.c`:
+  the status bar / full screen stack; `statusbar.c`: feeds the status bar
 - `apps/tree.c`, `apps/filetree.c`: file browser; `apps/tagtree.c`: database browser
-- `apps/gui/wps.c` + skin engine: Now Playing; `apps/onplay.c`: context menu
+- `apps/gui/wps.c`: Now Playing's logic (drawn by `newui/scr_np.c`);
+  `apps/onplay.c`: context menu
 - `apps/settings_list.c`: all settings definitions
 - `firmware/drivers/lcd-16bit*.c`, `firmware/export/lcd.h`: LCD drawing API

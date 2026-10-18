@@ -752,14 +752,17 @@ int ui_coverflow(void)
             {
                 int dir = action == ACTION_STD_NEXT ||
                           action == ACTION_STD_NEXTREPEAT ? 1 : -1;
+                int next = current + dir * ui_wheel_step(dir, album_count);
+                next = MAX(0, MIN(next, album_count - 1));
+                if (next == current)
+                    break;  /* at the first or last cover: nothing to do */
                 if (!moving)
                     last_us = ui_time_us();
                 uint32_t t = ui_time_us();
                 if (t - last_step_us < CF_FAST_GAP_US)
                     fast = true;
                 last_step_us = t;
-                current += dir * ui_wheel_step(dir, album_count);
-                current = MAX(0, MIN(current, album_count - 1));
+                current = next;
                 bg_next = 0;
                 work = true;
                 break;

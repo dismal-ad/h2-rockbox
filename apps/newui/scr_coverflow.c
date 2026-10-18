@@ -78,10 +78,14 @@
 #define CF_TOP        4                   /* centre cover's top */
 #define CF_REFLECT    80                  /* reflection's starting brightness /256 */
 #define CF_VISIBLE    4                   /* covers drawn on each side */
+/* Cover Flow's responsiveness to the wheel: when the covers start flowing
+ * (all turned, none facing front) and how quickly the centre cover turns
+ * back to face the viewer once the wheel slows or stops. Tune these four
+ * by feel on the device. */
 #define CF_FAST_GAP_US 90000              /* steps closer than this: flowing */
-#define CF_SETTLE_US  160000              /* no step for this: settling */
+#define CF_SETTLE_US  100000              /* no step for this: settling */
 #define CF_FLOW_MS    90                  /* covers go to the flow layout */
-#define CF_FACE_MS    260                 /* the centre one turns to face us */
+#define CF_FACE_MS    150                 /* the centre one turns to face us */
 
 #define MAX_ALBUMS    2000
 #define NAMES_SIZE    (64 * 1024)

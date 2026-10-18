@@ -18,31 +18,30 @@
  *
  ****************************************************************************/
 
-/* Now Playing's drawing (PLAN.md §4.5). The screen's logic stays in
- * apps/gui/wps.c, which calls ui_np_draw() where it used to update the
- * theme. Drawn below the status bar:
+/* Now Playing's drawing (PLAN.md §4.5), the iPod's layout. The screen's
+ * logic stays in apps/gui/wps.c, which calls ui_np_draw(). Drawn below the
+ * status bar (which names the screen):
  *
- *   3 of 12             • o o           Shuffle
- *   [ art 140x140 ]  Title
- *                    Artist
- *                    Album
- *   ======================------------------  progress, 4 px
- *   0:15                              -6:05
+ *                                            Shuffle
+ *   [ cover, turned a little ]  Title
+ *   [                        ]  Artist
+ *   [                        ]  Album
+ *                               3 of 12
+ *   [ its reflection         ]
+ *   0:15 [==========---------------] -6:05      progress, 12 px
  *
- * Four pages (dots at the top; Centre twice for the next): the cover with
- * the title, the track's details, a big cover, and level meters. While scrubbing the bar
- * is white and thicker. The volume overlay appears over it for a moment
- * when the volume changes. */
+ * When the volume changes, the band shows it for a moment instead of the
+ * progress: a bar between a quiet and a loud speaker, as the iPod. */
 
 #include "config.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "kernel.h"
 #include "lcd.h"
 #include "font.h"
 #include "metadata.h"
 #include "screen_access.h"
-#include "peakmeter.h"
 #include "audio.h"
 #include "playlist.h"
 #include "settings.h"
@@ -71,17 +70,9 @@
 #define NP_ARTIST_COL  UI_COL_ARTIST
 #define NP_ALBUM_COL   UI_COL_ALBUM
 #define OVERLAY_TICKS  (HZ * 3 / 2)
-#define NP_BIG_ART     148    /* Home's size: shares its decoded cover */
-#define NP_PAGES       4
-#define NP_PAGE_LEVELS 3
-#define METER_SEGS     20
-#define METER_W        56
-#define METER_GAP      24
-#define PEAK_HOLD      (HZ * 3 / 2)
 
 static long volume_until;   /* tick until which the volume overlay shows */
 static bool volume_shown;
-static int page;            /* 0: cover and title, 1: details, 2: big cover */
 static bool scrubbing;
 
 static void format_mmss(char *buf, size_t len, long ms, bool minus)
@@ -111,6 +102,78 @@ static const char *track_title(const struct mp3entry *id3, char *buf, size_t len
 
 /* "0:04 [=====-------] -5:32" on one line, the bar thick, outlined,
  * the elapsed part in the accent's gradient */
+/* the bar: a light gradient track in a grey outline, part/total of it in
+ * the accent's gradient */
+static void draw_bar(int bx, int by, int bw, long part, long total)
+{
+    lcd_set_drawmode(DRMODE_SOLID);
+    lcd_gradient_fillrect(bx, by, bw, NPL_BAR_H, ui_col(UI_C_TRACK_TOP),
+                          ui_col(UI_C_TRACK_BOTTOM));
+    int fill = total > 0 ? (int)((long long)bw * part / total) : 0;
+    if (fill > 0)
+        lcd_gradient_fillrect(bx, by, MIN(fill, bw), NPL_BAR_H,
+                              ui_sel_top(), ui_accent());
+    ui_stroke_round_rect(bx - 1, by - 1, bw + 2, NPL_BAR_H + 2, 0, 1,
+                         ui_col(UI_C_OUTLINE));
+}
+
+/* While scrubbing, as the iPod: a thin empty track and a diamond at the
+ * position, in the accent colour (lighter on its upper half) */
+#define SCRUB_TRACK_H  6
+#define VOL_BAR_W      204    /* the volume bar, as the iPod's */
+#define DIAMOND_R      8
+static void draw_scrub_bar(int bx, int yc, int bw, long part, long total)
+{
+    int ty = yc - SCRUB_TRACK_H / 2;
+    lcd_set_drawmode(DRMODE_SOLID);
+    lcd_gradient_fillrect(bx, ty, bw, SCRUB_TRACK_H, ui_col(UI_C_TRACK_TOP),
+                          ui_col(UI_C_TRACK_BOTTOM));
+    ui_stroke_round_rect(bx - 1, ty - 1, bw + 2, SCRUB_TRACK_H + 2, 0, 1,
+                         ui_col(UI_C_OUTLINE));
+    int x = bx + (total > 0 ? (int)((long long)bw * part / total) : 0);
+    for (int dy = -DIAMOND_R; dy <= DIAMOND_R; dy++)
+    {
+        int half = DIAMOND_R - abs(dy);
+        ui_fill_rect(x - half, yc + dy, 2 * half + 1, 1,
+                     dy < 0 ? ui_sel_top() : ui_accent());
+    }
+}
+
+/* a speaker, 12 px tall, centred on y: its box and cone, and with waves
+ * the louder one */
+static void draw_speaker(int x, int yc, bool waves)
+{
+    const unsigned c = UI_COL_TEXT;
+    ui_fill_rect(x, yc - 3, 4, 6, c);
+    for (int i = 0; i < 6; i++)                 /* the cone, widening */
+        ui_fill_rect(x + 4 + i, yc - 3 - i, 1, 6 + 2 * i, c);
+    if (!waves)
+        return;
+    for (int r = 4; r <= 10; r += 6)            /* two arcs */
+        for (int dy = -r; dy <= r; dy++)
+        {
+            int dx = 0;
+            while ((dx + 1) * (dx + 1) + dy * dy <= r * r)
+                dx++;
+            ui_fill_rect(x + 11 + dx, yc + dy, 2, 1, c);
+        }
+}
+
+/* the volume in place of the progress bar, as the iPod */
+static void draw_volume_band(struct viewport *vp)
+{
+    const int band_h = vp->height - NPL_BAND_Y;
+    const int yc = NPL_BAND_Y + band_h / 2;
+    int lo = sound_min(SOUND_VOLUME), hi = sound_max(SOUND_VOLUME);
+    /* a shorter bar, centred, the speakers just outside its ends */
+    int bw = VOL_BAR_W, bx = (vp->width - bw) / 2;
+
+    ui_fill_rect(0, NPL_BAND_Y, vp->width, band_h, UI_COL_BG);
+    draw_speaker(bx - 8 - 10, yc, false);
+    draw_speaker(bx + bw + 8, yc, true);
+    draw_bar(bx, yc - NPL_BAR_H / 2, bw, global_status.volume - lo, hi - lo);
+}
+
 static void draw_band(struct viewport *vp, const struct mp3entry *id3,
                       long elapsed)
 {
@@ -132,91 +195,14 @@ static void draw_band(struct viewport *vp, const struct mp3entry *id3,
     ui_text_vcenter(vp->width - UI_MARGIN - rw - 4, NPL_BAND_Y, band_h, font,
                     UI_COL_TEXT, right, rw + 4, 1);
 
-    /* track: a light gradient in a grey outline */
-    lcd_set_drawmode(DRMODE_SOLID);
-    lcd_gradient_fillrect(bx, by, bw, NPL_BAR_H, ui_col(UI_C_TRACK_TOP),
-                          ui_col(UI_C_TRACK_BOTTOM));
-    int fill = len > 0 ? (int)((long long)bw * pos / len) : 0;
-    if (fill > 0)
-    {
-        if (scrubbing)
-            ui_fill_rect(bx, by, fill, NPL_BAR_H, UI_COL_TEXT);
-        else
-            lcd_gradient_fillrect(bx, by, fill, NPL_BAR_H, ui_sel_top(), ui_accent());
-    }
-    ui_stroke_round_rect(bx - 1, by - 1, bw + 2, NPL_BAR_H + 2, 0, 1,
-                         ui_col(UI_C_OUTLINE));
+    if (scrubbing)
+        draw_scrub_bar(bx, by + NPL_BAR_H / 2, bw, pos, len);
+    else
+        draw_bar(bx, by, bw, pos, len);
 }
 
-static void draw_volume_overlay(struct viewport *vp)
-{
-    const int w = 216, h = 56;
-    int x = (vp->width - w) / 2, y = NP_ART_Y + (NP_ART - h) / 2;
-    int vol = global_status.volume;
-    int lo = sound_min(SOUND_VOLUME), hi = sound_max(SOUND_VOLUME);
-    char buf[24];
 
-    ui_fill_round_rect(x, y, w, h, 12, UI_COL_PANEL);
-    ui_text(x + 14, y + 8, ui_font(UI_FONT_SMALL), UI_COL_TEXT2,
-            str(LANG_VOLUME), 0, -1);
-    snprintf(buf, sizeof(buf), "%d %s", vol, sound_unit(SOUND_VOLUME));
-    ui_text(x + 14, y + 6, ui_font(UI_FONT_BODY), UI_COL_TEXT, buf, w - 28, 1);
-    int bw = w - 28, by = y + h - 18;
-    ui_fill_round_rect(x + 14, by, bw, 6, 3, UI_COL_TRACK);
-    int fill = hi > lo ? bw * (vol - lo) / (hi - lo) : 0;
-    if (fill > 0)
-        ui_fill_round_rect(x + 14, by, fill < 6 ? 6 : fill, 6, 3, UI_COL_FILL);
-}
-
-/* page 3: left and right level meters, 2 dB a segment from -40 dB, with
- * the peak held for a moment */
-static const unsigned short meter_thr[METER_SEGS] = {
-    413, 519, 654, 823, 1036, 1304, 1642, 2067, 2603, 3277,
-    4125, 5193, 6538, 8231, 10362, 13045, 16422, 20675, 26028, 32767,
-};
-
-static void draw_levels(struct viewport *vp)
-{
-    static int hold[2];
-    static long hold_until[2];
-    int lv[2];
-    peak_meter_peek();
-    peak_meter_current_vals(&lv[0], &lv[1]);
-
-    const int seg_h = (NP_ART - 4) / METER_SEGS;
-    const int x0 = (vp->width - 2 * METER_W - METER_GAP) / 2;
-    const int bottom = NP_ART_Y + NP_ART;
-    ui_fill_rect(0, NP_ART_Y, vp->width, NP_ART + 2, UI_COL_BG);
-    for (int ch = 0; ch < 2; ch++)
-    {
-        int n = 0;
-        while (n < METER_SEGS && lv[ch] >= meter_thr[n])
-            n++;
-        if (n >= hold[ch] || TIME_AFTER(current_tick, hold_until[ch]))
-        {
-            hold[ch] = n;
-            hold_until[ch] = current_tick + PEAK_HOLD;
-        }
-        int x = x0 + ch * (METER_W + METER_GAP);
-        for (int i = 0; i < METER_SEGS; i++)
-        {
-            int y = bottom - (i + 1) * seg_h;
-            unsigned c = i < n ? (i >= METER_SEGS - 2 ? LCD_RGBPACK(0xe0, 0x40, 0x40) :
-                                  i >= METER_SEGS - 5 ? UI_COL_FILL : UI_COL_ACCENT)
-                               : UI_COL_TRACK;
-            if (i == hold[ch] - 1 && i >= n)
-                c = UI_COL_TEXT2;
-            ui_fill_round_rect(x, y, METER_W, seg_h - 2, 2, c);
-        }
-    }
-}
-
-bool ui_np_wants_fast_updates(void)
-{
-    return page == NP_PAGE_LEVELS;
-}
-
-/* page 0, as the iPod: the cover turned a little with its reflection,
+/* as the iPod: the cover turned a little with its reflection,
  * title, artist, album and "1 of 8" beside it */
 static void draw_cover_and_title(struct viewport *vp, const struct mp3entry *id3,
                                  char *buf, size_t len)
@@ -256,65 +242,6 @@ static void draw_cover_and_title(struct viewport *vp, const struct mp3entry *id3
 }
 
 
-/* page 1: the track's details, a label and a value per row */
-static void draw_details(struct viewport *vp, const struct mp3entry *id3)
-{
-    const int small = ui_font(UI_FONT_SMALL), body = ui_font(UI_FONT_BODY);
-    const int lx = UI_MARGIN, vx = UI_MARGIN + 92, row = 24;
-    const int vw = vp->width - vx - UI_MARGIN;
-    char buf[MAX_PATH];
-    int y = NP_ART_Y + 2;
-
-    struct { int lang; char value[64]; } rows[6];
-    int n = 0;
-
-    rows[n].lang = LANG_NEWUI_FORMAT;
-    strmemccpy(rows[n++].value, get_codec_string(id3->codectype), 64);
-    rows[n].lang = LANG_NEWUI_BITRATE;
-    snprintf(rows[n++].value, 64, "%u kbps%s", id3->bitrate, id3->vbr ? " VBR" : "");
-    rows[n].lang = LANG_NEWUI_SAMPLE_RATE;
-    snprintf(rows[n++].value, 64, "%lu.%lu kHz", id3->frequency / 1000,
-             (id3->frequency % 1000) / 100);
-    if (id3->year > 0)
-    {
-        rows[n].lang = LANG_ID3_YEAR;
-        snprintf(rows[n++].value, 64, "%d", id3->year);
-    }
-    if (id3->genre_string && *id3->genre_string)
-    {
-        rows[n].lang = LANG_ID3_GENRE;
-        strmemccpy(rows[n++].value, id3->genre_string, 64);
-    }
-    if (id3->tracknum > 0)
-    {
-        rows[n].lang = LANG_NEWUI_TRACK;
-        snprintf(rows[n++].value, 64, "%d", id3->tracknum);
-    }
-
-    for (int i = 0; i < n; i++, y += row)
-    {
-        ui_text_vcenter(lx, y, row, small, UI_COL_TEXT2, str(rows[i].lang), vx - lx - 6, -1);
-        ui_text_vcenter(vx, y, row, body, UI_COL_TEXT, rows[i].value, vw, -1);
-    }
-
-    /* the folder, shortened */
-    strmemccpy(buf, id3->path, sizeof(buf));
-    char *slash = strrchr(buf, '/');
-    if (slash && slash != buf)
-        *slash = '\0';
-    if (y + row <= NP_BAND_Y)
-    {
-        ui_text_vcenter(lx, y, row, small, UI_COL_TEXT2, str(LANG_NEWUI_FOLDER), vx - lx - 6, -1);
-        ui_text_vcenter(vx, y, row, small, UI_COL_TEXT, buf, vw, -1);
-    }
-}
-
-void ui_np_next_page(void)
-{
-    page = (page + 1) % NP_PAGES;
-    ui_np_draw(true);
-}
-
 void ui_np_set_scrub(bool on)
 {
     scrubbing = on;
@@ -333,20 +260,16 @@ void ui_np_draw(bool full)
     bool overlay = volume_shown && TIME_BEFORE(current_tick, volume_until);
     if (volume_shown && !overlay)
     {
-        volume_shown = false;
-        full = true; /* take the overlay down */
+        volume_shown = false; /* back to the progress bar */
     }
 
-    if (!full && !overlay)
+    if (!full)
     {
-        draw_band(&vp, id3, elapsed);
-        if (page == NP_PAGE_LEVELS && id3)
-        {
-            draw_levels(&vp);
-            lcd_update_viewport_rect(0, NP_ART_Y, vp.width, vp.height - NP_ART_Y);
-        }
+        if (overlay)
+            draw_volume_band(&vp);
         else
-            lcd_update_viewport_rect(0, NP_BAND_Y, vp.width, vp.height - NP_BAND_Y);
+            draw_band(&vp, id3, elapsed);
+        lcd_update_viewport_rect(0, NP_BAND_Y, vp.width, vp.height - NP_BAND_Y);
         lcd_set_viewport(last);
         return;
     }
@@ -358,11 +281,7 @@ void ui_np_draw(bool full)
         int small = ui_font(UI_FONT_SMALL);
         char buf[MAX_PATH];
 
-        /* top row: position in the playlist, play mode */
-        snprintf(buf, sizeof(buf), "%d of %d",
-                 playlist_get_display_index(), playlist_amount());
-        if (page != 0) /* page 0 shows it under the album */
-            ui_text(UI_MARGIN, 3, small, UI_COL_TEXT2, buf, 0, -1);
+        /* top right: the play mode ("3 of 12" is under the album) */
         const char *mode = global_settings.playlist_shuffle ? str(LANG_SHUFFLE) :
                            global_settings.repeat_mode == REPEAT_ONE ? str(LANG_REPEAT_ONE) :
                            global_settings.repeat_mode == REPEAT_ALL ? str(LANG_ALL) : NULL;
@@ -370,34 +289,12 @@ void ui_np_draw(bool full)
             ui_text(UI_MARGIN, 3, small, UI_COL_TEXT2, mode,
                     vp.width - 2 * UI_MARGIN, 1);
 
-        /* page dots, in the middle of the top row */
-        /* over the text column, clear of the turned cover */
-        const int dots_x = NP_ART_X + NPL_ART_W + UI_MARGIN + 4 +
-            (vp.width - NP_ART_X - NPL_ART_W - 2 * UI_MARGIN - 4 - NP_PAGES * 12) / 2;
-        for (int i = 0; i < NP_PAGES; i++)
-            ui_fill_round_rect(dots_x + i * 12, 8, 6, 6, 3,
-                               i == page ? UI_COL_TEXT :
-                               ui_light() ? UI_COL_MUTED : UI_COL_ACCENT);
-
-        if (page == NP_PAGE_LEVELS)
-            draw_levels(&vp);
-        else if (page == 1)
-            draw_details(&vp, id3);
-        else if (page == 2)
-        {
-            int x = (vp.width - NP_BIG_ART) / 2;
-            const struct bitmap *art = ui_art_current(NP_BIG_ART);
-            if (art)
-                ui_art_draw(art, x, NP_ART_Y, NP_BIG_ART, 10);
-            else
-                ui_art_placeholder(x, NP_ART_Y, NP_BIG_ART, 10);
-        }
-        else
-            draw_cover_and_title(&vp, id3, buf, sizeof(buf));
+        draw_cover_and_title(&vp, id3, buf, sizeof(buf));
     }
-    draw_band(&vp, id3, elapsed);
     if (overlay)
-        draw_volume_overlay(&vp);
+        draw_volume_band(&vp);
+    else
+        draw_band(&vp, id3, elapsed);
     /* slide in if a screen change asked for it */
     if (!ui_transition_run(vp.x, vp.y, vp.width, vp.height))
         lcd_update_viewport();
@@ -408,5 +305,5 @@ void ui_np_volume_changed(void)
 {
     volume_until = current_tick + OVERLAY_TICKS;
     volume_shown = true;
-    ui_np_draw(true);
+    ui_np_draw(false); /* only the band changes */
 }

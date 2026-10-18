@@ -66,7 +66,7 @@
 #define FF_REWIND_MAX_PERCENT 3 /* cap ff/rewind step size at max % of file */
                                 /* 3% of 30min file == 54s step size */
 #define MIN_FF_REWIND_STEP 500
-#define DOUBLE_PRESS    (HZ * 2 / 5)    /* second Centre press: next page */
+#define DOUBLE_PRESS    (HZ * 2 / 5)    /* second Centre press: scrub */
 #define SCRUB_STEP_MS   5000            /* per wheel step, more when spinning */
 #define SCRUB_IDLE      (HZ * 3)        /* scrubbing seeks after this */
 
@@ -270,7 +270,7 @@ static bool ffwd_rew(int button, bool seek_from_end)
     return usb;
 }
 
-/* Scrub mode (hold Centre): the wheel moves the position, 5 s a step and
+/* Scrub mode (Centre pressed twice, or held): the wheel moves the position, 5 s a step and
  * faster when spinning; Centre, or 3 s without a turn, seeks there; Back
  * leaves without seeking. True if USB was connected. */
 static bool scrub(void)
@@ -634,7 +634,7 @@ long gui_wps_show(void)
         if (button && !IS_SYSEVENT(button) )
             storage_spin();
 
-        long timeout = ui_np_wants_fast_updates() ? HZ/20 : HZ/5;
+        long timeout = HZ/5;
         if (play_pending)
             timeout = MAX(0, play_pending - current_tick);
         button = get_action(CONTEXT_WPS|ALLOW_SOFTLOCK, timeout);
@@ -709,12 +709,14 @@ long gui_wps_show(void)
                 return GO_TO_PREVIOUS;
                 break;
 
-                /* play/pause, unless a second press follows: next page */
+                /* play/pause, unless a second press follows: scrub */
             case ACTION_WPS_PLAY:
                 if (play_pending)
                 {
                     play_pending = 0;
-                    ui_np_next_page();
+                    if (scrub())
+                        return GO_TO_ROOT;
+                    update = true;
                 }
                 else
                     play_pending = current_tick + DOUBLE_PRESS;

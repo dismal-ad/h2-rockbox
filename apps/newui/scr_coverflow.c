@@ -332,6 +332,14 @@ static void make_placeholder(void)
  * on the Dark theme, paler on the Light one) */
 static unsigned bg_r, bg_g, bg_b;   /* the background, RGB565 fields */
 
+/* The covers' backdrop: the theme's background on Dark; on Light a dark
+ * grey, so light covers stand out from it (white would swallow them), with
+ * light text */
+#define CF_LIGHT_BG    LCD_RGBPACK(0x3a, 0x3a, 0x3e)
+static unsigned cf_bg(void)    { return ui_light() ? CF_LIGHT_BG : UI_COL_BG; }
+static unsigned cf_text(void)  { return ui_light() ? LCD_RGBPACK(0xff, 0xff, 0xff) : UI_COL_TEXT; }
+static unsigned cf_text2(void) { return ui_light() ? LCD_RGBPACK(0xc4, 0xc4, 0xc8) : UI_COL_TEXT2; }
+
 static inline fb_data shade(fb_data c, int a)
 {
     unsigned r = bg_r + ((((int)(c >> 11) - (int)bg_r) * a) >> 8);
@@ -430,7 +438,7 @@ static void draw(struct viewport *vp, int pos)
     const int yc = CF_TOP + UI_COVER / 2;
     fb_data *fb = FBADDR(vp->x, vp->y);
 
-    ui_fill_rect(0, 0, vp->width, vp->height, UI_COL_BG);
+    ui_fill_rect(0, 0, vp->width, vp->height, cf_bg());
 
     /* farthest first, so nearer covers overlap them */
     int centre = (pos + 128) >> 8;
@@ -455,10 +463,10 @@ static void draw(struct viewport *vp, int pos)
     if (album_count > 0)
     {
         int w = vp->width - 2 * UI_MARGIN;
-        ui_text(UI_MARGIN, text_y, row, UI_COL_TEXT,
+        ui_text(UI_MARGIN, text_y, row, cf_text(),
                 names + albums[centre].name, w, 0);
         if (albums[centre].artist >= 0 && pool[albums[centre].artist])
-            ui_text(UI_MARGIN, text_y + row_h, body, UI_COL_TEXT2,
+            ui_text(UI_MARGIN, text_y + row_h, body, cf_text2(),
                     pool + albums[centre].artist, w, 0);
     }
     /* slide in if a screen change asked for it */
@@ -622,7 +630,7 @@ int ui_coverflow(void)
     }
     make_placeholder();
     ui_status_title(str(LANG_NEWUI_COVERFLOW));
-    fb_data bg = FB_SCALARPACK(UI_COL_BG);
+    fb_data bg = FB_SCALARPACK(cf_bg());
     bg_r = bg >> 11;
     bg_g = (bg >> 5) & 63;
     bg_b = bg & 31;

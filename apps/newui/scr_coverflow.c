@@ -63,19 +63,22 @@
 #error "Cover Flow draws RGB565 pixels directly"
 #endif
 
-/* layout at 320 wide; x of the left half, mirrored for the right.
- * As on the iPod, three covers each side show equal strips (CF_SPACING
- * wide): steeply turned to face the centre (their edges converge behind
- * it), the nearest tucked under the centre cover. */
-#define CF_CENTER_L   (LCD_WIDTH / 2 - UI_COVER / 2)  /* centre cover */
-#define CF_SIDE_W     46                  /* side cover's width on screen */
-#define CF_SPACING    27                  /* the strip each side cover shows */
-#define CF_SIDE_R     (CF_CENTER_L - CF_SPACING + CF_SIDE_W) /* nearest's inner edge */
-#define CF_SIDE_HIN   112                 /* its inner edge's height: */
-#define CF_SIDE_HOUT  142                 /* shorter than the outer, so the
+/* layout at 320 wide (measured from the iPod's screen); x of the left
+ * half, mirrored for the right. The centre cover faces the viewer; three
+ * covers each side are steeply turned to face it (their edges converge
+ * behind it), the nearest next to it, the others showing equal strips
+ * (CF_SPACING wide). Covers are stored at UI_COVER and drawn at CF_SIZE. */
+#define CF_SIZE       128                 /* the centre cover on screen */
+#define CF_CENTER_L   (LCD_WIDTH / 2 - CF_SIZE / 2)  /* centre cover */
+#define CF_SIDE_W     41                  /* the nearest side cover's width */
+#define CF_SPACING    29                  /* the strip each further one shows */
+#define CF_SIDE_R     (CF_CENTER_L - 1)   /* nearest's inner edge */
+#define CF_SIDE_HIN   103                 /* its inner edge's height: */
+#define CF_SIDE_HOUT  133                 /* shorter than the outer, so the
                                              covers face the centre */
 #define CF_SIDE_SHADE 190                 /* side covers' brightness /256 */
-#define CF_TOP        4                   /* centre cover's top */
+#define CF_TOP        20                  /* centre cover's top, below the bar */
+#define CF_TEXT_BOTTOM 14                 /* below the artist line */
 #define CF_REFLECT    80                  /* reflection's starting brightness /256 */
 #define CF_VISIBLE    4                   /* covers drawn on each side */
 /* Cover Flow's responsiveness to the wheel: when the covers start flowing
@@ -406,9 +409,9 @@ static void place_focus(int k, int *xl, int *xr, int *hl, int *hr, int *a)
     {
         /* between the centre and the first place on the left */
         l = lerp(CF_CENTER_L, CF_SIDE_R - CF_SIDE_W, n);
-        r = lerp(CF_CENTER_L + UI_COVER, CF_SIDE_R, n);
-        hout = lerp(UI_COVER, CF_SIDE_HOUT, n);
-        hin = lerp(UI_COVER, CF_SIDE_HIN, n);
+        r = lerp(CF_CENTER_L + CF_SIZE, CF_SIDE_R, n);
+        hout = lerp(CF_SIZE, CF_SIDE_HOUT, n);
+        hin = lerp(CF_SIZE, CF_SIDE_HIN, n);
         *a = lerp(256, CF_SIDE_SHADE, n);
     }
     else
@@ -475,10 +478,11 @@ static void place(int k, int flat, int *xl, int *xr, int *hl, int *hr, int *a)
 static void draw(struct viewport *vp, int pos, int flat)
 {
     struct viewport *last = lcd_set_viewport(vp);
-    const int row = ui_font(UI_FONT_ROW), body = ui_font(UI_FONT_BODY);
-    const int row_h = font_get(row)->height, body_h = font_get(body)->height;
-    const int text_y = vp->height - body_h - row_h - 2;
-    const int yc = CF_TOP + UI_COVER / 2;
+    const int row = ui_font(UI_FONT_ROW);
+    const int row_h = font_get(row)->height;
+    /* album and artist, both bold and dark, as the iPod */
+    const int text_y = vp->height - CF_TEXT_BOTTOM - 2 * row_h;
+    const int yc = CF_TOP + CF_SIZE / 2;
     fb_data *fb = FBADDR(vp->x, vp->y);
 
     ui_fill_rect(0, 0, vp->width, vp->height, UI_COL_BG);
@@ -509,7 +513,7 @@ static void draw(struct viewport *vp, int pos, int flat)
                 continue;
             }
             draw_cover(fb, vp->height, px ? px : placeholder,
-                       xl, xr, hl, hr, shade_a, yc, text_y - 2);
+                       xl, xr, hl, hr, shade_a, yc, vp->height); /* reflections run behind the text */
         }
 
     if (album_count > 0)
@@ -518,7 +522,7 @@ static void draw(struct viewport *vp, int pos, int flat)
         ui_text(UI_MARGIN, text_y, row, UI_COL_TEXT,
                 names + albums[centre].name, w, 0);
         if (albums[centre].artist >= 0 && pool[albums[centre].artist])
-            ui_text(UI_MARGIN, text_y + row_h, body, UI_COL_TEXT2,
+            ui_text(UI_MARGIN, text_y + row_h, row, UI_COL_TEXT,
                     pool + albums[centre].artist, w, 0);
     }
     /* slide in if a screen change asked for it */

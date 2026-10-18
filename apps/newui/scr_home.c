@@ -43,7 +43,6 @@
 #endif
 
 #define HOME_MENU_W   160
-#define HOME_ART      148
 #define CHEVRON       "\xe2\x80\xba"
 
 enum home_target {
@@ -119,7 +118,7 @@ static const char *item_label(enum home_target t)
     return str(items[t].lang_id);
 }
 
-/* Light theme, as the iPod: the cover fills the right half of the screen,
+/* As the iPod: the cover fills the right half of the screen,
  * top to bottom (the status bar is only over the menu), cropped to it */
 static void draw_full_art(void)
 {
@@ -172,22 +171,8 @@ static void draw(struct viewport *vp, const enum home_target *list, int n,
                             CHEVRON, 0, -1);
     }
 
-    if (ui_light())
-    {
-        draw_full_art();
-        lcd_set_viewport(vp);
-    }
-    else
-    {
-        /* right half: the playing album's cover */
-        int ax = HOME_MENU_W + (vp->width - HOME_MENU_W - HOME_ART) / 2;
-        int ay = (vp->height - HOME_ART) / 2;
-        const struct bitmap *art = ui_art_current(HOME_ART);
-        if (art)
-            ui_art_draw(art, ax, ay, HOME_ART, 8);
-        else
-            ui_art_placeholder(ax, ay, HOME_ART, 8);
-    }
+    draw_full_art();
+    lcd_set_viewport(vp);
 
     /* slide in if a screen change asked for it */
     if (!ui_transition_run(vp->x, vp->y, vp->width, vp->height))
@@ -207,11 +192,8 @@ int ui_home(int *selected)
     int ret = GO_TO_ROOT;
 
     viewport_set_defaults(&vp, SCREEN_MAIN);
-    if (ui_light())
-    {
-        ui_status_width(HOME_MENU_W);
-        ui_status_title(str(LANG_ROCKBOX_TITLE));
-    }
+    ui_status_width(HOME_MENU_W);
+    ui_status_title(str(LANG_ROCKBOX_TITLE));
 
     while (true)
     {
@@ -266,11 +248,8 @@ int ui_home(int *selected)
                         goto out;
                     }
                     ui_transition(-1);
-                    if (ui_light())
-                    {
-                        ui_status_width(HOME_MENU_W);
-                        ui_status_title(str(LANG_ROCKBOX_TITLE));
-                    }
+                    ui_status_width(HOME_MENU_W);
+                    ui_status_title(str(LANG_ROCKBOX_TITLE));
                     redraw = true;
                     break;
                 }
@@ -283,11 +262,8 @@ int ui_home(int *selected)
                         goto out;
                     }
                     ui_transition(-1);
-                    if (ui_light())
-                    {
-                        ui_status_width(HOME_MENU_W);
-                        ui_status_title(str(LANG_ROCKBOX_TITLE));
-                    }
+                    ui_status_width(HOME_MENU_W);
+                    ui_status_title(str(LANG_ROCKBOX_TITLE));
                     redraw = true;
                     break;
                 }

@@ -92,9 +92,9 @@ static int list_nb_lines(struct gui_synclist *list, enum screen_type screen)
 bool list_display_title(struct gui_synclist *list, enum screen_type screen)
 {
     (void)screen;
-    /* Light theme: the title is in the status bar, as on the iPod (a
-       header with a cover still shows) */
-    if (ui_light() && !list->callback_get_header)
+    /* the title is in the status bar, as on the iPod (a header with a
+       cover still shows) */
+    if (!list->callback_get_header)
         return false;
     return list->title != NULL && list_nb_lines(list, screen) > 2;
 }

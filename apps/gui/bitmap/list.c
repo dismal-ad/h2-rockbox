@@ -269,7 +269,7 @@ void list_draw(struct screen *display, struct gui_synclist *list)
                 sv->width = text_w;
                 sv->height = row_h - shift;
                 ld.height = row_h - shift;
-                ld.style = ui_light() && !ui_minimal() ? STYLE_GRADIENT : STYLE_COLORBAR;
+                ld.style = !ui_minimal() ? STYLE_GRADIENT : STYLE_COLORBAR;
                 ld.line_color = ld.style == STYLE_GRADIENT ? ui_sel_top() : ui_sel_bg();
                 ld.line_end_color = ui_sel_bg();
                 ld.text_color = ui_sel_text();

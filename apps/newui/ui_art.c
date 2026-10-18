@@ -139,3 +139,57 @@ void ui_art_placeholder(int x, int y, int size, int radius)
     ui_fill_rect(hx + 3 * u, y + size / 2 - 4 * u, u, 7 * u, UI_COL_PH_FG);
     ui_fill_rect(hx + 3 * u, y + size / 2 - 4 * u, 3 * u, u, UI_COL_PH_FG);
 }
+
+/* blends c toward bg, keeping a/256 of c */
+static inline unsigned mix565(unsigned c, unsigned bg, int a)
+{
+    int r = RGB_UNPACK_RED(bg), g = RGB_UNPACK_GREEN(bg), b = RGB_UNPACK_BLUE(bg);
+    return LCD_RGBPACK(r + ((RGB_UNPACK_RED(c) - r) * a >> 8),
+                       g + ((RGB_UNPACK_GREEN(c) - g) * a >> 8),
+                       b + ((RGB_UNPACK_BLUE(c) - b) * a >> 8));
+}
+
+void ui_art_draw_tilted(const struct bitmap *bm, int x, int y, int w,
+                        int hl, int hr, int refl_h, int refl_a)
+{
+    struct viewport *vp = lcd_current_viewport;
+    const fb_data *src = (const fb_data *)bm->data;
+    const int bw = bm->width, bh = bm->height;
+    const unsigned bg = UI_COL_BG;
+    const int hmax = MAX(hl, hr), yc = y + hmax / 2;
+
+    for (int i = 0; i < w; i++)
+    {
+        int px = x + i;
+        if (px < 0 || px >= vp->width)
+            continue;
+        /* the column's height, and its texture column interpolated in
+           1/depth so the turn looks right */
+        long t = ((long)i << 16) / w;
+        int h = hl + (int)(((long)(hr - hl) * t) >> 16);
+        long long den = (long long)(65536 - t) * hl + (long long)t * hr;
+        int u = den ? (int)((long long)t * hr * bw / den) : 0;
+        if (u >= bw)
+            u = bw - 1;
+        const int step = (bh << 16) / h;
+        int top = yc - h / 2, v = 0;
+        for (int r = 0; r < h; r++, v += step)
+        {
+            int py = top + r;
+            if (py >= 0 && py < vp->height)
+                *FBADDR(vp->x + px, vp->y + py) = src[(v >> 16) * bw + u];
+        }
+        /* the reflection: the cover upside down below it, fading out */
+        int rh = MIN(refl_h, h);
+        v = (bh << 16) - 1;
+        for (int r = 0; r < rh; r++, v -= step)
+        {
+            int py = top + h + 1 + r;
+            if (py < 0 || py >= vp->height || v < 0)
+                continue;
+            unsigned c = FB_UNPACK_SCALAR_LCD(src[(v >> 16) * bw + u]);
+            *FBADDR(vp->x + px, vp->y + py) =
+                FB_SCALARPACK(mix565(c, bg, refl_a * (rh - r) / rh));
+        }
+    }
+}

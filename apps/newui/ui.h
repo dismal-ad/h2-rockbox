@@ -39,7 +39,8 @@
 enum ui_col {
     UI_C_BG, UI_C_TEXT, UI_C_TEXT2, UI_C_MUTED, UI_C_SEL, UI_C_SEL_TEXT,
     UI_C_TRACK, UI_C_PANEL, UI_C_ARTIST, UI_C_ALBUM, UI_C_FILL,
-    UI_C_BAR_TOP, UI_C_BAR_BOTTOM, UI_C_PH_BG, UI_C_PH_FG, UI_C_COUNT
+    UI_C_BAR_TOP, UI_C_BAR_BOTTOM, UI_C_BAR_LINE, UI_C_PH_BG, UI_C_PH_FG,
+    UI_C_TRACK_TOP, UI_C_TRACK_BOTTOM, UI_C_OUTLINE, UI_C_COUNT
 };
 unsigned ui_col(enum ui_col c);
 #define UI_COL_BG       ui_col(UI_C_BG)
@@ -160,6 +161,11 @@ struct bitmap;
 const struct bitmap *ui_art_current(int size);
 /* Draws a cover centred in the size x size square, corners rounded */
 void ui_art_draw(const struct bitmap *bm, int x, int y, int size, int radius);
+/* Draws a cover turned a little (iPod Now Playing): w wide on screen, its
+ * left edge hl tall and right edge hr, centred on the taller one from y,
+ * with a reflection refl_h tall below it starting at refl_a/256 */
+void ui_art_draw_tilted(const struct bitmap *bm, int x, int y, int w,
+                        int hl, int hr, int refl_h, int refl_a);
 /* The no-art placeholder: a dark rounded square with a note */
 void ui_art_placeholder(int x, int y, int size, int radius);
 struct mp3entry;
@@ -222,7 +228,7 @@ struct ui_status {
     bool keylock;
     const struct tm *time; /* NULL: no clock */
     bool clock_24h;
-    const char *title;     /* Light theme: the screen's name, left; NULL none */
+    const char *title;     /* the screen's name, left; NULL none */
     int battery;           /* percent, -1 unknown */
     bool battery_pct;      /* the percentage left of the battery */
     bool battery_visible;  /* false while blinking off (low battery) */
@@ -231,8 +237,8 @@ struct ui_status {
 };
 /* Draws the bar into the current viewport (UI_STATUS_H high) */
 void ui_status_draw(const struct ui_status *st);
-/* Light theme, as the iPod: the bar shows the screen's name on the left
- * (instead of the clock); screens set it as they draw. "" or NULL: none */
+/* As the iPod: the bar shows the screen's name on the left (instead of the
+ * clock); screens set it as they draw. "" or NULL: none (the clock) */
 void ui_status_title(const char *title);
 const char *ui_status_get_title(void);
 /* The bar's width (Home: only over its menu); 0 the whole screen */

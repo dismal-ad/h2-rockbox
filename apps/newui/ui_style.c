@@ -18,9 +18,10 @@
  *
  ****************************************************************************/
 
-/* The look the user chose (Settings > General > Display): the theme (Dark,
- * or Light like the iPod), the selection as a bar in the accent colour
- * (Classic) or a card (Minimal), and the accent colour. */
+/* The look the user chose (Settings > General > Display): the theme's
+ * colours (Dark, or Light like the iPod; the layout is the same), the
+ * selection as a bar in the accent colour (Classic) or a card (Minimal),
+ * and the accent colour. */
 
 #include "config.h"
 #include "settings.h"
@@ -44,7 +45,10 @@ static const unsigned themes[2][UI_C_COUNT] = {
         [UI_C_TRACK] = RGB(0x1c, 0x1c, 0x1c),    [UI_C_PANEL] = RGB(0x26, 0x26, 0x26),
         [UI_C_ARTIST] = RGB(0xcc, 0xcc, 0xcc),   [UI_C_ALBUM] = RGB(0xbb, 0xbb, 0xbb),
         [UI_C_FILL] = RGB(0xee, 0xee, 0xec),
-        [UI_C_BAR_TOP] = RGB(0x00, 0x00, 0x00),  [UI_C_BAR_BOTTOM] = RGB(0x00, 0x00, 0x00),
+        [UI_C_BAR_TOP] = RGB(0x3a, 0x3a, 0x3e),  [UI_C_BAR_BOTTOM] = RGB(0x16, 0x16, 0x18),
+        [UI_C_BAR_LINE] = RGB(0x44, 0x44, 0x48),
+        [UI_C_TRACK_TOP] = RGB(0x3c, 0x3c, 0x40), [UI_C_TRACK_BOTTOM] = RGB(0x1e, 0x1e, 0x22),
+        [UI_C_OUTLINE] = RGB(0x5a, 0x5a, 0x5e),
         [UI_C_PH_BG] = RGB(0x1c, 0x1c, 0x1c),    [UI_C_PH_FG] = RGB(0x8c, 0x8c, 0x8c),
     },
     [1] = {     /* Light: white, dark text, a silver status bar */
@@ -55,6 +59,9 @@ static const unsigned themes[2][UI_C_COUNT] = {
         [UI_C_ARTIST] = RGB(0x33, 0x33, 0x33),   [UI_C_ALBUM] = RGB(0x4a, 0x4a, 0x4a),
         [UI_C_FILL] = 0,                         /* the accent */
         [UI_C_BAR_TOP] = RGB(0xf4, 0xf4, 0xf4),  [UI_C_BAR_BOTTOM] = RGB(0xbe, 0xbe, 0xc2),
+        [UI_C_BAR_LINE] = RGB(0x8c, 0x8c, 0x90),
+        [UI_C_TRACK_TOP] = RGB(0xfa, 0xfa, 0xfa), [UI_C_TRACK_BOTTOM] = RGB(0xd2, 0xd2, 0xd6),
+        [UI_C_OUTLINE] = RGB(0x8c, 0x8c, 0x90),
         /* dark enough that a missing cover stands out on white */
         [UI_C_PH_BG] = RGB(0x5c, 0x5c, 0x62),    [UI_C_PH_FG] = RGB(0xd4, 0xd4, 0xd8),
     },
@@ -102,13 +109,11 @@ unsigned ui_sel_text2(void)
     return ui_minimal() ? LCD_RGBPACK(0x48, 0x48, 0x48) : LCD_RGBPACK(0xff, 0xff, 0xff);
 }
 
-/* Light theme: the iPod's glossy bar, from a lighter accent at the top to
- * the accent at the bottom */
+/* the iPod's glossy bar, from a lighter accent at the top to the accent
+ * at the bottom */
 unsigned ui_sel_top(void)
 {
     unsigned c = ui_accent();
-    if (!ui_light())
-        return c;
     int r = RGB_UNPACK_RED(c), g = RGB_UNPACK_GREEN(c), b = RGB_UNPACK_BLUE(c);
     return LCD_RGBPACK(r + (255 - r) * 2 / 5, g + (255 - g) * 2 / 5,
                        b + (255 - b) * 2 / 5);
@@ -119,11 +124,9 @@ void ui_selection(int x, int y, int w, int h)
     if (ui_minimal())
         ui_fill_round_rect(x + CARD_INSET, y, w - 2 * CARD_INSET, h,
                            CARD_RADIUS, UI_COL_SEL);
-    else if (ui_light())
+    else
     {
         lcd_set_drawmode(DRMODE_SOLID);
         lcd_gradient_fillrect(x, y, w, h, ui_sel_top(), ui_accent());
     }
-    else
-        ui_fill_rect(x, y, w, h, ui_accent());
 }

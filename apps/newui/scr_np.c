@@ -58,10 +58,16 @@
 #define NP_ART         140
 #define NP_ART_X       UI_MARGIN
 #define NP_ART_Y       22
-#define NP_TEXT_X      (NP_ART_X + NP_ART + UI_MARGIN)
-#define NP_BAR_Y       176
-#define NP_TIME_Y      184
-#define NP_BAND_Y      170     /* bottom band redrawn on time updates */
+#define NP_BAND_Y      NPL_BAND_Y /* redrawn on time updates */
+/* the iPod's layout: a turned cover with a reflection, a thick bar with
+ * the times beside it */
+#define NPL_ART_Y      4
+#define NPL_ART_W      132     /* on screen, turned */
+#define NPL_ART_HL     138     /* left edge, nearer */
+#define NPL_ART_HR     124     /* right edge, further */
+#define NPL_REFL_H     40
+#define NPL_BAND_Y     188
+#define NPL_BAR_H      12
 #define NP_ARTIST_COL  UI_COL_ARTIST
 #define NP_ALBUM_COL   UI_COL_ALBUM
 #define OVERLAY_TICKS  (HZ * 3 / 2)
@@ -103,32 +109,43 @@ static const char *track_title(const struct mp3entry *id3, char *buf, size_t len
     return buf;
 }
 
-static void draw_band(struct viewport *vp, const struct mp3entry *id3, long elapsed)
+/* "0:04 [=====-------] -5:32" on one line, the bar thick, outlined,
+ * the elapsed part in the accent's gradient */
+static void draw_band(struct viewport *vp, const struct mp3entry *id3,
+                      long elapsed)
 {
-    int small = ui_font(UI_FONT_SMALL);
-    int w = vp->width - 2 * UI_MARGIN;
-    char buf[32];
+    const int font = ui_font(UI_FONT_BODY);
+    const int band_h = vp->height - NPL_BAND_Y;
+    char left[24], right[24];
+    long pos = 0, len = id3 ? (long)id3->length : 0;
+    if (len > 0)
+        pos = MAX(0, MIN(elapsed, len));
+    format_mmss(left, sizeof(left), pos, false);
+    format_mmss(right, sizeof(right), len - pos, true);
 
-    /* scrubbing: 8 px, white, with a knob */
-    const int bh = scrubbing ? 8 : 4, by = NP_BAR_Y + 2 - bh / 2;
-    ui_fill_rect(0, NP_BAND_Y, vp->width, vp->height - NP_BAND_Y, UI_COL_BG);
-    ui_fill_round_rect(UI_MARGIN, by, w, bh, bh / 2, UI_COL_TRACK);
-    if (id3 && id3->length > 0)
+    ui_fill_rect(0, NPL_BAND_Y, vp->width, band_h, UI_COL_BG);
+    int lw = ui_text_width(font, "00:00"), rw = ui_text_width(font, "-00:00");
+    int bx = UI_MARGIN + lw + 8, bw = vp->width - UI_MARGIN - rw - 8 - bx;
+    int by = NPL_BAND_Y + (band_h - NPL_BAR_H) / 2;
+
+    ui_text_vcenter(UI_MARGIN, NPL_BAND_Y, band_h, font, UI_COL_TEXT, left, lw + 4, -1);
+    ui_text_vcenter(vp->width - UI_MARGIN - rw - 4, NPL_BAND_Y, band_h, font,
+                    UI_COL_TEXT, right, rw + 4, 1);
+
+    /* track: a light gradient in a grey outline */
+    lcd_set_drawmode(DRMODE_SOLID);
+    lcd_gradient_fillrect(bx, by, bw, NPL_BAR_H, ui_col(UI_C_TRACK_TOP),
+                          ui_col(UI_C_TRACK_BOTTOM));
+    int fill = len > 0 ? (int)((long long)bw * pos / len) : 0;
+    if (fill > 0)
     {
-        long pos = elapsed > (long)id3->length ? (long)id3->length : elapsed;
-        if (pos < 0)
-            pos = 0;
-        int fill = (int)((long long)w * pos / id3->length);
-        unsigned col = scrubbing ? UI_COL_TEXT : UI_COL_FILL;
-        if (fill > 0)
-            ui_fill_round_rect(UI_MARGIN, by, fill < bh ? bh : fill, bh, bh / 2, col);
         if (scrubbing)
-            ui_fill_round_rect(UI_MARGIN + fill - 6, by - 2, 12, bh + 4, 6, col);
-        format_mmss(buf, sizeof(buf), pos, false);
-        ui_text(UI_MARGIN, NP_TIME_Y, small, UI_COL_TEXT2, buf, 0, -1);
-        format_mmss(buf, sizeof(buf), id3->length - pos, true);
-        ui_text(UI_MARGIN, NP_TIME_Y, small, UI_COL_TEXT2, buf, w, 1);
+            ui_fill_rect(bx, by, fill, NPL_BAR_H, UI_COL_TEXT);
+        else
+            lcd_gradient_fillrect(bx, by, fill, NPL_BAR_H, ui_sel_top(), ui_accent());
     }
+    ui_stroke_round_rect(bx - 1, by - 1, bw + 2, NPL_BAR_H + 2, 0, 1,
+                         ui_col(UI_C_OUTLINE));
 }
 
 static void draw_volume_overlay(struct viewport *vp)
@@ -199,36 +216,45 @@ bool ui_np_wants_fast_updates(void)
     return page == NP_PAGE_LEVELS;
 }
 
-/* page 0: the cover, and title, artist and album beside it */
+/* page 0, as the iPod: the cover turned a little with its reflection,
+ * title, artist, album and "1 of 8" beside it */
 static void draw_cover_and_title(struct viewport *vp, const struct mp3entry *id3,
                                  char *buf, size_t len)
 {
-    int body = ui_font(UI_FONT_BODY);
-    int text_w = vp->width - NP_TEXT_X - UI_MARGIN;
+    const int body = ui_font(UI_FONT_BODY), title_f = ui_font(UI_FONT_TITLE);
+    const int tx = NP_ART_X + NPL_ART_W + UI_MARGIN + 4;
+    const int text_w = vp->width - tx - UI_MARGIN;
 
     const struct bitmap *art = ui_art_current(NP_ART);
     if (art)
-        ui_art_draw(art, NP_ART_X, NP_ART_Y, NP_ART, 10);
+        ui_art_draw_tilted(art, NP_ART_X, NPL_ART_Y, NPL_ART_W,
+                           NPL_ART_HL, NPL_ART_HR, NPL_REFL_H, 110);
     else
-        ui_art_placeholder(NP_ART_X, NP_ART_Y, NP_ART, 10);
+        ui_art_placeholder(NP_ART_X, NPL_ART_Y, NPL_ART_HR, 6);
 
-    /* title, artist, album, centred against the cover */
     const char *title = track_title(id3, buf, len);
     const char *artist = id3->artist && *id3->artist ? id3->artist :
                          id3->albumartist && *id3->albumartist ? id3->albumartist : NULL;
     const char *album = id3->album && *id3->album ? id3->album : NULL;
-    int block = 29 + (artist ? 24 : 0) + (album ? 20 : 0);
-    int y = NP_ART_Y + (NP_ART - block) / 2;
-    ui_text(NP_TEXT_X, y, ui_font(UI_FONT_TITLE), UI_COL_TEXT, title, text_w, -1);
-    y += 29;
+    int y = NPL_ART_Y + 36;
+    ui_text(tx, y, title_f, UI_COL_TEXT, title, text_w, -1);
+    y += font_get(title_f)->height + 2;
     if (artist)
     {
-        ui_text(NP_TEXT_X, y, body, NP_ARTIST_COL, artist, text_w, -1);
-        y += 24;
+        ui_text(tx, y, body, NP_ARTIST_COL, artist, text_w, -1);
+        y += font_get(body)->height + 2;
     }
     if (album)
-        ui_text(NP_TEXT_X, y, body, NP_ALBUM_COL, album, text_w, -1);
+    {
+        ui_text(tx, y, body, NP_ALBUM_COL, album, text_w, -1);
+        y += font_get(body)->height + 2;
+    }
+    char pos[24];
+    snprintf(pos, sizeof(pos), "%d of %d",
+             playlist_get_display_index(), playlist_amount());
+    ui_text(tx, y + 14, body, NP_ARTIST_COL, pos, text_w, -1);
 }
+
 
 /* page 1: the track's details, a label and a value per row */
 static void draw_details(struct viewport *vp, const struct mp3entry *id3)
@@ -335,7 +361,8 @@ void ui_np_draw(bool full)
         /* top row: position in the playlist, play mode */
         snprintf(buf, sizeof(buf), "%d of %d",
                  playlist_get_display_index(), playlist_amount());
-        ui_text(UI_MARGIN, 3, small, UI_COL_TEXT2, buf, 0, -1);
+        if (page != 0) /* page 0 shows it under the album */
+            ui_text(UI_MARGIN, 3, small, UI_COL_TEXT2, buf, 0, -1);
         const char *mode = global_settings.playlist_shuffle ? str(LANG_SHUFFLE) :
                            global_settings.repeat_mode == REPEAT_ONE ? str(LANG_REPEAT_ONE) :
                            global_settings.repeat_mode == REPEAT_ALL ? str(LANG_ALL) : NULL;
@@ -344,8 +371,11 @@ void ui_np_draw(bool full)
                     vp.width - 2 * UI_MARGIN, 1);
 
         /* page dots, in the middle of the top row */
+        /* over the text column, clear of the turned cover */
+        const int dots_x = NP_ART_X + NPL_ART_W + UI_MARGIN + 4 +
+            (vp.width - NP_ART_X - NPL_ART_W - 2 * UI_MARGIN - 4 - NP_PAGES * 12) / 2;
         for (int i = 0; i < NP_PAGES; i++)
-            ui_fill_round_rect(vp.width / 2 - 14 + i * 12, 8, 6, 6, 3,
+            ui_fill_round_rect(dots_x + i * 12, 8, 6, 6, 3,
                                i == page ? UI_COL_TEXT :
                                ui_light() ? UI_COL_MUTED : UI_COL_ACCENT);
 

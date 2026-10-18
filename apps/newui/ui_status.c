@@ -49,8 +49,7 @@ void ui_status_title(const char *title)
     if (!strcmp(title, status_title))
         return;
     strmemccpy(status_title, title, sizeof(status_title));
-    if (ui_light())
-        statusbar_update(true);
+    statusbar_update(true);
 }
 
 const char *ui_status_get_title(void)
@@ -146,9 +145,9 @@ void ui_status_draw(const struct ui_status *st)
     struct viewport *vp = lcd_current_viewport;
     int font = ui_font(UI_FONT_SMALL);
 
-    if (ui_light())
     {
-        /* the iPod's silver bar: a vertical gradient and a hairline */
+        /* the iPod's bar: a vertical gradient (silver, or dark grey) and a
+           hairline */
         unsigned top = ui_col(UI_C_BAR_TOP), bot = ui_col(UI_C_BAR_BOTTOM);
         int h = vp->height - 1;
         for (int y = 0; y < h; y++)
@@ -160,10 +159,8 @@ void ui_status_draw(const struct ui_status *st)
                 RGB_UNPACK_BLUE(top) + ((RGB_UNPACK_BLUE(bot) - RGB_UNPACK_BLUE(top)) * t >> 8));
             ui_fill_rect(0, y, vp->width, 1, c);
         }
-        ui_fill_rect(0, h, vp->width, 1, LCD_RGBPACK(0x8c, 0x8c, 0x90));
+        ui_fill_rect(0, h, vp->width, 1, ui_col(UI_C_BAR_LINE));
     }
-    else
-        ui_fill_rect(0, 0, vp->width, vp->height, UI_COL_BG);
 
     const bool titled = st->title && st->title[0];
     int x = UI_MARGIN;

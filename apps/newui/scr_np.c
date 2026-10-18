@@ -54,19 +54,23 @@
 #include "metadata.h"
 #include "ui.h"
 
-#define NP_ART         140
-#define NP_ART_X       UI_MARGIN
-#define NP_ART_Y       22
+#define NP_ART         140     /* the cover is decoded at this size */
 #define NP_BAND_Y      NPL_BAND_Y /* redrawn on time updates */
-/* the iPod's layout: a turned cover with a reflection, a thick bar with
- * the times beside it */
-#define NPL_ART_Y      4
-#define NPL_ART_W      132     /* on screen, turned */
-#define NPL_ART_HL     138     /* left edge, nearer */
-#define NPL_ART_HR     124     /* right edge, further */
-#define NPL_REFL_H     40
-#define NPL_BAND_Y     188
-#define NPL_BAR_H      12
+/* the iPod's layout (measured from its screen, scaled to 320x240): a
+ * turned cover with a reflection, a thick bar with the times beside it */
+#define NPL_ART_X      18
+#define NPL_ART_Y      22      /* below the status bar */
+#define NPL_ART_W      123     /* on screen, turned */
+#define NPL_ART_HL     114     /* left edge, nearer */
+#define NPL_ART_HR     104     /* right edge, further */
+#define NPL_REFL_H     36
+#define NPL_BAND_Y     178
+#define NPL_BOTTOM     18      /* below the bar's outline */
+#define NPL_TEXT_GAP   10      /* between the cover and the text */
+#define NPL_TEXT_Y     30      /* the title, below the cover's top */
+/* the bar's centre line, NPL_BOTTOM above the screen's bottom */
+#define NPL_BAR_YC(vp) ((vp)->height - NPL_BOTTOM - 1 - NPL_BAR_H / 2)
+#define NPL_BAR_H      14
 #define NP_ARTIST_COL  UI_COL_ARTIST
 #define NP_ALBUM_COL   UI_COL_ALBUM
 #define OVERLAY_TICKS  (HZ * 3 / 2)
@@ -163,7 +167,7 @@ static void draw_speaker(int x, int yc, bool waves)
 static void draw_volume_band(struct viewport *vp)
 {
     const int band_h = vp->height - NPL_BAND_Y;
-    const int yc = NPL_BAND_Y + band_h / 2;
+    const int yc = NPL_BAR_YC(vp);
     int lo = sound_min(SOUND_VOLUME), hi = sound_max(SOUND_VOLUME);
     /* a shorter bar, centred, the speakers just outside its ends */
     int bw = VOL_BAR_W, bx = (vp->width - bw) / 2;
@@ -189,10 +193,10 @@ static void draw_band(struct viewport *vp, const struct mp3entry *id3,
     ui_fill_rect(0, NPL_BAND_Y, vp->width, band_h, UI_COL_BG);
     int lw = ui_text_width(font, "00:00"), rw = ui_text_width(font, "-00:00");
     int bx = UI_MARGIN + lw + 8, bw = vp->width - UI_MARGIN - rw - 8 - bx;
-    int by = NPL_BAND_Y + (band_h - NPL_BAR_H) / 2;
+    int by = NPL_BAR_YC(vp) - NPL_BAR_H / 2;
 
-    ui_text_vcenter(UI_MARGIN, NPL_BAND_Y, band_h, font, UI_COL_TEXT, left, lw + 4, -1);
-    ui_text_vcenter(vp->width - UI_MARGIN - rw - 4, NPL_BAND_Y, band_h, font,
+    ui_text_vcenter(UI_MARGIN, by, NPL_BAR_H, font, UI_COL_TEXT, left, lw + 4, -1);
+    ui_text_vcenter(vp->width - UI_MARGIN - rw - 4, by, NPL_BAR_H, font,
                     UI_COL_TEXT, right, rw + 4, 1);
 
     if (scrubbing)
@@ -208,21 +212,21 @@ static void draw_cover_and_title(struct viewport *vp, const struct mp3entry *id3
                                  char *buf, size_t len)
 {
     const int body = ui_font(UI_FONT_BODY), title_f = ui_font(UI_FONT_TITLE);
-    const int tx = NP_ART_X + NPL_ART_W + UI_MARGIN + 4;
+    const int tx = NPL_ART_X + NPL_ART_W + NPL_TEXT_GAP;
     const int text_w = vp->width - tx - UI_MARGIN;
 
     const struct bitmap *art = ui_art_current(NP_ART);
     if (art)
-        ui_art_draw_tilted(art, NP_ART_X, NPL_ART_Y, NPL_ART_W,
+        ui_art_draw_tilted(art, NPL_ART_X, NPL_ART_Y, NPL_ART_W,
                            NPL_ART_HL, NPL_ART_HR, NPL_REFL_H, 110);
     else
-        ui_art_placeholder(NP_ART_X, NPL_ART_Y, NPL_ART_HR, 6);
+        ui_art_placeholder(NPL_ART_X, NPL_ART_Y, NPL_ART_HR, 6);
 
     const char *title = track_title(id3, buf, len);
     const char *artist = id3->artist && *id3->artist ? id3->artist :
                          id3->albumartist && *id3->albumartist ? id3->albumartist : NULL;
     const char *album = id3->album && *id3->album ? id3->album : NULL;
-    int y = NPL_ART_Y + 36;
+    int y = NPL_ART_Y + NPL_TEXT_Y;
     ui_text(tx, y, title_f, UI_COL_TEXT, title, text_w, -1);
     y += font_get(title_f)->height + 2;
     if (artist)

@@ -78,6 +78,10 @@
 #define CF_TOP        4                   /* centre cover's top */
 #define CF_REFLECT    80                  /* reflection's starting brightness /256 */
 #define CF_VISIBLE    4                   /* covers drawn on each side */
+#define CF_FAST_GAP_US 90000              /* steps closer than this: flowing */
+#define CF_SETTLE_US  160000              /* no step for this: settling */
+#define CF_FLOW_MS    90                  /* covers go to the flow layout */
+#define CF_FACE_MS    260                 /* the centre one turns to face us */
 
 #define MAX_ALBUMS    2000
 #define NAMES_SIZE    (64 * 1024)
@@ -388,8 +392,9 @@ static inline int lerp(int a, int b, int t) /* t 0..256 */
     return a + (((b - a) * t) >> 8);
 }
 
-/* where the cover k/256 albums from the centre goes */
-static void place(int k, int *xl, int *xr, int *hl, int *hr, int *a)
+/* Where the cover k/256 albums from the centre goes in the focus layout
+ * (wheel slow or still): the centre cover faces the viewer */
+static void place_focus(int k, int *xl, int *xr, int *hl, int *hr, int *a)
 {
     int n = abs(k);
     int l, r, hout, hin;
@@ -421,7 +426,49 @@ static void place(int k, int *xl, int *xr, int *hl, int *hr, int *a)
     }
 }
 
-static void draw(struct viewport *vp, int pos)
+/* ... and in the flow layout (wheel spinning fast): every cover stays
+ * turned, in one even row; the one crossing the middle turns edge-on, so
+ * none faces the viewer */
+static void place_flow(int k, int *xl, int *xr, int *hl, int *hr, int *a)
+{
+    int n = abs(k);
+    int r = LCD_WIDTH / 2 - n * CF_SPACING / 256;   /* inner edge */
+    /* the one at the middle is seen edge-on: a line, 2 px wide */
+    int w = n < 256 ? MAX(2, CF_SIDE_W * n / 256) : CF_SIDE_W;
+    /* the outer edge keeps its height; the inner one grows to it as the
+       cover turns edge-on, so the one at the middle is as tall as the
+       others rather than a short line */
+    int hout = CF_SIDE_HOUT;
+    int hin = n < 256 ? lerp(CF_SIDE_HOUT, CF_SIDE_HIN, n) : CF_SIDE_HIN;
+    int l = r - w;
+    *a = CF_SIDE_SHADE;
+    if (k < 0)
+    {
+        *xl = l; *xr = r; *hl = hout; *hr = hin;
+    }
+    else
+    {
+        *xl = LCD_WIDTH - r; *xr = LCD_WIDTH - l; *hl = hin; *hr = hout;
+    }
+}
+
+/* the cover k/256 from the centre, flat/256 of the way from the flow
+ * layout to the focus layout */
+static void place(int k, int flat, int *xl, int *xr, int *hl, int *hr, int *a)
+{
+    int fxl, fxr, fhl, fhr, fa;
+    place_focus(k, xl, xr, hl, hr, a);
+    if (flat >= 256)
+        return;
+    place_flow(k, &fxl, &fxr, &fhl, &fhr, &fa);
+    *xl = lerp(fxl, *xl, flat);
+    *xr = lerp(fxr, *xr, flat);
+    *hl = lerp(fhl, *hl, flat);
+    *hr = lerp(fhr, *hr, flat);
+    *a = lerp(fa, *a, flat);
+}
+
+static void draw(struct viewport *vp, int pos, int flat)
 {
     struct viewport *last = lcd_set_viewport(vp);
     const int row = ui_font(UI_FONT_ROW), body = ui_font(UI_FONT_BODY);
@@ -444,10 +491,19 @@ static void draw(struct viewport *vp, int pos)
             if (abs(k) > (CF_VISIBLE + 1) * 256)
                 continue;
             int xl, xr, hl, hr, shade_a;
-            place(k, &xl, &xr, &hl, &hr, &shade_a);
+            place(k, flat, &xl, &xr, &hl, &hr, &shade_a);
             bool known;
             const fb_data *px = album_path(a) ? ui_cover_peek(album_path(a), &known)
                                               : NULL;
+            if (xr - xl <= 3)
+            {
+                /* seen edge-on (flowing): its side, a light line */
+                int h = MAX(hl, hr);
+                ui_fill_rect(xl, yc - h / 2, MAX(xr - xl, 2), h,
+                             ui_light() ? LCD_RGBPACK(0x70, 0x70, 0x74)
+                                        : LCD_RGBPACK(0xb4, 0xb4, 0xb8));
+                continue;
+            }
             draw_cover(fb, vp->height, px ? px : placeholder,
                        xl, xr, hl, hr, shade_a, yc, text_y - 2);
         }
@@ -634,10 +690,31 @@ int ui_coverflow(void)
     int pos = current * 256;    /* shown position, 1/256 album */
     uint32_t last_us = ui_time_us();
     bool redraw = true, work = true;
+    /* the wheel's speed, from the time between its steps: spinning fast,
+       the covers flow (flat goes to 0); slow or still, the centre cover
+       turns to face the viewer (flat back to 256) */
+    int flat = 256;
+    uint32_t last_step_us = last_us - 1000000, flat_us = last_us;
+    bool fast = false;
 
     while (true)
     {
         int goal = current * 256;
+        /* fast until the steps space out and the covers have nearly
+           arrived */
+        uint32_t now_us = ui_time_us();
+        if (fast && now_us - last_step_us > CF_SETTLE_US && abs(goal - pos) < 192)
+            fast = false;
+        int flat_goal = fast ? 0 : 256;
+        if (flat != flat_goal)
+        {
+            int ms = MIN((now_us - flat_us) / 1000, 50);
+            int d = flat_goal < flat ? -(256 * ms / CF_FLOW_MS + 1)
+                                     : 256 * ms / CF_FACE_MS + 1;
+            flat = flat_goal < flat ? MAX(flat + d, flat_goal) : MIN(flat + d, flat_goal);
+            redraw = true;
+        }
+        flat_us = now_us;
         bool moving = pos != goal;
         if (moving)
         {
@@ -659,11 +736,11 @@ int ui_coverflow(void)
             redraw = true;
         if (redraw)
         {
-            draw(&vp, pos);
+            draw(&vp, pos, flat);
             redraw = false;
         }
 
-        bool busy = pos != goal;
+        bool busy = pos != goal || flat != flat_goal;
         int action = get_action(CONTEXT_STD,
                                 busy || work ? TIMEOUT_NOBLOCK : HZ);
         switch (action)
@@ -677,6 +754,10 @@ int ui_coverflow(void)
                           action == ACTION_STD_NEXTREPEAT ? 1 : -1;
                 if (!moving)
                     last_us = ui_time_us();
+                uint32_t t = ui_time_us();
+                if (t - last_step_us < CF_FAST_GAP_US)
+                    fast = true;
+                last_step_us = t;
                 current += dir * ui_wheel_step(dir, album_count);
                 current = MAX(0, MIN(current, album_count - 1));
                 bg_next = 0;

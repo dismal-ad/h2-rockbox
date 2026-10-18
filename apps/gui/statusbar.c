@@ -142,6 +142,7 @@ bool gui_statusbar_draw(struct gui_statusbar * bar, bool force_redraw, struct vi
             .time = global_settings.newui_clock && valid_time(bar->time) ?
                     bar->time : NULL,
             .battery_pct = global_settings.newui_battery_pct,
+            .title = ui_light() ? ui_status_get_title() : NULL,
             .clock_24h = !global_settings.timeformat,
             .battery = bar->info.battlevel,
             .battery_visible = bar->info.battery_state,
@@ -172,8 +173,10 @@ void statusbar_update(bool force)
     struct viewport vp = { .buffer = NULL, .flags = VP_DEFAULT_FLAGS };
     viewport_set_fullscreen(&vp, SCREEN_MAIN);
     vp.height = UI_STATUS_H;
+    if (ui_status_get_width())
+        vp.width = ui_status_get_width();
     if (gui_statusbar_draw(&statusbars.statusbars[SCREEN_MAIN], force, &vp))
-        lcd_update_rect(0, 0, LCD_WIDTH, UI_STATUS_H);
+        lcd_update_rect(0, 0, vp.width, UI_STATUS_H);
 }
 
 void gui_syncstatusbar_init(struct gui_syncstatusbar * bars)

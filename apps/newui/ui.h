@@ -66,6 +66,8 @@ bool ui_minimal(void);
 void ui_selection(int x, int y, int w, int h);
 /* the selection's colour, and the text on it (main, secondary) */
 unsigned ui_sel_bg(void);
+/* the selection bar's top colour (Light: lighter, for its gradient) */
+unsigned ui_sel_top(void);
 unsigned ui_sel_text(void);
 unsigned ui_sel_text2(void);
 
@@ -147,7 +149,7 @@ void ui_choice_draw(struct viewport *vp, const char *title, int count, int sel,
 
 /* --- album art (ui_art.c) --- */
 
-#define UI_ART_MAX 160 /* largest cover size decoded */
+#define UI_ART_MAX 240 /* largest cover size decoded (Home, Light) */
 
 struct bitmap;
 /* The playing track's cover scaled to fit size x size (aspect kept), or
@@ -218,6 +220,7 @@ struct ui_status {
     bool keylock;
     const struct tm *time; /* NULL: no clock */
     bool clock_24h;
+    const char *title;     /* Light theme: the screen's name, left; NULL none */
     int battery;           /* percent, -1 unknown */
     bool battery_pct;      /* the percentage left of the battery */
     bool battery_visible;  /* false while blinking off (low battery) */
@@ -226,6 +229,13 @@ struct ui_status {
 };
 /* Draws the bar into the current viewport (UI_STATUS_H high) */
 void ui_status_draw(const struct ui_status *st);
+/* Light theme, as the iPod: the bar shows the screen's name on the left
+ * (instead of the clock); screens set it as they draw. "" or NULL: none */
+void ui_status_title(const char *title);
+const char *ui_status_get_title(void);
+/* The bar's width (Home: only over its menu); 0 the whole screen */
+void ui_status_width(int width);
+int ui_status_get_width(void);
 
 /* --- wheel (ui_wheel.c) --- */
 

@@ -27,6 +27,8 @@
 #include "lcd.h"
 #include "status.h"
 #include "timefuncs.h"
+#include "string-extra.h"
+#include "statusbar.h"
 #include "ui.h"
 
 #define GLYPH_Y     6   /* top of the 10 px glyphs */
@@ -36,6 +38,38 @@
 
 #define COL_LOW      LCD_RGBPACK(0xff, 0x45, 0x3a)
 #define COL_CHARGING LCD_RGBPACK(0x30, 0xd1, 0x58)
+
+static char status_title[48];
+static int status_width;
+
+void ui_status_title(const char *title)
+{
+    if (!title)
+        title = "";
+    if (!strcmp(title, status_title))
+        return;
+    strmemccpy(status_title, title, sizeof(status_title));
+    if (ui_light())
+        statusbar_update(true);
+}
+
+const char *ui_status_get_title(void)
+{
+    return status_title;
+}
+
+void ui_status_width(int width)
+{
+    if (width == status_width)
+        return;
+    status_width = width;
+    statusbar_update(true);
+}
+
+int ui_status_get_width(void)
+{
+    return status_width;
+}
 
 static void draw_play_state(int x, int mode)
 {
@@ -131,23 +165,34 @@ void ui_status_draw(const struct ui_status *st)
     else
         ui_fill_rect(0, 0, vp->width, vp->height, UI_COL_BG);
 
-    /* left: play state, then the key lock */
+    const bool titled = st->title && st->title[0];
     int x = UI_MARGIN;
-    draw_play_state(x, st->playmode);
-    if (st->keylock)
-        draw_lock(x + 18);
-
-    /* centre: clock */
-    if (st->time)
+    if (titled)
     {
-        char buf[16];
-        int h = st->time->tm_hour, m = st->time->tm_min;
-        if (st->clock_24h)
-            snprintf(buf, sizeof(buf), "%02d:%02d", h, m);
-        else
-            snprintf(buf, sizeof(buf), "%d:%02d %s",
-                     (h % 12) ? h % 12 : 12, m, h < 12 ? "AM" : "PM");
-        ui_text_vcenter(0, 0, UI_STATUS_H, font, UI_COL_TEXT, buf, vp->width, 0);
+        /* the iPod's layout: the screen's name left, the play state with
+           the battery on the right */
+        ui_text_vcenter(UI_MARGIN - 2, 0, UI_STATUS_H, ui_font(UI_FONT_BODY),
+                        UI_COL_TEXT, st->title, vp->width - 2 * UI_MARGIN - 48, -1);
+    }
+    else
+    {
+        /* left: play state, then the key lock */
+        draw_play_state(x, st->playmode);
+        if (st->keylock)
+            draw_lock(x + 18);
+
+        /* centre: clock */
+        if (st->time)
+        {
+            char buf[16];
+            int h = st->time->tm_hour, m = st->time->tm_min;
+            if (st->clock_24h)
+                snprintf(buf, sizeof(buf), "%02d:%02d", h, m);
+            else
+                snprintf(buf, sizeof(buf), "%d:%02d %s",
+                         (h % 12) ? h % 12 : 12, m, h < 12 ? "AM" : "PM");
+            ui_text_vcenter(0, 0, UI_STATUS_H, font, UI_COL_TEXT, buf, vp->width, 0);
+        }
     }
 
     /* right: battery, Bluetooth to its left */
@@ -163,5 +208,19 @@ void ui_status_draw(const struct ui_status *st)
         ui_text_vcenter(x, 0, UI_STATUS_H, font, UI_COL_TEXT, buf, 0, -1);
     }
     if (st->bluetooth)
-        draw_bluetooth(x - 14, st->bluetooth > 1 ? UI_COL_TEXT : UI_COL_MUTED);
+    {
+        x -= 14;
+        draw_bluetooth(x, st->bluetooth > 1 ? UI_COL_TEXT : UI_COL_MUTED);
+    }
+    if (titled)
+    {
+        /* the play state in the accent colour, the key lock before it */
+        x -= 16;
+        if (st->playmode == STATUS_PLAY)
+            ui_fill_triangle_right(x, GLYPH_Y, 9, GLYPH_H, ui_accent());
+        else
+            draw_play_state(x, st->playmode);
+        if (st->keylock)
+            draw_lock(x - 14);
+    }
 }

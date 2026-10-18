@@ -168,6 +168,9 @@ void list_draw(struct screen *display, struct gui_synclist *list)
     ui_fill_rect(0, 0, parent->width, parent->height, UI_COL_BG);
 
     *vp = *parent;
+    /* only lists under the status bar name it */
+    if (parent->y >= UI_STATUS_H)
+        ui_status_title(list->title);
     if (list_display_title(list, screen))
     {
         const int title_h = list_title_height(list);
@@ -266,8 +269,9 @@ void list_draw(struct screen *display, struct gui_synclist *list)
                 sv->width = text_w;
                 sv->height = row_h - shift;
                 ld.height = row_h - shift;
-                ld.style = STYLE_COLORBAR;
-                ld.line_color = ui_sel_bg();
+                ld.style = ui_light() && !ui_minimal() ? STYLE_GRADIENT : STYLE_COLORBAR;
+                ld.line_color = ld.style == STYLE_GRADIENT ? ui_sel_top() : ui_sel_bg();
+                ld.line_end_color = ui_sel_bg();
                 ld.text_color = ui_sel_text();
                 ld.scroll = true;
                 display->set_viewport(sv);

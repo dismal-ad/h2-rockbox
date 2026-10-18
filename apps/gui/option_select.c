@@ -506,9 +506,14 @@ static void draw_slider(struct viewport *vp, const struct settings_list *setting
     slider_range(setting, &min, &max);
 
     ui_fill_rect(0, 0, vp->width, vp->height, UI_COL_BG);
-    ui_text_vcenter(UI_MARGIN, 0, UI_ROW_H, ui_font(UI_FONT_TITLE), UI_COL_TEXT,
-                    title, w, -1);
-    ui_fill_rect(0, UI_ROW_H - 1, vp->width, 1, UI_COL_TRACK);
+    if (ui_light())
+        ui_status_title(title);
+    else
+    {
+        ui_text_vcenter(UI_MARGIN, 0, UI_ROW_H, ui_font(UI_FONT_TITLE), UI_COL_TEXT,
+                        title, w, -1);
+        ui_fill_rect(0, UI_ROW_H - 1, vp->width, 1, UI_COL_TRACK);
+    }
 
     ui_text(UI_MARGIN, 58, ui_font(UI_FONT_BIG), UI_COL_TEXT,
             option_get_valuestring(setting, buf, sizeof(buf), value), w, 0);

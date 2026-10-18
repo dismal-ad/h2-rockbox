@@ -325,6 +325,7 @@ void ui_np_draw(bool full)
         return;
     }
 
+    ui_status_title(str(LANG_NOW_PLAYING));
     ui_fill_rect(0, 0, vp.width, vp.height, UI_COL_BG);
     if (id3)
     {

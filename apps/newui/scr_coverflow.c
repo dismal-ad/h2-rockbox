@@ -621,6 +621,7 @@ int ui_coverflow(void)
         return GO_TO_ROOT;
     }
     make_placeholder();
+    ui_status_title(str(LANG_NEWUI_COVERFLOW));
     fb_data bg = FB_SCALARPACK(UI_COL_BG);
     bg_r = bg >> 11;
     bg_g = (bg >> 5) & 63;

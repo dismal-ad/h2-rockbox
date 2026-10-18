@@ -99,11 +99,28 @@ unsigned ui_sel_text2(void)
     return ui_minimal() ? LCD_RGBPACK(0x48, 0x48, 0x48) : LCD_RGBPACK(0xff, 0xff, 0xff);
 }
 
+/* Light theme: the iPod's glossy bar, from a lighter accent at the top to
+ * the accent at the bottom */
+unsigned ui_sel_top(void)
+{
+    unsigned c = ui_accent();
+    if (!ui_light())
+        return c;
+    int r = RGB_UNPACK_RED(c), g = RGB_UNPACK_GREEN(c), b = RGB_UNPACK_BLUE(c);
+    return LCD_RGBPACK(r + (255 - r) * 2 / 5, g + (255 - g) * 2 / 5,
+                       b + (255 - b) * 2 / 5);
+}
+
 void ui_selection(int x, int y, int w, int h)
 {
     if (ui_minimal())
         ui_fill_round_rect(x + CARD_INSET, y, w - 2 * CARD_INSET, h,
                            CARD_RADIUS, UI_COL_SEL);
+    else if (ui_light())
+    {
+        lcd_set_drawmode(DRMODE_SOLID);
+        lcd_gradient_fillrect(x, y, w, h, ui_sel_top(), ui_accent());
+    }
     else
         ui_fill_rect(x, y, w, h, ui_accent());
 }

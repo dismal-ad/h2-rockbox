@@ -119,6 +119,35 @@ static const char *item_label(enum home_target t)
     return str(items[t].lang_id);
 }
 
+/* Light theme, as the iPod: the cover fills the right half of the screen,
+ * top to bottom (the status bar is only over the menu), cropped to it */
+static void draw_full_art(void)
+{
+    struct viewport av = { .buffer = NULL, .flags = VP_DEFAULT_FLAGS };
+    viewport_set_fullscreen(&av, SCREEN_MAIN);
+    av.x = HOME_MENU_W;
+    av.width = LCD_WIDTH - HOME_MENU_W;
+    lcd_set_viewport(&av);
+
+    const struct bitmap *art = ui_art_current(LCD_HEIGHT);
+    if (art)
+    {
+        int w = MIN(art->width, av.width), h = MIN(art->height, av.height);
+        ui_fill_rect(0, 0, av.width, av.height, UI_COL_BG);
+        lcd_bitmap_part((const fb_data *)art->data,
+                        (art->width - w) / 2, (art->height - h) / 2,
+                        STRIDE(SCREEN_MAIN, art->width, art->height),
+                        (av.width - w) / 2, (av.height - h) / 2, w, h);
+    }
+    else
+    {
+        const int size = 120;
+        ui_fill_rect(0, 0, av.width, av.height, UI_COL_TRACK);
+        ui_art_placeholder((av.width - size) / 2, (av.height - size) / 2, size, 0);
+    }
+    lcd_update_viewport();
+}
+
 static void draw(struct viewport *vp, const enum home_target *list, int n,
                  int sel)
 {
@@ -143,14 +172,22 @@ static void draw(struct viewport *vp, const enum home_target *list, int n,
                             CHEVRON, 0, -1);
     }
 
-    /* right half: the playing album's cover */
-    int ax = HOME_MENU_W + (vp->width - HOME_MENU_W - HOME_ART) / 2;
-    int ay = (vp->height - HOME_ART) / 2;
-    const struct bitmap *art = ui_art_current(HOME_ART);
-    if (art)
-        ui_art_draw(art, ax, ay, HOME_ART, 8);
+    if (ui_light())
+    {
+        draw_full_art();
+        lcd_set_viewport(vp);
+    }
     else
-        ui_art_placeholder(ax, ay, HOME_ART, 8);
+    {
+        /* right half: the playing album's cover */
+        int ax = HOME_MENU_W + (vp->width - HOME_MENU_W - HOME_ART) / 2;
+        int ay = (vp->height - HOME_ART) / 2;
+        const struct bitmap *art = ui_art_current(HOME_ART);
+        if (art)
+            ui_art_draw(art, ax, ay, HOME_ART, 8);
+        else
+            ui_art_placeholder(ax, ay, HOME_ART, 8);
+    }
 
     /* slide in if a screen change asked for it */
     if (!ui_transition_run(vp->x, vp->y, vp->width, vp->height))
@@ -170,6 +207,11 @@ int ui_home(int *selected)
     int ret = GO_TO_ROOT;
 
     viewport_set_defaults(&vp, SCREEN_MAIN);
+    if (ui_light())
+    {
+        ui_status_width(HOME_MENU_W);
+        ui_status_title(str(LANG_ROCKBOX_TITLE));
+    }
 
     while (true)
     {
@@ -214,6 +256,7 @@ int ui_home(int *selected)
             {
                 enum home_target t = list[sel];
                 ui_transition(1);
+                ui_status_width(0);
                 if (t == HOME_COVERFLOW)
                 {
                     int r = ui_coverflow();
@@ -223,6 +266,11 @@ int ui_home(int *selected)
                         goto out;
                     }
                     ui_transition(-1);
+                    if (ui_light())
+                    {
+                        ui_status_width(HOME_MENU_W);
+                        ui_status_title(str(LANG_ROCKBOX_TITLE));
+                    }
                     redraw = true;
                     break;
                 }
@@ -235,6 +283,11 @@ int ui_home(int *selected)
                         goto out;
                     }
                     ui_transition(-1);
+                    if (ui_light())
+                    {
+                        ui_status_width(HOME_MENU_W);
+                        ui_status_title(str(LANG_ROCKBOX_TITLE));
+                    }
                     redraw = true;
                     break;
                 }
@@ -258,6 +311,7 @@ int ui_home(int *selected)
         }
     }
 out:
+    ui_status_width(0);
     if (selected)
         *selected = target;
     return ret;

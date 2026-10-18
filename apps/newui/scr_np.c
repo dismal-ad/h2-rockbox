@@ -62,8 +62,8 @@
 #define NP_BAR_Y       176
 #define NP_TIME_Y      184
 #define NP_BAND_Y      170     /* bottom band redrawn on time updates */
-#define NP_ARTIST_COL  LCD_RGBPACK(0xcc, 0xcc, 0xcc)
-#define NP_ALBUM_COL   LCD_RGBPACK(0xbb, 0xbb, 0xbb)
+#define NP_ARTIST_COL  UI_COL_ARTIST
+#define NP_ALBUM_COL   UI_COL_ALBUM
 #define OVERLAY_TICKS  (HZ * 3 / 2)
 #define NP_BIG_ART     148    /* Home's size: shares its decoded cover */
 #define NP_PAGES       4
@@ -119,7 +119,7 @@ static void draw_band(struct viewport *vp, const struct mp3entry *id3, long elap
         if (pos < 0)
             pos = 0;
         int fill = (int)((long long)w * pos / id3->length);
-        unsigned col = scrubbing ? UI_COL_TEXT : UI_COL_SEL;
+        unsigned col = scrubbing ? UI_COL_TEXT : UI_COL_FILL;
         if (fill > 0)
             ui_fill_round_rect(UI_MARGIN, by, fill < bh ? bh : fill, bh, bh / 2, col);
         if (scrubbing)
@@ -139,7 +139,7 @@ static void draw_volume_overlay(struct viewport *vp)
     int lo = sound_min(SOUND_VOLUME), hi = sound_max(SOUND_VOLUME);
     char buf[24];
 
-    ui_fill_round_rect(x, y, w, h, 12, LCD_RGBPACK(0x26, 0x26, 0x26));
+    ui_fill_round_rect(x, y, w, h, 12, UI_COL_PANEL);
     ui_text(x + 14, y + 8, ui_font(UI_FONT_SMALL), UI_COL_TEXT2,
             str(LANG_VOLUME), 0, -1);
     snprintf(buf, sizeof(buf), "%d %s", vol, sound_unit(SOUND_VOLUME));
@@ -148,7 +148,7 @@ static void draw_volume_overlay(struct viewport *vp)
     ui_fill_round_rect(x + 14, by, bw, 6, 3, UI_COL_TRACK);
     int fill = hi > lo ? bw * (vol - lo) / (hi - lo) : 0;
     if (fill > 0)
-        ui_fill_round_rect(x + 14, by, fill < 6 ? 6 : fill, 6, 3, UI_COL_SEL);
+        ui_fill_round_rect(x + 14, by, fill < 6 ? 6 : fill, 6, 3, UI_COL_FILL);
 }
 
 /* page 3: left and right level meters, 2 dB a segment from -40 dB, with
@@ -185,7 +185,7 @@ static void draw_levels(struct viewport *vp)
         {
             int y = bottom - (i + 1) * seg_h;
             unsigned c = i < n ? (i >= METER_SEGS - 2 ? LCD_RGBPACK(0xe0, 0x40, 0x40) :
-                                  i >= METER_SEGS - 5 ? UI_COL_SEL : UI_COL_ACCENT)
+                                  i >= METER_SEGS - 5 ? UI_COL_FILL : UI_COL_ACCENT)
                                : UI_COL_TRACK;
             if (i == hold[ch] - 1 && i >= n)
                 c = UI_COL_TEXT2;
@@ -345,7 +345,8 @@ void ui_np_draw(bool full)
         /* page dots, in the middle of the top row */
         for (int i = 0; i < NP_PAGES; i++)
             ui_fill_round_rect(vp.width / 2 - 14 + i * 12, 8, 6, 6, 3,
-                               i == page ? UI_COL_TEXT : UI_COL_ACCENT);
+                               i == page ? UI_COL_TEXT :
+                               ui_light() ? UI_COL_MUTED : UI_COL_ACCENT);
 
         if (page == NP_PAGE_LEVELS)
             draw_levels(&vp);

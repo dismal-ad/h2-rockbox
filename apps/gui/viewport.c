@@ -39,8 +39,6 @@
  * nest, the latest one counts. While the bar is shown it is redrawn when
  * what it shows changes (statusbar_update(), on every get_action()). */
 
-#define FG_FALLBACK global_settings.fg_color
-#define BG_FALLBACK global_settings.bg_color
 
 #define VPSTACK_DEPTH 16
 static int bar_stack_top = -1;
@@ -122,8 +120,8 @@ void viewport_set_fullscreen(struct viewport *vp,
         vp->flags |= VP_FLAG_ALIGN_RIGHT;
     vp->font = screens[screen].getuifont();
     vp->drawmode = DRMODE_SOLID;
-    vp->fg_pattern = FG_FALLBACK;
-    vp->bg_pattern = BG_FALLBACK;
+    vp->fg_pattern = UI_COL_TEXT;
+    vp->bg_pattern = UI_COL_BG;
 }
 
 void viewport_set_buffer(struct viewport *vp, struct frame_buffer_t *buffer,

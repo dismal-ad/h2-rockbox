@@ -121,7 +121,7 @@ void ui_wheel_draw_letter(const char *title)
                                                : ui_font(UI_FONT_TITLE);
     const int size = 64;
     int x = (vp->width - size) / 2, y = (vp->height - size) / 2;
-    ui_fill_round_rect(x, y, size, size, 10, LCD_RGBPACK(0x26, 0x26, 0x26));
+    ui_fill_round_rect(x, y, size, size, 10, UI_COL_PANEL);
     ui_text_vcenter(x, y, size, font, UI_COL_TEXT, letter, size, 0);
     letter_shown = true;
 }

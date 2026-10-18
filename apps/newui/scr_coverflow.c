@@ -328,12 +328,15 @@ static void make_placeholder(void)
         }
 }
 
-/* RGB565 pixel scaled by a/256 */
+/* RGB565 pixel mixed toward the background: a/256 of it is kept (darker
+ * on the Dark theme, paler on the Light one) */
+static unsigned bg_r, bg_g, bg_b;   /* the background, RGB565 fields */
+
 static inline fb_data shade(fb_data c, int a)
 {
-    unsigned r = ((c >> 11) * a) >> 8;
-    unsigned g = (((c >> 5) & 63) * a) >> 8;
-    unsigned b = ((c & 31) * a) >> 8;
+    unsigned r = bg_r + ((((int)(c >> 11) - (int)bg_r) * a) >> 8);
+    unsigned g = bg_g + (((((int)(c >> 5) & 63) - (int)bg_g) * a) >> 8);
+    unsigned b = bg_b + (((((int)c & 31) - (int)bg_b) * a) >> 8);
     return (r << 11) | (g << 5) | b;
 }
 
@@ -618,6 +621,10 @@ int ui_coverflow(void)
         return GO_TO_ROOT;
     }
     make_placeholder();
+    fb_data bg = FB_SCALARPACK(UI_COL_BG);
+    bg_r = bg >> 11;
+    bg_g = (bg >> 5) & 63;
+    bg_b = bg & 31;
 
     struct viewport vp;
     viewport_set_defaults(&vp, SCREEN_MAIN);

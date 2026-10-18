@@ -105,7 +105,7 @@ static void splash_draw(const char *fmt, va_list ap, int progress)
                            UI_COL_TRACK);
         if (fill > 0)
             ui_fill_round_rect(x + UI_POPUP_PAD, by, MAX(fill, BAR_H), BAR_H,
-                               BAR_H / 2, UI_COL_SEL);
+                               BAR_H / 2, UI_COL_FILL);
     }
     lcd_update_viewport();
     lcd_set_viewport(last);

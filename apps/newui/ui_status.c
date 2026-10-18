@@ -112,7 +112,24 @@ void ui_status_draw(const struct ui_status *st)
     struct viewport *vp = lcd_current_viewport;
     int font = ui_font(UI_FONT_SMALL);
 
-    ui_fill_rect(0, 0, vp->width, vp->height, UI_COL_BG);
+    if (ui_light())
+    {
+        /* the iPod's silver bar: a vertical gradient and a hairline */
+        unsigned top = ui_col(UI_C_BAR_TOP), bot = ui_col(UI_C_BAR_BOTTOM);
+        int h = vp->height - 1;
+        for (int y = 0; y < h; y++)
+        {
+            int t = y * 256 / (h - 1);
+            unsigned c = LCD_RGBPACK(
+                RGB_UNPACK_RED(top) + ((RGB_UNPACK_RED(bot) - RGB_UNPACK_RED(top)) * t >> 8),
+                RGB_UNPACK_GREEN(top) + ((RGB_UNPACK_GREEN(bot) - RGB_UNPACK_GREEN(top)) * t >> 8),
+                RGB_UNPACK_BLUE(top) + ((RGB_UNPACK_BLUE(bot) - RGB_UNPACK_BLUE(top)) * t >> 8));
+            ui_fill_rect(0, y, vp->width, 1, c);
+        }
+        ui_fill_rect(0, h, vp->width, 1, LCD_RGBPACK(0x8c, 0x8c, 0x90));
+    }
+    else
+        ui_fill_rect(0, 0, vp->width, vp->height, UI_COL_BG);
 
     /* left: play state, then the key lock */
     int x = UI_MARGIN;

@@ -17850,3 +17850,45 @@
     *: "Battery Percentage"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_NEWUI_THEME
+  desc: new UI: Display setting, dark or light screens
+  user: core
+  <source>
+    *: "Theme"
+  </source>
+  <dest>
+    *: "Theme"
+  </dest>
+  <voice>
+    *: "Theme"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_THEME_DARK
+  desc: new UI: theme, white on black
+  user: core
+  <source>
+    *: "Dark"
+  </source>
+  <dest>
+    *: "Dark"
+  </dest>
+  <voice>
+    *: "Dark"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_THEME_LIGHT
+  desc: new UI: theme, black on white like the iPod
+  user: core
+  <source>
+    *: "Light"
+  </source>
+  <dest>
+    *: "Light"
+  </dest>
+  <voice>
+    *: "Light"
+  </voice>
+</phrase>

@@ -518,7 +518,7 @@ static void draw_slider(struct viewport *vp, const struct settings_list *setting
     fill = MAX(0, MIN(fill, w));
     ui_fill_round_rect(UI_MARGIN, by, w, bh, bh / 2, UI_COL_TRACK);
     if (fill > 0)
-        ui_fill_round_rect(UI_MARGIN, by, MAX(fill, bh), bh, bh / 2, UI_COL_SEL);
+        ui_fill_round_rect(UI_MARGIN, by, MAX(fill, bh), bh, bh / 2, UI_COL_FILL);
     ui_fill_round_rect(UI_MARGIN + fill - 7, by - 4, 14, bh + 8, 7, UI_COL_TEXT);
 
     ui_text(UI_MARGIN, by + 18, small, UI_COL_TEXT2,

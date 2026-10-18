@@ -35,19 +35,31 @@
 #define UI_ROW_H        27  /* text row */
 #define UI_ART_ROW_H    54  /* row with a cover */
 
-#define UI_COL_BG       LCD_RGBPACK(0x00, 0x00, 0x00)
-#define UI_COL_TEXT     LCD_RGBPACK(0xff, 0xff, 0xff)
-#define UI_COL_TEXT2    LCD_RGBPACK(0xaa, 0xaa, 0xaa) /* secondary */
-#define UI_COL_MUTED    LCD_RGBPACK(0x8c, 0x8c, 0x8c)
-#define UI_COL_SEL      LCD_RGBPACK(0xee, 0xee, 0xec) /* Minimal selection */
-#define UI_COL_SEL_TEXT LCD_RGBPACK(0x17, 0x17, 0x17)
-#define UI_COL_TRACK    LCD_RGBPACK(0x1c, 0x1c, 0x1c) /* progress track */
+/* colours follow the theme (Dark or Light, ui_style.c) */
+enum ui_col {
+    UI_C_BG, UI_C_TEXT, UI_C_TEXT2, UI_C_MUTED, UI_C_SEL, UI_C_SEL_TEXT,
+    UI_C_TRACK, UI_C_PANEL, UI_C_ARTIST, UI_C_ALBUM, UI_C_FILL,
+    UI_C_BAR_TOP, UI_C_BAR_BOTTOM, UI_C_COUNT
+};
+unsigned ui_col(enum ui_col c);
+#define UI_COL_BG       ui_col(UI_C_BG)
+#define UI_COL_TEXT     ui_col(UI_C_TEXT)
+#define UI_COL_TEXT2    ui_col(UI_C_TEXT2)     /* secondary */
+#define UI_COL_MUTED    ui_col(UI_C_MUTED)
+#define UI_COL_SEL      ui_col(UI_C_SEL)       /* Minimal selection */
+#define UI_COL_SEL_TEXT ui_col(UI_C_SEL_TEXT)
+#define UI_COL_TRACK    ui_col(UI_C_TRACK)     /* progress track */
+#define UI_COL_FILL     ui_col(UI_C_FILL)      /* progress, sliders */
+#define UI_COL_ARTIST   ui_col(UI_C_ARTIST)    /* Now Playing */
+#define UI_COL_ALBUM    ui_col(UI_C_ALBUM)
 #define UI_COL_ACCENT   ui_accent()  /* the user's accent colour */
-#define UI_COL_PANEL    LCD_RGBPACK(0x26, 0x26, 0x26) /* pop-up panels */
+#define UI_COL_PANEL    ui_col(UI_C_PANEL)     /* pop-up panels */
 
 /* --- the chosen look (ui_style.c) --- */
 
 unsigned ui_accent(void);
+/* Light theme: white background, as the iPod */
+bool ui_light(void);
 /* Minimal style: the selection is a light card, else an accent bar */
 bool ui_minimal(void);
 /* Draws the selection behind a row at x, y, w, h */

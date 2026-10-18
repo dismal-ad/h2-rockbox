@@ -156,7 +156,10 @@ void ui_art_draw_tilted(const struct bitmap *bm, int x, int y, int w,
     const fb_data *src = (const fb_data *)bm->data;
     const int bw = bm->width, bh = bm->height;
     const unsigned bg = UI_COL_BG;
-    const int hmax = MAX(hl, hr), yc = y + hmax / 2;
+    /* positions in 1/256 px, so the slanted top and bottom edges can be
+       anti-aliased: an edge pixel is blended with the background by how
+       much of it the cover covers */
+    const long yc = (long)y * 256 + (long)MAX(hl, hr) * 128;
 
     for (int i = 0; i < w; i++)
     {
@@ -166,30 +169,51 @@ void ui_art_draw_tilted(const struct bitmap *bm, int x, int y, int w,
         /* the column's height, and its texture column interpolated in
            1/depth so the turn looks right */
         long t = ((long)i << 16) / w;
-        int h = hl + (int)(((long)(hr - hl) * t) >> 16);
+        long hf = (long)hl * 256 + (((long)(hr - hl) * 256 * t) >> 16);
         long long den = (long long)(65536 - t) * hl + (long long)t * hr;
         int u = den ? (int)((long long)t * hr * bw / den) : 0;
         if (u >= bw)
             u = bw - 1;
-        const int step = (bh << 16) / h;
-        int top = yc - h / 2, v = 0;
-        for (int r = 0; r < h; r++, v += step)
+        const long top = yc - hf / 2, bot = top + hf;
+
+        for (int py = top >> 8; py <= (bot - 1) >> 8; py++)
         {
-            int py = top + r;
-            if (py >= 0 && py < vp->height)
-                *FBADDR(vp->x + px, vp->y + py) = src[(v >> 16) * bw + u];
-        }
-        /* the reflection: the cover upside down below it, fading out */
-        int rh = MIN(refl_h, h);
-        v = (bh << 16) - 1;
-        for (int r = 0; r < rh; r++, v -= step)
-        {
-            int py = top + h + 1 + r;
-            if (py < 0 || py >= vp->height || v < 0)
+            if (py < 0 || py >= vp->height)
                 continue;
-            unsigned c = FB_UNPACK_SCALAR_LCD(src[(v >> 16) * bw + u]);
-            *FBADDR(vp->x + px, vp->y + py) =
-                FB_SCALARPACK(mix565(c, bg, refl_a * (rh - r) / rh));
+            long p0 = MAX((long)py * 256, top), p1 = MIN((long)py * 256 + 256, bot);
+            int cover = p1 - p0;                    /* 0..256 */
+            /* the texture row at the pixel's centre */
+            long v = (((long)py * 256 + 128 - top) * bh) / hf;
+            v = MAX(0, MIN(v, bh - 1));
+            unsigned c = FB_UNPACK_SCALAR_LCD(src[v * bw + u]);
+            fb_data *d = FBADDR(vp->x + px, vp->y + py);
+            if (cover < 256)
+                c = mix565(c, FB_UNPACK_SCALAR_LCD(*d), cover);
+            *d = FB_SCALARPACK(c);
+        }
+
+        /* the reflection: the cover upside down below a 1 px gap, fading
+           out; its top edge follows the cover's, anti-aliased the same */
+        long rh = MIN((long)refl_h * 256, hf);
+        long rtop = bot + 256, rbot = rtop + rh;
+        for (int py = rtop >> 8; py <= (rbot - 1) >> 8; py++)
+        {
+            if (py < 0 || py >= vp->height)
+                continue;
+            long p0 = MAX((long)py * 256, rtop), p1 = MIN((long)py * 256 + 256, rbot);
+            int cover = p1 - p0;
+            long off = (long)py * 256 + 128 - rtop;   /* below the gap */
+            long v = bh - 1 - (off * bh) / hf;
+            if (v < 0)
+                continue;
+            int a = (int)(refl_a * (rh - off) / rh);
+            if (a <= 0)
+                continue;
+            unsigned c = mix565(FB_UNPACK_SCALAR_LCD(src[v * bw + u]), bg, a);
+            fb_data *d = FBADDR(vp->x + px, vp->y + py);
+            if (cover < 256)
+                c = mix565(c, FB_UNPACK_SCALAR_LCD(*d), cover);
+            *d = FB_SCALARPACK(c);
         }
     }
 }

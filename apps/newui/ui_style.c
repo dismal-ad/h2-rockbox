@@ -45,6 +45,7 @@ static const unsigned themes[2][UI_C_COUNT] = {
         [UI_C_ARTIST] = RGB(0xcc, 0xcc, 0xcc),   [UI_C_ALBUM] = RGB(0xbb, 0xbb, 0xbb),
         [UI_C_FILL] = RGB(0xee, 0xee, 0xec),
         [UI_C_BAR_TOP] = RGB(0x00, 0x00, 0x00),  [UI_C_BAR_BOTTOM] = RGB(0x00, 0x00, 0x00),
+        [UI_C_PH_BG] = RGB(0x1c, 0x1c, 0x1c),    [UI_C_PH_FG] = RGB(0x8c, 0x8c, 0x8c),
     },
     [1] = {     /* Light: white, dark text, a silver status bar */
         [UI_C_BG] = RGB(0xff, 0xff, 0xff),       [UI_C_TEXT] = RGB(0x14, 0x14, 0x14),
@@ -54,6 +55,8 @@ static const unsigned themes[2][UI_C_COUNT] = {
         [UI_C_ARTIST] = RGB(0x33, 0x33, 0x33),   [UI_C_ALBUM] = RGB(0x4a, 0x4a, 0x4a),
         [UI_C_FILL] = 0,                         /* the accent */
         [UI_C_BAR_TOP] = RGB(0xf4, 0xf4, 0xf4),  [UI_C_BAR_BOTTOM] = RGB(0xbe, 0xbe, 0xc2),
+        /* dark enough that a missing cover stands out on white */
+        [UI_C_PH_BG] = RGB(0x5c, 0x5c, 0x62),    [UI_C_PH_FG] = RGB(0xd4, 0xd4, 0xd8),
     },
 };
 

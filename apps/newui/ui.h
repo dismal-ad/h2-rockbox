@@ -39,7 +39,7 @@
 enum ui_col {
     UI_C_BG, UI_C_TEXT, UI_C_TEXT2, UI_C_MUTED, UI_C_SEL, UI_C_SEL_TEXT,
     UI_C_TRACK, UI_C_PANEL, UI_C_ARTIST, UI_C_ALBUM, UI_C_FILL,
-    UI_C_BAR_TOP, UI_C_BAR_BOTTOM, UI_C_COUNT
+    UI_C_BAR_TOP, UI_C_BAR_BOTTOM, UI_C_PH_BG, UI_C_PH_FG, UI_C_COUNT
 };
 unsigned ui_col(enum ui_col c);
 #define UI_COL_BG       ui_col(UI_C_BG)
@@ -52,6 +52,8 @@ unsigned ui_col(enum ui_col c);
 #define UI_COL_FILL     ui_col(UI_C_FILL)      /* progress, sliders */
 #define UI_COL_ARTIST   ui_col(UI_C_ARTIST)    /* Now Playing */
 #define UI_COL_ALBUM    ui_col(UI_C_ALBUM)
+#define UI_COL_PH_BG    ui_col(UI_C_PH_BG)     /* the no-cover placeholder */
+#define UI_COL_PH_FG    ui_col(UI_C_PH_FG)
 #define UI_COL_ACCENT   ui_accent()  /* the user's accent colour */
 #define UI_COL_PANEL    ui_col(UI_C_PANEL)     /* pop-up panels */
 

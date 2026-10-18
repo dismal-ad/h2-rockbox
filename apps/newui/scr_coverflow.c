@@ -307,8 +307,8 @@ static bool idle_work(void)
 
 static void make_placeholder(void)
 {
-    const fb_data bg = FB_SCALARPACK(UI_COL_TRACK);
-    const fb_data fg = FB_SCALARPACK(UI_COL_MUTED);
+    const fb_data bg = FB_SCALARPACK(UI_COL_PH_BG);
+    const fb_data fg = FB_SCALARPACK(UI_COL_PH_FG);
     for (int i = 0; i < UI_COVER * UI_COVER; i++)
         placeholder[i] = bg;
     /* a quaver, as ui_art_placeholder draws it */

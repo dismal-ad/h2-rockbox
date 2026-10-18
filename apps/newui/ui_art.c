@@ -131,11 +131,11 @@ void ui_art_draw(const struct bitmap *bm, int x, int y, int size, int radius)
 
 void ui_art_placeholder(int x, int y, int size, int radius)
 {
-    ui_fill_round_rect(x, y, size, size, radius, UI_COL_TRACK);
+    ui_fill_round_rect(x, y, size, size, radius, UI_COL_PH_BG);
     /* a quaver: head, stem and flag, scaled to the square */
     int u = size / 16;
     int hx = x + size / 2 - 3 * u, hy = y + size / 2 + 2 * u;
-    ui_fill_round_rect(hx, hy, 4 * u, 3 * u, (3 * u) / 2, UI_COL_MUTED);
-    ui_fill_rect(hx + 3 * u, y + size / 2 - 4 * u, u, 7 * u, UI_COL_MUTED);
-    ui_fill_rect(hx + 3 * u, y + size / 2 - 4 * u, 3 * u, u, UI_COL_MUTED);
+    ui_fill_round_rect(hx, hy, 4 * u, 3 * u, (3 * u) / 2, UI_COL_PH_FG);
+    ui_fill_rect(hx + 3 * u, y + size / 2 - 4 * u, u, 7 * u, UI_COL_PH_FG);
+    ui_fill_rect(hx + 3 * u, y + size / 2 - 4 * u, 3 * u, u, UI_COL_PH_FG);
 }

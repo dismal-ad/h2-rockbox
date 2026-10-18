@@ -142,7 +142,7 @@ static void draw_full_art(void)
     else
     {
         const int size = 120;
-        ui_fill_rect(0, 0, av.width, av.height, UI_COL_TRACK);
+        ui_fill_rect(0, 0, av.width, av.height, UI_COL_PH_BG);
         ui_art_placeholder((av.width - size) / 2, (av.height - size) / 2, size, 0);
     }
     lcd_update_viewport();

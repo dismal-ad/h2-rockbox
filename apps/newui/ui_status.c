@@ -18,6 +18,11 @@
  *
  ****************************************************************************/
 
+/* Colours: the play icon and the Bluetooth icon (while Bluetooth is on)
+ * in the accent colour, everything else in the theme's soft black or soft
+ * white (UI_COL_STATUS); the battery's fill red when low, green when
+ * charging. */
+
 /* The status bar (PLAN.md §4.1): play state on the left, clock in the
  * centre, Bluetooth and battery on the right. Drawn into the current
  * viewport, UI_STATUS_H high. */
@@ -77,11 +82,11 @@ int ui_status_get_width(void)
 
 static void draw_play_state(int x, int mode)
 {
-    unsigned c = UI_COL_TEXT;
+    unsigned c = UI_COL_STATUS;
     switch (mode)
     {
         case STATUS_PLAY:
-            ui_fill_triangle_right(x, GLYPH_Y, PLAY_W, GLYPH_H, c);
+            ui_fill_triangle_right(x, GLYPH_Y, PLAY_W, GLYPH_H, ui_accent());
             break;
         case STATUS_PAUSE:
             ui_fill_rect(x, GLYPH_Y, 4, GLYPH_H, c);
@@ -109,8 +114,8 @@ static void draw_play_state(int x, int mode)
 static void draw_lock(int x)
 {
     /* shackle (2 px), then body */
-    ui_stroke_round_rect(x + 2, GLYPH_Y, 7, 8, 3, 2, UI_COL_TEXT);
-    ui_fill_round_rect(x, GLYPH_Y + 5, 11, GLYPH_H - 5, 2, UI_COL_TEXT);
+    ui_stroke_round_rect(x + 2, GLYPH_Y, 7, 8, 3, 2, UI_COL_STATUS);
+    ui_fill_round_rect(x, GLYPH_Y + 5, 11, GLYPH_H - 5, 2, UI_COL_STATUS);
 }
 
 static void draw_bluetooth(int x, unsigned c)
@@ -130,8 +135,7 @@ static void draw_bluetooth(int x, unsigned c)
 
 static void draw_battery(int x, int percent, bool charging)
 {
-    /* in the accent colour; the fill red when low, green when charging */
-    unsigned c = ui_accent(), fill = ui_accent();
+    unsigned c = UI_COL_STATUS, fill = UI_COL_STATUS;
     if (charging)
         fill = COL_CHARGING;
     else if (percent >= 0 && percent <= 15)
@@ -177,8 +181,7 @@ void ui_status_draw(const struct ui_status *st)
     {
         /* the iPod's layout: the screen's name left, the play state with
            the battery on the right */
-        ui_text_vcenter(UI_MARGIN - 2, 0, UI_STATUS_H, ui_font(UI_FONT_BODY),
-                        UI_COL_TEXT, st->title, vp->width - 2 * UI_MARGIN - 48, -1);
+        /* drawn last, in the room the right side's icons leave */
     }
     else
     {
@@ -197,7 +200,7 @@ void ui_status_draw(const struct ui_status *st)
             else
                 snprintf(buf, sizeof(buf), "%d:%02d %s",
                          (h % 12) ? h % 12 : 12, m, h < 12 ? "AM" : "PM");
-            ui_text_vcenter(0, 0, UI_STATUS_H, font, UI_COL_TEXT, buf, vp->width, 0);
+            ui_text_vcenter(0, 0, UI_STATUS_H, font, UI_COL_STATUS, buf, vp->width, 0);
         }
     }
 
@@ -211,22 +214,26 @@ void ui_status_draw(const struct ui_status *st)
         snprintf(buf, sizeof(buf), "%d%%", st->battery);
         int w = ui_text_width(font, buf);
         x -= w + 5;
-        ui_text_vcenter(x, 0, UI_STATUS_H, font, UI_COL_TEXT, buf, 0, -1);
+        ui_text_vcenter(x, 0, UI_STATUS_H, font, UI_COL_STATUS, buf, 0, -1);
     }
     if (st->bluetooth)
     {
         x -= 16;
-        draw_bluetooth(x, st->bluetooth > 1 ? UI_COL_TEXT : UI_COL_MUTED);
+        draw_bluetooth(x, ui_accent());   /* Bluetooth is on */
     }
     if (titled)
     {
         /* the play state in the accent colour, the key lock before it */
         x -= PLAY_W + 8;
-        if (st->playmode == STATUS_PLAY)
-            ui_fill_triangle_right(x, GLYPH_Y, PLAY_W, GLYPH_H, ui_accent());
-        else
-            draw_play_state(x, st->playmode);
+        draw_play_state(x, st->playmode);
         if (st->keylock)
-            draw_lock(x - 17);
+        {
+            x -= 17;
+            draw_lock(x);
+        }
+        /* the title, shortened with "..." before the icons */
+        int tx = UI_MARGIN - 2;
+        ui_text_vcenter(tx, 0, UI_STATUS_H, ui_font(UI_FONT_BODY), UI_COL_STATUS,
+                        st->title, x - UI_GAP - tx, -1);
     }
 }

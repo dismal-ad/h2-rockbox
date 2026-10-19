@@ -50,6 +50,7 @@ static const unsigned themes[2][UI_C_COUNT] = {
         [UI_C_TRACK_TOP] = RGB(0x3c, 0x3c, 0x40), [UI_C_TRACK_BOTTOM] = RGB(0x1e, 0x1e, 0x22),
         [UI_C_OUTLINE] = RGB(0x5a, 0x5a, 0x5e),
         [UI_C_EDGE] = RGB(0xb4, 0xb4, 0xb8),
+        [UI_C_STATUS_FG] = RGB(0xe4, 0xe4, 0xe6),   /* soft white */
         [UI_C_ON_ACCENT] = RGB(0xff, 0xff, 0xff), [UI_C_ON_ACCENT2] = RGB(0xe8, 0xee, 0xf8),
         [UI_C_PH_BG] = RGB(0x1c, 0x1c, 0x1c),    [UI_C_PH_FG] = RGB(0x8c, 0x8c, 0x8c),
     },
@@ -65,6 +66,7 @@ static const unsigned themes[2][UI_C_COUNT] = {
         [UI_C_TRACK_TOP] = RGB(0xfa, 0xfa, 0xfa), [UI_C_TRACK_BOTTOM] = RGB(0xd2, 0xd2, 0xd6),
         [UI_C_OUTLINE] = RGB(0x8c, 0x8c, 0x90),
         [UI_C_EDGE] = RGB(0x70, 0x70, 0x74),
+        [UI_C_STATUS_FG] = RGB(0x2e, 0x2e, 0x32),   /* soft black */
         [UI_C_ON_ACCENT] = RGB(0xff, 0xff, 0xff), [UI_C_ON_ACCENT2] = RGB(0xe8, 0xee, 0xf8),
         /* dark enough that a missing cover stands out on white */
         [UI_C_PH_BG] = RGB(0x5c, 0x5c, 0x62),    [UI_C_PH_FG] = RGB(0xd4, 0xd4, 0xd8),

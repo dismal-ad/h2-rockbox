@@ -41,7 +41,7 @@ enum ui_col {
     UI_C_TRACK, UI_C_PANEL, UI_C_ARTIST, UI_C_ALBUM, UI_C_FILL,
     UI_C_BAR_TOP, UI_C_BAR_BOTTOM, UI_C_BAR_LINE, UI_C_PH_BG, UI_C_PH_FG,
     UI_C_TRACK_TOP, UI_C_TRACK_BOTTOM, UI_C_OUTLINE, UI_C_EDGE,
-    UI_C_ON_ACCENT, UI_C_ON_ACCENT2, UI_C_COUNT
+    UI_C_ON_ACCENT, UI_C_ON_ACCENT2, UI_C_STATUS_FG, UI_C_COUNT
 };
 unsigned ui_col(enum ui_col c);
 #define UI_COL_BG       ui_col(UI_C_BG)
@@ -59,6 +59,7 @@ unsigned ui_col(enum ui_col c);
 #define UI_COL_EDGE     ui_col(UI_C_EDGE)      /* a cover seen edge-on */
 #define UI_COL_ON_ACCENT  ui_col(UI_C_ON_ACCENT) /* text on accent bars */
 #define UI_COL_ON_ACCENT2 ui_col(UI_C_ON_ACCENT2)
+#define UI_COL_STATUS   ui_col(UI_C_STATUS_FG) /* the status bar's text and icons */
 #define UI_COL_ACCENT   ui_accent()  /* the user's accent colour */
 #define UI_COL_PANEL    ui_col(UI_C_PANEL)     /* pop-up panels */
 

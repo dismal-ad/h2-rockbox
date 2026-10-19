@@ -50,6 +50,8 @@
 #include "list.h"
 #include "misc.h"
 #include "playlist.h"
+#include "pcmbuf.h"
+#include "audio.h"
 #include "root_menu.h"
 #include "settings.h"
 #include "splash.h"
@@ -96,7 +98,10 @@
 #define MAX_TRACKS    200
 #define TRACKS_SIZE   (32 * 1024)
 #define LOADS_MOVING  2             /* saved covers read per frame in motion */
+#define LOADS_MOVING_PLAYING 1      /* ... while music plays: fewer card reads */
+#define CF_FRAME_US_PLAYING 33000   /* while music plays: at most 30 frames/s */
 #define PROBES        16            /* covers checked per background step */
+#define CF_WORK_GAP_PLAYING (HZ / 10) /* between background steps while music plays */
 
 enum cover_state {
     COVER_UNKNOWN,      /* not checked */
@@ -120,6 +125,11 @@ static int current;         /* centred album, kept between visits */
 static int bg_next;         /* background building: distance reached */
 
 static fb_data placeholder[UI_COVER * UI_COVER];
+
+static bool audio_playing(void)
+{
+    return (audio_status() & AUDIO_STATUS_PLAY) != 0;
+}
 
 static int compare_albums(const void *a, const void *b)
 {
@@ -280,6 +290,10 @@ static bool build(int a)
                                                         : COVER_TO_BUILD;
     if (albums[a].cover != COVER_TO_BUILD)
         return false;
+    /* decoding a cover takes a while: not when the music's decoded data
+       runs low (it is tried again later) */
+    if (audio_playing() && pcmbuf_is_lowdata())
+        return true;
     ui_cover_build(album_path(a));
     albums[a].cover = COVER_SAVED;
     return true;
@@ -316,10 +330,19 @@ static bool idle_work(void)
     return bg_next < album_count;
 }
 
+/* The cover for albums without one, drawn into memory once and reused
+ * for all of them (again only if the theme's colours changed) */
 static void make_placeholder(void)
 {
+    static fb_data made_bg, made_fg;
+    static bool made;
     const fb_data bg = FB_SCALARPACK(UI_COL_PH_BG);
     const fb_data fg = FB_SCALARPACK(UI_COL_PH_FG);
+    if (made && bg == made_bg && fg == made_fg)
+        return;
+    made = true;
+    made_bg = bg;
+    made_fg = fg;
     for (int i = 0; i < UI_COVER * UI_COVER; i++)
         placeholder[i] = bg;
     /* a quaver, as ui_art_placeholder draws it */
@@ -770,6 +793,7 @@ int ui_coverflow(void)
         current = album_count - 1;
     int pos = current * 256;    /* shown position, 1/256 album */
     uint32_t last_us = ui_time_us();
+    uint32_t frame_us = last_us;    /* when the last frame started */
     bool redraw = true, work = true;
     /* the wheel's speed, from the time between its steps: spinning fast,
        the covers flow (flat goes to 0); slow or still, the centre cover
@@ -811,7 +835,8 @@ int ui_coverflow(void)
                 step = diff > 0 ? MIN(min_step, diff) : MAX(-min_step, diff);
             pos += step;
             redraw = true;
-            load_saved((pos + 128) >> 8, LOADS_MOVING);
+            load_saved((pos + 128) >> 8,
+                       audio_playing() ? LOADS_MOVING_PLAYING : LOADS_MOVING);
         }
         else if (load_saved(current, 2 * CF_VISIBLE + 1))
             redraw = true;
@@ -819,11 +844,32 @@ int ui_coverflow(void)
         {
             draw(&vp, pos, flat);
             redraw = false;
+            if (audio_playing())
+            {
+                /* While music plays, at most 30 frames a second (it reaches
+                   about 33 on the H2 unlimited), sleeping (not just
+                   yielding) the rest of each frame and at least a tick: the
+                   codec and buffering threads are guaranteed time, so the
+                   music never breaks up while the covers move */
+                uint32_t spent = ui_time_us() - frame_us;
+                int ticks = spent < CF_FRAME_US_PLAYING ?
+                            (int)((CF_FRAME_US_PLAYING - spent) * HZ / 1000000) : 0;
+                sleep(MAX(ticks, 1));
+            }
+            else
+                yield();    /* every frame: the audio threads run between them */
+            frame_us = ui_time_us();
         }
 
         bool busy = pos != goal || flat != flat_goal;
-        int action = get_action(CONTEXT_STD,
-                                busy || work ? TIMEOUT_NOBLOCK : HZ);
+        /* Rockbox's threads take turns only when one gives way: background
+           cover building must leave the codec and buffering threads time,
+           or playing music runs dry and breaks up. While music plays, wait
+           a little between steps (other threads run meanwhile). */
+        int timeout = busy ? TIMEOUT_NOBLOCK :
+                      work ? (audio_playing() ? CF_WORK_GAP_PLAYING : TIMEOUT_NOBLOCK) :
+                      HZ;
+        int action = get_action(CONTEXT_STD, timeout);
         switch (action)
         {
             case ACTION_STD_NEXT:
@@ -862,7 +908,10 @@ int ui_coverflow(void)
                 if (busy)
                     yield();
                 else if (work)
+                {
                     work = idle_work();
+                    yield();    /* let the audio threads run after each step */
+                }
                 break;
             default:
                 if (default_event_handler(action) == SYS_USB_CONNECTED)

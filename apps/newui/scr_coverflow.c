@@ -72,7 +72,7 @@
 #define CF_CENTER_L   (LCD_WIDTH / 2 - CF_SIZE / 2)  /* centre cover */
 #define CF_SIDE_W     41                  /* the nearest side cover's width */
 #define CF_SPACING    29                  /* the strip each further one shows */
-#define CF_SIDE_R     (CF_CENTER_L - 1)   /* nearest's inner edge */
+#define CF_SIDE_R     CF_CENTER_L         /* nearest's inner edge: touching the centre cover */
 #define CF_SIDE_HIN   103                 /* its inner edge's height: */
 #define CF_SIDE_HOUT  133                 /* shorter than the outer, so the
                                              covers face the centre */

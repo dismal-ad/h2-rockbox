@@ -78,7 +78,7 @@
 #define CF_SIDE_HIN   103                 /* its inner edge's height: */
 #define CF_SIDE_HOUT  133                 /* shorter than the outer, so the
                                              covers face the centre */
-#define CF_SIDE_SHADE 190                 /* side covers' brightness /256 */
+#define CF_SIDE_SHADE 256                 /* side covers' brightness /256: full, as the centre one */
 #define CF_TOP        20                  /* centre cover's top, below the bar */
 #define CF_TEXT_BOTTOM 14                 /* below the artist line */
 #define CF_REFLECT    80                  /* reflection's starting brightness /256 */

@@ -507,9 +507,7 @@ static void draw(struct viewport *vp, int pos, int flat)
             {
                 /* seen edge-on (flowing): its side, a light line */
                 int h = MAX(hl, hr);
-                ui_fill_rect(xl, yc - h / 2, MAX(xr - xl, 2), h,
-                             ui_light() ? LCD_RGBPACK(0x70, 0x70, 0x74)
-                                        : LCD_RGBPACK(0xb4, 0xb4, 0xb8));
+                ui_fill_rect(xl, yc - h / 2, MAX(xr - xl, 2), h, UI_COL_EDGE);
                 continue;
             }
             draw_cover(fb, vp->height, px ? px : placeholder,
@@ -592,32 +590,6 @@ static bool load_tracks(int seek)
     return track_count > 0;
 }
 
-static const char *track_name(int i, void *data, char *buf, size_t len)
-{
-    (void)data;
-    int s = tracks[i].length / 1000;
-    snprintf(buf, len, "%s\t%d:%02d", track_text + tracks[i].title,
-             s / 60, s % 60);
-    return buf;
-}
-
-static bool tracks_header(void *data, const fb_data **thumb,
-                          char *line2, size_t len)
-{
-    const struct album *al = data;
-    char path[MAX_PATH], artist[64], year[16] = "";
-    int y;
-    if (!tagtree_album_info(al->seek, path, sizeof(path),
-                            artist, sizeof(artist), &y))
-        return false;
-    if (y > 0)
-        snprintf(year, sizeof(year), "%d \xc2\xb7 ", y);
-    snprintf(line2, len, "%s\t%s%d %s", artist, year, track_count,
-             track_count == 1 ? "song" : "songs");
-    *thumb = ui_thumb_get(path);
-    return true;
-}
-
 /* replaces the playlist with the album and plays it from song 'first' */
 static bool play_album(int first)
 {
@@ -634,9 +606,95 @@ static bool play_album(int first)
     return true;
 }
 
+/* --- an album's songs: a panel over the covers, as the iPod ---
+ *
+ *     |  Album name               |   header: the accent's gradient,
+ *     |  Artist                   |   white text
+ *     |===========================|
+ *     |  Song one            5:36 |   the selection
+ *     |  Song two            6:30 |
+ */
+#define SL_X        26                  /* the panel */
+#define SL_W        (LCD_WIDTH - 2 * SL_X)
+#define SL_TOP      8
+#define SL_HEAD_H   44
+#define SL_ROW_H    24
+#define SL_PAD      10
+#define SL_GROW     6                   /* frames growing out of the cover */
+
+static int sl_rows(struct viewport *vp)
+{
+    return (vp->height - SL_TOP - SL_HEAD_H) / SL_ROW_H;
+}
+
+static void draw_song_panel(struct viewport *vp, int a, int sel, int first)
+{
+    struct viewport *last = lcd_set_viewport(vp);
+    const int row = ui_font(UI_FONT_ROW), body = ui_font(UI_FONT_BODY);
+    const int tw = SL_W - 2 * SL_PAD;
+    char path[MAX_PATH], artist[64], len[16];
+
+    /* the album's name under the covers would show either side of the
+       panel: clear that band, then the panel with its sides outlined */
+    ui_fill_rect(0, vp->height - 2 * font_get(row)->height - CF_TEXT_BOTTOM,
+                 vp->width, 2 * font_get(row)->height + CF_TEXT_BOTTOM, UI_COL_BG);
+    ui_fill_rect(SL_X, SL_TOP, SL_W, vp->height - SL_TOP, UI_COL_BG);
+    ui_fill_rect(SL_X - 1, SL_TOP, 1, vp->height - SL_TOP, ui_col(UI_C_OUTLINE));
+    ui_fill_rect(SL_X + SL_W, SL_TOP, 1, vp->height - SL_TOP, ui_col(UI_C_OUTLINE));
+
+    /* header: album and artist */
+    lcd_set_drawmode(DRMODE_SOLID);
+    lcd_gradient_fillrect(SL_X, SL_TOP, SL_W, SL_HEAD_H, ui_sel_top(), ui_accent());
+    ui_fill_rect(SL_X, SL_TOP + SL_HEAD_H - 1, SL_W, 1, ui_col(UI_C_OUTLINE));
+    artist[0] = '\0';
+    tagtree_album_info(albums[a].seek, path, sizeof(path), artist, sizeof(artist), NULL);
+    int th = font_get(row)->height, ah = artist[0] ? font_get(body)->height : 0;
+    int ty = SL_TOP + (SL_HEAD_H - th - ah) / 2;
+    ui_text(SL_X + SL_PAD, ty, row, UI_COL_ON_ACCENT, names + albums[a].name, tw, -1);
+    if (artist[0])
+        ui_text(SL_X + SL_PAD, ty + th, body, UI_COL_ON_ACCENT2,
+                artist, tw, -1);
+
+    /* the songs */
+    int y = SL_TOP + SL_HEAD_H;
+    for (int i = first; i < track_count && i < first + sl_rows(vp); i++, y += SL_ROW_H)
+    {
+        bool selected = i == sel;
+        unsigned c = selected ? ui_sel_text() : UI_COL_TEXT;
+        int sec = tracks[i].length / 1000;
+        snprintf(len, sizeof(len), "%d:%02d", sec / 60, sec % 60);
+        int lw = ui_text_width(row, len);
+        if (selected)
+            ui_selection(SL_X, y, SL_W, SL_ROW_H);
+        ui_text_vcenter(SL_X + SL_PAD, y, SL_ROW_H, row, c,
+                        track_text + tracks[i].title, tw - lw - UI_GAP, -1);
+        ui_text_vcenter(SL_X + SL_PAD, y, SL_ROW_H, row, c, len, tw, 1);
+    }
+    lcd_update_viewport_rect(0, SL_TOP, vp->width, vp->height - SL_TOP);
+    lcd_set_viewport(last);
+}
+
+/* the panel growing out of the centre cover */
+static void grow_song_panel(struct viewport *vp)
+{
+    struct viewport *last = lcd_set_viewport(vp);
+    const int x0 = CF_CENTER_L, y0 = CF_TOP, w0 = CF_SIZE, h0 = CF_SIZE;
+    const int h1 = vp->height - SL_TOP;
+    for (int f = 1; f < SL_GROW; f++)
+    {
+        int t = f * 256 / SL_GROW;
+        int x = lerp(x0, SL_X, t), y = lerp(y0, SL_TOP, t);
+        int w = lerp(w0, SL_W, t), h = lerp(h0, h1, t);
+        ui_fill_rect(x, y, w, h, UI_COL_BG);
+        ui_stroke_round_rect(x - 1, y - 1, w + 2, h + 2, 0, 1, ui_col(UI_C_OUTLINE));
+        lcd_update_viewport_rect(x - 1, y - 1, w + 2, h + 2);
+    }
+    lcd_set_viewport(last);
+}
+
 /* GO_TO_WPS once a song was started, MENU_ATTACHED_USB, or GO_TO_ROOT
  * for Back */
-static int album_songs(int a)
+static int album_songs(struct viewport *vp, int a)
 {
     if (!load_tracks(albums[a].seek))
     {
@@ -644,24 +702,29 @@ static int album_songs(int a)
         return GO_TO_ROOT;
     }
 
-    struct gui_synclist list;
-    gui_synclist_init(&list, track_name, &albums[a], false, 1, NULL);
-    gui_synclist_set_title(&list, names + albums[a].name, NOICON);
-    gui_synclist_set_header_callback(&list, tracks_header);
-    gui_synclist_set_nb_items(&list, track_count);
-    gui_synclist_draw(&list);
+    int sel = 0, first = 0;
+    const int rows = sl_rows(vp);
+    grow_song_panel(vp);
+    draw_song_panel(vp, a, sel, first);
 
     while (true)
     {
-        int action;
-        if (list_do_action(CONTEXT_LIST, HZ, &list, &action))
-            continue;
+        int action = get_action(CONTEXT_STD, HZ);
+        int old = sel;
         switch (action)
         {
+            case ACTION_STD_NEXT:
+            case ACTION_STD_NEXTREPEAT:
+                sel = MIN(sel + ui_wheel_step(1, track_count), track_count - 1);
+                break;
+            case ACTION_STD_PREV:
+            case ACTION_STD_PREVREPEAT:
+                sel = MAX(sel - ui_wheel_step(-1, track_count), 0);
+                break;
             case ACTION_STD_OK:
-                if (play_album(gui_synclist_get_sel_pos(&list)))
+                if (play_album(sel))
                     return GO_TO_WPS;
-                gui_synclist_draw(&list);
+                draw_song_panel(vp, a, sel, first);
                 break;
             case ACTION_STD_CANCEL:
                 return GO_TO_ROOT;
@@ -669,6 +732,15 @@ static int album_songs(int a)
                 if (default_event_handler(action) == SYS_USB_CONNECTED)
                     return MENU_ATTACHED_USB;
                 break;
+        }
+        if (sel != old)
+        {
+            /* keep the selection in view */
+            if (sel < first)
+                first = sel;
+            else if (sel >= first + rows)
+                first = sel - rows + 1;
+            draw_song_panel(vp, a, sel, first);
         }
     }
 }
@@ -777,11 +849,9 @@ int ui_coverflow(void)
             }
             case ACTION_STD_OK:
             {
-                ui_transition(1);
-                int ret = album_songs(current);
+                int ret = album_songs(&vp, current);
                 if (ret != GO_TO_ROOT)
                     return ret;
-                ui_transition(-1);
                 redraw = work = true;
                 break;
             }

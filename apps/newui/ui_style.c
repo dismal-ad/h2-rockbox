@@ -49,6 +49,8 @@ static const unsigned themes[2][UI_C_COUNT] = {
         [UI_C_BAR_LINE] = RGB(0x44, 0x44, 0x48),
         [UI_C_TRACK_TOP] = RGB(0x3c, 0x3c, 0x40), [UI_C_TRACK_BOTTOM] = RGB(0x1e, 0x1e, 0x22),
         [UI_C_OUTLINE] = RGB(0x5a, 0x5a, 0x5e),
+        [UI_C_EDGE] = RGB(0xb4, 0xb4, 0xb8),
+        [UI_C_ON_ACCENT] = RGB(0xff, 0xff, 0xff), [UI_C_ON_ACCENT2] = RGB(0xe8, 0xee, 0xf8),
         [UI_C_PH_BG] = RGB(0x1c, 0x1c, 0x1c),    [UI_C_PH_FG] = RGB(0x8c, 0x8c, 0x8c),
     },
     [1] = {     /* Light: white, dark text, a silver status bar */
@@ -62,6 +64,8 @@ static const unsigned themes[2][UI_C_COUNT] = {
         [UI_C_BAR_LINE] = RGB(0x8c, 0x8c, 0x90),
         [UI_C_TRACK_TOP] = RGB(0xfa, 0xfa, 0xfa), [UI_C_TRACK_BOTTOM] = RGB(0xd2, 0xd2, 0xd6),
         [UI_C_OUTLINE] = RGB(0x8c, 0x8c, 0x90),
+        [UI_C_EDGE] = RGB(0x70, 0x70, 0x74),
+        [UI_C_ON_ACCENT] = RGB(0xff, 0xff, 0xff), [UI_C_ON_ACCENT2] = RGB(0xe8, 0xee, 0xf8),
         /* dark enough that a missing cover stands out on white */
         [UI_C_PH_BG] = RGB(0x5c, 0x5c, 0x62),    [UI_C_PH_FG] = RGB(0xd4, 0xd4, 0xd8),
     },
@@ -101,12 +105,12 @@ unsigned ui_sel_bg(void)
 /* the accent bar is dark in both themes: white text on it */
 unsigned ui_sel_text(void)
 {
-    return ui_minimal() ? UI_COL_SEL_TEXT : LCD_RGBPACK(0xff, 0xff, 0xff);
+    return ui_minimal() ? UI_COL_SEL_TEXT : UI_COL_ON_ACCENT;
 }
 
 unsigned ui_sel_text2(void)
 {
-    return ui_minimal() ? LCD_RGBPACK(0x48, 0x48, 0x48) : LCD_RGBPACK(0xff, 0xff, 0xff);
+    return ui_minimal() ? LCD_RGBPACK(0x48, 0x48, 0x48) : UI_COL_ON_ACCENT;
 }
 
 /* the iPod's glossy bar, from a lighter accent at the top to the accent

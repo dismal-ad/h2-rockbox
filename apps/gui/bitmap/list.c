@@ -75,8 +75,7 @@ void gui_synclist_scroll_stop(struct gui_synclist *lists)
  * Unselected text is shortened with an ellipsis; the selected row's text
  * scrolls when it doesn't fit. Item icons are not drawn. */
 
-#define CHEVRON       "\xe2\x80\xba" /* › */
-#define CHEVRON_SPACE 14
+#define CHEVRON_SPACE (UI_CHEVRON_W + 8)
 #define SCROLLBAR_W   3
 #define TAB_INDENT    16
 
@@ -130,8 +129,7 @@ static void draw_art_row(struct viewport *vp, int y, int row_h,
                         name, tw, -1);
 
     if (drills)
-        ui_text_vcenter(text_right - 7, y, row_h, row,
-                        selected ? ui_sel_text() : UI_COL_TEXT2, CHEVRON, 0, -1);
+        ui_chevron(text_right, y, row_h, selected ? ui_sel_text() : UI_COL_TEXT2);
 }
 
 static void draw_title(struct screen *display, struct gui_synclist *list,
@@ -297,8 +295,7 @@ void list_draw(struct screen *display, struct gui_synclist *list)
                             value_w, 1);
 
         if (drills)
-            ui_text_vcenter(text_right - 7, y, row_h, font,
-                            selected ? ui_sel_text() : UI_COL_TEXT2, CHEVRON, 0, -1);
+            ui_chevron(text_right, y, row_h, selected ? ui_sel_text() : UI_COL_TEXT2);
     }
 
     if (scrollbar)

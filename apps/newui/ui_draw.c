@@ -23,6 +23,8 @@
 
 #include "config.h"
 #include <string.h>
+#include <stdlib.h>
+#include "system.h"
 #include "lcd.h"
 #include "font.h"
 #include "ui.h"
@@ -283,4 +285,25 @@ int ui_text_vcenter(int x, int y, int h, int font, unsigned color,
                     const char *text, int max_w, int align)
 {
     return ui_text(x, ui_text_y(font, y, h), font, color, text, max_w, align);
+}
+
+/* The iPod's ">": two bold strokes meeting at a point, drawn with
+ * anti-aliased edges, its right end at x_right, centred in [y, y + h).
+ * Each row is a span T wide (in 1/256 px) along the stroke. */
+void ui_chevron(int x_right, int y, int h, unsigned color)
+{
+    const int W = UI_CHEVRON_W, H = UI_CHEVRON_H, T = 3 * 256 + 128;
+    const int x0 = x_right - W, y0 = y + (h - H) / 2;
+    for (int r = 0; r < H; r++)
+    {
+        /* the stroke's centre: out to the right at the middle row */
+        int d = abs(2 * r + 1 - H);                     /* 0..H-1 */
+        int xc = (W * 256 - T / 2) - (W * 256 - T) * d / H;
+        int l = xc - T / 2, rr = xc + T / 2;            /* in 1/256 px */
+        for (int px = l >> 8; px <= (rr - 1) >> 8; px++)
+        {
+            int p0 = MAX(px * 256, l), p1 = MIN(px * 256 + 256, rr);
+            ui_blend_pixel(x0 + px, y0 + r, color, p1 - p0);
+        }
+    }
 }

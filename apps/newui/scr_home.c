@@ -43,7 +43,6 @@
 #endif
 
 #define HOME_MENU_W   160
-#define CHEVRON       "\xe2\x80\xba"
 
 enum home_target {
     HOME_NOW_PLAYING,
@@ -198,8 +197,7 @@ static void draw(struct viewport *vp, const enum home_target *list, int n,
                         item_label(list[i]),
                         HOME_MENU_W - UI_MARGIN - 18, -1);
         if (selected)
-            ui_text_vcenter(HOME_MENU_W - 14, y, UI_ROW_H, font, fg,
-                            CHEVRON, 0, -1);
+            ui_chevron(HOME_MENU_W - 8, y, UI_ROW_H, fg);
     }
 
     draw_full_art();

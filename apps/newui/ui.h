@@ -116,6 +116,11 @@ void ui_fill_round_rect(int x, int y, int w, int h, int r, unsigned color);
 void ui_stroke_round_rect(int x, int y, int w, int h, int r, int stroke,
                           unsigned color);
 void ui_fill_triangle_right(int x, int y, int w, int h, unsigned color);
+/* The ">" on rows that open something: bold, its right end at x_right,
+ * centred in the band [y, y + h) */
+#define UI_CHEVRON_W 9
+#define UI_CHEVRON_H 15
+void ui_chevron(int x_right, int y, int h, unsigned color);
 /* Rounds the corners of what is drawn at x,y,w,h, painting outside them in bg */
 void ui_round_corners(int x, int y, int w, int h, int r, unsigned bg);
 int ui_text_width(int font, const char *text);

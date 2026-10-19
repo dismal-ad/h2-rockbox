@@ -20,8 +20,8 @@
 
 /* Colours: the play icon and the Bluetooth icon (while Bluetooth is on)
  * in the accent colour, everything else in the theme's soft black or soft
- * white (UI_COL_STATUS); the battery's fill red when low, green when
- * charging. */
+ * white (UI_COL_STATUS); the battery's fill red when low, green while the
+ * battery is taking charge (not merely while a charger is connected). */
 
 /* The status bar (PLAN.md §4.1): play state on the left, clock in the
  * centre, Bluetooth and battery on the right. Drawn into the current

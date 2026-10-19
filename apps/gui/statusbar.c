@@ -65,6 +65,7 @@ static struct screen * sb_fill_bar_info(struct gui_statusbar * bar)
     bar->info.usb_inserted = usb_inserted();
 #endif
     bar->info.inserted = (charger_input_state == CHARGER);
+    bar->info.charging = bar->info.inserted && charge_state > DISCHARGING;
     if (bar->info.inserted)
     {
         bar->info.battery_state = true;
@@ -146,7 +147,7 @@ bool gui_statusbar_draw(struct gui_statusbar * bar, bool force_redraw, struct vi
             .clock_24h = !global_settings.timeformat,
             .battery = bar->info.battlevel,
             .battery_visible = bar->info.battery_state,
-            .charging = bar->info.inserted,
+            .charging = bar->info.charging,
 #ifdef HAVE_BLUETOOTH
             .bluetooth = bar->info.bluetooth,
 #endif

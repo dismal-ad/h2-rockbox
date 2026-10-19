@@ -34,6 +34,7 @@ struct status_info {
     int playmode;
     int repeat;
     bool inserted;
+    bool charging; /* the battery is taking charge, not just powered */
 #ifdef HAVE_USB_POWER
     bool usb_inserted;
 #endif

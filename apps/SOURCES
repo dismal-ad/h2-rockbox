@@ -99,4 +99,5 @@ newui/scr_lock.c
 newui/ui_keyboard.c
 newui/ui_style.c
 newui/ui_transition.c
+newui/ui_slides.c
 keymaps/keymap-erosq.c

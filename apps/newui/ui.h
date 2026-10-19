@@ -177,6 +177,15 @@ struct mp3entry;
  * the cached current art. False if there is none. */
 bool ui_art_decode_to(const struct mp3entry *id3, int size, fb_data *out);
 
+/* --- Home's cover slideshow (ui_slides.c) --- */
+
+/* True if the database has albums to show */
+bool ui_slides_available(void);
+/* Draws the slideshow's current frame into the current viewport's top
+ * left w x h (zoomed covers panning, crossfading every 5 s); false if no
+ * cover could be shown. Call it often (about 15 times a second). */
+bool ui_slides_draw(int w, int h);
+
 /* --- thumbnails (ui_thumb.c) --- */
 
 #define UI_THUMB 46 /* cover size in list rows */

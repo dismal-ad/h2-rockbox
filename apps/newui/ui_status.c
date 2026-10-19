@@ -31,10 +31,13 @@
 #include "statusbar.h"
 #include "ui.h"
 
-#define GLYPH_Y     6   /* top of the 10 px glyphs */
-#define GLYPH_H     10
-#define BATT_W      23
-#define BATT_H      11
+/* glyphs are centred on ICON_YC, the title's capitals' middle (the bar is
+ * 21 px over its hairline) */
+#define ICON_YC     11
+#define GLYPH_H     13
+#define GLYPH_Y     (ICON_YC - GLYPH_H / 2)
+#define BATT_W      26
+#define BATT_H      13
 
 #define COL_LOW      LCD_RGBPACK(0xff, 0x45, 0x3a)
 #define COL_CHARGING LCD_RGBPACK(0x30, 0xd1, 0x58)
@@ -70,30 +73,32 @@ int ui_status_get_width(void)
     return status_width;
 }
 
+#define PLAY_W      11  /* play triangle's width */
+
 static void draw_play_state(int x, int mode)
 {
     unsigned c = UI_COL_TEXT;
     switch (mode)
     {
         case STATUS_PLAY:
-            ui_fill_triangle_right(x, GLYPH_Y, 9, GLYPH_H, c);
+            ui_fill_triangle_right(x, GLYPH_Y, PLAY_W, GLYPH_H, c);
             break;
         case STATUS_PAUSE:
-            ui_fill_rect(x, GLYPH_Y, 3, GLYPH_H, c);
-            ui_fill_rect(x + 6, GLYPH_Y, 3, GLYPH_H, c);
+            ui_fill_rect(x, GLYPH_Y, 4, GLYPH_H, c);
+            ui_fill_rect(x + 7, GLYPH_Y, 4, GLYPH_H, c);
             break;
         case STATUS_FASTFORWARD:
-            ui_fill_triangle_right(x, GLYPH_Y + 1, 6, GLYPH_H - 2, c);
-            ui_fill_triangle_right(x + 6, GLYPH_Y + 1, 6, GLYPH_H - 2, c);
+            ui_fill_triangle_right(x, GLYPH_Y + 1, 7, GLYPH_H - 2, c);
+            ui_fill_triangle_right(x + 7, GLYPH_Y + 1, 7, GLYPH_H - 2, c);
             break;
         case STATUS_FASTBACKWARD:
             /* mirror of fast forward: draw two left-pointing triangles */
             for (int row = 0; row < GLYPH_H - 2; row++)
             {
                 int twice = 2 * row + 1, h = GLYPH_H - 2;
-                int len = (twice <= h ? twice : 2 * h - twice) * 6 / h;
-                ui_fill_rect(x + 6 - len, GLYPH_Y + 1 + row, len, 1, c);
-                ui_fill_rect(x + 12 - len, GLYPH_Y + 1 + row, len, 1, c);
+                int len = (twice <= h ? twice : 2 * h - twice) * 7 / h;
+                ui_fill_rect(x + 7 - len, GLYPH_Y + 1 + row, len, 1, c);
+                ui_fill_rect(x + 14 - len, GLYPH_Y + 1 + row, len, 1, c);
             }
             break;
         default: /* stopped: nothing, like the iPod */
@@ -103,41 +108,45 @@ static void draw_play_state(int x, int mode)
 
 static void draw_lock(int x)
 {
-    /* shackle, then body */
-    ui_stroke_round_rect(x + 1, GLYPH_Y - 1, 7, 8, 3, 1, UI_COL_TEXT);
-    ui_fill_round_rect(x, GLYPH_Y + 4, 9, 7, 1, UI_COL_TEXT);
+    /* shackle (2 px), then body */
+    ui_stroke_round_rect(x + 2, GLYPH_Y, 7, 8, 3, 2, UI_COL_TEXT);
+    ui_fill_round_rect(x, GLYPH_Y + 5, 11, GLYPH_H - 5, 2, UI_COL_TEXT);
 }
 
 static void draw_bluetooth(int x, unsigned c)
 {
-    /* the Bluetooth rune, 7 x 12 */
-    int y = GLYPH_Y - 1;
+    /* the Bluetooth rune, 8 x 13, its strokes doubled to be bold */
+    int y = GLYPH_Y;
     lcd_set_foreground(c);
-    lcd_vline(x + 3, y, y + 11);
-    lcd_drawline(x + 3, y, x + 6, y + 3);
-    lcd_drawline(x + 6, y + 3, x, y + 8);
-    lcd_drawline(x + 3, y + 11, x + 6, y + 8);
-    lcd_drawline(x + 6, y + 8, x, y + 3);
+    for (int d = 0; d < 2; d++)
+    {
+        lcd_vline(x + 3 + d, y, y + 12);
+        lcd_drawline(x + 3 + d, y, x + 7, y + 3 + d);
+        lcd_drawline(x + 7, y + 3 + d, x + d, y + 9);
+        lcd_drawline(x + 3 + d, y + 12, x + 7, y + 9 - d);
+        lcd_drawline(x + 7, y + 9 - d, x + d, y + 3);
+    }
 }
 
 static void draw_battery(int x, int percent, bool charging)
 {
-    unsigned c = UI_COL_TEXT, fill = UI_COL_TEXT;
+    /* in the accent colour; the fill red when low, green when charging */
+    unsigned c = ui_accent(), fill = ui_accent();
     if (charging)
         fill = COL_CHARGING;
     else if (percent >= 0 && percent <= 15)
         fill = COL_LOW;
 
-    int y = (UI_STATUS_H - BATT_H) / 2;
-    ui_stroke_round_rect(x, y, BATT_W, BATT_H, 3, 1, c);
-    ui_fill_round_rect(x + BATT_W, y + 3, 2, BATT_H - 6, 1, c);
+    int y = ICON_YC - BATT_H / 2;
+    ui_stroke_round_rect(x, y, BATT_W, BATT_H, 3, 2, c);
+    ui_fill_round_rect(x + BATT_W, y + 4, 3, BATT_H - 8, 1, c);
     if (percent < 0)
         return;
-    int inner = BATT_W - 4;
+    int inner = BATT_W - 6;
     int w = (inner * (percent > 100 ? 100 : percent) + 50) / 100;
     if (w < 1)
         w = 1;
-    ui_fill_round_rect(x + 2, y + 2, w, BATT_H - 4, 1, fill);
+    ui_fill_rect(x + 3, y + 3, w, BATT_H - 6, fill);
 }
 
 void ui_status_draw(const struct ui_status *st)
@@ -176,7 +185,7 @@ void ui_status_draw(const struct ui_status *st)
         /* left: play state, then the key lock */
         draw_play_state(x, st->playmode);
         if (st->keylock)
-            draw_lock(x + 18);
+            draw_lock(x + PLAY_W + 9);
 
         /* centre: clock */
         if (st->time)
@@ -193,7 +202,7 @@ void ui_status_draw(const struct ui_status *st)
     }
 
     /* right: battery, Bluetooth to its left */
-    x = vp->width - UI_MARGIN - BATT_W - 2;
+    x = vp->width - UI_MARGIN - BATT_W - 3;
     if (st->battery_visible)
         draw_battery(x, st->battery, st->charging);
     if (st->battery_pct && st->battery >= 0)
@@ -206,18 +215,18 @@ void ui_status_draw(const struct ui_status *st)
     }
     if (st->bluetooth)
     {
-        x -= 14;
+        x -= 16;
         draw_bluetooth(x, st->bluetooth > 1 ? UI_COL_TEXT : UI_COL_MUTED);
     }
     if (titled)
     {
         /* the play state in the accent colour, the key lock before it */
-        x -= 16;
+        x -= PLAY_W + 8;
         if (st->playmode == STATUS_PLAY)
-            ui_fill_triangle_right(x, GLYPH_Y, 9, GLYPH_H, ui_accent());
+            ui_fill_triangle_right(x, GLYPH_Y, PLAY_W, GLYPH_H, ui_accent());
         else
             draw_play_state(x, st->playmode);
         if (st->keylock)
-            draw_lock(x - 14);
+            draw_lock(x - 17);
     }
 }

@@ -181,7 +181,7 @@ static void draw_volume_band(struct viewport *vp)
 static void draw_band(struct viewport *vp, const struct mp3entry *id3,
                       long elapsed)
 {
-    const int font = ui_font(UI_FONT_BODY);
+    const int font = ui_font(UI_FONT_ROW); /* Home's 20 px bold */
     const int band_h = vp->height - NPL_BAND_Y;
     char left[24], right[24];
     long pos = 0, len = id3 ? (long)id3->length : 0;

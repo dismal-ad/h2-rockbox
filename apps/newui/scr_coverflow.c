@@ -617,7 +617,7 @@ static bool play_album(int first)
 #define SL_X        26                  /* the panel */
 #define SL_W        (LCD_WIDTH - 2 * SL_X)
 #define SL_TOP      8
-#define SL_HEAD_H   44
+#define SL_HEAD_H   (2 * font_get(ui_font(UI_FONT_ROW))->height + 6) /* two bold lines */
 #define SL_ROW_H    24
 #define SL_PAD      10
 #define SL_GROW     6                   /* frames growing out of the cover */
@@ -630,7 +630,8 @@ static int sl_rows(struct viewport *vp)
 static void draw_song_panel(struct viewport *vp, int a, int sel, int first)
 {
     struct viewport *last = lcd_set_viewport(vp);
-    const int row = ui_font(UI_FONT_ROW), body = ui_font(UI_FONT_BODY);
+    /* everything in Home's font, the 20 px bold one */
+    const int row = ui_font(UI_FONT_ROW);
     const int tw = SL_W - 2 * SL_PAD;
     char path[MAX_PATH], artist[64], len[16];
 
@@ -648,11 +649,11 @@ static void draw_song_panel(struct viewport *vp, int a, int sel, int first)
     ui_fill_rect(SL_X, SL_TOP + SL_HEAD_H - 1, SL_W, 1, ui_col(UI_C_OUTLINE));
     artist[0] = '\0';
     tagtree_album_info(albums[a].seek, path, sizeof(path), artist, sizeof(artist), NULL);
-    int th = font_get(row)->height, ah = artist[0] ? font_get(body)->height : 0;
+    int th = font_get(row)->height, ah = artist[0] ? th : 0;
     int ty = SL_TOP + (SL_HEAD_H - th - ah) / 2;
     ui_text(SL_X + SL_PAD, ty, row, UI_COL_ON_ACCENT, names + albums[a].name, tw, -1);
     if (artist[0])
-        ui_text(SL_X + SL_PAD, ty + th, body, UI_COL_ON_ACCENT2,
+        ui_text(SL_X + SL_PAD, ty + th, row, UI_COL_ON_ACCENT2,
                 artist, tw, -1);
 
     /* the songs */

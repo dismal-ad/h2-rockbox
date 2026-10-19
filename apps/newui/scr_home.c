@@ -133,10 +133,18 @@ static void draw_edge_shadow(int h)
     }
 }
 
+/* a song is playing (not paused or stopped): Home shows its cover, else
+ * the slideshow of random covers */
+static bool song_playing(void)
+{
+    int st = audio_status();
+    return (st & AUDIO_STATUS_PLAY) && !(st & AUDIO_STATUS_PAUSE);
+}
+
 /* slideshow running: Home redraws its cover often */
 static bool slides_running(void)
 {
-    return !audio_status() && ui_slides_available();
+    return !song_playing() && ui_slides_available();
 }
 
 static void draw_full_art(void)
@@ -147,10 +155,10 @@ static void draw_full_art(void)
     av.width = LCD_WIDTH - HOME_MENU_W;
     lcd_set_viewport(&av);
 
-    const struct bitmap *art = ui_art_current(LCD_HEIGHT);
-    if (!art && !audio_status() && ui_slides_available() &&
+    const struct bitmap *art = song_playing() ? ui_art_current(LCD_HEIGHT) : NULL;
+    if (!song_playing() && ui_slides_available() &&
         ui_slides_draw(av.width, av.height))
-        ;   /* nothing plays: the slideshow of random covers */
+        ;   /* paused or stopped: the slideshow of random covers */
     else if (art)
     {
         int w = MIN(art->width, av.width), h = MIN(art->height, av.height);

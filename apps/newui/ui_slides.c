@@ -43,6 +43,7 @@
 #define PAN_PCT       61               /* of the range the zoom leaves: the speed */
 #define MAX_SLIDE_ALBUMS 1024
 #define TRIES         6                /* albums tried for one with a cover */
+#define GAP_US        300000           /* no frame for this long: Home was away */
 
 struct slide {
     bool ok;
@@ -53,6 +54,7 @@ static struct slide slides[2];
 static int cur;                        /* the slide showing */
 static bool next_ready;
 static uint32_t start_us;              /* when the showing slide started */
+static uint32_t last_us;               /* the last frame */
 static int32_t seeks[MAX_SLIDE_ALBUMS];
 static int nseeks = -1;                /* -1: not looked up yet */
 
@@ -172,10 +174,15 @@ bool ui_slides_draw(int w, int h)
     {
         if (!load(&slides[cur], sw, sh))
             return false;
-        start_us = ui_time_us();
+        start_us = last_us = ui_time_us();
         next_ready = false;
     }
     uint32_t now = ui_time_us();
+    /* Nothing runs while Home is away (or busy): its clock is held, so on
+       return it carries on where it was rather than racing through the
+       covers it "missed" to catch up */
+    if (now - last_us > GAP_US)
+        start_us += now - last_us;
     uint32_t ms = (now - start_us) / 1000;
     if (ms >= SLIDE_MS)
     {
@@ -207,6 +214,7 @@ bool ui_slides_draw(int w, int h)
         window_at(b, (int)((long long)(ms - (SLIDE_MS - FADE_MS)) * 65536 / SLIDE_MS),
                   &bx, &by);
 
+    last_us = ui_time_us();
     for (int y = 0; y < h; y++)
     {
         fb_data *d = FBADDR(vp->x, vp->y + y);

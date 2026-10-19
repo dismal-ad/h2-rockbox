@@ -192,6 +192,13 @@ bool ui_slides_available(void);
  * cover could be shown. Call it often (about 15 times a second). */
 bool ui_slides_draw(int w, int h);
 
+/* --- battery usage (scr_battery.c) --- */
+
+/* Starts logging the battery level against running time, a point every 5% */
+void ui_battery_log_init(void);
+/* System > Battery Usage: the log as a chart. Returns 1 for USB. */
+int ui_battery_usage(void);
+
 /* --- thumbnails (ui_thumb.c) --- */
 
 #define UI_THUMB 46 /* cover size in list rows */

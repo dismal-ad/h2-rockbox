@@ -17781,6 +17781,48 @@
   </voice>
 </phrase>
 <phrase>
+  id: LANG_NEWUI_BATTERY_USAGE
+  desc: new UI: Battery Usage screen title, battery level against running time
+  user: core
+  <source>
+    *: "Battery Usage"
+  </source>
+  <dest>
+    *: "Battery Usage"
+  </dest>
+  <voice>
+    *: "Battery Usage"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_VIEW_BATTERY_USAGE
+  desc: new UI: System menu entry for Battery Usage
+  user: core
+  <source>
+    *: "View Battery Usage"
+  </source>
+  <dest>
+    *: "View Battery Usage"
+  </dest>
+  <voice>
+    *: "View Battery Usage"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_BATTERY_NO_DATA
+  desc: new UI: Battery Usage before anything was logged
+  user: core
+  <source>
+    *: "Logged every 5% of battery"
+  </source>
+  <dest>
+    *: "Logged every 5% of battery"
+  </dest>
+  <voice>
+    *: "Logged every 5% of battery"
+  </voice>
+</phrase>
+<phrase>
   id: LANG_NEWUI_THEME
   desc: new UI: Display setting, dark or light screens
   user: core

@@ -100,4 +100,5 @@ newui/ui_keyboard.c
 newui/ui_style.c
 newui/ui_transition.c
 newui/ui_slides.c
+newui/scr_battery.c
 keymaps/keymap-erosq.c

@@ -866,8 +866,11 @@ int ui_coverflow(void)
            cover building must leave the codec and buffering threads time,
            or playing music runs dry and breaks up. While music plays, wait
            a little between steps (other threads run meanwhile). */
+        /* With the screen off, nothing is built until it is back on: no
+           CPU or card time for covers nobody is looking at. */
+        const bool lit = lcd_active();
         int timeout = busy ? TIMEOUT_NOBLOCK :
-                      work ? (audio_playing() ? CF_WORK_GAP_PLAYING : TIMEOUT_NOBLOCK) :
+                      work && lit ? (audio_playing() ? CF_WORK_GAP_PLAYING : TIMEOUT_NOBLOCK) :
                       HZ;
         int action = get_action(CONTEXT_STD, timeout);
         switch (action)
@@ -907,7 +910,7 @@ int ui_coverflow(void)
             case ACTION_NONE:
                 if (busy)
                     yield();
-                else if (work)
+                else if (work && lit)
                 {
                     work = idle_work();
                     yield();    /* let the audio threads run after each step */

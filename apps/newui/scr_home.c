@@ -140,10 +140,11 @@ static bool song_playing(void)
     return (st & AUDIO_STATUS_PLAY) && !(st & AUDIO_STATUS_PAUSE);
 }
 
-/* slideshow running: Home redraws its cover often */
+/* slideshow running: Home redraws its cover often (not with the screen
+   off: nobody sees it, and it would keep the CPU busy) */
 static bool slides_running(void)
 {
-    return !song_playing() && ui_slides_available();
+    return lcd_active() && !song_playing() && ui_slides_available();
 }
 
 static void draw_full_art(void)

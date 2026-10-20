@@ -634,7 +634,8 @@ long gui_wps_show(void)
         if (button && !IS_SYSEVENT(button) )
             storage_spin();
 
-        long timeout = HZ/5;
+        /* with the screen off nothing is drawn: wake less often */
+        long timeout = lcd_active() ? HZ/5 : HZ;
         if (play_pending)
             timeout = MAX(0, play_pending - current_tick);
         button = get_action(CONTEXT_WPS|ALLOW_SOFTLOCK, timeout);

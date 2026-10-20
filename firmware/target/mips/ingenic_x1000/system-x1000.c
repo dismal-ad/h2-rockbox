@@ -45,6 +45,8 @@ int __cpu_idle_avg = 0;
 int __cpu_idle_cur = 0;
 uint32_t __cpu_idle_ticks = 0;
 uint32_t __cpu_idle_reftick = 0;
+uint64_t __cpu_idle_total = 0;
+uint64_t __cpu_time_total = 0;
 #endif
 
 /* Prepare the CPU to process interrupts, but don't enable them yet */

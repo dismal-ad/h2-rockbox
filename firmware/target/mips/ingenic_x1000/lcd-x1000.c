@@ -64,6 +64,13 @@ static fb_data shadowfb[LCD_HEIGHT*LCD_WIDTH] __attribute__((aligned(64)));
 /* Signals DMA copy to shadow FB is done */
 static volatile int fbcopy_done;
 
+/* Released from interrupts: the copy to the shadow FB is done, and the
+ * frame being sent to the panel is done (EOF). The waits below sleep on
+ * these, so the CPU idles instead of polling the registers (a frame takes
+ * several ms over the 8-bit bus). */
+static struct semaphore fbcopy_sem;
+static struct semaphore eof_sem;
+
 /* True if we're in sleep mode */
 static bool lcd_sleeping = false;
 static bool lcd_on = false;
@@ -81,7 +88,8 @@ typedef enum {
 } Lcd_ID;
 
 
-// TODO: This may need a yield?
+/* Polls for at most LCD_WAIT_MAX_US. Used as is with interrupts off (the
+ * panic screen) and to finish the waits that sleep first. */
 static void __attribute__ ((noinline)) lcd_wait(Lcd_ID id)
 {
     uint32_t i, done = 0;
@@ -205,6 +213,15 @@ static void lcd_fbcopy_dma_cb(int evt)
 {
     (void)evt;
     fbcopy_done = 1;
+    semaphore_release(&fbcopy_sem);
+}
+
+/* The panel's frame ended: one interrupt, then masked again (the EOF flag
+ * stays set until the next update clears it) */
+void LCD(void)
+{
+    jz_writef(LCD_CTRL, EOFM(0));
+    semaphore_release(&eof_sem);
 }
 
 static void lcd_fbcopy_dma_run(dma_desc* d, Lcd_ID id)
@@ -227,6 +244,11 @@ static void lcd_fbcopy_dma_run(dma_desc* d, Lcd_ID id)
     jz_set(DMA_DB, 1 << DMA_CHANNEL_FBCOPY);
     jz_writef(DMA_CHN_CS(DMA_CHANNEL_FBCOPY), CTE(1));
 
+    /* sleep until the copy is done; a late release from an earlier wait
+       that timed out only makes this return early, and lcd_wait() then
+       polls the rest */
+    if(!fbcopy_done)
+        semaphore_wait(&fbcopy_sem, HZ/10);
     lcd_wait(id);
 }
 
@@ -342,7 +364,15 @@ static bool lcd_wait_frame(void)
     if(!lcd_active())
         return false;
 
-    /* Usual case -- wait for EOF, wait for FIFO to drain, clear EOF */
+    /* Usual case -- wait for EOF, wait for FIFO to drain, clear EOF.
+     * The previous frame is often still being sent (an update right after
+     * another): sleep until its end of frame interrupt. If it ends between
+     * the check and unmasking, the interrupt comes at once. */
+    if(!lcd_panic_mode && !jz_readf(LCD_STATE, EOF)) {
+        jz_writef(LCD_CTRL, EOFM(1));
+        semaphore_wait(&eof_sem, HZ/10);
+        jz_writef(LCD_CTRL, EOFM(0));
+    }
     lcd_wait(WAIT_EOF);
     lcd_wait(WAIT_FRAME);
     jz_writef(LCD_STATE, EOF(0));
@@ -424,12 +454,16 @@ void lcd_init_device(void)
 {
     jz_writef(CPM_CLKGR, LCD(0));
 
+    semaphore_init(&fbcopy_sem, 1, 0);
+    semaphore_init(&eof_sem, 1, 0);
+
     lcd_init_controller(&lcd_tgt_config);
     lcd_init_descriptors(&lcd_tgt_config);
 
     lcd_tgt_enable(true);
 
     lcd_dma_start();
+    system_enable_irq(IRQ_LCD);    /* the source, EOFM, is unmasked when waiting */
 }
 
 void lcd_shutdown(void)

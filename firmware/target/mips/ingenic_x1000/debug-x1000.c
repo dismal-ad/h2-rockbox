@@ -138,16 +138,30 @@ static bool dbg_audio(void)
 }
 
 #ifdef X1000_CPUIDLE_STATS
+/* The average since a reset (Select) covers whatever was done meanwhile
+ * on other screens: reset, use the player, come back. */
+static uint64_t idle_base, time_base;
+
 static bool dbg_cpuidle(void)
 {
+    int action = ACTION_NONE;
     do {
+        if(action == ACTION_STD_OK || time_base == 0) {
+            idle_base = __cpu_idle_total;
+            time_base = __cpu_time_total;
+        }
+        uint64_t t = __cpu_time_total - time_base;
+        int avg = t ? (int)((__cpu_idle_total - idle_base) * 1000 / t) : 0;
         lcd_clear_display();
         lcd_putsf(0, 0, "CPU idle time: %d.%01d%%",
                   __cpu_idle_cur/10, __cpu_idle_cur%10);
-        lcd_putsf(0, 1, "CPU frequency: %d.%03d MHz",
+        lcd_putsf(0, 1, "Since reset: %d.%01d%% over %d s",
+                  avg/10, avg%10, (int)(t / OST_FREQUENCY));
+        lcd_putsf(0, 2, "CPU frequency: %d.%03d MHz",
                   FREQ/1000000, (FREQ%1000000)/1000);
+        lcd_puts(0, 4, "Select: reset the average");
         lcd_update();
-    } while(get_action(CONTEXT_STD, HZ) != ACTION_STD_CANCEL);
+    } while((action = get_action(CONTEXT_STD, HZ)) != ACTION_STD_CANCEL);
 
     return false;
 }

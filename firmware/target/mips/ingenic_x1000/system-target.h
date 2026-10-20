@@ -21,10 +21,9 @@
 #ifndef __SYSTEM_TARGET_H__
 #define __SYSTEM_TARGET_H__
 
-#ifdef DEBUG
-/* Define this to get CPU idle stats, visible in the debug menu. */
-# define X1000_CPUIDLE_STATS
-#endif
+/* CPU idle stats, visible in the debug menu (System > Debug > X1000
+ * debug > CPU idle): a few cycles per idle entry and per tick */
+#define X1000_CPUIDLE_STATS
 
 #include "cpu.h"
 #include "mmu-mips.h"
@@ -59,6 +58,9 @@ extern int __cpu_idle_avg;
 extern int __cpu_idle_cur;
 extern uint32_t __cpu_idle_ticks;
 extern uint32_t __cpu_idle_reftick;
+/* running totals (OST ticks) for averages over longer periods */
+extern uint64_t __cpu_idle_total;
+extern uint64_t __cpu_time_total;
 #endif
 
 static inline uint32_t __ost_read32(void);

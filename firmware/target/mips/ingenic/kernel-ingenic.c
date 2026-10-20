@@ -44,6 +44,8 @@ void OST(void)
         uint32_t fraction = 1000 * __cpu_idle_ticks / div;
         __cpu_idle_avg += fraction - __cpu_idle_avg / CPU_IDLE_SAMPLES;
         __cpu_idle_cur = __cpu_idle_avg / CPU_IDLE_SAMPLES;
+        __cpu_idle_total += __cpu_idle_ticks;
+        __cpu_time_total += div;
         __cpu_idle_ticks = 0;
         __cpu_idle_reftick = now;
     }

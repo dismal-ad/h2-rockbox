@@ -1,7 +1,7 @@
 # Battery life: review and action plan
 
-Status: **planned, not started.** To be done after the UI work. Written
-2026-10-19 from a review of the `newui-bt` branch.
+Status: **in progress.** Written 2026-10-19 from a review of the
+`newui-bt` branch; progress and findings in "Progress" at the end.
 
 ## What is already good
 
@@ -80,3 +80,14 @@ The PMU's battery current is not read (`CURRENT_MEASURE` is disabled in
 
 Suggested order: steps 1 and 2 (safe, quick) with the idle-% readout to see
 the gain, then step 4, and CPU scaling (step 3) last.
+
+## Progress
+
+| Step | Status | Notes |
+|---|---|---|
+| 1. No rendering with the screen off | Done (`91e038a054`) | Home slideshow and Cover Flow's cover building pause; Now Playing polls once a second. Simulator, 46 s on Home with the screen off: 2.47 -> 0.92 s CPU |
+| 2. LCD waits sleep | Done (`3a2360cefd`) | End-of-frame and copy-done interrupts instead of polling. CPU idle stats always built in (View HW info > CPU idle, with an average since Select). H2, 10 min browsing while playing over Bluetooth: 90% idle |
+| 3. CPU frequency scaling | To do | The CPU is ~10% busy at 1008 MHz while playing over Bluetooth: the largest remaining gain |
+| 4. SD controller idle | Skipped | The controller already runs in its low-power mode (`MSC_LPM`), which stops the card clock between transfers. Gating its own clock would save ~1 mW at the risk of the card if registers aren't kept; bigger reads save ~6% of command overhead on a card that is woken only every few minutes |
+| 5. Larger audio buffer | Skipped | Same reasoning: refills are already rare |
+| 6. Bluetooth low power | Done | Pausing already suspends the A2DP stream (after the mixer's 3 s of silence) and Bluedroid's PM puts the link in sniff after 7 s. The missing part was the controller: BT_WAKE was held for good and Broadcom's sleep mode never enabled, so it never slept. Now enabled (Write_Sleep_Mode, 0xFC27) with BT_WAKE asserted only while sending, after a self-check at each start (System > Debug > Bluetooth heap info shows "controller sleep") |

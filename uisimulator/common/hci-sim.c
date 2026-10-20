@@ -308,6 +308,11 @@ bool bt_hci_sleep_clock(void)
     return false;
 }
 
+const char *bt_hci_low_power(void)
+{
+    return "off: simulator";
+}
+
 void bt_target_local_output(bool enable)
 {
     (void)enable;

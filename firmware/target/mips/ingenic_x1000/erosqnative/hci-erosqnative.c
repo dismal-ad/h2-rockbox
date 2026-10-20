@@ -30,6 +30,7 @@
 #include "semaphore.h"
 #include "bcm_firmware.h"
 #include "x1000/cpm.h"
+#include "x1000/uart.h"
 
 #if defined(BT_DEBUG) && !defined(BT_DEBUG_PCAP)
 #define BT_DEBUG_PCAP
@@ -126,10 +127,35 @@ static void hci_log_packet(const uint8_t *data, size_t len, bool received)
 #define HCI_STACK_SIZE (DEFAULT_STACK_SIZE + HCI_RECV_BUF_SIZE)
 #endif
 
+/* Broadcom's UART sleep mode: the controller sleeps whenever the link
+ * allows (between sniff intervals, page scans, packets) unless BT_WAKE is
+ * asserted. The host asserts it to send and releases it HCI_WAKE_HOLD after
+ * the last packet; hardware flow control holds bytes meanwhile, as the
+ * controller only asserts its RTS (our CTS) once awake. Without it, the
+ * controller keeps its clocks running all the time. */
+#define HCI_WAKE_HOLD (HZ / 2)
+
+static bool hci_lpm = false;
+static const char *hci_lpm_status = "off";
+static struct timeout hci_wake_tmo;
+
+static int hci_wake_release(struct timeout *tmo)
+{
+    (void)tmo;
+    gpio_set_level(GPIO_HOST_WAKE_BT, 0);
+    return 0;
+}
+
 static void hci_send_uart(uint8_t *data, uint16_t len)
 {
     hci_log_packet(data, len, false);
+    if (hci_lpm) {
+        timeout_cancel(&hci_wake_tmo);
+        gpio_set_level(GPIO_HOST_WAKE_BT, 1);
+    }
     uart_tx(PORT_UART0, data, len);
+    if (hci_lpm)
+        timeout_register(&hci_wake_tmo, hci_wake_release, HCI_WAKE_HOLD, 0);
 }
 
 /* Reads during bring-up time out, so a controller that doesn't answer can't
@@ -304,8 +330,8 @@ bool bt_hci_sleep_clock(void)
     return hci_clk32k_on;
 }
 
-/* Follows the original firmware's power sequence. It also holds BT_WAKE
- * asserted for good, so the controller never enters its UART sleep mode. */
+/* Follows the original firmware's power sequence. BT_WAKE starts asserted;
+ * hci_enable_lpm() lets the controller sleep if it can. */
 static void hci_power(bool on)
 {
     if (on) {
@@ -367,6 +393,99 @@ static bool hci_bring_up(uint8_t *buf)
            hci_set_fast_baud(buf);
 }
 
+/* The controller is ready for our bytes (its RTS, which we see as CTS) */
+static bool hci_cts(void)
+{
+    return jz_readf(UART_UMSR(PORT_UART0), CTS) != 0;
+}
+
+/* Polls the controller's readiness for up to ticks; true if it matched */
+static bool hci_wait_cts(bool ready, int ticks)
+{
+    long end = current_tick + ticks;
+    while (hci_cts() != ready) {
+        if (TIME_AFTER(current_tick, end))
+            return false;
+        sleep(1);
+    }
+    return true;
+}
+
+/* Set when sleep mode left the controller unable to take commands: the
+ * bring-up is retried (with a power cycle) without it */
+static bool hci_lpm_broken = false;
+
+/* Turns on the UART sleep mode, then checks on this board that the
+ * controller sleeps with BT_WAKE released and wakes with it asserted (a
+ * wrong polarity would leave our sends waiting forever). If not, it's
+ * turned off again. Called during bring-up, before the receive thread.
+ * Returns false if the controller can't be talked to any more. */
+static bool hci_enable_lpm(uint8_t *buf)
+{
+    /* Write_Sleep_Mode: UART sleep mode; host and controller idle
+     * thresholds 1; BT_WAKE and HOST_WAKE active high; host may sleep
+     * during SCO; sleep mode combined with LPM; TXD not tristated; three
+     * unused bytes; HOST_WAKE not pulsed (the parameters Android's libbt
+     * uses for Broadcom controllers) */
+    static const uint8_t sleep_on[] = {
+        0x01, 0x27, 0xfc, 12, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0
+    };
+    static const uint8_t sleep_off[] = {
+        0x01, 0x27, 0xfc, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+
+    if (hci_lpm_broken) {
+        hci_lpm_status = "off: failed before";
+        return true;
+    }
+    if (!hci_clk32k_on) {
+        hci_lpm_status = "off: no 32k clock";
+        return true;
+    }
+    /* awake and idle, so it must show ready, or CTS can't be read here */
+    if (!hci_cts()) {
+        hci_lpm_status = "off: no CTS";
+        return true;
+    }
+    if (!hci_init_cmd(sleep_on, sizeof(sleep_on), buf)) {
+        hci_lpm_status = "off: not supported";
+        return true;
+    }
+
+    /* BT_WAKE released: the controller should go to sleep (not ready);
+       asserted: it should wake up (ready) */
+    gpio_set_level(GPIO_HOST_WAKE_BT, 0);
+    bool sleeps = hci_wait_cts(false, HZ);
+    gpio_set_level(GPIO_HOST_WAKE_BT, 1);
+    bool wakes = hci_wait_cts(true, HZ / 10);
+    if (sleeps && wakes) {
+        hci_lpm = true;
+        hci_lpm_status = "on";
+        timeout_register(&hci_wake_tmo, hci_wake_release, HCI_WAKE_HOLD, 0);
+        return true;
+    }
+
+    /* Not as expected: back to never sleeping, sent at whichever BT_WAKE
+       level has the controller ready. If neither does, sending would wait
+       forever: give up on sleep mode and let the bring-up start over. */
+    if (!wakes) {
+        gpio_set_level(GPIO_HOST_WAKE_BT, 0);
+        if (!hci_wait_cts(true, HZ / 10)) {
+            hci_lpm_broken = true;
+            return false;
+        }
+    }
+    bool ok = hci_init_cmd(sleep_off, sizeof(sleep_off), buf);
+    gpio_set_level(GPIO_HOST_WAKE_BT, 1);
+    hci_lpm_status = !sleeps ? "off: did not sleep" : "off: did not wake";
+    return ok;
+}
+
+const char *bt_hci_low_power(void)
+{
+    return hci_lpm_status;
+}
+
 static bool hci_enabled = false;
 
 bool bt_hci_enable(void)
@@ -386,7 +505,7 @@ bool bt_hci_enable(void)
     hci_rx_timeout = HCI_INIT_TIMEOUT;
     bool ok = false;
     for (int attempt = 0; attempt < 2 && !ok; attempt++) {
-        ok = hci_bring_up(buf);
+        ok = hci_bring_up(buf) && hci_enable_lpm(buf);
         if (!ok) {
             uart_deinit(PORT_UART0);
             hci_power(false);
@@ -430,6 +549,11 @@ void bt_hci_disable(void)
         hci_thread_id = 0;
     }
 
+    if (hci_lpm) {
+        timeout_cancel(&hci_wake_tmo);
+        hci_lpm = false;
+    }
+    hci_lpm_status = "off";
     hci_power(false);
     hci_log_close();
     hci_enabled = false;

@@ -31,6 +31,9 @@ bool bt_hci_enable(void);
 /* Whether the controller is fed an external sleep clock (debug info) */
 bool bt_hci_sleep_clock(void);
 
+/* Whether the controller sleeps when idle, or why not (debug info) */
+const char *bt_hci_low_power(void);
+
 /* Called as playback moves to (false) or away from (true) Bluetooth, so the
  * target can power down its own output stage meanwhile */
 void bt_target_local_output(bool enable);

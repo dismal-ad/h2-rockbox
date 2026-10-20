@@ -1576,6 +1576,10 @@ static const char *bt_heap_info_getname(int selected_item, void *data,
         case 2:
             return bt_hci_sleep_clock() ? "32k sleep clock: on"
                                         : "32k sleep clock: off";
+        case 3:
+            snprintf(buffer, buffer_len, "controller sleep: %s",
+                     bt_hci_low_power());
+            return buffer;
         default:
             return "Unknown item!!";
     }
@@ -1585,7 +1589,7 @@ bool bt_heap_info(void)
 {
     struct simplelist_info info;
 
-    simplelist_info_init(&info, "Bluetooth debug info:", 3, NULL);
+    simplelist_info_init(&info, "Bluetooth debug info:", 4, NULL);
     info.scroll_all = false;
     info.action_callback = bt_heap_info_action_callback;
     info.get_name = bt_heap_info_getname;

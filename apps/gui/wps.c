@@ -260,7 +260,7 @@ static bool ffwd_rew(int button, bool seek_from_end)
         }
         if (!exit)
         {
-            button = get_action(CONTEXT_WPS|ALLOW_SOFTLOCK,TIMEOUT_BLOCK);
+            button = get_action(CONTEXT_WPS,TIMEOUT_BLOCK);
             if (button != ACTION_WPS_SEEKFWD
                 && button != ACTION_WPS_SEEKBACK
                 && button != 0 && !IS_SYSEVENT(button))
@@ -638,7 +638,7 @@ long gui_wps_show(void)
         long timeout = lcd_active() ? HZ/5 : HZ;
         if (play_pending)
             timeout = MAX(0, play_pending - current_tick);
-        button = get_action(CONTEXT_WPS|ALLOW_SOFTLOCK, timeout);
+        button = get_action(CONTEXT_WPS, timeout);
 
         /* Centre pressed once: play/pause once no second press can come */
         bool idle = button == ACTION_NONE || button == ACTION_UNKNOWN;

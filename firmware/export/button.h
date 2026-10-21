@@ -45,6 +45,9 @@ int button_status(void);
 
 void button_set_flip(bool flip); /* turn 180 degrees */
 void set_backlight_filter_keypress(bool value);
+/* new UI: false while the keys are locked; the scroll wheel then leaves
+ * the screen dark (other buttons still light it, for the lock screen) */
+extern bool button_wheel_wakes;
 
 /* button queue functions (in button_queue.c) */
 void button_queue_init(void);

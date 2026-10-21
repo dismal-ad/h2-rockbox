@@ -81,6 +81,8 @@ static void button_remote_post(void)
 #endif
 }
 
+bool button_wheel_wakes = true;
+
 static int hp_detect_callback(struct timeout *tmo)
 {
     /* Try to post only transistions */

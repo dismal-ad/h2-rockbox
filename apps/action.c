@@ -76,7 +76,6 @@ typedef struct
     unsigned int softlock_mask;
     int          unlock_combo;
     bool         keys_locked;
-    bool         screen_has_lock;
 
     bool          repeated;
     bool          wait_for_release;
@@ -107,7 +106,6 @@ static action_last_t action_last =
     .bl_filter_tick = 0,
 
     .keys_locked     = false,
-    .screen_has_lock = false,
     .sl_filter_tick  = 0,
     .softlock_mask   = SEL_ACTION_NONE,
     .unlock_combo    = BUTTON_NONE,
@@ -333,25 +331,12 @@ static inline bool action_poll_button(action_last_t *last, action_cur_t *cur)
         ret = false;
     }
 
-    /* current context might contain ALLOW_SOFTLOCK save prior to stripping it */
     if (!ret)
     {
         last->context = cur->context;
     }
 
     return ret;
-}
-
-/*********************************************
-* update_screen_has_lock sets screen_has_lock
-* if passed context contains ALLOW_SOFTLOCK
-* and removes ALLOW_SOFTLOCK from the passed
-* context flag
-*/
-static inline void update_screen_has_lock(action_last_t *last, action_cur_t *cur)
-{
-    last->screen_has_lock = has_flag(cur->context, ALLOW_SOFTLOCK);
-    cur->context &= ~ALLOW_SOFTLOCK;
 }
 
 /***********************************************
@@ -620,6 +605,7 @@ static inline void action_code_lookup(action_last_t *last, action_cur_t *cur)
 static inline void do_key_lock(bool lock)
 {
     action_last.keys_locked = lock;
+    button_wheel_wakes = !lock;
     action_last.button = BUTTON_NONE;
     button_clear_queue();
 }
@@ -691,14 +677,6 @@ static inline void do_softlock(action_last_t *last, action_cur_t *cur)
 {
     int  action = cur->action;
 
-    /* check to make sure we don't get stuck without a way to unlock - if locked,
-     * we can still use unlock_combo to unlock */
-    if (!last->screen_has_lock && !last->keys_locked)
-    {
-        /* no need to check softlock return immediately */
-        return;
-    }
-
     bool filtered = true;
     bool notify_user = false;
     bool sl_activate = true; /* standard softlock behavior */
@@ -712,14 +690,24 @@ static inline void do_softlock(action_last_t *last, action_cur_t *cur)
     if ((action == ACTION_STD_KEYLOCK)
          || (last->keys_locked && last->unlock_combo == cur->button))
     {
-	// if backlight is off and keys are unlocked, do nothing and exit.
-	// The backlight should come on without locking keypad.
-	if ((!last->keys_locked) && (!is_backlight_on(false)))
-	{
-	    return;
-	}
+        /* if backlight is off and keys are unlocked, do nothing and exit.
+           The backlight should come on without locking keypad. */
+        if ((!last->keys_locked) && (!is_backlight_on(false)))
+        {
+            return;
+        }
         last->unlock_combo = cur->button;
-        do_key_lock(!last->keys_locked);
+        if (!last->keys_locked)
+        {
+            /* new UI, from any screen: lock and turn the display off; the
+               next press wakes it (Power unlocks, other keys show the lock
+               screen) */
+            do_key_lock(true);
+            backlight_off();
+            cur->action = ACTION_NONE;
+            return;
+        }
+        do_key_lock(false);
         notify_user = true;
     }
 #if (BUTTON_REMOTE != 0)/* Allow remote actions through */
@@ -938,8 +926,6 @@ static int get_action_worker(action_last_t *last, action_cur_t *cur)
     {
         return cur->button;
     }
-
-    update_screen_has_lock(last, cur);
 
     if (get_action_touchscreen(last, cur))
     {

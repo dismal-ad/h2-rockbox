@@ -645,12 +645,12 @@ bool option_screen(const struct settings_list *setting,
         bool changed;
         if (slider)
         {
-            action = get_action(CONTEXT_SETTINGS|ALLOW_SOFTLOCK, HZ);
+            action = get_action(CONTEXT_SETTINGS, HZ);
             changed = slider_move(setting, action, &selected, nb_items);
         }
         else if (panel)
         {
-            action = get_action(CONTEXT_LIST|ALLOW_SOFTLOCK, HZ);
+            action = get_action(CONTEXT_LIST, HZ);
             int sel = selected;
             if (action == ACTION_STD_NEXT || action == ACTION_STD_NEXTREPEAT)
                 sel = allow_wrap ? (sel + 1) % nb_items : MIN(sel + 1, nb_items - 1);
@@ -660,7 +660,7 @@ bool option_screen(const struct settings_list *setting,
             selected = sel;
         }
         else
-            changed = list_do_action(CONTEXT_LIST|ALLOW_SOFTLOCK, HZ, /* HZ so the status bar redraws */
+            changed = list_do_action(CONTEXT_LIST, HZ, /* HZ so the status bar redraws */
                                      &lists, &action);
         if (changed)
         {

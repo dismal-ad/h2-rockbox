@@ -31,6 +31,7 @@
 
 #include "config.h"
 #include <stdio.h>
+#include <string.h>
 #include "action.h"
 #include "appevents.h"
 #include "audio.h"
@@ -118,6 +119,35 @@ static unsigned long state(void)
     return h;
 }
 
+/* The screen below the lock screen, put back on unlock: Power locks from
+ * any screen, and not all of them redraw on ACTION_REDRAW */
+static fb_data saved[LCD_WIDTH * LCD_HEIGHT];
+static int saved_bar_w; /* Home narrows the bar; the lock screen has it whole */
+
+static void save_screen(bool restore)
+{
+    struct viewport *last = lcd_set_viewport(NULL);
+    for (int y = 0; y < LCD_HEIGHT; y++)
+    {
+        fb_data *row = FBADDR(0, y), *copy = saved + y * LCD_WIDTH;
+        if (restore)
+            memcpy(row, copy, LCD_WIDTH * sizeof(fb_data));
+        else
+            memcpy(copy, row, LCD_WIDTH * sizeof(fb_data));
+    }
+    if (restore)
+        lcd_update();
+    lcd_set_viewport(last);
+}
+
+static int leave(int ret)
+{
+    if (!ret)
+        save_screen(true);
+    ui_status_width(saved_bar_w);
+    return ret;
+}
+
 int ui_lock_screen(void)
 {
     struct viewport vp;
@@ -127,6 +157,9 @@ int ui_lock_screen(void)
 
     unsigned long shown = state();
     long last_tap = current_tick - 2 * DOUBLE_TAP;
+    save_screen(false);
+    saved_bar_w = ui_status_get_width();
+    ui_status_width(0);
     draw(&vp);
 
     while (true)
@@ -135,13 +168,13 @@ int ui_lock_screen(void)
         int button = button_get_w_tmo(HZ / 2);
 
         if (IS_SYSEVENT(button))
-            return button;
+            return leave(button);
         if (button == (BUTTON_POWER | BUTTON_REL))
-            return 0;
+            return leave(0);
         if (button == (BUTTON_PLAY | BUTTON_REL))
         {
             if (TIME_BEFORE(current_tick, last_tap + DOUBLE_TAP))
-                return 0;
+                return leave(0);
             last_tap = current_tick;
         }
 

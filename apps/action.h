@@ -42,7 +42,6 @@
 #define LAST_ITEM_IN_LIST { CONTEXT_STOPSEARCHING, BUTTON_NONE, BUTTON_NONE }
 #define LAST_ITEM_IN_LIST__NEXTLIST(a) { a, BUTTON_NONE, BUTTON_NONE }
 
-#define ALLOW_SOFTLOCK 0x08000000 /* will be stripped.. never needed except in calls to get_action() */
 
 /* Selective action selection flags */
 #define SEL_ACTION_NONE       0
@@ -63,7 +62,7 @@
 #define SEL_ACTION_ENABLED    0x800U
 /* Selective Actions flags */
 
-/* returns true if keys_locked and screen_has_lock */
+/* returns true if the keys are locked */
 bool is_keys_locked(void);
 
 /* Enable selected actions to bypass a locked state

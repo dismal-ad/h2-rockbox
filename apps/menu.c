@@ -504,7 +504,7 @@ int do_menu(const struct menu_item_ex *start_menu, int *start_selected,
             start_action = ACTION_ENTER_MENUITEM;
         }
         else
-            action = get_action(CONTEXT_MAINMENU|ALLOW_SOFTLOCK,
+            action = get_action(CONTEXT_MAINMENU,
                                 list_do_action_timeout(&lists, HZ));
             /* HZ so the status bar redraws corectly */
 

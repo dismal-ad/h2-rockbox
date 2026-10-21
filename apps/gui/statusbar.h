@@ -94,6 +94,9 @@ extern bool gui_statusbar_draw(struct gui_statusbar * bar,
 /* new UI: redraws the status bar on top of the screen if what it shows
  * changed (checked at most every HZ/7) or force */
 void statusbar_update(bool force);
+/* the bar stays off the screen until this is called (the boot image is
+ * shown alone); returns true on the first call only */
+bool statusbar_boot_done(void);
 
 
 struct gui_syncstatusbar

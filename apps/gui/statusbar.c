@@ -162,9 +162,21 @@ bool gui_statusbar_draw(struct gui_statusbar * bar, bool force_redraw, struct vi
     return false;
 }
 
+static bool booted;
+
+bool statusbar_boot_done(void)
+{
+    if (booted)
+        return false;
+    booted = true;
+    return true;
+}
+
 void statusbar_update(bool force)
 {
     static long next_update;
+    if (!booted)
+        return;
     if (!force && TIME_BEFORE(current_tick, next_update))
         return;
     next_update = current_tick + HZ / 7; /* don't check too often */

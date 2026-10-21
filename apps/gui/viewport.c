@@ -90,8 +90,11 @@ static void viewportmanager_update(unsigned short id, void* data)
 {
     (void)id;
     (void)data;
+    /* the first get_action(): booting is over and the first screen is
+     * drawn, the bar joins it */
+    bool first = statusbar_boot_done();
     if (bar_shown())
-        statusbar_update(false);
+        statusbar_update(first);
 }
 
 void viewportmanager_init(void)

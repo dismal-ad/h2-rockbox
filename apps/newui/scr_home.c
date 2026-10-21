@@ -178,6 +178,12 @@ static void draw_full_art(void)
     lcd_update_viewport();
 }
 
+void ui_home_prepare(void)
+{
+    if (!song_playing())
+        ui_slides_prepare(LCD_WIDTH - HOME_MENU_W, LCD_HEIGHT);
+}
+
 static void draw(struct viewport *vp, const enum home_target *list, int n,
                  int sel)
 {

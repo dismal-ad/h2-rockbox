@@ -191,6 +191,9 @@ bool ui_slides_available(void);
  * left w x h (zoomed covers panning, crossfading every 5 s); false if no
  * cover could be shown. Call it often (about 15 times a second). */
 bool ui_slides_draw(int w, int h);
+/* Looks the albums up and decodes the first two covers for a w x h
+ * slideshow now (at boot), so the first ui_slides_draw() is quick */
+void ui_slides_prepare(int w, int h);
 
 /* --- battery usage (scr_battery.c) --- */
 
@@ -224,6 +227,8 @@ void ui_cover_build(const char *track_path);
 /* Home (scr_home.c). Returns the root menu screen to open (GO_TO_*),
  * or MENU_ATTACHED_USB. *selected keeps the row between visits. */
 int ui_home(int *selected);
+/* Does the slow part of Home's first draw ahead of time (at boot) */
+void ui_home_prepare(void);
 
 /* Cover Flow (scr_coverflow.c). Returns GO_TO_WPS when an album was
  * started, MENU_ATTACHED_USB, or GO_TO_ROOT for Back. */

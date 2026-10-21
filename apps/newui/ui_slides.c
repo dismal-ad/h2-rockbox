@@ -164,6 +164,18 @@ static void window_at(const struct slide *s, int t, int *x, int *y)
     *y = s->y0 + (int)(((long long)(s->y1 - s->y0) * t) >> 16);
 }
 
+void ui_slides_prepare(int w, int h)
+{
+    const int sw = w * 256 / ZOOM_256, sh = h * 256 / ZOOM_256;
+    if (!ui_slides_available() || slides[cur].ok)
+        return;
+    if (load(&slides[cur], sw, sh))
+    {
+        start_us = last_us = ui_time_us();
+        next_ready = load(&slides[cur ^ 1], sw, sh);
+    }
+}
+
 bool ui_slides_draw(int w, int h)
 {
     struct viewport *vp = lcd_current_viewport;

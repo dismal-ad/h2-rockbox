@@ -17864,3 +17864,17 @@
     *: "Light"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_SKIP_STARTUP_ANIM
+  desc: new UI: in Settings > General > Startup/Shutdown
+  user: core
+  <source>
+    *: "Skip Startup Animation"
+  </source>
+  <dest>
+    *: "Skip Startup Animation"
+  </dest>
+  <voice>
+    *: "Skip Startup Animation"
+  </voice>
+</phrase>

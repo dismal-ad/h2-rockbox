@@ -206,7 +206,8 @@ int show_logo_boot( void )
 /* The boot image stays up for 3 s in all, then zooms in on its centre
  * (up to 2x: the central quarter fills the screen) for 1 s while
  * blending into the theme's background colour (black or white), which
- * the first screen is then drawn on. Bilinear filtering, eased
+ * the first screen is then drawn on. Settings > General > Startup/Shutdown
+ * > Skip Startup Animation goes to the first screen once init is done. Bilinear filtering, eased
  * zoom, timed by the tick so it lasts 1 s at any frame rate. */
 static void boot_anim(void) INIT_ATTR;
 static void boot_anim(void)
@@ -219,8 +220,11 @@ static void boot_anim(void)
     const uint32_t bg = SPREAD(UI_COL_BG);
     long start;
 
-    if (w != LCD_WIDTH || h != LCD_HEIGHT)
+    if (global_settings.skip_startup_anim || w != LCD_WIDTH || h != LCD_HEIGHT)
+    {
+        ui_home_prepare(); /* still before the first screen, not after */
         return;
+    }
     show_logo_boot(); /* a splash may have covered it */
     lcd_set_viewport(NULL);
     /* Home's covers are read and decoded during the hold instead of

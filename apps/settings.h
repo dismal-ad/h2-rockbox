@@ -550,6 +550,7 @@ struct user_settings
     bool sleeptimer_on_startup;
     bool keypress_restarts_sleeptimer;
 
+    bool skip_startup_anim; /* new UI: no hold and zoom after the boot image */
     bool show_shutdown_message; /* toggle whether display lights up and displays message
                                 when shutting down */
 

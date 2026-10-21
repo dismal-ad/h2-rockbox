@@ -1514,6 +1514,8 @@ const struct settings_list settings[] = {
     OFFON_SETTING(0, keypress_restarts_sleeptimer, LANG_KEYPRESS_RESTARTS_SLEEP_TIMER, false,
                   "keypress restarts sleeptimer", set_keypress_restarts_sleep_timer),
 
+    OFFON_SETTING(0, skip_startup_anim, LANG_SKIP_STARTUP_ANIM, false,
+                  "skip startup animation", NULL),
     OFFON_SETTING(0, show_shutdown_message, LANG_SHOW_SHUTDOWN_MESSAGE, true,
                   "show shutdown message", NULL),
 

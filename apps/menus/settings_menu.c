@@ -399,6 +399,7 @@ MENUITEM_SETTING(sleeptimer_on_startup,
                  &global_settings.sleeptimer_on_startup, NULL);
 MENUITEM_SETTING(keypress_restarts_sleeptimer,
                  &global_settings.keypress_restarts_sleeptimer, NULL);
+MENUITEM_SETTING(skip_startup_anim, &global_settings.skip_startup_anim, NULL);
 MENUITEM_SETTING(show_shutdown_message, &global_settings.show_shutdown_message, NULL);
 
 #if defined(BUTTON_REC)
@@ -409,6 +410,7 @@ MENUITEM_SETTING(clear_settings_on_hold,
 
 MAKE_MENU(startup_shutdown_menu, ID2P(LANG_STARTUP_SHUTDOWN),
           0, Icon_System_menu,
+            &skip_startup_anim,
             &show_shutdown_message,
             &start_screen,
             &poweroff,

@@ -34,6 +34,7 @@
 #include "metadata.h"
 #include "tagcache.h"
 #include "tagtree.h"
+#include "timefuncs.h"
 #include "ui.h"
 
 #define SLIDE_SRC     UI_ART_MAX       /* decoded size */
@@ -119,9 +120,13 @@ bool ui_slides_available(void)
 {
     if (nseeks < 0)
     {
+        /* A different order each boot: the ticks since boot are much the
+           same every time, so mix in the clock (it keeps running while the
+           player is off, set or not) and the microseconds now, whose low
+           bits vary with card and database timing */
         static bool seeded;
         if (!seeded)
-            srand(current_tick);
+            srand((unsigned)mktime(get_time()) * 2654435761u ^ ui_time_us());
         seeded = true;
         find_albums();
     }

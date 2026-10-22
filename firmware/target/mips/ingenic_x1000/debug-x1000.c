@@ -28,6 +28,7 @@
 
 #include "clk-x1000.h"
 #include "gpio-ingenic.h"
+#include "x1000/cpm.h"
 
 static bool dbg_clocks(void)
 {
@@ -160,8 +161,9 @@ static bool dbg_cpuidle(void)
                   __cpu_idle_cur/10, __cpu_idle_cur%10);
         lcd_putsf(0, 1, "Since reset: %d.%01d%% over %d s",
                   avg/10, avg%10, (int)(t / OST_FREQUENCY));
+        uint32_t f = clk_get(X1000_CLK_CPU);
         lcd_putsf(0, 2, "CPU frequency: %d.%03d MHz",
-                  FREQ/1000000, (FREQ%1000000)/1000);
+                  (int)(f/1000000), (int)((f%1000000)/1000));
         lcd_puts(0, 4, "Select: reset the average");
         lcd_update();
     } while((action = get_action(CONTEXT_STD, HZ)) != ACTION_STD_CANCEL);
@@ -169,6 +171,40 @@ static bool dbg_cpuidle(void)
     return false;
 }
 #endif
+
+/* Experiment: the CPU at full or quarter speed, to compare battery use.
+ * Only the CPU and L2 cache dividers change (as upstream's removed
+ * set_cpu_frequency() did); the PLL, buses, memory, SD, LCD and audio
+ * clocks stay as they are. Back to full speed at the next boot.
+ *
+ * TODO: remove at the next code cleanup (with its "CPU speed" menu entry):
+ * a temporary test aid, not a feature. Upstream found no saving from CPU
+ * frequency on the X1000 (commit 92140752d7). */
+static void dbg_set_cpu_div(int cdiv)
+{
+    int l2div = cdiv == 1 ? 2 : cdiv;
+    jz_writef(CPM_CCR, CE_CPU(1), L2DIV(l2div - 1), CDIV(cdiv - 1));
+    while(jz_readf(CPM_CSR, CDIV_BUSY));
+    jz_writef(CPM_CCR, CE_CPU(0));
+}
+
+static bool dbg_cpuspeed(void)
+{
+    int action = ACTION_NONE;
+    do {
+        if(action == ACTION_STD_OK)
+            dbg_set_cpu_div(jz_readf(CPM_CCR, CDIV) == 0 ? 4 : 1);
+        uint32_t f = clk_get(X1000_CLK_CPU), l2 = clk_get(X1000_CLK_L2CACHE);
+        lcd_clear_display();
+        lcd_putsf(0, 0, "CPU: %d MHz", (int)(f / 1000000));
+        lcd_putsf(0, 1, "L2 cache: %d MHz", (int)(l2 / 1000000));
+        lcd_puts(0, 3, "Select: switch 1008 / 252 MHz");
+        lcd_puts(0, 4, "Full speed again after reboot");
+        lcd_update();
+    } while((action = get_action(CONTEXT_STD, HZ)) != ACTION_STD_CANCEL);
+
+    return false;
+}
 
 #ifdef HAVE_AXP_PMU
 extern bool axp_debug_menu(void);
@@ -187,6 +223,7 @@ static const struct {
 #ifdef X1000_CPUIDLE_STATS
     {"CPU idle", &dbg_cpuidle},
 #endif
+    {"CPU speed", &dbg_cpuspeed},
     {"Audio", &dbg_audio},
 #ifdef HAVE_AXP_PMU
     {"Power stats", &axp_debug_menu},

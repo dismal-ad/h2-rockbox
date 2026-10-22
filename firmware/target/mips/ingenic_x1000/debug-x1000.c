@@ -117,6 +117,7 @@ static bool dbg_gpios(void)
 
 extern volatile unsigned aic_tx_underruns;
 extern int es9018k2m_present_flag;
+extern bool eros_qn_local_output_on;
 
 static bool dbg_audio(void)
 {
@@ -131,6 +132,8 @@ static bool dbg_audio(void)
         {
             lcd_putsf(0, 2, "(%d) SWVOL", es9018k2m_present_flag);
         }
+        lcd_putsf(0, 3, "DAC and HP amp: %s",
+                  eros_qn_local_output_on ? "on" : "off (Bluetooth)");
         lcd_update();
     } while(get_action(CONTEXT_STD, HZ) != ACTION_STD_CANCEL);
 

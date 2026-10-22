@@ -33,6 +33,7 @@
 #include "i2c-ingenic.h"
 #include "gpio-ingenic.h"
 #include "devicedata.h"
+#include "settings.h"
 #ifdef HAVE_BLUETOOTH
 #include "bt_hci.h"
 #endif
@@ -46,23 +47,14 @@
  * DAC --> HP Amp --> Stereo Switch \--> HP OUT
  *                                   \-> LO OUT
  */
-void audiohw_init(void)
+/* The DAC and headphone amp are powered (false while playing over
+ * Bluetooth: see bt_target_local_output()) */
+bool eros_qn_local_output_on = true;
+
+/* Powers the DAC and headphone amp up, pop-free, the I2S clocks already
+ * running. The DAC's registers are at their defaults afterwards. */
+static void local_output_power_up(void)
 {
-    /* explicitly mute everything */
-    gpio_set_level(GPIO_HPAMP_SHDN, 0);
-    gpio_set_level(GPIO_STEREOSW_MUTE, 1);
-    gpio_set_level(GPIO_DAC_PWR, 0);
-
-    aic_set_play_last_sample(true);
-    aic_set_external_codec(true);
-    aic_set_i2s_mode(AIC_I2S_MASTER_MODE);
-    audiohw_set_frequency(HW_FREQ_48);
-
-    aic_enable_i2s_master_clock(true);
-    aic_enable_i2s_bit_clock(true);
-
-    mdelay(10);
-
     /* power on DAC and HP Amp */
     gpio_set_level(GPIO_DAC_ANALOG_PWR, 1);
     gpio_set_level(GPIO_HPAMP_POWER, 1);
@@ -90,6 +82,28 @@ void audiohw_init(void)
     gpio_set_level(GPIO_DAC_PWR, 1);
     mdelay(10);
     gpio_set_level(GPIO_STEREOSW_MUTE, 0);
+}
+
+static void es9018k2m_setup(void);
+
+void audiohw_init(void)
+{
+    /* explicitly mute everything */
+    gpio_set_level(GPIO_HPAMP_SHDN, 0);
+    gpio_set_level(GPIO_STEREOSW_MUTE, 1);
+    gpio_set_level(GPIO_DAC_PWR, 0);
+
+    aic_set_play_last_sample(true);
+    aic_set_external_codec(true);
+    aic_set_i2s_mode(AIC_I2S_MASTER_MODE);
+    audiohw_set_frequency(HW_FREQ_48);
+
+    aic_enable_i2s_master_clock(true);
+    aic_enable_i2s_bit_clock(true);
+
+    mdelay(10);
+
+    local_output_power_up();
 
     i2c_x1000_set_freq(ES9018K2M_BUS, I2C_FREQ_400K);
 
@@ -106,44 +120,48 @@ void audiohw_init(void)
 #endif
         es9018k2m_present_flag = true;
         builtin_pcm_sink.caps.volume_type = PCM_SINK_HWVOL;
-
-        /*
-         * Set sample depth to 32-bit. The sample depth setting corresponds
-         * to the I2S frame length which is twice the sample depth (since
-         * I2S is stereo). The AIC only supports 64-bit frames (see 6.3.1
-         * "6.3.1 I2S and MSB-justified serial audio format" in the PM).
-         *
-         * Commented out since this is the hardware default. We technically
-         * do not need SPDIF/DSD detection so the lower nibble could be 0,
-         * but it was historically enabled does not seem to cause any harm.
-         */
-        //es92018k2m_write_reg(ES9018K2M_REG1_INPUT_CONFIG, 0xcc);
-
-       /* Datasheet: Sets the number os FSR edges that must occur before    *
-        * the DPLL and ASRC can lock on to the the incoming Signal.         *
-        * When Samplerates >= 96khz could be used, STOP_DIV should be set   *
-        * to 0 (= 16384 FSR Edges).                                         *
-        *   Reg #10 [3:0] (0x05 default, 2730 FSR Edges)                    */
-        es9018k2m_write_reg(ES9018K2M_REG10_MASTER_MODE_CTRL, 0x00);
-
-       /* Datasheet: The ES90x8Q2M/K2M contains a Jitter Eliminator block,   *
-        * which employs the use of a digital phase locked loop (DPLL) to     *
-        * lock to the incoming audio clock rate. When in I2S or SPDIF mode,  *
-        * the DPLL will lock to the frame clock (1 x fs). However, when in   *
-        * DSD mode, the DPLL has no frame clock information, and must in-    *
-        * stead lock to the bit clock rate (BCK). For this reason, there are *
-        * two bandwidth settings for the DPLL.                               *
-           Reg #12 [7:4] (0x05 default) bandwidth for I2S / SPDIF mode.
-           Reg #12 [3:0] (0x0A default) bandwidth for DSD mode.
-        * The DPLL bandwidth sets how quickly the DPLL can adjust its intern *
-        * representation of the audio clock. The higher the jitter or        *
-        * frequency drift on the audio clock, the higher the bandwidth must  *
-        * be so that the DPLL can react.                                     *
-        * ! If the bandwidth is “too low”, the DPLL will loose lock and you  *
-        * ! will hear random dropouts. (Fixed my SurfansF20 v3.2 dropouts)   */
-        es9018k2m_write_reg(ES9018K2M_REG12_DPLL_SETTINGS, 0xda);
-
+        es9018k2m_setup();
     }
+}
+
+/* The ES9018K2M's settings that differ from its power-on defaults */
+static void es9018k2m_setup(void)
+{
+    /*
+     * Set sample depth to 32-bit. The sample depth setting corresponds
+     * to the I2S frame length which is twice the sample depth (since
+     * I2S is stereo). The AIC only supports 64-bit frames (see 6.3.1
+     * "6.3.1 I2S and MSB-justified serial audio format" in the PM).
+     *
+     * Commented out since this is the hardware default. We technically
+     * do not need SPDIF/DSD detection so the lower nibble could be 0,
+     * but it was historically enabled does not seem to cause any harm.
+     */
+    //es92018k2m_write_reg(ES9018K2M_REG1_INPUT_CONFIG, 0xcc);
+
+   /* Datasheet: Sets the number os FSR edges that must occur before    *
+    * the DPLL and ASRC can lock on to the the incoming Signal.         *
+    * When Samplerates >= 96khz could be used, STOP_DIV should be set   *
+    * to 0 (= 16384 FSR Edges).                                         *
+    *   Reg #10 [3:0] (0x05 default, 2730 FSR Edges)                    */
+    es9018k2m_write_reg(ES9018K2M_REG10_MASTER_MODE_CTRL, 0x00);
+
+   /* Datasheet: The ES90x8Q2M/K2M contains a Jitter Eliminator block,   *
+    * which employs the use of a digital phase locked loop (DPLL) to     *
+    * lock to the incoming audio clock rate. When in I2S or SPDIF mode,  *
+    * the DPLL will lock to the frame clock (1 x fs). However, when in   *
+    * DSD mode, the DPLL has no frame clock information, and must in-    *
+    * stead lock to the bit clock rate (BCK). For this reason, there are *
+    * two bandwidth settings for the DPLL.                               *
+       Reg #12 [7:4] (0x05 default) bandwidth for I2S / SPDIF mode.
+       Reg #12 [3:0] (0x0A default) bandwidth for DSD mode.
+    * The DPLL bandwidth sets how quickly the DPLL can adjust its intern *
+    * representation of the audio clock. The higher the jitter or        *
+    * frequency drift on the audio clock, the higher the bandwidth must  *
+    * be so that the DPLL can react.                                     *
+    * ! If the bandwidth is “too low”, the DPLL will loose lock and you  *
+    * ! will hear random dropouts. (Fixed my SurfansF20 v3.2 dropouts)   */
+    es9018k2m_write_reg(ES9018K2M_REG12_DPLL_SETTINGS, 0xda);
 }
 
 void audiohw_postinit(void)
@@ -152,23 +170,38 @@ void audiohw_postinit(void)
 }
 
 #ifdef HAVE_BLUETOOTH
-/* Shut the headphone amp down while playing over Bluetooth, muting first
- * and unmuting last like audiohw_close() and audiohw_init() */
+/* While playing over Bluetooth, the whole local output stage is powered
+ * down: headphone amp and DAC off, I2S clocks stopped (not driven into
+ * an unpowered chip). Muting first and unmuting last like audiohw_close()
+ * and audiohw_init(); back on, the DAC gets its settings, filter and volume
+ * again (it forgot them). */
 void bt_target_local_output(bool enable)
 {
-    static bool enabled = true;
-    if (enable == enabled)
+    if (enable == eros_qn_local_output_on)
         return;
-    enabled = enable;
 
     if (enable) {
-        gpio_set_level(GPIO_HPAMP_SHDN, 1);
+        aic_enable_i2s_master_clock(true);
+        aic_enable_i2s_bit_clock(true);
         mdelay(10);
-        gpio_set_level(GPIO_STEREOSW_MUTE, 0);
+        local_output_power_up();
+        eros_qn_local_output_on = true;
+        if (es9018k2m_present_flag) {
+            es9018k2m_setup();
+            audiohw_set_filter_roll_off(global_settings.roll_off);
+        }
+        eros_qn_set_outputs();          /* the volume and output switch */
     } else {
+        eros_qn_local_output_on = false;
         gpio_set_level(GPIO_STEREOSW_MUTE, 1);
         mdelay(10);
         gpio_set_level(GPIO_HPAMP_SHDN, 0);
+        gpio_set_level(GPIO_DAC_PWR, 0);
+        mdelay(10);
+        gpio_set_level(GPIO_HPAMP_POWER, 0);
+        gpio_set_level(GPIO_DAC_ANALOG_PWR, 0);
+        aic_enable_i2s_bit_clock(false);
+        aic_enable_i2s_master_clock(false);
     }
 }
 #endif
@@ -190,7 +223,8 @@ void audiohw_set_frequency(int fsel)
 
     aic_enable_i2s_bit_clock(false);
     aic_set_i2s_clock(X1000_CLK_SCLK_A, sampr, mult);
-    aic_enable_i2s_bit_clock(true);
+    if (eros_qn_local_output_on)    /* not into a powered down DAC */
+        aic_enable_i2s_bit_clock(true);
 }
 
 void audiohw_set_volume(int vol_l, int vol_r)
@@ -225,7 +259,9 @@ void audiohw_set_volume(int vol_l, int vol_r)
         l = r = eros_qn_get_volume_limit();
     }
 
-    if (es9018k2m_present_flag) /* ES9018K2M */
+    if (!eros_qn_local_output_on)
+        ;   /* powered down: set again on power up */
+    else if (es9018k2m_present_flag) /* ES9018K2M */
     {
         /* Same volume range and mute point for both DACs, so use PCM5102A_VOLUME_MIN */
         l = l <= PCM5102A_VOLUME_MIN ? PCM_MUTE_LEVEL : l;

@@ -3159,7 +3159,7 @@ int playlist_resume(void)
     int result = -1;
     enum playlist_command (*pl_cmd)(char) = &pl_cmds_start;
 
-    splash(0, ID2P(LANG_WAIT));
+    /* no "Loading..." splash: this runs at start-up, and is quick */
     cpu_boost(true);
 
     struct playlist_info* playlist = &current_playlist;

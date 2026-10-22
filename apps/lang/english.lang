@@ -17809,6 +17809,34 @@
   </voice>
 </phrase>
 <phrase>
+  id: LANG_NEWUI_SINCE_CHARGE
+  desc: new UI: Battery Usage, label before the running time since the last charge
+  user: core
+  <source>
+    *: "since charge"
+  </source>
+  <dest>
+    *: "since charge"
+  </dest>
+  <voice>
+    *: "since charge"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_NEWUI_BATTERY_LEVEL
+  desc: new UI: Battery Usage, label before the battery level
+  user: core
+  <source>
+    *: "battery level"
+  </source>
+  <dest>
+    *: "battery level"
+  </dest>
+  <voice>
+    *: "battery level"
+  </voice>
+</phrase>
+<phrase>
   id: LANG_NEWUI_BATTERY_NO_DATA
   desc: new UI: Battery Usage before anything was logged
   user: core

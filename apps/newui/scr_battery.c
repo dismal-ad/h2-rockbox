@@ -142,9 +142,11 @@ void ui_battery_log_init(void)
 
 /* --- the chart --- */
 
-#define CH_X0   38                  /* the plot area */
+#define HDR_Y     4                 /* the two lines, over the chart's top */
+#define HDR_ROW_H 22                /* right: the curve has fallen by then */
+#define CH_X0   38                  /* the plot area: all of the screen */
 #define CH_X1   (LCD_WIDTH - 14)
-#define CH_Y0   48
+#define CH_Y0   12
 #define CH_Y1   (LCD_HEIGHT - UI_STATUS_H - 30)
 
 static inline unsigned mix(unsigned a, unsigned b, int t) /* t/256 of b */
@@ -189,33 +191,111 @@ static int level_at(int m256)
                   h01 * pts[i + 1].pct * 256 + h11 * h * s[1]) >> 8);
 }
 
+/* "label  value", right justified: the value in the title font ending at
+   the right margin, the label in body text ending value_w + a gap before
+   it (both rows' labels end in one column). Drawn over the chart on a
+   background box, so grid lines don't run through the text. */
+static void header_row(int y, int value_w, const char *label, const char *value)
+{
+    const int right = LCD_WIDTH - UI_MARGIN, label_r = right - value_w - 8;
+    int left = label_r - ui_text_width(ui_font(UI_FONT_BODY), label) - 4;
+    ui_fill_rect(left, y + 2, right + 2 - left, HDR_ROW_H - 4, UI_COL_BG);
+    ui_text_vcenter(UI_MARGIN, y, HDR_ROW_H, ui_font(UI_FONT_BODY),
+                    UI_COL_TEXT2, label, label_r - UI_MARGIN, 1);
+    ui_text_vcenter(UI_MARGIN, y, HDR_ROW_H, ui_font(UI_FONT_TITLE),
+                    UI_COL_TEXT, value, right - UI_MARGIN, 1);
+}
+
+/* now: how long since the last charge, and the level */
+struct header {
+    char since[16], level[16];
+    int value_w;                    /* the wider value */
+};
+
+static void header_text(struct header *h)
+{
+    int pct = battery_level();
+    update_runtime();
+    int mins = global_status.runtime / 60;
+    if (mins >= 60)
+        snprintf(h->since, sizeof(h->since), "%dh %dm", mins / 60, mins % 60);
+    else
+        snprintf(h->since, sizeof(h->since), "%dm", mins);
+    snprintf(h->level, sizeof(h->level), "%d%%", MAX(pct, 0));
+    const int title = ui_font(UI_FONT_TITLE);
+    h->value_w = MAX(ui_text_width(title, h->since),
+                     ui_text_width(title, h->level));
+}
+
+/* where the header's text starts (its left edge) */
+static int header_left(const struct header *h)
+{
+    const int body = ui_font(UI_FONT_BODY);
+    int lw = MAX(ui_text_width(body, str(LANG_NEWUI_SINCE_CHARGE)),
+                 ui_text_width(body, str(LANG_NEWUI_BATTERY_LEVEL)));
+    return LCD_WIDTH - UI_MARGIN - h->value_w - 8 - lw - 4;
+}
+
+static void draw_header(const struct header *h)
+{
+    header_row(HDR_Y, h->value_w, str(LANG_NEWUI_SINCE_CHARGE), h->since);
+    header_row(HDR_Y + HDR_ROW_H, h->value_w, str(LANG_NEWUI_BATTERY_LEVEL),
+               h->level);
+}
+
 static void draw(struct viewport *vp)
 {
     struct viewport *last = lcd_set_viewport(vp);
     const int small = ui_font(UI_FONT_SMALL), row = ui_font(UI_FONT_ROW);
-    const int title = ui_font(UI_FONT_TITLE);
     const unsigned acc = ui_accent(), bg = UI_COL_BG;
+    const int pw = CH_X1 - CH_X0;
     char buf[48];
+    struct header h;
 
     ui_status_title(str(LANG_NEWUI_BATTERY_USAGE));
     ui_fill_rect(0, 0, vp->width, vp->height, bg);
+    header_text(&h);
 
-    /* now: the level, and how long since the last charge */
-    int pct = battery_level();
-    update_runtime();
-    int mins = global_status.runtime / 60;
-    snprintf(buf, sizeof(buf), "%d%%", MAX(pct, 0));
-    ui_text(UI_MARGIN, 8, title, UI_COL_TEXT, buf, 0, -1);
-    if (mins >= 60)
-        snprintf(buf, sizeof(buf), "%dh%02dm since charge", mins / 60,
-                 mins % 60);
-    else
-        snprintf(buf, sizeof(buf), "%dm since charge", mins);
-    ui_text_vcenter(UI_MARGIN, 8, font_get(title)->height, row, UI_COL_TEXT2,
-                    buf, vp->width - 2 * UI_MARGIN, 1);
+    /* x axis: whole hours, at a step that leaves at most five labels; the
+       axis ends on a label, so the curve may stop short of it */
+    static const unsigned char steps[] = { 1, 2, 3, 4, 6, 12, 24, 48 };
+    int h0 = 0, step = 1, ticks = 1, m0 = 0, m1 = 60;
+    if (npts)
+    {
+        h0 = pts[0].min / 60;
+        int span = MAX((pts[npts - 1].min + 59) / 60 - h0, 1);
+        step = steps[sizeof(steps) - 1];
+        for (unsigned i = 0; i < sizeof(steps); i++)
+            if (span <= 4 * steps[i])
+            {
+                step = steps[i];
+                break;
+            }
+        ticks = (span + step - 1) / step;
+        m0 = h0 * 60;
+        m1 = (h0 + ticks * step) * 60;
+    }
+#define X_OF(m) (CH_X0 + (int)((long)((m) - m0) * pw / (m1 - m0)))
+#define M256_OF(x) ((int)(((long)((x) - CH_X0) * (m1 - m0) * 256) / pw) + m0 * 256)
+
+    /* The chart takes the whole screen, the header over its top right,
+       where a falling curve has gone below it. Early in a discharge the
+       curve is still up there: then the chart starts under the header. */
+    int top = CH_Y0;
+    if (npts)
+    {
+        const int hb = HDR_Y + 2 * HDR_ROW_H, ph = CH_Y1 - top;
+        for (int x = MAX(header_left(&h), X_OF(pts[0].min));
+             x <= X_OF(pts[npts - 1].min); x += 2)
+            if (CH_Y1 - (int)((long)level_at(M256_OF(x)) * ph / 25600) - 4 < hb)
+            {
+                top = hb + 10;
+                break;
+            }
+    }
+    const int ph = CH_Y1 - top;
 
     /* grid: dashed lines at 0, 25, 50, 75, 100% */
-    const int ph = CH_Y1 - CH_Y0, pw = CH_X1 - CH_X0;
     for (int g = 0; g <= 4; g++)
     {
         int y = CH_Y1 - ph * g / 4;
@@ -227,62 +307,55 @@ static void draw(struct viewport *vp)
     }
 
     if (npts == 0)
-    {
-        ui_text_vcenter(CH_X0, CH_Y0, ph, row, UI_COL_TEXT2,
+        ui_text_vcenter(CH_X0, top, ph, row, UI_COL_TEXT2,
                         str(LANG_NEWUI_BATTERY_NO_DATA), pw, 0);
-        lcd_update_viewport();
-        lcd_set_viewport(last);
-        return;
-    }
+    else
+    {
+        for (int g = 0; g <= ticks; g++)
+        {
+            int x = CH_X0 + pw * g / ticks;
+            snprintf(buf, sizeof(buf), "%dh", h0 + g * step);
+            int w = ui_text_width(small, buf);
+            ui_text(g == 0 ? x : g == ticks ? x - w : x - w / 2, CH_Y1 + 6,
+                    small, UI_COL_MUTED, buf, 0, -1);
+        }
 
-    /* x axis: minutes, from the first point to the last (or now) */
-    int m0 = pts[0].min, m1 = MAX(pts[npts - 1].min, m0 + 10);
-    for (int g = 0; g <= 3; g++)
-    {
-        int m = m0 + (m1 - m0) * g / 3, x = CH_X0 + pw * g / 3;
-        snprintf(buf, sizeof(buf), g == 3 ? "%d min" : "%d", m);
-        int w = ui_text_width(small, buf);
-        ui_text(g == 0 ? x : g == 3 ? x - w : x - w / 2, CH_Y1 + 6, small,
-                UI_COL_MUTED, buf, 0, -1);
-    }
-
-    /* the curve: a gradient fill under it, then a 3 px line with smooth
-       edges */
-    int prev = -1;
-    int last_x = npts > 1 ? CH_X1 : CH_X0;
-    for (int x = CH_X0; x <= last_x; x++)
-    {
-        int m256 = npts > 1 ? (int)(((long)(x - CH_X0) * (m1 - m0) * 256) / pw) +
-                              m0 * 256 : pts[0].min * 256;
-        int y256 = CH_Y1 * 256 - (int)((long)level_at(m256) * ph / 100);
-        int yi = y256 >> 8;
-        for (int y = yi + 1; y < CH_Y1; y++)
+        /* the curve, from the first reading to the latest: a gradient fill
+           under it, then a 3 px line with smooth edges */
+        int prev = -1;
+        for (int x = X_OF(pts[0].min); x <= X_OF(pts[npts - 1].min); x++)
         {
-            int a = 120 - 100 * (y - yi) / MAX(CH_Y1 - yi, 1);
-            ui_fill_rect(x, y, 1, 1, mix(bg, acc, a));
+            int y256 = CH_Y1 * 256 - (int)((long)level_at(M256_OF(x)) * ph / 100);
+            int yi = y256 >> 8;
+            for (int y = yi + 1; y < CH_Y1; y++)
+            {
+                int a = 120 - 100 * (y - yi) / MAX(CH_Y1 - yi, 1);
+                ui_fill_rect(x, y, 1, 1, mix(bg, acc, a));
+            }
+            /* the line: from the last column's height to this one's, 3 px */
+            int t = y256 - 384, b = y256 + 384;
+            if (prev >= 0)
+            {
+                t = MIN(t, prev - 384);
+                b = MAX(b, prev + 384);
+            }
+            for (int y = t >> 8; y <= b >> 8; y++)
+            {
+                int p0 = MAX(y * 256, t), p1 = MIN(y * 256 + 256, b);
+                if (p1 > p0)
+                    ui_blend_pixel(x, y, acc, p1 - p0);
+            }
+            prev = y256;
         }
-        /* the line: from the last column's height to this one's, 3 px */
-        int top = y256 - 384, bot = y256 + 384;
-        if (prev >= 0)
-        {
-            top = MIN(top, prev - 384);
-            bot = MAX(bot, prev + 384);
-        }
-        for (int y = top >> 8; y <= bot >> 8; y++)
-        {
-            int p0 = MAX(y * 256, top), p1 = MIN(y * 256 + 256, bot);
-            if (p1 > p0)
-                ui_blend_pixel(x, y, acc, p1 - p0);
-        }
-        prev = y256;
-    }
-    /* a dot on the latest point */
-    {
-        int x = npts > 1 ? CH_X1 : CH_X0;
+        /* a dot on the latest point */
+        int x = X_OF(pts[npts - 1].min);
         int y = CH_Y1 - ph * pts[npts - 1].pct / 100;
         ui_fill_round_rect(x - 4, y - 4, 9, 9, 4, acc);
         ui_fill_round_rect(x - 2, y - 2, 5, 5, 2, bg);
     }
+#undef X_OF
+#undef M256_OF
+    draw_header(&h);
     lcd_update_viewport();
     lcd_set_viewport(last);
 }

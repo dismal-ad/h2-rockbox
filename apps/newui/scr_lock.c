@@ -50,15 +50,24 @@
 #define LOCK_ART    96
 #define DOUBLE_TAP  (HZ / 2)
 
+/* the clock and date, then the playing track's cover, title and artist,
+   centred together in the room above the unlock hint */
+#define LOCK_GAP    18              /* between the date and the track */
+
 static void draw(struct viewport *vp)
 {
     struct viewport *last = lcd_set_viewport(vp);
     const int big = ui_font(UI_FONT_BIG), body = ui_font(UI_FONT_BODY);
-    const int small = ui_font(UI_FONT_SMALL);
+    const int small = ui_font(UI_FONT_SMALL), row = ui_font(UI_FONT_ROW);
+    const int big_h = font_get(big)->height, body_h = font_get(body)->height;
     char buf[64];
-    int y = 4;
 
     ui_fill_rect(0, 0, vp->width, vp->height, UI_COL_BG);
+
+    const int hint_y = vp->height - font_get(small)->height - 4;
+    struct mp3entry *id3 = audio_status() ? audio_current_track() : NULL;
+    int content_h = big_h + body_h + (id3 ? LOCK_GAP + LOCK_ART : 0);
+    int y = MAX((hint_y - content_h) / 2, 4);
 
     struct tm *tm = get_time();
     int hour = tm->tm_hour;
@@ -71,18 +80,17 @@ static void draw(struct viewport *vp)
     snprintf(buf, sizeof(buf), global_settings.timeformat ? "%d:%02d" : "%02d:%02d",
              hour, tm->tm_min);
     ui_text(0, y, big, UI_COL_TEXT, buf, vp->width, 0);
-    y += font_get(big)->height;
+    y += big_h;
     snprintf(buf, sizeof(buf), "%s %d %s", str(LANG_WEEKDAY_SUNDAY + tm->tm_wday),
              tm->tm_mday, str(LANG_MONTH_JANUARY + tm->tm_mon));
     ui_text(0, y, body, UI_COL_TEXT2, buf, vp->width, 0);
+    y += body_h + LOCK_GAP;
 
     /* the playing track */
-    struct mp3entry *id3 = audio_status() ? audio_current_track() : NULL;
     if (id3)
     {
-        const int ay = 92, tx = UI_MARGIN + LOCK_ART + UI_MARGIN;
+        const int ay = y, tx = UI_MARGIN + LOCK_ART + UI_MARGIN;
         const int tw = vp->width - tx - UI_MARGIN;
-        const int row = ui_font(UI_FONT_ROW);
         const struct bitmap *art = ui_art_current(LOCK_ART);
         if (art)
             ui_art_draw(art, UI_MARGIN, ay, LOCK_ART, 8);
@@ -92,7 +100,7 @@ static void draw(struct viewport *vp)
         const char *artist = id3->artist && *id3->artist ? id3->artist :
                              id3->albumartist && *id3->albumartist ? id3->albumartist : NULL;
         int ty = ay + (LOCK_ART - font_get(row)->height -
-                       (artist ? font_get(body)->height : 0)) / 2;
+                       (artist ? body_h : 0)) / 2;
         if (title)
             ui_text(tx, ty, row, UI_COL_TEXT, title, tw, -1);
         if (artist)
@@ -100,8 +108,7 @@ static void draw(struct viewport *vp)
                     artist, tw, -1);
     }
 
-    ui_text(UI_MARGIN, vp->height - font_get(small)->height - 4, small,
-            UI_COL_MUTED, str(LANG_NEWUI_UNLOCK_HINT),
+    ui_text(UI_MARGIN, hint_y, small, UI_COL_MUTED, str(LANG_NEWUI_UNLOCK_HINT),
             vp->width - 2 * UI_MARGIN, 0);
     lcd_update_viewport();
     lcd_set_viewport(last);

@@ -60,14 +60,14 @@
  * turned cover with a reflection, a thick bar with the times beside it */
 #define NPL_ART_X      18
 #define NPL_ART_Y      22      /* below the status bar */
-#define NPL_ART_W      123     /* on screen, turned */
-#define NPL_ART_HL     114     /* left edge, nearer */
-#define NPL_ART_HR     104     /* right edge, further */
-#define NPL_REFL_H     36
+#define NPL_ART_W      112     /* on screen, turned */
+#define NPL_ART_HL     132     /* left edge, nearer */
+#define NPL_ART_HR     120     /* right edge, further */
+#define NPL_REFL_H     20
 #define NPL_BAND_Y     178
 #define NPL_BOTTOM     18      /* below the bar's outline */
 #define NPL_TEXT_GAP   10      /* between the cover and the text */
-#define NPL_TEXT_Y     30      /* the title, below the cover's top */
+#define NPL_TEXT_Y     36      /* the title, below the cover's top */
 /* the bar's centre line, NPL_BOTTOM above the screen's bottom */
 #define NPL_BAR_YC(vp) ((vp)->height - NPL_BOTTOM - 1 - NPL_BAR_H / 2)
 #define NPL_BAR_H      14

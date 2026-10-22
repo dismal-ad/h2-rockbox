@@ -229,7 +229,7 @@ int ui_home(int *selected)
 
     viewport_set_defaults(&vp, SCREEN_MAIN);
     ui_status_width(HOME_MENU_W);
-    ui_status_title(str(LANG_ROCKBOX_TITLE));
+    ui_status_title(str(LANG_NEWUI_HOME_TITLE));
 
     while (true)
     {
@@ -285,7 +285,7 @@ int ui_home(int *selected)
                     }
                     ui_transition(-1);
                     ui_status_width(HOME_MENU_W);
-                    ui_status_title(str(LANG_ROCKBOX_TITLE));
+                    ui_status_title(str(LANG_NEWUI_HOME_TITLE));
                     redraw = true;
                     break;
                 }
@@ -299,7 +299,7 @@ int ui_home(int *selected)
                     }
                     ui_transition(-1);
                     ui_status_width(HOME_MENU_W);
-                    ui_status_title(str(LANG_ROCKBOX_TITLE));
+                    ui_status_title(str(LANG_NEWUI_HOME_TITLE));
                     redraw = true;
                     break;
                 }

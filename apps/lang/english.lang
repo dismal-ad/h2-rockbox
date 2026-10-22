@@ -17781,6 +17781,20 @@
   </voice>
 </phrase>
 <phrase>
+  id: LANG_NEWUI_HOME_TITLE
+  desc: new UI: Home's title in the status bar, the player's name
+  user: core
+  <source>
+    *: "H2"
+  </source>
+  <dest>
+    *: "H2"
+  </dest>
+  <voice>
+    *: "H2"
+  </voice>
+</phrase>
+<phrase>
   id: LANG_NEWUI_BATTERY_USAGE
   desc: new UI: Battery Usage screen title, battery level against running time
   user: core

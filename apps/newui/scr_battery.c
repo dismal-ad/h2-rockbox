@@ -57,7 +57,7 @@ struct point {
     int min;                        /* running minutes since the last charge */
     int pct;
 };
-static struct point pts[LOG_POINTS];
+static struct point pts[LOG_POINTS + 1];   /* + now, while drawing */
 static int npts;
 static long next_check;
 
@@ -256,6 +256,18 @@ static void draw(struct viewport *vp)
     ui_fill_rect(0, 0, vp->width, vp->height, bg);
     header_text(&h);
 
+    /* the curve runs on to now: the level at the running time the header
+       shows, not the last 5% step, which may be an hour ago */
+    const int logged = npts;
+    int now_pct = battery_level(), now_min = global_status.runtime / 60;
+    if (npts && now_pct >= 0 && !charger_inserted() &&
+        now_min > pts[npts - 1].min)
+    {
+        pts[npts].min = now_min;
+        pts[npts].pct = now_pct;
+        npts++;
+    }
+
     /* x axis: whole hours, at a step that leaves at most five labels; the
        axis ends on a label, so the curve may stop short of it */
     static const unsigned char steps[] = { 1, 2, 3, 4, 6, 12, 24, 48 };
@@ -355,6 +367,7 @@ static void draw(struct viewport *vp)
     }
 #undef X_OF
 #undef M256_OF
+    npts = logged;
     draw_header(&h);
     lcd_update_viewport();
     lcd_set_viewport(last);

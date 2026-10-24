@@ -5,60 +5,67 @@
      Firmware   |____|_  /\____/ \___  >__|_ \|___  /\____/__/\_ \
                        \/            \/     \/    \/            \/
 
-Build Your Own Rockbox
+Build Rockbox for the HiFi Walker H2
 
-1. Clone 'rockbox' from git (or extract a downloaded archive).
+This tree builds for one player only: the HiFi Walker H2 / AIGO Eros Q native
+(target 'erosqnative'). It cannot build bootloaders; the player needs the
+official Rockbox bootloader.
 
-   $ git clone git://git.rockbox.org/rockbox
+1. Install the tools needed to build (Ubuntu/Debian; package names differ on
+   other systems). libsdl2-dev is only needed for the simulator.
 
-     or
+   $ sudo apt install build-essential git perl zip unzip wget flex bison \
+         texinfo libsdl2-dev
 
-   $ tar xJf rockbox.tar.xz
+2. Download the code.
 
-2. Create a build directory, preferably in the same directory as the firmware/
-   and apps/ directories. This is where all generated files will be written.
+   $ git clone https://github.com/dismal-ad/h2-rockbox.git
+   $ cd h2-rockbox
 
-   $ cd rockbox
+3. Build the MIPS cross-compiler (mipsel-elf-gcc). This is needed once and
+   takes a while. RBDEV_TARGET=i selects MIPS; RBDEV_PREFIX is where it is
+   installed.
+
+   $ RBDEV_PREFIX=$HOME/rockbox-toolchain RBDEV_TARGET=i tools/rockboxdev.sh
+
+   Then put it in the PATH (add this line to ~/.bashrc to keep it):
+
+   $ export PATH=$HOME/rockbox-toolchain/bin:$PATH
+   $ which mipsel-elf-gcc
+
+4. Create a build directory and configure it for the player. All generated
+   files are written there.
+
    $ mkdir build
    $ cd build
+   $ ../tools/configure --target=erosqnative --type=n
 
-3. Make sure you have mips/m68k/arm-elf-gcc and siblings in the PATH. Make sure
-   that you have 'perl' in your PATH too. Your gcc cross compiler needs to be
-   a particular version depending on what player you are compiling for. These
-   can be generated using the rockboxdev.sh script in the /tools/ folder of the
-   source.
+5. Build the firmware and pack it.
 
-   $ which arm-elf-eabi-gcc
-   $ which perl
-
-4. In your build directory, run the 'tools/configure' script and enter what
-   target you want to build for and if you want a debug version or not (and a
-   few more questions). It'll prompt you. The debug version is for making a
-   gdb version out of it. It is only useful if you run gdb towards your target
-   Archos.
-
-   $ ../tools/configure
-
-5. *ploink*. Now you have got a Makefile generated for you.
-
-6. Run 'make' and soon the necessary pieces from the firmware and the apps
-   directories have been compiled, linked and scrambled for you.
-
-   $ make
+   $ make -j$(nproc)
    $ make zip
 
-7. unzip the rockbox.zip on your music player, reboot it and
-   *smile*.
+6. Unzip rockbox.zip to the root of the SD card (it contains the .rockbox
+   folder), eject the card, reboot the player and *smile*. To update an
+   existing install and keep your settings, unzip over it:
 
-If you want to build for more than one target, just create several build
-directories and create a setup for each target:
+   $ unzip -o rockbox.zip -d /path/to/sdcard
 
-   $ mkdir build-fuzeplus
-   $ cd build-fuzeplus
-   $ ../tools/configure
+Simulator
 
-   $ mkdir build-xduoox3
-   $ cd build-xduoox3
-   $ ../tools/configure
+The simulator runs Rockbox in a window on the PC, with the same screens. It
+needs libsdl2-dev but not the cross-compiler. Its SD card is the simdisk/
+folder in the build directory: copy music there to test with.
 
-Questions anyone? Ask on the mailing list or on IRC. We'll be happy to help you!
+   $ mkdir build-sim
+   $ cd build-sim
+   $ ../tools/configure --target=erosqnative --type=s
+   $ make -j$(nproc)
+   $ make install
+   $ ./rockboxui
+
+Keys: arrows = scroll wheel / previous / next, Enter = select (Centre),
+Backspace = back, Insert = menu, PgUp/PgDn = volume, Esc = power.
+
+Other build types: --type=a (advanced: logf, debug, ...) and --type=w (the
+warble codec test tool). Use one build directory per build type.

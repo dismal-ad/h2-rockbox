@@ -85,8 +85,8 @@ the gain, then step 4, and CPU scaling (step 3) last.
 
 | Step | Status | Notes |
 |---|---|---|
-| 1. No rendering with the screen off | Done (`91e038a054`) | Home slideshow and Cover Flow's cover building pause; Now Playing polls once a second. Simulator, 46 s on Home with the screen off: 2.47 -> 0.92 s CPU |
-| 2. LCD waits sleep | Done (`3a2360cefd`) | End-of-frame and copy-done interrupts instead of polling. CPU idle stats always built in (View HW info > CPU idle, with an average since Select). H2, 10 min browsing while playing over Bluetooth: 90% idle |
+| 1. No rendering with the screen off | Done (`151121a5b1`) | Home slideshow and Cover Flow's cover building pause; Now Playing polls once a second. Simulator, 46 s on Home with the screen off: 2.47 -> 0.92 s CPU |
+| 2. LCD waits sleep | Done (`b5000bac17`) | End-of-frame and copy-done interrupts instead of polling. CPU idle stats always built in (View HW info > CPU idle, with an average since Select). H2, 10 min browsing while playing over Bluetooth: 90% idle |
 | 3. CPU frequency scaling | To do | The CPU is ~10% busy at 1008 MHz while playing over Bluetooth: the largest remaining gain |
 | 4. SD controller idle | Skipped | The controller already runs in its low-power mode (`MSC_LPM`), which stops the card clock between transfers. Gating its own clock would save ~1 mW at the risk of the card if registers aren't kept; bigger reads save ~6% of command overhead on a card that is woken only every few minutes |
 | 5. Larger audio buffer | Skipped | Same reasoning: refills are already rare |

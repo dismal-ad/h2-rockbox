@@ -27,6 +27,8 @@
  *   hold <button> <ms>      press, hold, release
  *   wheel fwd|back [n]      n scroll wheel ticks, 40 ms apart
  *   usb in|out              plug or unplug USB
+ *   headset <key>           a headset key, as Bluetooth headphones send:
+ *                           playpause stop next prev
  *   shot <name>             write the screen to $RB_SHOTDIR/<name>.png
  *   quit                    exit the simulator
  *
@@ -73,6 +75,15 @@ static const struct { const char *name; int button; } buttons[] = {
     { "volup",   BUTTON_VOL_UP },
     { "voldown", BUTTON_VOL_DOWN },
 };
+
+#ifdef HAVE_MULTIMEDIA_KEYS
+static const struct { const char *name; int button; } headset_keys[] = {
+    { "playpause", BUTTON_MULTIMEDIA_PLAYPAUSE },
+    { "stop",      BUTTON_MULTIMEDIA_STOP },
+    { "next",      BUTTON_MULTIMEDIA_NEXT },
+    { "prev",      BUTTON_MULTIMEDIA_PREV },
+};
+#endif
 
 static void wait_ms(long ms)
 {
@@ -254,6 +265,19 @@ static void script_thread(void)
         {
             sim_trigger_usb(!strcmp(arg, "in"));
         }
+#ifdef HAVE_MULTIMEDIA_KEYS
+        else if (!strcmp(cmd, "headset") && fields >= 2)
+        {
+            size_t i = 0;
+            while (i < sizeof(headset_keys) / sizeof(headset_keys[0]) &&
+                   strcmp(headset_keys[i].name, arg))
+                i++;
+            if (i < sizeof(headset_keys) / sizeof(headset_keys[0]))
+                button_queue_post(headset_keys[i].button, 0);
+            else
+                printf("script:%ld: unknown headset key '%s'\n", lineno, arg);
+        }
+#endif
         else if (!strcmp(cmd, "shot") && fields >= 2)
         {
             char path[512];

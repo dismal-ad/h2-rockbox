@@ -42,6 +42,7 @@
 #include "language.h"
 #include "lcd.h"
 #include "metadata.h"
+#include "misc.h"
 #include "settings.h"
 #include "timefuncs.h"
 #include "viewport.h"
@@ -176,6 +177,8 @@ int ui_lock_screen(void)
 
         if (IS_SYSEVENT(button))
             return leave(button);
+        if (button & BUTTON_MULTIMEDIA) /* headphone keys work while locked */
+            default_event_handler(button);
         if (button == (BUTTON_POWER | BUTTON_REL))
             return leave(0);
         if (button == (BUTTON_PLAY | BUTTON_REL))

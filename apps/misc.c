@@ -726,6 +726,49 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
             bluetooth_remote_volume_changed();
             return SYS_BLUETOOTH_VOLUME;
 #endif
+#ifdef HAVE_MULTIMEDIA_KEYS
+        /* multimedia keys on keyboards, headsets */
+        case BUTTON_MULTIMEDIA_PLAYPAUSE:
+        {
+            int status = audio_status();
+            if (status & AUDIO_STATUS_PLAY)
+            {
+                if (status & AUDIO_STATUS_PAUSE)
+                    unpause_action(true);
+                else
+                    pause_action(true);
+            }
+            else
+                if (playlist_resume() != -1)
+                {
+                    playlist_start(global_status.resume_index,
+                                   global_status.resume_elapsed,
+                                   global_status.resume_offset);
+                }
+            return event;
+        }
+        case BUTTON_MULTIMEDIA_NEXT:
+            audio_next();
+            return event;
+        case BUTTON_MULTIMEDIA_PREV:
+            audio_prev();
+            return event;
+        case BUTTON_MULTIMEDIA_STOP:
+            list_stop_handler();
+            return event;
+        case BUTTON_MULTIMEDIA_VOLUME_UP:
+        case BUTTON_MULTIMEDIA_VOLUME_UP|BUTTON_REPEAT:
+            adjust_volume(1);
+            return event;
+        case BUTTON_MULTIMEDIA_VOLUME_DOWN:
+        case BUTTON_MULTIMEDIA_VOLUME_DOWN|BUTTON_REPEAT:
+            adjust_volume(-1);
+            return event;
+        case BUTTON_MULTIMEDIA_REW:
+        case BUTTON_MULTIMEDIA_FFWD:
+            /* not supported yet, needs to be done in the WPS */
+            return 0;
+#endif
     }
     return 0;
 }

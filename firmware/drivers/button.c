@@ -46,6 +46,7 @@ static long last_read; /* Last button status, for debouncing/filtering */
 static bool flipped;  /* buttons can be flipped to match the LCD flip */
 
 static bool (*keypress_filter_fn)(int, int);
+static bool press_woke;  /* the last press found the backlight off */
 
 static bool enable_sw_poweroff = true;
 
@@ -258,6 +259,7 @@ static void button_tick(void)
                 else
                 {
                     {
+                        press_woke = !is_backlight_on(false);
                         skip_release = keypress_filter_fn(btn, data);
                         backlight_on();
                         buttonlight_on();
@@ -325,6 +327,14 @@ static int button_read(int *data)
     last_read = btn;
 
     return retval;
+}
+
+/* true if the last press found the backlight off (or fading out): that
+   press only woke the display. Checked on release, by when the press has
+   turned the backlight on. */
+bool button_press_woke(void)
+{
+    return press_woke;
 }
 
 int button_status(void)

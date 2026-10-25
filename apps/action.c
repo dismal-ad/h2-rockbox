@@ -691,8 +691,10 @@ static inline void do_softlock(action_last_t *last, action_cur_t *cur)
          || (last->keys_locked && last->unlock_combo == cur->button))
     {
         /* if backlight is off and keys are unlocked, do nothing and exit.
-           The backlight should come on without locking keypad. */
-        if ((!last->keys_locked) && (!is_backlight_on(false)))
+           The backlight should come on without locking keypad. The press
+           has turned it on by the release: ask whether it found it off. */
+        if ((!last->keys_locked) &&
+            (!is_backlight_on(false) || button_press_woke()))
         {
             return;
         }

@@ -42,6 +42,7 @@ void button_init (void) INIT_ATTR;
 void button_close(void);
 
 int button_status(void);
+bool button_press_woke(void);
 
 void button_set_flip(bool flip); /* turn 180 degrees */
 void set_backlight_filter_keypress(bool value);

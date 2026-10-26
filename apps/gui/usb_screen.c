@@ -147,6 +147,8 @@ void gui_usb_screen_run(bool early_usb, intptr_t seqnum)
 #endif
 
     struct viewport vp;
+    /* Home narrows the status bar; this screen has it whole */
+    int bar_w = ui_status_get_width();
 
     push_current_activity(ACTIVITY_USBSCREEN);
 
@@ -161,6 +163,7 @@ void gui_usb_screen_run(bool early_usb, intptr_t seqnum)
     lcd_set_viewport(NULL);
     lcd_scroll_stop();
     viewportmanager_theme_enable(SCREEN_MAIN, true, &vp);
+    ui_status_width(0);
     cache_strings();
     screens[SCREEN_MAIN].backlight_on();
 
@@ -191,6 +194,7 @@ void gui_usb_screen_run(bool early_usb, intptr_t seqnum)
     }
 
     screens[SCREEN_MAIN].backlight_on();
+    ui_status_width(bar_w);
     viewportmanager_theme_undo(SCREEN_MAIN, false);
 
     pop_current_activity();

@@ -20,8 +20,9 @@
 
 /* Colours: the play icon and the Bluetooth icon (while Bluetooth is on)
  * in the accent colour, everything else in the theme's soft black or soft
- * white (UI_COL_STATUS); the battery's fill red when low, green while the
- * battery is taking charge (not merely while a charger is connected). */
+ * white (UI_COL_STATUS). The battery is the iPod's glass tube: a glossy
+ * green fill, red when low, with a bolt while the battery is taking charge
+ * (not merely while a charger is connected). */
 
 /* The status bar (PLAN.md §4.1): play state on the left, clock in the
  * centre, Bluetooth and battery on the right. Drawn into the current
@@ -41,11 +42,18 @@
 #define ICON_YC     11
 #define GLYPH_H     13
 #define GLYPH_Y     (ICON_YC - GLYPH_H / 2)
-#define BATT_W      26
+#define BATT_W      27
 #define BATT_H      13
 
-#define COL_LOW      LCD_RGBPACK(0xff, 0x45, 0x3a)
-#define COL_CHARGING LCD_RGBPACK(0x30, 0xd1, 0x58)
+/* the fill's gloss: a light upper half over a deeper lower half */
+static const unsigned batt_green[4] = {
+    LCD_RGBPACK(0xd2, 0xf7, 0xb0), LCD_RGBPACK(0x78, 0xd8, 0x48),
+    LCD_RGBPACK(0x52, 0xbe, 0x2c), LCD_RGBPACK(0x2e, 0x8e, 0x1a),
+};
+static const unsigned batt_red[4] = {
+    LCD_RGBPACK(0xff, 0xc4, 0xb8), LCD_RGBPACK(0xf4, 0x62, 0x4c),
+    LCD_RGBPACK(0xdc, 0x3c, 0x2a), LCD_RGBPACK(0xa6, 0x22, 0x16),
+};
 
 static char status_title[48];
 static int status_width;
@@ -133,24 +141,55 @@ static void draw_bluetooth(int x, unsigned c)
     }
 }
 
+/* the charging bolt, 7 x 9, white with a dark edge */
+static void draw_bolt(int cx, int cy)
+{
+    static const char *const bolt[] = {
+        "....##.", "...##..", "..##...", ".######", "######.",
+        "...##..", "..##...", ".##....", ".#.....",
+    };
+    for (int pass = 0; pass < 2; pass++)
+        for (int r = 0; r < 9; r++)
+            for (int c = 0; c < 7; c++)
+            {
+                if (bolt[r][c] != '#')
+                    continue;
+                int px = cx - 3 + c, py = cy - 4 + r;
+                if (pass == 0)  /* the edge: around each pixel */
+                {
+                    for (int d = 0; d < 4; d++)
+                        ui_blend_pixel(px + (d == 0) - (d == 1),
+                                       py + (d == 2) - (d == 3),
+                                       LCD_RGBPACK(0x20, 0x40, 0x10), 140);
+                }
+                else
+                    ui_blend_pixel(px, py, LCD_RGBPACK(0xff, 0xff, 0xff), 256);
+            }
+}
+
 static void draw_battery(int x, int percent, bool charging)
 {
-    unsigned c = UI_COL_STATUS, fill = UI_COL_STATUS;
-    if (charging)
-        fill = COL_CHARGING;
-    else if (percent >= 0 && percent <= 15)
-        fill = COL_LOW;
-
+    const unsigned *fill = percent >= 0 && percent <= 15 && !charging ?
+                           batt_red : batt_green;
     int y = ICON_YC - BATT_H / 2;
-    ui_stroke_round_rect(x, y, BATT_W, BATT_H, 3, 2, c);
-    ui_fill_round_rect(x + BATT_W, y + 4, 3, BATT_H - 8, 1, c);
+
+    /* the shell: a grey rim, the empty tube shaded like glass, the nub */
+    ui_fill_round_rect(x, y, BATT_W, BATT_H, 3, UI_COL_EDGE);
+    ui_gradient_round_rect(x + 1, y + 1, BATT_W - 2, BATT_H - 2, 2,
+                           ui_col(UI_C_TRACK_TOP), ui_col(UI_C_TRACK_BOTTOM));
+    ui_gradient_round_rect(x + BATT_W, y + 3, 3, BATT_H - 6, 1,
+                           ui_col(UI_C_TRACK_TOP), UI_COL_EDGE);
     if (percent < 0)
         return;
-    int inner = BATT_W - 6;
+
+    int inner = BATT_W - 4, h = BATT_H - 4, top = h / 2;
     int w = (inner * (percent > 100 ? 100 : percent) + 50) / 100;
-    if (w < 1)
-        w = 1;
-    ui_fill_rect(x + 3, y + 3, w, BATT_H - 6, fill);
+    if (w < 2)
+        w = 2;
+    ui_gradient_round_rect(x + 2, y + 2, w, top, 1, fill[0], fill[1]);
+    ui_gradient_round_rect(x + 2, y + 2 + top, w, h - top, 1, fill[2], fill[3]);
+    if (charging)
+        draw_bolt(x + BATT_W / 2, ICON_YC);
 }
 
 void ui_status_draw(const struct ui_status *st)

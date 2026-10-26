@@ -329,10 +329,10 @@ sub buildzip {
         }
     }
 
-    # the new UI's fonts (Nimbus Sans, URW, AGPL-3 with font exception) are always installed
+    # the new UI's fonts (Noto Sans CJK, SIL Open Font License) are always installed
     glob_mkdir("$temp_dir/fonts");
     glob_copy("$ROOT/fonts/newui/*.fnt", "$temp_dir/fonts/");
-    copy("$ROOT/fonts/newui/LICENSE-NimbusSans.txt", "$temp_dir/fonts/LICENSE-NimbusSans.txt");
+    copy("$ROOT/fonts/newui/LICENSE-NotoSansCJK.txt", "$temp_dir/fonts/LICENSE-NotoSansCJK.txt");
 
     # create the file so the database indexer skips this folder
     open(IGNORE, ">$temp_dir/database.ignore")  || die "can't open database.ignore";

@@ -24,7 +24,9 @@
 #include "settings.h"
 #include "ui.h"
 
-/* Nimbus Sans (a free Helvetica clone), installed by buildzip from fonts/newui */
+/* Noto Sans CJK JP (Latin, Greek, Cyrillic, Chinese, Japanese, Korean),
+ * installed by buildzip from fonts/newui. The files are several MB: glyphs
+ * load from the card on demand into each font's cache. */
 static const char * const font_files[UI_FONT_COUNT] = {
     [UI_FONT_SMALL] = FONT_DIR "/newui-14.fnt",
     [UI_FONT_BODY]  = FONT_DIR "/newui-18.fnt",

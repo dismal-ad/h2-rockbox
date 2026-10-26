@@ -88,6 +88,10 @@ static int eid = DEFAULT_ENCODING_ID;
  * A flag indicating if a CMap was found or not.
  */
 static FT_UShort nocmap;
+/* characters left out of the font (-e), e.g. very wide ones that would
+   make every glyph cache entry big */
+static long excluded[32];
+static int n_excluded;
 
 int pct                     = 0; /* display ttc table if it is not zero. */
 FT_Long         max_char    = 0x10FFFF;
@@ -195,6 +199,7 @@ void usage(void)
         "    -s N   Start output at character encodings >= N (default is first glyph in font)\n"
         "    -l N   Limit output to character encodings <= N (default is last glyph in font)\n"
         "    -D N   Default character to use for those not present in font (default is first glyph)\n"
+        "    -e N   Leave character N out of the font (repeatable)\n"
         "    -p N   Font size N in pixel (default N=15)\n"
         "    -c N   Character separation in pixel.Insert space between lines.\n"
         "    -x     Trim glyphs horizontally of nearly empty space\n"
@@ -481,6 +486,9 @@ void print_ttc_table(char* path)
 FT_Long getcharindex(FT_Face face, FT_Long code)
 {
     FT_Long idx;
+    for (int i = 0; i < n_excluded; i++)
+        if (code == excluded[i])
+            return 0;
     if (nocmap) {
         if (code >= face->num_glyphs)
             idx = 0;
@@ -1150,6 +1158,20 @@ void getopts(int *pac, char ***pav)
                 dump_glyphs = 1;
                 while (*p && *p != ' ')
                     p++;
+                break;
+            case 'e':       /* leave a character out */
+                if (*p) {
+                    if (n_excluded < (int)(sizeof(excluded) / sizeof(excluded[0])))
+                        excluded[n_excluded++] = strtol(p, NULL, 0);
+                    while (*p && *p != ' ')
+                        p++;
+                }
+                else {
+                    av++; ac--;
+                    if (ac > 0 &&
+                        n_excluded < (int)(sizeof(excluded) / sizeof(excluded[0])))
+                        excluded[n_excluded++] = strtol(av[0], NULL, 0);
+                }
                 break;
             case 'D':       /* set default char*/
                 if (*p) {

@@ -108,6 +108,33 @@ void ui_fill_round_rect(int x, int y, int w, int h, int r, unsigned color)
         }
 }
 
+void ui_gradient_round_rect(int x, int y, int w, int h, int r, unsigned top,
+                            unsigned bottom)
+{
+    if (w <= 0 || h <= 0)
+        return;
+    if (r > w / 2) r = w / 2;
+    if (r > h / 2) r = h / 2;
+
+    for (int i = 0; i < h; i++)
+    {
+        unsigned color = blend565(top, bottom, h > 1 ? i * 256 / (h - 1) : 0);
+        int cy = i < r ? i : i >= h - r ? h - 1 - i : -1;
+        if (cy < 0)
+        {
+            ui_fill_rect(x, y + i, w, 1, color);
+            continue;
+        }
+        ui_fill_rect(x + r, y + i, w - 2 * r, 1, color);
+        for (int cx = 0; cx < r; cx++)
+        {
+            int a = corner_coverage(cx, cy, r, r);
+            ui_blend_pixel(x + cx,         y + i, color, a);
+            ui_blend_pixel(x + w - 1 - cx, y + i, color, a);
+        }
+    }
+}
+
 /* Outline of a rounded rectangle, 'stroke' pixels wide */
 void ui_stroke_round_rect(int x, int y, int w, int h, int r, int stroke,
                           unsigned color)

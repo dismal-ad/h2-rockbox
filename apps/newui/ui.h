@@ -41,7 +41,8 @@ enum ui_col {
     UI_C_TRACK, UI_C_PANEL, UI_C_ARTIST, UI_C_ALBUM, UI_C_FILL,
     UI_C_BAR_TOP, UI_C_BAR_BOTTOM, UI_C_BAR_LINE, UI_C_PH_BG, UI_C_PH_FG,
     UI_C_TRACK_TOP, UI_C_TRACK_BOTTOM, UI_C_OUTLINE, UI_C_EDGE,
-    UI_C_ON_ACCENT, UI_C_ON_ACCENT2, UI_C_STATUS_FG, UI_C_COUNT
+    UI_C_ON_ACCENT, UI_C_ON_ACCENT2, UI_C_STATUS_FG,
+    UI_C_LETTER_TOP, UI_C_LETTER_BOTTOM, UI_C_LETTER_FG, UI_C_COUNT
 };
 unsigned ui_col(enum ui_col c);
 #define UI_COL_BG       ui_col(UI_C_BG)
@@ -113,6 +114,9 @@ int ui_resolve_font(int font);
 void ui_blend_pixel(int x, int y, unsigned color, int alpha); /* alpha 0..256 */
 void ui_fill_rect(int x, int y, int w, int h, unsigned color);
 void ui_fill_round_rect(int x, int y, int w, int h, int r, unsigned color);
+/* filled with a vertical gradient from top to bottom */
+void ui_gradient_round_rect(int x, int y, int w, int h, int r, unsigned top,
+                            unsigned bottom);
 void ui_stroke_round_rect(int x, int y, int w, int h, int r, int stroke,
                           unsigned color);
 void ui_fill_triangle_right(int x, int y, int w, int h, unsigned color);

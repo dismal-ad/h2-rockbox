@@ -53,6 +53,9 @@ static const unsigned themes[2][UI_C_COUNT] = {
         [UI_C_STATUS_FG] = RGB(0xe4, 0xe4, 0xe6),   /* soft white */
         [UI_C_ON_ACCENT] = RGB(0xff, 0xff, 0xff), [UI_C_ON_ACCENT2] = RGB(0xe8, 0xee, 0xf8),
         [UI_C_PH_BG] = RGB(0x1c, 0x1c, 0x1c),    [UI_C_PH_FG] = RGB(0x8c, 0x8c, 0x8c),
+        /* the fast-scroll letter: light grey on black */
+        [UI_C_LETTER_TOP] = RGB(0xe8, 0xe8, 0xea), [UI_C_LETTER_BOTTOM] = RGB(0xb8, 0xb8, 0xbc),
+        [UI_C_LETTER_FG] = RGB(0x14, 0x14, 0x14),
     },
     [1] = {     /* Light: white, dark text, a silver status bar */
         [UI_C_BG] = RGB(0xff, 0xff, 0xff),       [UI_C_TEXT] = RGB(0x14, 0x14, 0x14),
@@ -70,6 +73,9 @@ static const unsigned themes[2][UI_C_COUNT] = {
         [UI_C_ON_ACCENT] = RGB(0xff, 0xff, 0xff), [UI_C_ON_ACCENT2] = RGB(0xe8, 0xee, 0xf8),
         /* dark enough that a missing cover stands out on white */
         [UI_C_PH_BG] = RGB(0x5c, 0x5c, 0x62),    [UI_C_PH_FG] = RGB(0xd4, 0xd4, 0xd8),
+        /* the fast-scroll letter: dark grey on white, as on the iPod */
+        [UI_C_LETTER_TOP] = RGB(0x62, 0x62, 0x64), [UI_C_LETTER_BOTTOM] = RGB(0x3a, 0x3a, 0x3c),
+        [UI_C_LETTER_FG] = RGB(0xff, 0xff, 0xff),
     },
 };
 

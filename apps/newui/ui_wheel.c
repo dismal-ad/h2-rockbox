@@ -119,9 +119,11 @@ void ui_wheel_draw_letter(const char *title)
     /* the big font is ASCII only */
     int font = (unsigned char)letter[0] < 0x80 ? ui_font(UI_FONT_BIG)
                                                : ui_font(UI_FONT_TITLE);
-    const int size = 64;
+    /* the iPod's: a shaded box that stands out from the list */
+    const int size = 72;
     int x = (vp->width - size) / 2, y = (vp->height - size) / 2;
-    ui_fill_round_rect(x, y, size, size, 10, UI_COL_PANEL);
-    ui_text_vcenter(x, y, size, font, UI_COL_TEXT, letter, size, 0);
+    ui_gradient_round_rect(x, y, size, size, 6, ui_col(UI_C_LETTER_TOP),
+                           ui_col(UI_C_LETTER_BOTTOM));
+    ui_text_vcenter(x, y, size, font, ui_col(UI_C_LETTER_FG), letter, size, 0);
     letter_shown = true;
 }

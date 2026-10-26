@@ -85,31 +85,32 @@ static bool item_drills(enum themable_icons icon)
            icon == Icon_Folder;
 }
 
-/* A row with a cover on the left, the name and a grey second line */
+/* A row with a cover on the left, the name and a grey second line, as on
+ * the iPod: the cover is square and fills the row at the left edge, the
+ * selection starts after it, and a hairline runs under the text, so the
+ * covers down the left touch. Only the selected row shows its chevron. */
 static void draw_art_row(struct viewport *vp, int y, int row_h,
                          const char *name, char *line2,
                          const fb_data *thumb, bool selected, bool drills,
                          int text_right, bool scrollbar)
 {
-    const int ax = UI_MARGIN, ay = y + (row_h - UI_THUMB) / 2;
-    const int tx = ax + UI_THUMB + 10;
+    drills = drills && selected;
+    const int tx = UI_THUMB + 10;
     const int tw = text_right - tx - (drills ? CHEVRON_SPACE : 0);
-    unsigned bg = selected ? ui_sel_bg() : UI_COL_BG;
 
     if (selected)
-        ui_selection(0, y, vp->width - (scrollbar ? SCROLLBAR_W + 3 : 0), row_h);
+        ui_selection(UI_THUMB, y, vp->width - UI_THUMB -
+                     (scrollbar ? SCROLLBAR_W + 3 : 0), row_h - 1);
     if (thumb)
-    {
-        lcd_bitmap(thumb, ax, ay, UI_THUMB, UI_THUMB);
-        ui_round_corners(ax, ay, UI_THUMB, UI_THUMB, 6, bg);
-    }
+        lcd_bitmap(thumb, 0, y, UI_THUMB, UI_THUMB);
     else
-        ui_art_placeholder(ax, ay, UI_THUMB, 6);
+        ui_art_placeholder(0, y, UI_THUMB, 0);
+    ui_fill_rect(UI_THUMB, y + row_h - 1, vp->width - UI_THUMB, 1, UI_COL_TRACK);
 
     int row = ui_font(UI_FONT_ROW), body = ui_font(UI_FONT_BODY);
     if (line2[0])
     {
-        int top = y + (row_h - font_get(row)->height - font_get(body)->height) / 2;
+        int top = y + (row_h - 1 - font_get(row)->height - font_get(body)->height) / 2;
         ui_text(tx, top, row, selected ? ui_sel_text() : UI_COL_TEXT, name, tw, -1);
         /* a TAB splits the second line: the part after it stays whole,
          * on the right */
@@ -125,11 +126,11 @@ static void draw_art_row(struct viewport *vp, int y, int row_h,
         ui_text(tx, y2, body, col2, line2, lw, -1);
     }
     else
-        ui_text_vcenter(tx, y, row_h, row, selected ? ui_sel_text() : UI_COL_TEXT,
+        ui_text_vcenter(tx, y, row_h - 1, row, selected ? ui_sel_text() : UI_COL_TEXT,
                         name, tw, -1);
 
     if (drills)
-        ui_chevron(text_right, y, row_h, selected ? ui_sel_text() : UI_COL_TEXT2);
+        ui_chevron(text_right, y, row_h - 1, ui_sel_text());
 }
 
 static void draw_title(struct screen *display, struct gui_synclist *list,
@@ -142,7 +143,6 @@ static void draw_title(struct screen *display, struct gui_synclist *list,
     {
         draw_art_row(vp, 0, row_h, list->title, line2, thumb, false, false,
                      vp->width - UI_MARGIN, false);
-        ui_fill_rect(0, row_h - 1, vp->width, 1, UI_COL_TRACK);
         return;
     }
     ui_text_vcenter(UI_MARGIN, 0, row_h, ui_font(UI_FONT_TITLE), UI_COL_TEXT,

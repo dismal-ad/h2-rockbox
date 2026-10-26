@@ -208,7 +208,7 @@ int ui_battery_usage(void);
 
 /* --- thumbnails (ui_thumb.c) --- */
 
-#define UI_THUMB 46 /* cover size in list rows */
+#define UI_THUMB UI_ART_ROW_H /* cover size in list rows: the whole row */
 /* The cover of the album of track_path at UI_THUMB size, or NULL. Cached in
  * RAM and in /.rockbox/newui/thumbs, so each album is decoded once. */
 const fb_data *ui_thumb_get(const char *track_path);

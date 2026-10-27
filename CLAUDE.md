@@ -90,7 +90,7 @@ through `bde005189c` (Thiago Lugli's manager/menu/settings), cherry-picked with
   `PCM_SINK_BLUETOOTH`.
 - App side: `apps/bluetooth/bluetooth.c` (manager thread, paired devices in
   `/.rockbox/bt_devices.txt`), `apps/menus/bluetooth_menu.c`
-  (Settings > Bluetooth), settings `bt_enabled` (default off),
+  (Home > Bluetooth), settings `bt_enabled` (default off),
   `bt_high_quality`, `bt_volume_sync`. With `BT_DEBUG` it logs to `/bt_log.txt`.
 - Simulator: `uisimulator/common/hci-sim.c` talks to a host serial HCI device.
 - Porting notes: `uart_rx_timeout()` was re-applied by hand on top of

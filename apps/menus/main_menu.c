@@ -460,9 +460,6 @@ MAKE_MENU(info_menu, ID2P(LANG_SYSTEM), 0, Icon_System_menu,
 MAKE_MENU(main_menu_, ID2P(LANG_SETTINGS), NULL,
         Icon_Submenu_Entered,
         &sound_settings,
-#ifdef HAVE_BLUETOOTH
-        &bluetooth_menu,
-#endif
         &playback_settings,
         &settings_menu_item,
         &timedate_item,

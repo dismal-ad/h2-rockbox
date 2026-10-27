@@ -169,7 +169,7 @@ static void draw_bolt(int cx, int cy)
 
 static void draw_battery(int x, int percent, bool charging)
 {
-    const unsigned *fill = percent >= 0 && percent <= 15 && !charging ?
+    const unsigned *fill = percent >= 0 && percent <= 20 && !charging ?
                            batt_red : batt_green;
     int y = ICON_YC - BATT_H / 2;
 

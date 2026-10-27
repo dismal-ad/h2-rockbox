@@ -62,9 +62,10 @@ typedef bool list_item_drills(int selected_item, void * data);
  * returns NULL for none */
 typedef const char *list_get_value(int selected_item, void * data,
                                    char *buffer, size_t buffer_len);
-/* optional cover row (new UI): true if the item is drawn as a row with a
- * cover (*thumb, UI_THUMB square, or NULL for the placeholder) and a second
- * line of text; lists with this callback use UI_ART_ROW_H rows */
+/* optional two-line row (new UI): true if the item is drawn with a grey
+ * second line of text and, in lists with covers, a cover (*thumb, UI_THUMB
+ * square, or NULL for the placeholder); lists with covers use UI_ART_ROW_H
+ * rows, the others UI_LINE2_ROW_H */
 typedef bool list_get_art_row(int selected_item, void * data,
                               const fb_data **thumb, char *line2,
                               size_t line2_len);
@@ -181,6 +182,7 @@ struct gui_synclist
     list_item_drills *callback_item_drills;
     list_get_value *callback_get_item_value;
     list_get_art_row *callback_get_art_row;
+    bool art_cover; /* the art rows have covers */
     list_get_header *callback_get_header;
     list_get_name *callback_get_item_name;
     list_speak_item *callback_speak_item;
@@ -214,7 +216,7 @@ extern void gui_synclist_set_nb_items(struct gui_synclist * lists, int nb_items)
 extern void gui_synclist_set_icon_callback(struct gui_synclist * lists, list_get_icon icon_callback);
 extern void gui_synclist_set_drills_callback(struct gui_synclist * lists, list_item_drills drills_callback);
 extern void gui_synclist_set_value_callback(struct gui_synclist * lists, list_get_value value_callback);
-extern void gui_synclist_set_art_callback(struct gui_synclist * lists, list_get_art_row art_callback);
+extern void gui_synclist_set_art_callback(struct gui_synclist * lists, list_get_art_row art_callback, bool cover);
 extern void gui_synclist_set_header_callback(struct gui_synclist * lists, list_get_header header_callback);
 extern void gui_synclist_set_voice_callback(struct gui_synclist * lists, list_speak_item voice_callback);
 extern void gui_synclist_set_viewport_defaults(struct viewport *vp, enum screen_type screen);

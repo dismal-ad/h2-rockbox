@@ -43,12 +43,15 @@ int tagtree_add_to_playlist(const char* playlist, bool new_playlist);
 char *tagtree_get_title(struct tree_context* c);
 int tagtree_get_attr(struct tree_context* c);
 bool tagtree_is_album_list(struct tree_context *c);
+bool tagtree_is_track_list(struct tree_context *c);
 /* One track of the album with tag seek 'seek': its path, album artist (or
  * artist) and year (year may be NULL). Cached. */
 bool tagtree_album_info(int seek, char *path, size_t path_len,
                         char *artist, size_t artist_len, int *year);
 bool tagtree_album_track(struct tree_context *c, int id, char *path,
                          size_t path_len, char *artist, size_t artist_len);
+bool tagtree_track_album(struct tree_context *c, int id, char *album,
+                         size_t album_len);
 bool tagtree_album_header(struct tree_context *c, char *path, size_t path_len,
                           char *line2, size_t line2_len);
 int tagtree_get_icon(struct tree_context* c);

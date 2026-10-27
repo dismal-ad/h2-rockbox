@@ -2864,6 +2864,16 @@ bool tagtree_is_album_list(struct tree_context *c)
            csi->tagorder[c->currextra] == tag_album;
 }
 
+/* Lists of tracks not inside one album (Songs) show each track's album:
+ * is the current level one? */
+bool tagtree_is_track_list(struct tree_context *c)
+{
+    int level = c->currextra;
+    return c->currtable == TABLE_NAVIBROWSE &&
+           csi->tagorder[level] == tag_title &&
+           (level == 0 || csi->tagorder[level - 1] != tag_album);
+}
+
 /* One track of the album with tag seek 'seek': its path, its album artist
  * (or artist) and year. Looked-up albums are remembered, as lists ask on
  * every redraw. */
@@ -2937,6 +2947,22 @@ bool tagtree_album_track(struct tree_context *c, int id, char *path,
     if (!e || e->newtable != TABLE_NAVIBROWSE || e->extraseek <= 0)
         return false;
     return tagtree_album_info(e->extraseek, path, path_len, artist, artist_len, NULL);
+}
+
+/* For row 'id' of a track list: the track's album. False for other rows. */
+bool tagtree_track_album(struct tree_context *c, int id, char *album,
+                         size_t album_len)
+{
+    if (!tagtree_is_track_list(c))
+        return false;
+    struct tagentry *e = tagtree_get_entry(c, id);
+    if (!e || e->newtable != TABLE_PLAYTRACK)
+        return false;
+    const char *a = e->album_name;
+    if (!a || !*a || !strcmp(a, UNTAGGED))
+        a = "Unknown Album";
+    strmemccpy(album, a, album_len);
+    return true;
 }
 
 /* For the tracks of one album: the path of one of them, and

@@ -203,6 +203,16 @@ static bool tree_album_art_row(int selected_item, void * data,
     return true;
 }
 
+/* track lists in the database browser: title, album (new UI) */
+static bool tree_track_row(int selected_item, void * data,
+                           const fb_data **thumb, char *line2,
+                           size_t line2_len)
+{
+    *thumb = NULL;
+    return tagtree_track_album((struct tree_context *)data, selected_item,
+                               line2, line2_len);
+}
+
 /* the tracks of one album in the database browser: header with its cover */
 static bool tree_album_header(void * data, const fb_data **thumb,
                               char *line2, size_t line2_len)
@@ -524,7 +534,9 @@ static int update_dir(void)
                             global_settings.show_icons?tree_get_fileicon:NULL);
     gui_synclist_set_drills_callback(list, tree_item_drills);
     if (id3db && tagtree_is_album_list(&tc))
-        gui_synclist_set_art_callback(list, tree_album_art_row);
+        gui_synclist_set_art_callback(list, tree_album_art_row, true);
+    else if (id3db && tagtree_is_track_list(&tc))
+        gui_synclist_set_art_callback(list, tree_track_row, false);
     if (id3db)
     {
         const fb_data *thumb;

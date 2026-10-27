@@ -85,27 +85,29 @@ static bool item_drills(enum themable_icons icon)
            icon == Icon_Folder;
 }
 
-/* A row with a cover on the left, the name and a grey second line, as on
- * the iPod: the cover is square and fills the row at the left edge, the
- * selection starts after it, and a hairline runs under the text, so the
- * covers down the left touch. Only the selected row shows its chevron. */
+/* A row with the name and a grey second line, as on the iPod, and
+ * optionally a cover on the left: the cover is square and fills the row at
+ * the left edge, the selection starts after it, and a hairline runs under
+ * the text, so the covers down the left touch. Only the selected row shows
+ * its chevron. */
 static void draw_art_row(struct viewport *vp, int y, int row_h,
-                         const char *name, char *line2,
+                         const char *name, char *line2, bool cover,
                          const fb_data *thumb, bool selected, bool drills,
                          int text_right, bool scrollbar)
 {
     drills = drills && selected;
-    const int tx = UI_THUMB + 10;
+    const int ax = cover ? UI_THUMB : 0;
+    const int tx = cover ? UI_THUMB + 10 : UI_MARGIN;
     const int tw = text_right - tx - (drills ? CHEVRON_SPACE : 0);
 
     if (selected)
-        ui_selection(UI_THUMB, y, vp->width - UI_THUMB -
+        ui_selection(ax, y, vp->width - ax -
                      (scrollbar ? SCROLLBAR_W + 3 : 0), row_h - 1);
-    if (thumb)
+    if (cover && thumb)
         lcd_bitmap(thumb, 0, y, UI_THUMB, UI_THUMB);
-    else
+    else if (cover)
         ui_art_placeholder(0, y, UI_THUMB, 0);
-    ui_fill_rect(UI_THUMB, y + row_h - 1, vp->width - UI_THUMB, 1, UI_COL_TRACK);
+    ui_fill_rect(ax, y + row_h - 1, vp->width - ax, 1, UI_COL_TRACK);
 
     int row = ui_font(UI_FONT_ROW), body = ui_font(UI_FONT_BODY);
     if (line2[0])
@@ -141,8 +143,8 @@ static void draw_title(struct screen *display, struct gui_synclist *list,
     if (list->callback_get_header &&
         list->callback_get_header(list->data, &thumb, line2, sizeof(line2)))
     {
-        draw_art_row(vp, 0, row_h, list->title, line2, thumb, false, false,
-                     vp->width - UI_MARGIN, false);
+        draw_art_row(vp, 0, row_h, list->title, line2, true, thumb, false,
+                     false, vp->width - UI_MARGIN, false);
         return;
     }
     ui_text_vcenter(UI_MARGIN, 0, row_h, ui_font(UI_FONT_TITLE), UI_COL_TEXT,
@@ -209,16 +211,29 @@ void list_draw(struct screen *display, struct gui_synclist *list)
         const int text_x = UI_MARGIN + indent * TAB_INDENT;
         int text_w = text_right - text_x - (drills ? CHEVRON_SPACE : 0);
 
-        /* a row with a cover: art, name, second line (album lists) */
+        /* a two-line row: name, second line, maybe a cover (album and
+           song lists) */
         const fb_data *thumb = NULL;
-        char line2[64] = "";
+        char line2[80] = "";
         if (list->callback_get_art_row &&
             list->callback_get_art_row(i, list->data, &thumb, line2, sizeof(line2)))
         {
+            /* the text after a TAB in the name (a song's length) goes to
+               the right of the second line */
+            char namebuf[MAX_PATH];
+            const char *tab = strchr(name, '\t');
+            if (tab && !strchr(line2, '\t'))
+            {
+                size_t n = MIN((size_t)(tab - name), sizeof(namebuf) - 1);
+                memcpy(namebuf, name, n);
+                namebuf[n] = '\0';
+                strlcat(line2, tab, sizeof(line2));
+                name = namebuf;
+            }
             if (selected)
                 strmemccpy(sel_name, name, sizeof(sel_name));
-            draw_art_row(vp, y, row_h, name, line2, thumb, selected, drills,
-                         text_right, scrollbar);
+            draw_art_row(vp, y, row_h, name, line2, list->art_cover, thumb,
+                         selected, drills, text_right, scrollbar);
             continue;
         }
 

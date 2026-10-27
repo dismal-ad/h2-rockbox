@@ -34,6 +34,7 @@
 #define UI_GAP           8
 #define UI_ROW_H        27  /* text row */
 #define UI_ART_ROW_H    54  /* row with a cover */
+#define UI_LINE2_ROW_H  43  /* row with a second line, no cover: 5 a screen */
 
 /* colours follow the theme (Dark or Light, ui_style.c) */
 enum ui_col {

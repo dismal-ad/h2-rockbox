@@ -125,7 +125,8 @@ void list_init_item_height(struct gui_synclist *list, enum screen_type screen)
     struct viewport *vp = list->parent[screen];
     int line_height = font_get(vp->font)->height + 4;
     list->line_height[screen] = MAX(line_height,
-                    list->callback_get_art_row ? UI_ART_ROW_H : UI_ROW_H);
+                    !list->callback_get_art_row ? UI_ROW_H :
+                    list->art_cover ? UI_ART_ROW_H : UI_LINE2_ROW_H);
 }
 
 static void gui_synclist_init_display_settings(struct gui_synclist * list)
@@ -473,9 +474,10 @@ void gui_synclist_set_value_callback(struct gui_synclist * lists,
 }
 
 void gui_synclist_set_art_callback(struct gui_synclist * lists,
-                                   list_get_art_row art_callback)
+                                   list_get_art_row art_callback, bool cover)
 {
     lists->callback_get_art_row = art_callback;
+    lists->art_cover = cover;
     FOR_NB_SCREENS(i)
         list_init_item_height(lists, i);
 }

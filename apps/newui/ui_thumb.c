@@ -21,7 +21,11 @@
 /* Album covers at fixed small sizes, keyed by a track of the album:
  * UI_THUMB for list rows and UI_COVER for Cover Flow. Decoded once: kept
  * in RAM (the most recently used few) and on the card in THUMB_DIR, as raw
- * native pixels, or a 1-byte file when the track has no art. */
+ * native pixels, or a 1-byte file when the track has no art.
+ *
+ * And the album's large cover (UI_ART_MAX, aspect kept), which Now Playing,
+ * Home, the lock screen and the slideshow show, scaled down as needed:
+ * keyed by the album, one in RAM and the rest on the card. */
 
 #include "config.h"
 #include <stdio.h>
@@ -279,4 +283,105 @@ void ui_cover_build(const char *track_path)
 {
     static fb_data px[UI_COVER * UI_COVER];
     build(&covers, key_of(track_path), track_path, px);
+}
+
+/* --- the large cover --- */
+
+static fb_data large_px[UI_ART_MAX * UI_ART_MAX];
+static struct bitmap large_bm = { .data = (unsigned char *)large_px };
+static uint32_t large_key; /* 0: none */
+static bool large_art;
+
+/* the album: its folder and album tag, or the track if it has no tag */
+static uint32_t album_key(const struct mp3entry *id3)
+{
+    if (!id3->album || !id3->album[0])
+        return key_of(id3->path);
+    const char *slash = strrchr(id3->path, '/');
+    uint32_t h = 5381;
+    for (const char *p = id3->path; p < slash; p++)
+        h = h * 33 + (unsigned char)*p;
+    h = h * 33 + '/';
+    for (const char *p = id3->album; *p; p++)
+        h = h * 33 + (unsigned char)*p;
+    return h ? h : 1;
+}
+
+/* THUMB_DIR/<key>.a<size>: width and height, 16 bits each, then the
+ * pixels; or a "no art" file */
+static void large_file(uint32_t key, char *buf, size_t len)
+{
+    snprintf(buf, len, THUMB_DIR "/%08lx.a%d", (unsigned long)key, UI_ART_MAX);
+}
+
+static bool large_load(uint32_t key)
+{
+    char name[MAX_PATH];
+    large_file(key, name, sizeof(name));
+    int fd = open(name, O_RDONLY);
+    if (fd < 0)
+        return false;
+    off_t size = ffilesize(fd);
+    bool ok = false;
+    uint16_t dim[2];
+    if (size == 1)
+    {
+        unsigned char v;
+        large_art = false;
+        ok = read(fd, &v, 1) == 1 && v == NOART_VERSION;
+    }
+    else if (read(fd, dim, sizeof(dim)) == sizeof(dim) &&
+             dim[0] && dim[0] <= UI_ART_MAX && dim[1] && dim[1] <= UI_ART_MAX &&
+             size == (off_t)(sizeof(dim) + dim[0] * dim[1] * sizeof(fb_data)))
+    {
+        size -= sizeof(dim);
+        large_bm.width = dim[0];
+        large_bm.height = dim[1];
+        large_art = ok = read(fd, large_px, size) == size;
+    }
+    close(fd);
+    return ok;
+}
+
+static void large_store(uint32_t key)
+{
+    char name[MAX_PATH];
+    large_file(key, name, sizeof(name));
+    int fd = create(name);
+    if (fd < 0)
+        return;
+    if (large_art)
+    {
+        uint16_t dim[2] = { large_bm.width, large_bm.height };
+        write(fd, dim, sizeof(dim));
+        write(fd, large_px, large_bm.width * large_bm.height * sizeof(fb_data));
+    }
+    else
+        write_noart(fd);
+    close(fd);
+}
+
+const struct bitmap *ui_cover_large(const struct mp3entry *id3, uint32_t *key)
+{
+    uint32_t k = album_key(id3);
+    if (key)
+        *key = k;
+    if (k != large_key)
+    {
+        large_key = k;
+        if (!large_load(k))
+        {
+            const struct bitmap *bm = ui_art_decode(id3, UI_ART_MAX);
+            large_art = bm != NULL;
+            if (bm)
+            {
+                large_bm.width = bm->width;
+                large_bm.height = bm->height;
+                memcpy(large_px, bm->data,
+                       bm->width * bm->height * sizeof(fb_data));
+            }
+            large_store(k);
+        }
+    }
+    return large_art ? &large_bm : NULL;
 }

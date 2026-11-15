@@ -1057,7 +1057,11 @@ static int process_markers(struct jpeg* p_jpeg)
                                 marker_size -= 1;
                             }
                             if(16 + sum > AC_LEN)
+                            {   /* don't leave counts that overrun the table */
+                                MEMSET(p_jpeg->hufftable[i].huffmancodes_ac, 0,
+                                       16 * sizeof(int));
                                 return -10; /* longer than allowed */
+                            }
 
                             for (; j < 16 + sum; j++)
                             {
@@ -1076,7 +1080,11 @@ static int process_markers(struct jpeg* p_jpeg)
                                 marker_size--;
                             }
                             if(16 + sum > DC_LEN)
+                            {
+                                MEMSET(p_jpeg->hufftable[i].huffmancodes_dc, 0,
+                                       16 * sizeof(int));
                                 return -11; /* longer than allowed */
+                            }
 
                             for (; j < 16 + sum; j++)
                             {
@@ -1319,6 +1327,21 @@ static void fix_huff_tbl(int* htbl, struct derived_tbl* dtbl)
     unsigned int code;
 
     dtbl->pub = htbl; /* fill in back link */
+
+    /* A corrupt table can have more codes of some lengths than there are
+       codes of those lengths: they would overrun the tables below. Such a
+       table is left empty, so every code is an error. */
+    long space = 0;
+    for (l = 1; l <= 16; l++)
+        space += (long)htbl[l-1] << (16 - l);
+    if (space > 1L << 16)
+    {
+        for (l = 1; l <= 16; l++)
+            dtbl->maxcode[l] = -1;
+        dtbl->maxcode[17] = 0xFFFFFL;
+        MEMSET(dtbl->look_nbits, 0, sizeof(dtbl->look_nbits));
+        return;
+    }
 
     /* Figure C.1: make table of Huffman code length for each symbol */
     /* Note that this is in code-length order. */
@@ -1651,7 +1674,8 @@ static void search_restart(struct jpeg *p_jpeg)
     if (p_jpeg->marker_val)
     {
         p_jpeg->marker_val = 0;
-        p_jpeg->bitbuf_bits = p_jpeg->marker_ind;
+        /* the bits after the marker, if they are still in the buffer */
+        p_jpeg->bitbuf_bits = MIN(p_jpeg->marker_ind, p_jpeg->bitbuf_bits);
         p_jpeg->marker_ind = 0;
         return;
     }
@@ -1691,7 +1715,7 @@ static void search_restart(struct jpeg *p_jpeg)
     if ((nb = (tbl)->look_nbits[look]) != 0) \
     { \
         drop_bits((p_jpeg), nb); \
-        s = (tbl)->look_sym[look]; \
+        s = (tbl)->look_sym[look] & 15; /* corrupt tables: no more */ \
         check_bit_buffer((p_jpeg), s); \
         r = get_bits((p_jpeg), s); \
     } else { \
@@ -1712,7 +1736,7 @@ static void search_restart(struct jpeg *p_jpeg)
             r = 0; s = 0; /* fake a zero, this is most safe */ \
         } else { \
             s = (tbl)->pub[16 + (tbl)->valptr[nb] + \
-                ((int) (code - (tbl)->mincode[nb]))]; \
+                ((int) (code - (tbl)->mincode[nb]))] & 15; \
             check_bit_buffer((p_jpeg), s); \
             r = get_bits((p_jpeg), s); \
         } \

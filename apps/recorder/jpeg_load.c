@@ -43,6 +43,19 @@
 #define JDEBUGF(...)
 #endif
 
+#ifndef JPEG_FROM_MEM
+/* Progressive JPEGs (SOF2) are decoded into a coefficient buffer, scan by
+ * scan, then put through the same IDCT and scaling as baseline ones. */
+#define JPEG_PROGRESSIVE
+#ifndef JPEG_PROG_BUF_SIZE
+#define JPEG_PROG_BUF_SIZE (2 * 1024 * 1024)
+#endif
+#ifndef JPEG_PROG_MAX_PASSES
+#define JPEG_PROG_MAX_PASSES 4 /* each reads all the scans: too slow beyond */
+#endif
+#define EOI 0x0100 /* process_markers() flag: reached End of Image */
+#endif
+
 #if (__GNUC__ >= 6)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshift-negative-value"
@@ -126,6 +139,40 @@ struct jpeg
     bool resize;
     unsigned char buf[JPEG_READ_BUF_SIZE];
     struct img_part part;
+#ifdef JPEG_PROGRESSIVE
+    bool progressive; /* SOF2: the image comes in several scans */
+    bool frame_known; /* SOF and DQT read and set up: skip them now */
+    unsigned char next_marker; /* marker the entropy data ended at, or 0 */
+    int comps; /* number of components */
+    /* the current scan */
+    int scan_comps; /* components in it */
+    int scan_ci[3]; /* their frame component indices */
+    int ss, se, ah, al; /* spectral selection, successive approximation */
+    int eobrun; /* blocks left in an end-of-band run */
+    /* the coefficients, kept from scan to scan: for each block, the ones
+       the downscaling IDCT reads (natural order top left square, by
+       SCALE_IDX), for the MCU rows of one stripe; and for every block of
+       the image, which of its 64 are nonzero so far, as refinement scans
+       need that for all of them */
+    int nstore[2]; /* coefficients kept per block */
+    unsigned char kidx[2][64]; /* zig-zag index -> kept index + 1, or 0 */
+    unsigned char kof[2][64]; /* kept index -> zig-zag index */
+    int pw[3], ph[3]; /* blocks of each component, padded to whole MCUs */
+    int bw[3], bh[3]; /* blocks of each component in the image */
+    int16_t *coef[3]; /* stripe's kept coefficients, per component */
+    uint32_t *nzmask[3]; /* nonzero coefficients, 2 words per block */
+    int stripe_rows; /* MCU rows in a stripe */
+    int row0; /* first MCU row of the decoded stripe, -1 for none */
+    int out_mcu_y; /* next MCU row to output */
+    int passes; /* times the scans have been decoded */
+    /* where the JPEG data starts, to read it again */
+    off_t start_pos;
+    unsigned long start_len;
+    void *start_param;
+#ifdef HAVE_ALBUMART
+    struct ogg_file start_ogg;
+#endif
+#endif
 };
 
 #ifdef JPEG_FROM_MEM
@@ -932,14 +979,24 @@ static int process_markers(struct jpeg* p_jpeg)
 
     while (!done)
     {
-        c = e_getc(p_jpeg, -1);
-        if (c != 0xFF) /* no marker? */
+#ifdef JPEG_PROGRESSIVE
+        if (p_jpeg->next_marker) /* the entropy decoder stopped at it */
         {
-            JDEBUGF("Non-marker data\n");
-            continue; /* discard */
+            c = p_jpeg->next_marker;
+            p_jpeg->next_marker = 0;
         }
+        else
+#endif
+        {
+            c = e_getc(p_jpeg, -1);
+            if (c != 0xFF) /* no marker? */
+            {
+                JDEBUGF("Non-marker data\n");
+                continue; /* discard */
+            }
 
-        c = e_getc(p_jpeg, -1);
+            c = e_getc(p_jpeg, -1);
+        }
         JDEBUGF("marker value %X\n",c);
         switch (c)
         {
@@ -951,12 +1008,23 @@ static int process_markers(struct jpeg* p_jpeg)
 
         case 0xC0: /* SOF Huff  - Baseline DCT */
         case 0xC1: /* SOF Huff  - Extended sequential DCT (8 bit samples) */
+#ifdef JPEG_PROGRESSIVE
+        case 0xC2: /* SOF Huff  - Progressive DCT */
+#endif
             {
                 JDEBUGF("SOF marker ");
                 ret |= SOF0;
                 marker_size = e_getc(p_jpeg, -1) << 8; /* Highbyte */
                 marker_size |= e_getc(p_jpeg, -1); /* Lowbyte */
                 JDEBUGF("len: %d\n", marker_size);
+#ifdef JPEG_PROGRESSIVE
+                if (p_jpeg->frame_known)
+                {   /* known, and the tables are set up for it */
+                    e_skip_bytes(p_jpeg, marker_size - 2);
+                    break;
+                }
+                p_jpeg->progressive = c == 0xC2;
+#endif
                 n = e_getc(p_jpeg, -1); /* sample precision (= 8 or 12) */
                 if (n != 8)
                 {
@@ -990,6 +1058,9 @@ static int process_markers(struct jpeg* p_jpeg)
                     return -3; /* Unsupported SOF0 subsampling */
                 }
                 p_jpeg->blocks = n;
+#ifdef JPEG_PROGRESSIVE
+                p_jpeg->comps = n;
+#endif
                 for (i=1; i<n; i++)
                 {   /* chroma must be one block per MCU, or sampled like
                        luma when that is 1x2 or 2x1 (2x2 on all components
@@ -1014,7 +1085,9 @@ static int process_markers(struct jpeg* p_jpeg)
             }
             break;
 
+#ifndef JPEG_PROGRESSIVE
         case 0xC2: /* SOF Huff  - Progressive DCT*/
+#endif
         case 0xC3: /* SOF Huff  - Spatial (sequential) lossless*/
         case 0xC5: /* SOF Huff  - Differential sequential DCT*/
         case 0xC6: /* SOF Huff  - Differential progressive DCT*/
@@ -1107,6 +1180,13 @@ static int process_markers(struct jpeg* p_jpeg)
             break;
         case 0xD9: /* End of Image */
             JDEBUGF("EOI\n");
+#ifdef JPEG_PROGRESSIVE
+            if (p_jpeg->progressive)
+            {
+                ret |= EOI;
+                done = true;
+            }
+#endif
             break;
         case 0x01: /* for temp private use arith code */
             JDEBUGF("private\n");
@@ -1114,6 +1194,52 @@ static int process_markers(struct jpeg* p_jpeg)
 
 
         case 0xDA: /* Start of Scan */
+#ifdef JPEG_PROGRESSIVE
+            if (p_jpeg->progressive)
+            {
+                ret |= SOS;
+                marker_size = e_getc(p_jpeg, -1) << 8; /* Highbyte */
+                marker_size |= e_getc(p_jpeg, -1); /* Lowbyte */
+                n = e_getc(p_jpeg, -1);
+                if (n < 1 || n > p_jpeg->comps || marker_size != 6 + 2 * n)
+                    return -7; /* Unsupported SOS component specification */
+                j = 0; /* components come in frame order */
+                for (i = 0; i < n; i++)
+                {
+                    int id = e_getc(p_jpeg, -1);
+                    while (j < p_jpeg->comps && p_jpeg->frameheader[j].ID != id)
+                        j++;
+                    if (j == p_jpeg->comps)
+                        return -7; /* not in the frame, or out of order */
+                    p_jpeg->scan_ci[i] = j;
+                    c = e_getc(p_jpeg, -1);
+                    p_jpeg->scanheader[j].ID = id;
+                    p_jpeg->scanheader[j].DC_select = c >> 4;
+                    p_jpeg->scanheader[j].AC_select = c & 0x0F;
+                    if (p_jpeg->scanheader[j].DC_select > 1
+                     || p_jpeg->scanheader[j].AC_select > 1)
+                        return -5; /* Huffman table index out of range */
+                    j++;
+                }
+                p_jpeg->scan_comps = n;
+                p_jpeg->ss = e_getc(p_jpeg, -1);
+                p_jpeg->se = e_getc(p_jpeg, -1);
+                c = e_getc(p_jpeg, -1);
+                p_jpeg->ah = c >> 4;
+                p_jpeg->al = c & 0x0F;
+                /* a DC scan, or an AC band of one component (G.1.1.1.1) */
+                if (p_jpeg->ss == 0 ? p_jpeg->se != 0
+                    : p_jpeg->se < p_jpeg->ss || p_jpeg->se > 63 || n != 1)
+                    return -7;
+                if (p_jpeg->al > 13 || p_jpeg->ah > 13)
+                    return -7;
+                p_jpeg->rgb = p_jpeg->comps == 3 && jpeg_is_rgb(p_jpeg->jfif,
+                    p_jpeg->adobe, p_jpeg->frameheader[0].ID,
+                    p_jpeg->frameheader[1].ID, p_jpeg->frameheader[2].ID);
+                done = true;
+                break;
+            }
+#endif
             {
                 ret |= SOS;
                 marker_size = e_getc(p_jpeg, -1) << 8; /* Highbyte */
@@ -1161,6 +1287,13 @@ static int process_markers(struct jpeg* p_jpeg)
                 marker_size = e_getc(p_jpeg, -1) << 8; /* Highbyte */
                 marker_size |= e_getc(p_jpeg, -1); /* Lowbyte */
                 marker_size -= 2;
+#ifdef JPEG_PROGRESSIVE
+                if (p_jpeg->frame_known)
+                {   /* known, and already scaled for the IDCT */
+                    e_skip_bytes(p_jpeg, marker_size);
+                    break;
+                }
+#endif
 
                 while (marker_size > QUANT_TABLE_LENGTH) /* another table */
                 {
@@ -1584,6 +1717,48 @@ INLINE void fix_quant_tables(struct jpeg *p_jpeg)
 * is evaluated multiple times.
 */
 
+#ifdef JPEG_PROGRESSIVE
+/* The next byte of entropy-coded data. ind: where it goes in the bit buffer,
+ * for search_restart(). At a marker other than RSTm, the data has ended:
+ * the marker is kept for process_markers() and zeros are returned. */
+INLINE unsigned char entropy_byte(struct jpeg* p_jpeg, int ind)
+{
+    unsigned char byte, marker;
+
+    if (UNLIKELY(p_jpeg->next_marker))
+        return 0;
+    byte = d_getc(p_jpeg, 0);
+    if (UNLIKELY(byte == 0xFF)) /* legal marker can be byte stuffing or RSTm */
+    {
+        do /* skip fill bytes */
+            marker = d_getc(p_jpeg, 0);
+        while (marker == 0xFF);
+        if ((marker & ~7) == 0xD0)
+        {   /* simplification: just skip the (one-byte) marker code */
+            p_jpeg->marker_val = marker;
+            p_jpeg->marker_ind = ind;
+        }
+        else if (marker)
+        {
+            p_jpeg->next_marker = marker;
+            byte = 0;
+        }
+    }
+    return byte;
+}
+
+static void fill_bit_buffer(struct jpeg* p_jpeg)
+{
+    if (p_jpeg->marker_val)
+        p_jpeg->marker_ind += 16;
+    p_jpeg->bitbuf = (p_jpeg->bitbuf << 8) | entropy_byte(p_jpeg, 8);
+    p_jpeg->bitbuf = (p_jpeg->bitbuf << 8) | entropy_byte(p_jpeg, 0);
+    p_jpeg->bitbuf_bits += 16;
+#ifdef JPEG_BS_DEBUG
+    DEBUGF("read in: %04X\n", p_jpeg->bitbuf & 0xFFFF);
+#endif
+}
+#else
 static void fill_bit_buffer(struct jpeg* p_jpeg)
 {
     unsigned char byte, marker;
@@ -1618,6 +1793,7 @@ static void fill_bit_buffer(struct jpeg* p_jpeg)
     DEBUGF("read in: %04X\n", p_jpeg->bitbuf & 0xFFFF);
 #endif
 }
+#endif
 
 INLINE void check_bit_buffer(struct jpeg *p_jpeg, int nbits)
 {
@@ -1776,6 +1952,400 @@ static void search_restart(struct jpeg *p_jpeg)
     } /* end slow decode */ \
 }
 
+#ifdef JPEG_PROGRESSIVE
+static int16_t prog_buf[JPEG_PROG_BUF_SIZE / sizeof(int16_t)]
+    __attribute__((aligned(8)));
+
+#define NZ_TEST(m, k) ((m)[(k) >> 5] & BIT_N((k) & 31))
+#define NZ_SET(m, k) ((m)[(k) >> 5] |= BIT_N((k) & 31))
+
+/* Decodes one block's part of the current scan (G.1.2): coef is where its
+ * kept coefficients go (scratch for a block outside the stripe), nz its
+ * nonzero mask. Coefficients are stored quantized, in zig-zag order k
+ * mapped through kidx. */
+static void prog_block(struct jpeg *p_jpeg, int ci, int16_t *coef,
+                       uint32_t *nz)
+{
+    const unsigned char *kidx = p_jpeg->kidx[SCALE_IDX(ci)];
+    int s, r, k;
+
+    if (p_jpeg->ss == 0) /* DC */
+    {
+        if (p_jpeg->ah == 0)
+        {
+            struct derived_tbl* dctbl =
+                &p_jpeg->dc_derived_tbls[p_jpeg->scanheader[ci].DC_select];
+            huff_decode_dc(p_jpeg, dctbl, s, r);
+            if (s)
+                p_jpeg->last_dc_val[ci] += HUFF_EXTEND(r, s);
+            coef[0] = p_jpeg->last_dc_val[ci] * (1 << p_jpeg->al);
+        }
+        else
+        {
+            check_bit_buffer(p_jpeg, 1);
+            if (get_bits(p_jpeg, 1))
+                coef[0] |= 1 << p_jpeg->al;
+        }
+        return;
+    }
+
+    struct derived_tbl* actbl =
+        &p_jpeg->ac_derived_tbls[p_jpeg->scanheader[ci].AC_select];
+    const int se = p_jpeg->se;
+    k = p_jpeg->ss;
+
+    if (p_jpeg->ah == 0) /* first AC scan of this band */
+    {
+        if (p_jpeg->eobrun)
+        {
+            p_jpeg->eobrun--;
+            return;
+        }
+        for (; k <= se; k++)
+        {
+            huff_decode_ac(p_jpeg, actbl, s);
+            r = s >> 4;
+            s &= 15;
+            if (s)
+            {
+                k += r;
+                check_bit_buffer(p_jpeg, s);
+                r = get_bits(p_jpeg, s);
+                if (k > 63)
+                    break; /* corrupt */
+                NZ_SET(nz, k);
+                if (kidx[k])
+                    coef[kidx[k] - 1] = HUFF_EXTEND(r, s) * (1 << p_jpeg->al);
+            }
+            else if (r == 15)
+                k += 15;
+            else
+            {   /* end of band, here and in the next EOBRUN blocks */
+                p_jpeg->eobrun = BIT_N(r) - 1;
+                if (r)
+                {
+                    check_bit_buffer(p_jpeg, r);
+                    p_jpeg->eobrun += get_bits(p_jpeg, r);
+                }
+                break;
+            }
+        }
+        return;
+    }
+
+    /* refinement: one more bit for each nonzero coefficient, and the ones
+       that become nonzero (G.1.2.3) */
+    const int p1 = 1 << p_jpeg->al, m1 = -1 * (1 << p_jpeg->al);
+    if (!p_jpeg->eobrun)
+    {
+        for (; k <= se; k++)
+        {
+            int val = 0;
+            huff_decode_ac(p_jpeg, actbl, s);
+            r = s >> 4;
+            s &= 15;
+            if (s)
+            {   /* s is 1: a new coefficient of +-1 */
+                check_bit_buffer(p_jpeg, 1);
+                val = get_bits(p_jpeg, 1) ? p1 : m1;
+            }
+            else if (r != 15)
+            {
+                p_jpeg->eobrun = BIT_N(r);
+                if (r)
+                {
+                    check_bit_buffer(p_jpeg, r);
+                    p_jpeg->eobrun += get_bits(p_jpeg, r);
+                }
+                break; /* the rest of the band as in an EOB run */
+            }
+            /* skip r zero coefficients (and the new one's place), refining
+               the nonzero ones passed */
+            for (; k <= se; k++)
+            {
+                if (NZ_TEST(nz, k))
+                {
+                    check_bit_buffer(p_jpeg, 1);
+                    if (get_bits(p_jpeg, 1) && kidx[k])
+                    {
+                        int16_t *c = &coef[kidx[k] - 1];
+                        if (!(*c & p1))
+                            *c += *c >= 0 ? p1 : m1;
+                    }
+                }
+                else if (--r < 0)
+                    break;
+            }
+            if (val && k <= se)
+            {
+                NZ_SET(nz, k);
+                if (kidx[k])
+                    coef[kidx[k] - 1] = val;
+            }
+        }
+    }
+    if (p_jpeg->eobrun)
+    {   /* in an EOB run: only the nonzero coefficients get a bit, so go
+           through the set bits of the mask from k to se */
+        int w;
+        for (w = k >> 5; w <= se >> 5; w++)
+        {
+            uint32_t bits = nz[w];
+            if (k > w * 32)
+                bits &= ~0u << (k - w * 32);
+            if (se < w * 32 + 31)
+                bits &= ~(~0u << (se - w * 32 + 1));
+            while (bits)
+            {
+                int kk = w * 32 + __builtin_ctz(bits);
+                bits &= bits - 1;
+                check_bit_buffer(p_jpeg, 1);
+                if (get_bits(p_jpeg, 1) && kidx[kk])
+                {
+                    int16_t *c = &coef[kidx[kk] - 1];
+                    if (!(*c & p1))
+                        *c += *c >= 0 ? p1 : m1;
+                }
+            }
+        }
+        p_jpeg->eobrun--;
+    }
+}
+
+/* the block's kept coefficients if it is in the decoded stripe, else NULL */
+INLINE int16_t *prog_coef(struct jpeg *p_jpeg, int ci, int brow, int bcol)
+{
+    int v = p_jpeg->frameheader[ci].vertical_sampling;
+    int r = brow - p_jpeg->row0 * v;
+    if ((unsigned)r >= (unsigned)(p_jpeg->stripe_rows * v))
+        return NULL;
+    return p_jpeg->coef[ci] +
+        (r * p_jpeg->pw[ci] + bcol) * p_jpeg->nstore[SCALE_IDX(ci)];
+}
+
+INLINE void prog_scan_block(struct jpeg *p_jpeg, int ci, int brow, int bcol,
+                            int16_t *scratch)
+{
+    int16_t *coef = prog_coef(p_jpeg, ci, brow, bcol);
+    prog_block(p_jpeg, ci, coef ? coef : scratch,
+               p_jpeg->nzmask[ci] + 2 * (brow * p_jpeg->pw[ci] + bcol));
+}
+
+/* after each MCU but the scan's last: a restart marker when due */
+INLINE void prog_restart(struct jpeg *p_jpeg, bool last)
+{
+    if (p_jpeg->restart_interval && --p_jpeg->restart == 0 && !last)
+    {
+        p_jpeg->restart = p_jpeg->restart_interval;
+        search_restart(p_jpeg);
+        p_jpeg->last_dc_val[0] = p_jpeg->last_dc_val[1] =
+            p_jpeg->last_dc_val[2] = 0;
+        p_jpeg->eobrun = 0;
+    }
+}
+
+/* decodes the scan whose header was just read */
+static void prog_scan(struct jpeg *p_jpeg)
+{
+    int16_t scratch[64];
+    int x, y;
+
+    p_jpeg->bitbuf_bits = 0;
+    p_jpeg->marker_val = 0;
+    p_jpeg->marker_ind = 0;
+    p_jpeg->eobrun = 0;
+    p_jpeg->last_dc_val[0] = p_jpeg->last_dc_val[1] =
+        p_jpeg->last_dc_val[2] = 0;
+    p_jpeg->restart = p_jpeg->restart_interval;
+    fix_huff_tables(p_jpeg);
+
+    if (p_jpeg->scan_comps == 1)
+    {   /* non-interleaved: the component's own blocks, in rows (A.2.2) */
+        int ci = p_jpeg->scan_ci[0];
+        int w = p_jpeg->bw[ci], h = p_jpeg->bh[ci];
+        for (y = 0; y < h; y++)
+        {
+            for (x = 0; x < w; x++)
+            {
+                prog_scan_block(p_jpeg, ci, y, x, scratch);
+                prog_restart(p_jpeg, y == h - 1 && x == w - 1);
+            }
+            yield();
+        }
+        return;
+    }
+
+    /* interleaved (DC only): each component's H x V blocks per MCU */
+    for (y = 0; y < p_jpeg->y_mbl; y++)
+    {
+        for (x = 0; x < p_jpeg->x_mbl; x++)
+        {
+            int i, bx, by;
+            for (i = 0; i < p_jpeg->scan_comps; i++)
+            {
+                int ci = p_jpeg->scan_ci[i];
+                int h = p_jpeg->frameheader[ci].horizontal_sampling;
+                int v = p_jpeg->frameheader[ci].vertical_sampling;
+                for (by = 0; by < v; by++)
+                    for (bx = 0; bx < h; bx++)
+                        prog_scan_block(p_jpeg, ci, y * v + by, x * h + bx,
+                                        scratch);
+            }
+            prog_restart(p_jpeg, y == p_jpeg->y_mbl - 1 &&
+                                 x == p_jpeg->x_mbl - 1);
+        }
+        yield();
+    }
+}
+
+/* back to the start of the JPEG data */
+static bool prog_rewind(struct jpeg *p_jpeg)
+{
+    if (lseek(p_jpeg->fd, p_jpeg->start_pos, SEEK_SET) != p_jpeg->start_pos)
+        return false;
+    p_jpeg->len = p_jpeg->start_len;
+    p_jpeg->buf_left = 0;
+    p_jpeg->buf_index = 0;
+#ifdef HAVE_ALBUMART
+    if (p_jpeg->read_buf == read_buf_vorbis_base64)
+        *(struct ogg_file *)p_jpeg->custom_param = p_jpeg->start_ogg;
+    else
+#endif
+        p_jpeg->custom_param = p_jpeg->start_param;
+    p_jpeg->next_marker = 0;
+    return true;
+}
+
+/* Decodes all the scans, keeping the coefficients of the stripe of MCU rows
+ * from row0. The first time, the markers up to the first scan have been
+ * read; later the file is read again from the start. False on an error
+ * before the first scan. */
+static bool prog_decode(struct jpeg *p_jpeg, int row0)
+{
+    int c, status;
+
+    if (p_jpeg->passes++)
+    {
+        if (!prog_rewind(p_jpeg))
+            return false;
+        status = process_markers(p_jpeg);
+        if (status < 0 || !(status & SOS))
+            return false;
+    }
+    p_jpeg->row0 = row0;
+    p_jpeg->stripe_rows = MIN(p_jpeg->stripe_rows, p_jpeg->y_mbl - row0);
+    for (c = 0; c < p_jpeg->comps; c++)
+    {
+        memset(p_jpeg->coef[c], 0, p_jpeg->stripe_rows *
+            p_jpeg->frameheader[c].vertical_sampling * p_jpeg->pw[c] *
+            p_jpeg->nstore[SCALE_IDX(c)] * sizeof(int16_t));
+        memset(p_jpeg->nzmask[c], 0,
+            p_jpeg->pw[c] * p_jpeg->ph[c] * 2 * sizeof(uint32_t));
+    }
+    do
+    {
+        prog_scan(p_jpeg);
+        status = process_markers(p_jpeg);
+    } while (status >= 0 && (status & SOS));
+    /* a truncated file just ends early: show what came */
+    return true;
+}
+
+/* Sets up the coefficient buffer for the scaled decode; false if even the
+ * nonzero masks do not fit, or it would take too many passes */
+static bool prog_setup(struct jpeg *p_jpeg)
+{
+    int c, sc, k;
+    size_t mask_size = 0, row_size = 0;
+    int h0 = p_jpeg->frameheader[0].horizontal_sampling;
+    int v0 = p_jpeg->frameheader[0].vertical_sampling;
+
+    for (sc = 0; sc < 2; sc++)
+    {   /* keep the top left dw x dh coefficients the IDCT reads */
+        int dw = BIT_N(MIN(p_jpeg->h_scale[sc], 3));
+        int dh = BIT_N(MIN(p_jpeg->v_scale[sc], 3));
+        int n = 0;
+        memset(p_jpeg->kidx[sc], 0, 64);
+        for (k = 0; k < 64; k++)
+        {
+            int pos = zag[k + 64]; /* natural order, row * 8 + column */
+            if ((pos >> 3) < dh && (pos & 7) < dw)
+            {
+                p_jpeg->kof[sc][n] = k;
+                p_jpeg->kidx[sc][k] = ++n;
+            }
+        }
+        p_jpeg->nstore[sc] = n;
+    }
+    for (c = 0; c < p_jpeg->comps; c++)
+    {
+        int h = p_jpeg->frameheader[c].horizontal_sampling;
+        int v = p_jpeg->frameheader[c].vertical_sampling;
+        p_jpeg->pw[c] = p_jpeg->x_mbl * h;
+        p_jpeg->ph[c] = p_jpeg->y_mbl * v;
+        /* the component's size, rounded up, in blocks (A.1.1) */
+        p_jpeg->bw[c] = ((p_jpeg->x_size * h + h0 - 1) / h0 + 7) / 8;
+        p_jpeg->bh[c] = ((p_jpeg->y_size * v + v0 - 1) / v0 + 7) / 8;
+        mask_size += p_jpeg->pw[c] * p_jpeg->ph[c] * 2 * sizeof(uint32_t);
+        row_size += p_jpeg->pw[c] * v * p_jpeg->nstore[SCALE_IDX(c)]
+            * sizeof(int16_t);
+    }
+    if (mask_size + row_size > sizeof(prog_buf))
+        return false;
+    p_jpeg->stripe_rows = MIN((int)((sizeof(prog_buf) - mask_size) / row_size),
+                              p_jpeg->y_mbl);
+    if ((p_jpeg->y_mbl + p_jpeg->stripe_rows - 1) / p_jpeg->stripe_rows
+        > JPEG_PROG_MAX_PASSES)
+        return false;
+    JDEBUGF("progressive: %d MCU rows per pass of %d\n",
+            p_jpeg->stripe_rows, p_jpeg->y_mbl);
+    char *b = (char *)prog_buf;
+    for (c = 0; c < p_jpeg->comps; c++)
+    {
+        p_jpeg->nzmask[c] = (uint32_t *)b;
+        b += p_jpeg->pw[c] * p_jpeg->ph[c] * 2 * sizeof(uint32_t);
+    }
+    for (c = 0; c < p_jpeg->comps; c++)
+    {
+        p_jpeg->coef[c] = (int16_t *)b;
+        b += p_jpeg->stripe_rows * p_jpeg->frameheader[c].vertical_sampling
+            * p_jpeg->pw[c] * p_jpeg->nstore[SCALE_IDX(c)] * sizeof(int16_t);
+    }
+    p_jpeg->frame_known = true;
+    p_jpeg->row0 = -1;
+    p_jpeg->out_mcu_y = 0;
+    return true;
+}
+
+/* an output block from the stripe's coefficients, laid out as the
+ * baseline decoder leaves it for the IDCT */
+static void prog_fill_block(struct jpeg *p_jpeg, int16_t *block, int ci,
+                            int x, int blkn, bool transpose)
+{
+    int sc = SCALE_IDX(ci), j;
+    int h = p_jpeg->frameheader[ci].horizontal_sampling;
+    int v = p_jpeg->frameheader[ci].vertical_sampling;
+    int pos = p_jpeg->mcu_pos[blkn];
+    const int16_t *qt = p_jpeg->quanttable[
+        p_jpeg->frameheader[ci].quanttable_select];
+    const int16_t *coef = prog_coef(p_jpeg, ci,
+        p_jpeg->out_mcu_y * v + pos / h, x * h + pos % h);
+    MEMSET(block, 0, 64 * sizeof(int16_t));
+    if (!coef)
+        return;
+    for (j = 0; j < p_jpeg->nstore[sc]; j++)
+    {
+        int k = p_jpeg->kof[sc][j];
+#ifdef JPEG_IDCT_TRANSPOSE
+        block[zag[transpose ? k : k + 64]] = MULTIPLY16(coef[j], qt[k]);
+#else
+        (void)transpose;
+        block[zag[k]] = MULTIPLY16(coef[j], qt[k]);
+#endif
+    }
+}
+#endif /* JPEG_PROGRESSIVE */
+
 static struct img_part *store_row_jpeg(void *jpeg_args)
 {
     struct jpeg *p_jpeg = (struct jpeg*) jpeg_args;
@@ -1789,6 +2359,12 @@ static struct img_part *store_row_jpeg(void *jpeg_args)
     int x;
     if (!p_jpeg->mcu_row) /* Need to decode a new row of MCUs */
     {
+#ifdef JPEG_PROGRESSIVE
+        if (p_jpeg->progressive && p_jpeg->out_mcu_y < p_jpeg->y_mbl &&
+            (p_jpeg->out_mcu_y < p_jpeg->row0 ||
+             p_jpeg->out_mcu_y >= p_jpeg->row0 + p_jpeg->stripe_rows))
+            prog_decode(p_jpeg, p_jpeg->out_mcu_y); /* the next stripe */
+#endif
         p_jpeg->out_ptr = (unsigned char *)p_jpeg->img_buf;
         int store_offs[4];
         unsigned mcu_width = BIT_N(mcu_hscale);
@@ -1808,6 +2384,13 @@ static struct img_part *store_row_jpeg(void *jpeg_args)
                 int ci = p_jpeg->mcu_membership[blkn]; /* component index */
 #ifdef JPEG_IDCT_TRANSPOSE
                 bool transpose = p_jpeg->v_scale[SCALE_IDX(ci)] > 2;
+#endif
+#ifdef JPEG_PROGRESSIVE
+                if (p_jpeg->progressive)
+                {
+                    prog_fill_block(p_jpeg, block, ci, x, blkn, transpose);
+                    goto block_end;
+                }
 #endif
                 int k = 1; /* coefficient index */
                 int s, r; /* huffman values */
@@ -1922,6 +2505,10 @@ block_end:
                 }
             }
             out += mcu_offset;
+#ifdef JPEG_PROGRESSIVE
+            if (p_jpeg->progressive)
+                continue;
+#endif
             if (p_jpeg->restart_interval && --p_jpeg->restart == 0)
             {   /* if a restart marker is due: */
                 p_jpeg->restart = p_jpeg->restart_interval; /* count again */
@@ -1930,6 +2517,9 @@ block_end:
                                  p_jpeg->last_dc_val[2] = 0; /* reset decoder */
             }
         }
+#ifdef JPEG_PROGRESSIVE
+        p_jpeg->out_mcu_y++;
+#endif
     } /* if !p_jpeg->mcu_row */
     p_jpeg->mcu_row = (p_jpeg->mcu_row + 1) & (height - 1);
     p_jpeg->part.len = width;
@@ -2081,6 +2671,16 @@ int clip_jpeg_fd(int fd, int flags,
     (void)flags;
 #endif /* HAVE_ALBUMART */
 
+#ifdef JPEG_PROGRESSIVE
+    /* to read a progressive JPEG again */
+    p_jpeg->start_pos = lseek(fd, 0, SEEK_CUR);
+    p_jpeg->start_len = p_jpeg->len;
+    p_jpeg->start_param = p_jpeg->custom_param;
+#ifdef HAVE_ALBUMART
+    if (flags & AA_FLAG_VORBIS_BASE64)
+        p_jpeg->start_ogg = *(struct ogg_file *)p_jpeg->custom_param;
+#endif
+#endif
 #endif
     status = process_markers(p_jpeg);
 #ifndef JPEG_FROM_MEM
@@ -2208,6 +2808,15 @@ int clip_jpeg_fd(int fd, int flags,
         return -1;
 
     fix_huff_tables(p_jpeg);
+#ifdef JPEG_PROGRESSIVE
+    if (p_jpeg->progressive)
+    {   /* all the scans now, for the first stripe */
+        if (!prog_setup(p_jpeg))
+            return -13; /* too big */
+        if (!prog_decode(p_jpeg, 0))
+            return -1;
+    }
+#endif
 
     p_jpeg->img_buf = (jpeg_pix_t *)buf_start;
     buf_start += decode_buf_size;

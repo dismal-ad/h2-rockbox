@@ -1815,7 +1815,7 @@ static struct img_part *store_row_jpeg(void *jpeg_args)
                         if (s)
                         {
                             check_bit_buffer(p_jpeg, s);
-                            if (k >= p_jpeg->k_need[SCALE_IDX(ci)])
+                            if (k > p_jpeg->k_need[SCALE_IDX(ci)])
                                 goto skip_rest;
                             r = get_bits(p_jpeg, s);
                             r = HUFF_EXTEND(r, s);

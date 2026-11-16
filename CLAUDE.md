@@ -132,8 +132,16 @@ The full plan (screens, layouts at 320×240, phases, risks) is in
      `apps/recorder/jpeg_load.c`, `bmp.c`, `resize.c` (decode + scale).
      `HAVE_ALBUMART` and `HAVE_JPEG` are enabled.
    - Decoding JPEGs while scrolling is too slow on the X1000: covers are
-     saved pre-scaled on the card (`/.rockbox/newui/thumbs`, 46 and 120 px,
-     `apps/newui/ui_thumb.c`) with a small RAM cache.
+     saved pre-scaled on the card (`/.rockbox/newui/thumbs`, 54 and 150 px
+     for lists and Cover Flow, `apps/newui/ui_thumb.c`) with a small RAM
+     cache; each album's 240 px cover (`<key>.a240`) is saved there too and
+     `apps/newui/ui_art.c` scales it for Now Playing, Home and the lock
+     screen. "No art" files hold `NOART_VERSION`: bump it when the decoders
+     read more covers, so the ones they could not read are tried again.
+   - `jpeg_load.c` reads baseline and progressive JPEGs. Progressive ones
+     are decoded into a 2 MiB static coefficient buffer
+     (`JPEG_PROG_BUF_SIZE`), keeping only what the downscaling IDCT needs,
+     in at most 4 passes over the file; bigger ones fail (placeholder).
 3. Layout for 320×240 driven by the scroll wheel; build and check every
    screen in the simulator first.
 

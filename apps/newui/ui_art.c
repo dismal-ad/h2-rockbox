@@ -18,10 +18,11 @@
  *
  ****************************************************************************/
 
-/* Album art for the new UI: the current track's cover, decoded once at the
- * size asked for and kept until the track or size changes. Embedded JPEG
- * art is tried first, then cover files next to the track (find_albumart),
- * the same sources playback uses. */
+/* Album art for the new UI: the current track's cover, scaled from its
+ * album's large cover (ui_cover_large(), saved on the card) to the size
+ * asked for and kept until the album or size changes. Covers are decoded
+ * from embedded JPEG art first, then from cover files next to the track
+ * (find_albumart), the same sources playback uses. */
 
 #include "config.h"
 #include <string.h>
@@ -32,6 +33,7 @@
 #include "albumart.h"
 #include "jpeg_load.h"
 #include "bmp.h"
+#include "resize.h"
 #include "string-extra.h"
 #include "ui.h"
 
@@ -40,8 +42,9 @@
 
 static unsigned char art_buf[ART_BUF_SIZE] __attribute__((aligned(4)));
 static struct bitmap art_bm;
+/* what art_bm holds: the current cover scaled to art_size */
 static bool art_valid;
-static char art_key[MAX_PATH];
+static uint32_t art_key;
 static int art_size;
 
 static bool decode(const struct mp3entry *id3, int size)
@@ -86,6 +89,60 @@ static bool decode(const struct mp3entry *id3, int size)
     return rc > 0;
 }
 
+const struct bitmap *ui_art_decode(const struct mp3entry *id3, int size)
+{
+    /* the decode goes where the scaled current art was */
+    art_valid = false;
+    if (size > UI_ART_MAX || !decode(id3, size))
+        return NULL;
+    return &art_bm;
+}
+
+/* rows of a native bitmap for the scaler */
+struct scale_src {
+    const struct bitmap *bm;
+    int y;
+    struct img_part part;
+    struct uint8_rgb row[UI_ART_MAX];
+};
+
+static struct img_part *scale_row(void *args)
+{
+    struct scale_src *s = args;
+    const fb_data *px = (const fb_data *)s->bm->data + s->y++ * s->bm->width;
+    for (int x = 0; x < s->bm->width; x++)
+    {
+        unsigned c = FB_UNPACK_SCALAR_LCD(px[x]);
+        s->row[x].red = RGB_UNPACK_RED(c);
+        s->row[x].green = RGB_UNPACK_GREEN(c);
+        s->row[x].blue = RGB_UNPACK_BLUE(c);
+    }
+    s->part.len = s->bm->width;
+    s->part.buf = s->row;
+    return &s->part;
+}
+
+/* src scaled down (area sampling, dithered) to fit size x size */
+static bool scale(const struct bitmap *src, int size)
+{
+    static struct scale_src ss;
+    struct dim src_dim = { .width = src->width, .height = src->height };
+    struct dim dim = { .width = size, .height = size };
+    recalc_dimension(&dim, &src_dim);
+    art_bm.width = dim.width;
+    art_bm.height = dim.height;
+    art_bm.data = art_buf;
+    art_bm.maskdata = NULL;
+    art_bm.alpha_offset = 0;
+    size_t bm_size = dim.width * dim.height * sizeof(fb_data);
+    struct rowset rset = { .rowstep = 1, .rowstart = 0, .rowstop = dim.height };
+    ss.bm = src;
+    ss.y = 0;
+    return resize_on_load(&art_bm, true, &src_dim, &rset, art_buf + bm_size,
+                          sizeof(art_buf) - bm_size, NULL, IF_PIX_FMT(0,)
+                          scale_row, &ss) > 0;
+}
+
 const struct bitmap *ui_art_current(int size)
 {
     struct mp3entry *id3 = audio_status() ? audio_current_track() : NULL;
@@ -94,29 +151,33 @@ const struct bitmap *ui_art_current(int size)
     if (size > UI_ART_MAX)
         size = UI_ART_MAX;
 
-    if (size != art_size || strcmp(art_key, id3->path))
+    uint32_t key;
+    const struct bitmap *large = ui_cover_large(id3, &key);
+    if (!large || size == UI_ART_MAX)
+        return large;
+    if (!art_valid || art_key != key || art_size != size)
     {
-        strmemccpy(art_key, id3->path, sizeof(art_key));
+        art_key = key;
         art_size = size;
-        art_valid = decode(id3, size);
+        art_valid = scale(large, size);
     }
     return art_valid ? &art_bm : NULL;
 }
 
 bool ui_art_decode_to(const struct mp3entry *id3, int size, fb_data *out)
 {
-    /* shares the decode buffer with the current track's art */
-    art_key[0] = '\0';
-    art_valid = false;
-    if (size > UI_ART_MAX || !decode(id3, size))
+    /* the large size is kept on the card: no decode once it is there */
+    const struct bitmap *bm = size == UI_ART_MAX ? ui_cover_large(id3, NULL)
+                                                 : ui_art_decode(id3, size);
+    if (!bm)
         return false;
     for (int i = 0; i < size * size; i++)
         out[i] = FB_SCALARPACK(UI_COL_BG);
-    int ox = (size - art_bm.width) / 2, oy = (size - art_bm.height) / 2;
-    const fb_data *src = (const fb_data *)art_bm.data;
-    for (int y = 0; y < art_bm.height; y++)
-        memcpy(&out[(oy + y) * size + ox], &src[y * art_bm.width],
-               art_bm.width * sizeof(fb_data));
+    int ox = (size - bm->width) / 2, oy = (size - bm->height) / 2;
+    const fb_data *src = (const fb_data *)bm->data;
+    for (int y = 0; y < bm->height; y++)
+        memcpy(&out[(oy + y) * size + ox], &src[y * bm->width],
+               bm->width * sizeof(fb_data));
     return true;
 }
 

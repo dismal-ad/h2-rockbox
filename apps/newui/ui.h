@@ -171,8 +171,8 @@ void ui_choice_draw(struct viewport *vp, const char *title, int count, int sel,
 
 struct bitmap;
 /* The playing track's cover scaled to fit size x size (aspect kept), or
- * NULL when nothing plays or it has no art. Cached until the track or the
- * size changes. */
+ * NULL when nothing plays or it has no art. Scaled from the album's large
+ * cover (ui_cover_large()) and kept until the album or the size changes. */
 const struct bitmap *ui_art_current(int size);
 /* Draws a cover centred in the size x size square, corners rounded */
 void ui_art_draw(const struct bitmap *bm, int x, int y, int size, int radius);
@@ -184,8 +184,12 @@ void ui_art_draw_tilted(const struct bitmap *bm, int x, int y, int w,
 /* The no-art placeholder: a dark rounded square with a note */
 void ui_art_placeholder(int x, int y, int size, int radius);
 struct mp3entry;
-/* Decodes id3's cover into out (size x size, centred on black); invalidates
- * the cached current art. False if there is none. */
+/* Decodes id3's cover to fit size x size (aspect kept) into a buffer the
+ * cached current art shares; NULL if there is none. */
+const struct bitmap *ui_art_decode(const struct mp3entry *id3, int size);
+/* id3's cover in out (size x size, centred on the background): the large
+ * cover at UI_ART_MAX, else decoded as ui_art_decode() does. False if there
+ * is none. */
 bool ui_art_decode_to(const struct mp3entry *id3, int size, fb_data *out);
 
 /* --- Home's cover slideshow (ui_slides.c) --- */
@@ -226,6 +230,11 @@ bool ui_cover_saved(const char *track_path);
 /* Decodes the cover (slow) and saves it, and its list thumbnail, on the
  * card, without touching the covers in RAM */
 void ui_cover_build(const char *track_path);
+/* The cover of id3's album (its folder and album tag) at UI_ART_MAX, aspect
+ * kept, or NULL for none. One album is kept in RAM, the others in
+ * /.rockbox/newui/thumbs, so each album is decoded once. *key (if not
+ * NULL) is set to the album's key. */
+const struct bitmap *ui_cover_large(const struct mp3entry *id3, uint32_t *key);
 
 /* --- screens --- */
 

@@ -83,6 +83,19 @@ tagcache.c
 bluetooth/bluetooth.c
 menus/bluetooth_menu.c
 #endif
+#ifdef HAVE_WIFI
+net/net_core.c
+#ifdef SIMULATOR
+net/net_sim.c
+#else
+net/net_lwip.c
+#endif
+net/tls.c
+net/http.c
+radio/radio.c
+radio/radio_dir.c
+radio/radio_ui.c
+#endif
 newui/ui_draw.c
 newui/ui_font.c
 newui/ui_time.c

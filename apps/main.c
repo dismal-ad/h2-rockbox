@@ -42,6 +42,10 @@
 #ifdef HAVE_BLUETOOTH
 #include "bluetooth/bluetooth.h"
 #endif
+#ifdef HAVE_WIFI
+#include "net/net.h"
+#include "radio/radio.h"
+#endif
 #include "powermgmt.h"
 #include "adc.h"
 #include "i2c.h"
@@ -365,6 +369,9 @@ static void init(void)
 {
     system_init();
     core_allocator_init();
+#ifdef HAVE_WIFI
+    net_heap_init();
+#endif
     kernel_init();
     enable_irq();
     lcd_init();
@@ -411,6 +418,10 @@ static void init(void)
 
     audio_init();
     talk_announce_voice_invalid(); /* notify user w/ voice prompt if voice file invalid */
+#ifdef HAVE_WIFI
+    net_init();
+    radio_init();
+#endif
     ui_font_init();
     ui_battery_log_init();
     viewportmanager_theme_changed(THEME_ALL); /* redraw the bar in them */
@@ -444,6 +455,9 @@ static void init(void)
     btbuf = core_get_data(btbuf_handle);
     memset(btbuf, 0, 4); // make sure tlsf doesn't see ghosts
     init_memory_pool(BT_HEAP_SIZE, btbuf);
+#endif
+#ifdef HAVE_WIFI
+    net_heap_init();
 #endif
 
     verify_boot_data();
@@ -649,6 +663,10 @@ static void init(void)
 
 #ifdef HAVE_BLUETOOTH
     bluetooth_init();
+#endif
+#ifdef HAVE_WIFI
+    net_init();
+    radio_init();
 #endif
 
     /* runtime database has to be initialized after audio_init() */

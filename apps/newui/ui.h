@@ -266,6 +266,7 @@ struct ui_status {
     bool battery_visible;  /* false while blinking off (low battery) */
     bool charging;
     int bluetooth;         /* 0 off, 1 on but not connected, 2 connected */
+    int wifi;              /* 0 off, 1 connecting, 2 connected */
 };
 /* Draws the bar into the current viewport (UI_STATUS_H high) */
 void ui_status_draw(const struct ui_status *st);

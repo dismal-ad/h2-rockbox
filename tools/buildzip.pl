@@ -354,6 +354,11 @@ sub buildzip {
         open(NOMEDIA, ">$temp_dir/.nomedia")  || die "can't open .nomedia";
         close(NOMEDIA);
     }
+    # Wi-Fi chip firmware, calibration and root certificates
+    if ($modelname =~ /erosqnative/) {
+        glob_mkdir("$temp_dir/wifi");
+        glob_copy("$ROOT/firmware/drivers/wifi/firmware/*", "$temp_dir/wifi/");
+    }
     # copy wifi firmware
     if ($modelname =~ /sansaconnect/) {
         glob_mkdir("$temp_dir/libertas");

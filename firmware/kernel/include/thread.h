@@ -80,7 +80,16 @@
 #define BT_EXTRA_THREADS 0
 #endif
 
-#define MAXTHREADS (BASETHREADS+TARGET_EXTRA_THREADS+BT_EXTRA_THREADS)
+#ifdef HAVE_WIFI
+/* lwIP's tcpip thread, the Wi-Fi driver, the network manager and the
+ * radio stream */
+#define WIFI_EXTRA_THREADS 4
+#else
+#define WIFI_EXTRA_THREADS 0
+#endif
+
+#define MAXTHREADS (BASETHREADS+TARGET_EXTRA_THREADS+BT_EXTRA_THREADS+\
+                    WIFI_EXTRA_THREADS)
 
 BITARRAY_TYPE_DECLARE(threadbit_t, threadbit, MAXTHREADS)
 BITARRAY_TYPE_DECLARE(priobit_t, priobit, NUM_PRIORITIES)

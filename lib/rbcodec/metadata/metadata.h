@@ -240,6 +240,13 @@ struct mp3entry {
 
 unsigned int probe_file_format(const char *filename); /* returns audio_fmt */
 bool get_metadata(struct mp3entry* id3, int fd, const char* trackname);
+struct metadata_stream_hooks {
+    bool (*is_stream)(const char *path);
+    void (*begin)(int fd);
+    bool (*end)(struct mp3entry *id3, const char *path, bool ok);
+};
+extern const struct metadata_stream_hooks *metadata_stream_hooks;
+
 bool get_metadata_ex(struct mp3entry* id3, int fd, const char* trackname, int flags);
 bool get_metadata_afmt(struct mp3entry* id3, int fd, const char* trackname, int audio_fmt, int flags);
 void adjust_mp3entry(struct mp3entry *entry, void *dest, const void *orig);

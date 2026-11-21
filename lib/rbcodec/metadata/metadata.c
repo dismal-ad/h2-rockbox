@@ -322,8 +322,19 @@ log_on_exit:
     return success;
 }
 
+/* Streams (internet radio): the provider limits what the parser sees and
+ * fixes the result up (no length, the station's name) */
+const struct metadata_stream_hooks *metadata_stream_hooks = NULL;
+
 bool get_metadata_ex(struct mp3entry* id3, int fd, const char* trackname, int flags)
 {
+    if (metadata_stream_hooks && metadata_stream_hooks->is_stream(trackname))
+    {
+        metadata_stream_hooks->begin(fd);
+        bool ok = get_metadata_afmt(id3, fd, trackname,
+                                    probe_file_format(trackname), flags);
+        return metadata_stream_hooks->end(id3, trackname, ok);
+    }
     return get_metadata_afmt(id3, fd, trackname, probe_file_format(trackname), flags);
 }
 

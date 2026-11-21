@@ -19,6 +19,7 @@
  *
  ****************************************************************************/
 #define RB_FILESYSTEM_OS
+#include "vfile.h"
 #include "config.h"
 #include "system.h"
 #include <string.h>
@@ -820,6 +821,8 @@ void force_close_writer_internal(struct filestr_base *stream)
 int rbfs_open(const char *path, int oflag)
 {
     DEBUGF("open(path=\"%s\",oflag=%X)\n", path, (unsigned)oflag);
+    if (vfile_is_path(path))
+        return (oflag & O_ACCMODE) == O_RDONLY ? vfile_ops->open(path) : -1;
     return open_internal_locked(path, oflag, FF_ANYTYPE);
 }
 
@@ -834,6 +837,9 @@ int rbfs_creat(const char *path)
 int rbfs_close(int fildes)
 {
     DEBUGF("close(fd=%d)\n", fildes);
+
+    if (vfile_is_fd(fildes))
+        return vfile_ops->close(fildes);
 
     int rc;
 
@@ -920,6 +926,8 @@ off_t rbfs_lseek(int fildes, off_t offset, int whence)
 #ifndef LOGF_ENABLE /* wipes out log before you can save it */
     DEBUGF("lseek(fd=%d,ofs=%ld,wh=%d)\n", fildes, (long)offset, whence);
 #endif
+    if (vfile_is_fd(fildes))
+        return vfile_ops->lseek(fildes, offset, whence);
     struct filestr_desc * const file = GET_FILESTR(READER, fildes);
     if (!file)
         FILE_ERROR_RETURN(ERRNO, -1);
@@ -936,6 +944,8 @@ file_error:
 /* read from a file */
 ssize_t rbfs_read(int fildes, void *buf, size_t nbyte)
 {
+    if (vfile_is_fd(fildes))
+        return vfile_ops->read(fildes, buf, nbyte);
     struct filestr_desc * const file = GET_FILESTR(READER, fildes);
     if (!file)
         FILE_ERROR_RETURN(ERRNO, -1);
@@ -1183,6 +1193,8 @@ file_error:
 /* get the binary size of a file (in bytes) */
 off_t rbfs_ffilesize(int fildes)
 {
+    if (vfile_is_fd(fildes))
+        return vfile_ops->filesize(fildes);
     struct filestr_desc * const file = GET_FILESTR(READER, fildes);
     if (!file)
         FILE_ERROR_RETURN(ERRNO, -1);
@@ -1279,6 +1291,8 @@ file_error:
 /* test file or directory existence */
 bool rbfs_file_exists(const char *path)
 {
+    if (vfile_is_path(path))
+        return vfile_ops->exists(path);
     file_internal_lock_WRITER();
     bool rc = test_stream_exists_internal(path, FF_ANYTYPE) > 0;
     file_internal_unlock_WRITER();

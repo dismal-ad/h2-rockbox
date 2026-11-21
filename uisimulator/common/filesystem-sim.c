@@ -19,6 +19,7 @@
  *
  ****************************************************************************/
 #define RB_FILESYSTEM_OS
+#include "vfile.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -416,6 +417,9 @@ int sim_get_os_path(char *buffer, const char *path, size_t bufsize)
 
 int sim_open(const char *path, int oflag, ...)
 {
+    if (vfile_is_path(path))
+        return (oflag & O_ACCMODE) == O_RDONLY ? vfile_ops->open(path) : -1;
+
     int fildes;
     struct filestr_desc *filestr = alloc_filestr(&fildes);
     if (!filestr)
@@ -447,6 +451,9 @@ int sim_creat(const char *path, mode_t mode)
 
 int sim_close(int fildes)
 {
+    if (vfile_is_fd(fildes))
+        return vfile_ops->close(fildes);
+
     struct filestr_desc *filestr = &openfiles[fildes];
     if ((unsigned int)fildes >= MAX_OPEN_FILES || filestr->osfd < 0)
     {
@@ -500,6 +507,8 @@ int sim_fsync(int fildes)
 
 off_t sim_lseek(int fildes, off_t offset, int whence)
 {
+    if (vfile_is_fd(fildes))
+        return vfile_ops->lseek(fildes, offset, whence);
     struct filestr_desc *filestr = get_filestr(fildes);
     if (!filestr)
         return -1;
@@ -509,6 +518,8 @@ off_t sim_lseek(int fildes, off_t offset, int whence)
 
 ssize_t sim_read(int fildes, void *buf, size_t nbyte)
 {
+    if (vfile_is_fd(fildes))
+        return vfile_ops->read(fildes, buf, nbyte);
     struct filestr_desc *filestr = get_filestr(fildes);
     if (!filestr)
         return -1;
@@ -582,6 +593,8 @@ int sim_modtime(const char *path, time_t modtime)
 
 off_t sim_ffilesize(int fildes)
 {
+    if (vfile_is_fd(fildes))
+        return vfile_ops->filesize(fildes);
     struct filestr_desc *filestr = get_filestr(fildes);
     if (!filestr)
         return -1;
@@ -620,6 +633,8 @@ int sim_relate(const char *path1, const char *path2)
 
 bool sim_file_exists(const char *path)
 {
+    if (vfile_is_path(path))
+        return vfile_ops->exists(path);
     char ospath[SIM_TMPBUF_MAX_PATH];
     if (sim_get_os_path(ospath, path, sizeof (ospath)) < 0)
         return false;

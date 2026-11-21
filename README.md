@@ -28,6 +28,22 @@ Based on upstream [Rockbox](https://www.rockbox.org/) (forked from commit
   Skye's Bluedroid port.
 - Unused Bluetooth stack code trimmed, from 202k to 99k lines.
 
+### Wi-Fi and internet radio
+- Wi-Fi for the H2's CYW43438 chip (2.4 GHz, open and WPA/WPA2-PSK
+  networks): Home › Radio › Wi-Fi lists networks, asks for the password
+  and remembers it. Wi-Fi turns on when needed and off a minute after the
+  last use.
+- Internet radio (Home › Radio): stations from the
+  [Radio Browser](https://www.radio-browser.info/) directory (popular, search,
+  by country, by genre), favourites (Menu on a station), and your own
+  `.m3u`/`.pls` files in `/Radio`.
+- MP3, AAC/HE-AAC, Ogg Vorbis and Opus streams over HTTP or HTTPS (Mbed TLS,
+  certificates checked); `.pls`/`.m3u` playlists and redirects; the song
+  title from the station on Now Playing. HLS-only stations are not supported.
+- Resume Playback after a reboot plays the last station again.
+- The network stack is lwIP. Simulator builds use the host's network and
+  pretend to be on Wi-Fi.
+
 ### Battery and power
 - Battery Usage page (System › View Battery Usage) with a chart of the level
   against hours since the last charge.
@@ -82,6 +98,9 @@ This gives `build/rockbox.zip`.
 3. Eject the card and reboot the player.
 
 Bluetooth works on hardware revision 4 (hw4) only.
+
+If Wi-Fi misbehaves, Home › Radio › Wi-Fi › Log writes the driver's log to
+`/wifi_log.txt` on the card.
 
 ## License
 

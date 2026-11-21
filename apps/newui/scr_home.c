@@ -41,6 +41,9 @@
 #ifdef HAVE_BLUETOOTH
 #include "menus/exported_menus.h"
 #endif
+#ifdef HAVE_WIFI
+#include "radio/radio_ui.h"
+#endif
 
 #define HOME_MENU_W   160
 
@@ -50,6 +53,9 @@ enum home_target {
     HOME_COVERFLOW,
     HOME_FILES,
     HOME_PLAYLISTS,
+#ifdef HAVE_WIFI
+    HOME_RADIO,
+#endif
 #ifdef HAVE_BLUETOOTH
     HOME_BLUETOOTH,
 #endif
@@ -69,6 +75,9 @@ static const struct home_item items[HOME_COUNT] = {
     [HOME_COVERFLOW]   = { LANG_NEWUI_COVERFLOW, -1 },
     [HOME_FILES]       = { LANG_DIR_BROWSER,  GO_TO_FILEBROWSER },
     [HOME_PLAYLISTS]   = { LANG_PLAYLISTS,    GO_TO_PLAYLISTS_SCREEN },
+#ifdef HAVE_WIFI
+    [HOME_RADIO]       = { LANG_NEWUI_RADIO,  -1 },
+#endif
 #ifdef HAVE_BLUETOOTH
     [HOME_BLUETOOTH]   = { LANG_BLUETOOTH,    -1 },
 #endif
@@ -289,6 +298,22 @@ int ui_home(int *selected)
                     redraw = true;
                     break;
                 }
+#ifdef HAVE_WIFI
+                if (t == HOME_RADIO)
+                {
+                    int r = radio_screen();
+                    if (r == GO_TO_WPS || r == GO_TO_ROOT)
+                    {
+                        ret = r == GO_TO_ROOT ? MENU_ATTACHED_USB : r;
+                        goto out;
+                    }
+                    ui_transition(-1);
+                    ui_status_width(HOME_MENU_W);
+                    ui_status_title(str(LANG_NEWUI_HOME_TITLE));
+                    redraw = true;
+                    break;
+                }
+#endif
 #ifdef HAVE_BLUETOOTH
                 if (t == HOME_BLUETOOTH)
                 {

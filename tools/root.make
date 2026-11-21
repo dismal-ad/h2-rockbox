@@ -84,6 +84,8 @@ include $(TOOLSDIR)/tools.make
       ifeq (,$(findstring bootloader,$(APPSDIR)))
         include $(ROOTDIR)/lib/tlsf/libtlsf.make
         include $(ROOTDIR)/lib/bluedroid/bluedroid.make
+        include $(ROOTDIR)/lib/lwip/lwip.make
+        include $(ROOTDIR)/lib/mbedtls/mbedtls.make
       endif
     endif
   endif

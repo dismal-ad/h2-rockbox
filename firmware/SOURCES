@@ -88,6 +88,7 @@ common/dircache.c
 #endif /* HAVE_DIRCACHE */
 common/pathfuncs.c
 common/fdprintf.c
+common/vfile.c
 common/linked_list.c
 #if (!(CONFIG_PLATFORM & PLATFORM_HOSTED))
 common/rb_namespace.c
@@ -298,6 +299,8 @@ target/mips/ingenic_x1000/erosqnative/power-erosqnative.c
 target/mips/ingenic_x1000/sdmmc-x1000-common.c
 target/mips/ingenic/spl-nand-ingenic.c
 target/mips/ingenic_x1000/erosqnative/hci-erosqnative.c
+target/mips/ingenic_x1000/erosqnative/wifi-erosqnative.c
+drivers/wifi/cyw43.c
 target/mips/ingenic_x1000/erosqnative/BCM4343A1_001.002.009.0122.0538.c
 
 #else /* defined(SIMULATOR) */

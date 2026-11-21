@@ -107,6 +107,40 @@ through `bde005189c` (Thiago Lugli's manager/menu/settings), cherry-picked with
 - Cost: firmware text +425 KB, `rockbox.zip` 2.4 -> 2.7 MB.
 - Tested on the owner's H2 (hw4): Bluetooth audio works.
 
+## Wi-Fi and internet radio
+
+- Chip: CYW43438 (AzureWave AW-NM372SM) on the X1000's MSC1 as SDIO; it shares
+  the 32 kHz clock with Bluetooth. Bus code (CMD52/53, DMA bounce buffer):
+  `firmware/target/mips/ingenic_x1000/erosqnative/wifi-erosqnative.c`.
+  Driver (brcmfmac-like bring-up, SDPCM/BCDC, escan, WPA2 through the
+  firmware supplicant, events): `firmware/drivers/wifi/cyw43.c`, API in
+  `firmware/export/wifi.h`. Firmware, CLM blob, NVRAM and the CA bundle are
+  in `firmware/drivers/wifi/firmware/` and go to `/.rockbox/wifi/` in the zip
+  (`tools/buildzip.pl`). The NVRAM is the generic AP6212 one, not the H2's.
+- `HAVE_WIFI` and `NET_HEAP_SIZE` (3 MiB TLSF heap for lwIP, TLS and stream
+  buffers) are in `config/erosqnative.h`; `WIFI_EXTRA_THREADS` in `thread.h`.
+- `lib/lwip/` (lwIP 2.2.1, NO_SYS=0 port in `port/`) and `lib/mbedtls/`
+  (Mbed TLS 3.6.7, TLS 1.2 client only, config `port/mbedtls_config_rb.h`).
+- `apps/net/`: `net_core.c` (heap, saved networks
+  `/.rockbox/wifi/networks.txt`, the "net" thread: auto-connect to the
+  strongest saved network, Wi-Fi off 60 s after the last `net_release()`),
+  `net_lwip.c` (netif, DHCP, DNS, SNTP for certificate dates only; the clock is
+  not set), `net_sim.c` (simulator: fake networks, host sockets), `tls.c`,
+  `http.c` (redirects, chunked, ICY headers).
+- `apps/radio/`: `radio.c` (stream thread, ICY metadata, 1 MiB ring buffer),
+  `radio_dir.c` (Radio Browser JSON, favourites
+  `/.rockbox/radio/favourites.m3u`, last station `last.m3u`, `/Radio` files),
+  `radio_ui.c` (Radio and Wi-Fi screens).
+- Playback reads a stream as a file: `firmware/common/vfile.c` lets
+  `open()`/`read()` on `/.radio/<n>.<ext>` reach the radio code, and
+  `metadata_stream_hooks` (lib/rbcodec/metadata) limit the metadata parser
+  to the start of the stream. Now Playing shows LIVE and blocks seeking for
+  these paths.
+- Simulator: `RB_RADIO_DIR=host:port` points the directory at a local test
+  server instead of radio-browser.info.
+- Status: chip bring-up and scan tested on an H2; join, DHCP, TLS and streaming were
+  tested in the simulator only when this was added.
+
 ## Tools
 
 `../newui-tools/` (outside the repo): `ifeval.py` (per-build #if

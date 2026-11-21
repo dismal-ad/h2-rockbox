@@ -54,6 +54,9 @@
 #include "wps.h"
 #include "bookmark.h"
 #include "playlist.h"
+#ifdef HAVE_WIFI
+#include "radio/radio_ui.h"
+#endif
 #include "playlist_viewer.h"
 #include "playlist_catalog.h"
 #include "menus/exported_menus.h"
@@ -325,11 +328,21 @@ static int wpsscrn(void* param)
                (unsigned long)global_status.resume_offset);
         if (playlist_resume() != -1)
         {
-            playlist_resume_track(global_status.resume_index,
-                global_status.resume_crc32,
-                global_status.resume_elapsed,
-                global_status.resume_offset);
-            ret_val = gui_wps_show();
+#ifdef HAVE_WIFI
+            if (radio_resume_is_station())
+            {
+                if (radio_resume_last())
+                    ret_val = gui_wps_show();
+            }
+            else
+#endif
+            {
+                playlist_resume_track(global_status.resume_index,
+                    global_status.resume_crc32,
+                    global_status.resume_elapsed,
+                    global_status.resume_offset);
+                ret_val = gui_wps_show();
+            }
         }
     }
     else if (!file_exists(PLAYLIST_CONTROL_FILE))

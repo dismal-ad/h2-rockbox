@@ -17,6 +17,10 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
+#include "config.h"
+#ifdef HAVE_WIFI
+#include "net/net.h"
+#endif
 #include <stdio.h>
 #include "config.h"
 #include "font.h"
@@ -113,6 +117,9 @@ static struct screen * sb_fill_bar_info(struct gui_statusbar * bar)
     bar->info.repeat = global_settings.repeat_mode;
     bar->info.playmode = current_playmode();
     bar->time = get_time();
+#ifdef HAVE_WIFI
+    bar->info.wifi = net_status_icon();
+#endif
 #ifdef HAVE_BLUETOOTH
     {
         enum bt_state st = bluetooth_get_state();
@@ -150,6 +157,9 @@ bool gui_statusbar_draw(struct gui_statusbar * bar, bool force_redraw, struct vi
             .charging = bar->info.charging,
 #ifdef HAVE_BLUETOOTH
             .bluetooth = bar->info.bluetooth,
+#endif
+#ifdef HAVE_WIFI
+            .wifi = bar->info.wifi,
 #endif
         };
         struct viewport *last_vp = display->set_viewport(vp);

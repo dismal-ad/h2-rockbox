@@ -17515,6 +17515,20 @@
   </voice>
 </phrase>
 <phrase>
+  id: LANG_NEWUI_RADIO
+  desc: new UI: Home entry that opens internet radio
+  user: core
+  <source>
+    *: "Radio"
+  </source>
+  <dest>
+    *: "Radio"
+  </dest>
+  <voice>
+    *: "Radio"
+  </voice>
+</phrase>
+<phrase>
   id: LANG_NEWUI_USB_CONNECTED
   desc: new UI: USB screen, the player is connected to a computer
   user: core

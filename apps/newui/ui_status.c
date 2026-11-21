@@ -141,6 +141,36 @@ static void draw_bluetooth(int x, unsigned c)
     }
 }
 
+/* Wi-Fi: a dot and three arcs, 13 x 11; grey while connecting */
+static void draw_wifi(int x, unsigned c)
+{
+    int cx = x + 6, by = GLYPH_Y + 11;
+    lcd_set_foreground(c);
+    ui_fill_rect(cx - 1, by - 2, 3, 2, c);
+    for (int r = 4; r <= 10; r += 3)
+    {
+        /* the upper quarter circles, two pixels thick */
+        for (int t = 0; t < 2; t++)
+        {
+            int rr = r + t, px = rr, py = 0, err = 1 - rr;
+            while (px >= py)
+            {
+                /* 45..135 degrees: the top of the circle */
+                lcd_drawpixel(cx + py, by - 1 - px);
+                lcd_drawpixel(cx - py, by - 1 - px);
+                py++;
+                if (err < 0)
+                    err += 2 * py + 1;
+                else
+                {
+                    px--;
+                    err += 2 * (py - px) + 1;
+                }
+            }
+        }
+    }
+}
+
 /* the charging bolt, 7 x 9, white with a dark edge */
 static void draw_bolt(int cx, int cy)
 {
@@ -259,6 +289,11 @@ void ui_status_draw(const struct ui_status *st)
     {
         x -= 16;
         draw_bluetooth(x, ui_accent());   /* Bluetooth is on */
+    }
+    if (st->wifi)
+    {
+        x -= 18;
+        draw_wifi(x, st->wifi == 2 ? UI_COL_STATUS : ui_col(UI_C_TEXT2));
     }
     if (titled)
     {

@@ -1267,11 +1267,50 @@ static bool dbg_nand_sys_usb(void)
 #endif
 
 /****** The menu *********/
+
+#if defined(HAVE_WIFI) && !defined(SIMULATOR)
+/* Wi-Fi test: does the radio module's Wi-Fi core answer on SDIO? */
+#include "wifi.h"
+
+static bool dbg_wifi_probe(void)
+{
+    static char log[2048];
+    struct simplelist_info info;
+
+    splash(0, "Probing Wi-Fi...");
+    wifi_debug_probe(log, sizeof(log));
+
+    int fd = open("/wifi_probe.txt", O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    if (fd >= 0) {
+        write(fd, log, strlen(log));
+        close(fd);
+    }
+
+    simplelist_info_init(&info, "Wi-Fi probe", 0, NULL);
+    simplelist_reset_lines();
+    char *line = log;
+    while (*line) {
+        char *nl = strchr(line, '\n');
+        if (nl)
+            *nl = '\0';
+        simplelist_addline("%s", line);
+        if (!nl)
+            break;
+        line = nl + 1;
+    }
+    info.scroll_all = true;
+    return simplelist_show_list(&info);
+}
+#endif
+
 static const struct {
     unsigned char *desc; /* string or ID */
     bool (*function) (void); /* return true if USB was connected */
 } menuitems[] = {
         { "New UI gallery", ui_gallery },
+#if defined(HAVE_WIFI) && !defined(SIMULATOR)
+        { "Wi-Fi probe (test)", dbg_wifi_probe },
+#endif
         { "View OS stacks", dbg_os },
 #ifdef __linux__
         { "View CPU stats", dbg_cpuinfo },

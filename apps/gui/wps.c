@@ -58,6 +58,9 @@
 #include "playlist_viewer.h"
 #include "wps.h"
 #include "newui/ui.h"
+#ifdef HAVE_WIFI
+#include "radio/radio.h"
+#endif
 
 #ifdef USB_ENABLE_AUDIO
 #include "usbstack/usb_audio.h"
@@ -551,6 +554,28 @@ static long do_party_mode(long action)
     return action;
 }
 
+#ifdef HAVE_WIFI
+/* A live stream can't seek */
+static long do_stream_mode(long action)
+{
+    struct mp3entry *id3 = audio_current_track();
+    if (!id3 || !radio_is_path(id3->path))
+        return action;
+    switch (action)
+    {
+        case ACTION_WPS_SEEKFWD:
+        case ACTION_WPS_SEEKBACK:
+        case ACTION_WPS_STOPSEEK:
+        case ACTION_WPS_SKIPPREV:
+        case ACTION_WPS_ABSETA_PREVDIR:
+        case ACTION_WPS_ABSETB_NEXTDIR:
+            return ACTION_NONE;
+        default:
+            return action;
+    }
+}
+#endif
+
 static inline int action_wpsab_single(long button)
 {
 /* The iPods/X5/M5 use a single button for the A-B mode markers,
@@ -654,6 +679,18 @@ long gui_wps_show(void)
         if (!(audio_status() & AUDIO_STATUS_PLAY))
             exit = true;
         button = do_party_mode(button); /* block select actions in party mode */
+#ifdef HAVE_WIFI
+        button = do_stream_mode(button);
+        {
+            /* a new title in the stream */
+            static unsigned last_title;
+            if (radio_title_gen() != last_title)
+            {
+                last_title = radio_title_gen();
+                np_full_update = true;
+            }
+        }
+#endif
 
         button = action_wpsab_single(button); /* iPods/X5/M5 */
 

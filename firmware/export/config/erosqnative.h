@@ -51,6 +51,11 @@
  * Writing them costs some battery and CPU while streaming. */
 /* #define BT_DEBUG */
 
+/* Wi-Fi (CYW43438 in the AW-NM372SM module, on SDIO): internet radio.
+ * The network heap holds lwIP's buffers, TLS and the stream buffers. */
+#define HAVE_WIFI
+#define NET_HEAP_SIZE      0x300000 /* 3 MiB */
+
 /* LCD defines */
 #define CONFIG_LCD   LCD_EROSQ
 #define LCD_WIDTH  320

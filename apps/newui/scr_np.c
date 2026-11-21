@@ -53,6 +53,9 @@
 #include "string-extra.h"
 #include "metadata.h"
 #include "ui.h"
+#ifdef HAVE_WIFI
+#include "radio/radio.h"
+#endif
 
 #define NP_ART         140     /* the cover is decoded at this size */
 #define NP_BAND_Y      NPL_BAND_Y /* redrawn on time updates */
@@ -189,6 +192,15 @@ static void draw_band(struct viewport *vp, const struct mp3entry *id3,
         pos = MAX(0, MIN(elapsed, len));
     format_mmss(left, sizeof(left), pos, false);
     format_mmss(right, sizeof(right), len - pos, true);
+#ifdef HAVE_WIFI
+    /* a live stream: the time listened and "LIVE", no position */
+    if (id3 && radio_is_path(id3->path))
+    {
+        format_mmss(left, sizeof(left), MAX(0, elapsed), false);
+        strmemccpy(right, "LIVE", sizeof(right));
+        pos = len = 0;
+    }
+#endif
 
     ui_fill_rect(0, NPL_BAND_Y, vp->width, band_h, UI_COL_BG);
     int lw = ui_text_width(font, "00:00"), rw = ui_text_width(font, "-00:00");
@@ -226,6 +238,19 @@ static void draw_cover_and_title(struct viewport *vp, const struct mp3entry *id3
     const char *artist = id3->artist && *id3->artist ? id3->artist :
                          id3->albumartist && *id3->albumartist ? id3->albumartist : NULL;
     const char *album = id3->album && *id3->album ? id3->album : NULL;
+#ifdef HAVE_WIFI
+    /* radio: the station, what it plays now, the format */
+    char fmt[32];
+    bool radio = radio_is_path(id3->path);
+    if (radio)
+    {
+        const struct radio_station *st = radio_current();
+        if (st && st->name[0])
+            title = st->name;
+        artist = radio_now_title()[0] ? radio_now_title() : NULL;
+        album = radio_format_text(fmt, sizeof(fmt));
+    }
+#endif
     int y = NPL_ART_Y + NPL_TEXT_Y;
     ui_text(tx, y, title_f, UI_COL_TEXT, title, text_w, -1);
     y += font_get(title_f)->height + 2;
@@ -242,6 +267,10 @@ static void draw_cover_and_title(struct viewport *vp, const struct mp3entry *id3
     char pos[24];
     snprintf(pos, sizeof(pos), "%d of %d",
              playlist_get_display_index(), playlist_amount());
+#ifdef HAVE_WIFI
+    if (radio)
+        strmemccpy(pos, "Internet radio", sizeof(pos));
+#endif
     ui_text(tx, y + 14, body, NP_ARTIST_COL, pos, text_w, -1);
 }
 

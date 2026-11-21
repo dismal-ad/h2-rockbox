@@ -57,6 +57,9 @@
 #include "tagcache.h"
 #include "sound.h"
 #include "playlist.h"
+#ifdef HAVE_WIFI
+#include "radio/radio_ui.h"
+#endif
 #include "yesno.h"
 #include "viewport.h"
 #include "list.h"
@@ -741,6 +744,14 @@ long default_event_handler_ex(long event, void (*callback)(void *), void *parame
             else
                 if (playlist_resume() != -1)
                 {
+#ifdef HAVE_WIFI
+                    /* a station can't be resumed: play it again */
+                    if (radio_resume_is_station())
+                    {
+                        radio_resume_last();
+                        return event;
+                    }
+#endif
                     playlist_start(global_status.resume_index,
                                    global_status.resume_elapsed,
                                    global_status.resume_offset);

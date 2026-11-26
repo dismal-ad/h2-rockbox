@@ -1,0 +1,56 @@
+# Builds the erosqnative firmware on every push to master and publishes
+# rockbox.zip as the rolling "snapshot" pre-release.
+name: snapshot
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: snapshot
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential texinfo automake libtool libtool-bin autoconf \
+            flex bison libgmp-dev libmpfr-dev libmpc-dev libisl-dev zip
+
+      - name: Cache MIPS toolchain
+        id: toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/rockbox-toolchain
+          key: toolchain-mipsel-${{ hashFiles('tools/rockboxdev.sh', 'tools/toolchain-patches/**') }}
+
+      - name: Build MIPS toolchain
+        if: steps.toolchain.outputs.cache-hit != 'true'
+        run: tools/rockboxdev.sh --target=i --prefix="$HOME/rockbox-toolchain" --makeflags="-j$(nproc)"
+
+      - name: Build firmware
+        run: |
+          export PATH=$HOME/rockbox-toolchain/bin:$PATH
+          mkdir build && cd build
+          ../tools/configure --target=erosqnative --type=n
+          make -j"$(nproc)"
+          make zip
+
+      - name: Publish snapshot release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git tag -f snapshot
+          git push -f origin snapshot
+          gh release delete snapshot --yes || true
+          gh release create snapshot build/rockbox.zip --prerelease --title "Snapshot ${GITHUB_SHA::10}" \
+            --notes "Firmware for the HiFi Walker H2 built from ${GITHUB_SHA}. Unzip to the SD card root over the existing .rockbox folder (unzip -o)."
